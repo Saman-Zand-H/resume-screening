@@ -2,3 +2,4 @@ Django~=5.1.1
 python-dotenv~=1.0.1
 psycopg2-binary~=2.9.9
 graphene-django~=3.2.2
+django-allauth~=64.2.1
