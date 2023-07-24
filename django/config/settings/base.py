@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "graphene_django",
     "allauth",
     "allauth.account",
+    "django_extensions",
 ]
 
 INSTALLED_APPS += [
