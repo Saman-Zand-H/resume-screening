@@ -88,9 +88,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "HOST": os.environ.get("DB_HOST", "localhost"),
-        "NAME": os.environ.get("DB_NAME", "jobseekers_api"),
-        "USER": os.environ.get("DB_USER", "jobseekers_api"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "jobseekers_api"),
+        "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
+        "USER": os.environ.get("DB_USER", "job_seekers_api"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
         "PORT": os.environ.get("DB_PORT", 5432),
     },
 }
