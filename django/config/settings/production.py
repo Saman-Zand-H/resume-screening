@@ -4,10 +4,12 @@ from .base import *  # noqa
 
 DEBUG = False
 
-SITE_DOMAIN = "cpj.ai"
+SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+
+ALLOWED_HOSTS = [SITE_DOMAIN]
 
 # SSL Configuration
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
