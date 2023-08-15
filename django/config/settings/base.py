@@ -175,7 +175,3 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
-
-# GRAPHQL_AUTH = {
-#     "LOGIN_ALLOWED_FIELDS": ["email", "username"],
-# }

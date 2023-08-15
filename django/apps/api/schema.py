@@ -1,6 +1,6 @@
 import graphene
-from account.schema import Query as AccountQuery
 from account.schema import Mutation as AccountMutation
+from account.schema import Query as AccountQuery
 
 
 class Query(AccountQuery, graphene.ObjectType):
