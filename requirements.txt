@@ -4,3 +4,5 @@ psycopg2-binary~=2.9.9
 graphene-django~=3.2.2
 django-allauth~=64.2.1
 django-extensions~=3.2.3
+django-graphql-auth==0.3.16
+django-graphql-jwt==0.4.0
