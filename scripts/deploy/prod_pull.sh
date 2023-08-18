@@ -4,7 +4,7 @@ source ./common.sh
 
 branch_name="$(sudo -u $USER_ID git -C $PROJECT_PATH rev-parse --abbrev-ref HEAD)"
 
-sudo -u $USER_ID git -C $PROJECT_PATH reset --hard origin/$branch_name || exit
+sudo -u $USER_ID git -C $PROJECT_PATH reset --hard $branch_name || exit
 sudo -u $USER_ID git -C $PROJECT_PATH checkout --force $branch_name || exit
 sudo -u $USER_ID git -C $PROJECT_PATH fetch -pP --tags --force || exit
 sudo -u $USER_ID git -C $PROJECT_PATH pull origin $(cut -d'/' -f3 <<<$branch_name) || exit
