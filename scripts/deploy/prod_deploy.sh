@@ -36,8 +36,8 @@ export DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE
 echo_log ">_ python3 $MANAGE_PATH collectstatic --noinput"
 python3 $MANAGE_PATH collectstatic --noinput
 echo_new_line
-echo_log ">_ python3 $MANAGE_PATH compilemessages"
-python3 $MANAGE_PATH compilemessages
+# echo_log ">_ python3 $MANAGE_PATH compilemessages"
+# python3 $MANAGE_PATH compilemessages
 echo_new_line
 echo_log ">_ python3 $MANAGE_PATH makemigrations auth"
 python3 $MANAGE_PATH makemigrations auth
