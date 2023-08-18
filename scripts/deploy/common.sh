@@ -10,7 +10,7 @@ export GROUP_ID="maintainers"
 export USER_HOME="/home/$USER_ID"
 export PROJECT_NAME="${PROJECT_NAME}"
 export SOURCE_DIRECTORY="$USER_HOME/$PROJECT_NAME/django"
-export DEPLOY_SCRIPTS_PATH="$PROJECT_PATH/utils/deploy"
+export DEPLOY_SCRIPTS_PATH="$PROJECT_PATH/scripts/deploy"
 export DEPLOY_SCRIPT_PATH="$DEPLOY_SCRIPTS_PATH/prod_deploy.sh"
 
 export GITLAB_URL="gitlab.com"
