@@ -5,3 +5,4 @@ graphene-django~=3.2.2
 django-allauth~=64.2.1
 django-extensions~=3.2.3
 django-graphene-auth~=1.1.1
+django-redis~=5.4.0
