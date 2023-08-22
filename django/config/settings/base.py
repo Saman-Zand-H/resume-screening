@@ -188,3 +188,40 @@ GRAPHQL_AUTH = {
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(hours=1),
 }
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APPS": [
+            {
+                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
+                "secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+                "key": "",
+            },
+        ],
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    },
+    "openid_connect": {
+        "APPS": [
+            {
+                "provider_id": "oidc_linkedin",
+                "name": "LinkedIn",
+                "client_id": os.environ.get("LINKEDIN_OAUTH_CLIENT_ID"),
+                "secret": os.environ.get("LINKEDIN_OAUTH_CLIENT_SECRET"),
+                "settings": {
+                    "server_url": "https://www.linkedin.com/oauth",
+                },
+            }
+        ]
+    },
+}
+
+
+# We need these lines below to allow the Google sign in popup to work.
+SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
