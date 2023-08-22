@@ -1,6 +1,6 @@
 import graphene
 from graphql_auth import mutations as graphql_auth_mutations
-from graphql_auth.queries import MeQuery, UserQuery
+from graphql_auth.schema import MeQuery, UserQuery
 
 
 class Query(UserQuery, MeQuery, graphene.ObjectType):
@@ -13,7 +13,7 @@ class Mutation(graphene.ObjectType):
     resend_activation_email = graphql_auth_mutations.ResendActivationEmail.Field()
     send_password_reset_email = graphql_auth_mutations.SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
-    password_set = graphql_auth_mutations.PasswordSet.Field()  # For passwordless registration
+    password_set = graphql_auth_mutations.PasswordSet.Field()
     password_change = graphql_auth_mutations.PasswordChange.Field()
     update_account = graphql_auth_mutations.UpdateAccount.Field()
     archive_account = graphql_auth_mutations.ArchiveAccount.Field()
