@@ -15,8 +15,11 @@ EMAIL_USE_TLS = True
 
 DEFAULT_FROM_EMAIL = ""
 
-
 ALLOWED_HOSTS = [SITE_DOMAIN]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://p.dev.cpjcompany.com/",
+]
 
 # SSL Configuration
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
