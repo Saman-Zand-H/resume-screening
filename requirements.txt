@@ -3,5 +3,6 @@ python-dotenv~=1.0.1
 psycopg2-binary~=2.9.9
 graphene-django~=3.2.2
 django-allauth~=64.2.1
+django-allauth[socialaccount]
 django-extensions~=3.2.3
 django-graphene-auth~=1.1.1
