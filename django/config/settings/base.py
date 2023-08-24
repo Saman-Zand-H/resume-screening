@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 import sys
 from pathlib import Path
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -40,6 +41,9 @@ INSTALLED_APPS = [
     "graphene_django",
     "allauth",
     "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.openid_connect",
     "django_extensions",
     "django_filters",
     "graphql_auth",
@@ -164,6 +168,7 @@ AUTHENTICATION_BACKENDS = [
 GRAPHQL_JWT = {
     "JWT_VERIFY_EXPIRATION": True,
     "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
+    "JWT_GET_USER_BY_NATURAL_KEY_HANDLER": "graphql_auth.utils.get_user_by_natural_key",
     "JWT_ALLOW_ANY_CLASSES": [
         "graphql_auth.mutations.Register",
         "graphql_auth.mutations.VerifyAccount",
@@ -177,3 +182,48 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
+
+GRAPHQL_AUTH = {
+    "LOGIN_ALLOWED_FIELDS": ["email"],
+    "ALLOW_LOGIN_NOT_VERIFIED": False,
+    "ALLOW_LOGIN_WITH_SECONDARY_EMAIL": False,
+    "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
+    "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(hours=1),
+}
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APPS": [
+            {
+                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
+                "secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+                "key": "",
+            },
+        ],
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    },
+    "openid_connect": {
+        "APPS": [
+            {
+                "provider_id": "oidc_linkedin",
+                "name": "LinkedIn",
+                "client_id": os.environ.get("LINKEDIN_OAUTH_CLIENT_ID"),
+                "secret": os.environ.get("LINKEDIN_OAUTH_CLIENT_SECRET"),
+                "settings": {
+                    "server_url": "https://www.linkedin.com/oauth",
+                },
+            }
+        ]
+    },
+}
+
+
+# We need these lines below to allow the Google sign in popup to work.
+SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
