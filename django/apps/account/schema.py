@@ -1,6 +1,19 @@
 import graphene
 from graphql_auth import mutations as graphql_auth_mutations
+from graphql_auth.forms import PasswordLessRegisterForm as PasswordLessRegisterFormBase
 from graphql_auth.queries import MeQuery
+
+from django.contrib.auth.hashers import make_password
+
+
+class PasswordLessRegisterForm(PasswordLessRegisterFormBase):
+    def clean(self):
+        self.cleaned_data["password1"] = self.cleaned_data["password2"] = make_password(None)
+        return super().clean()
+
+
+class Register(graphql_auth_mutations.Register):
+    form = PasswordLessRegisterForm
 
 
 class Query(MeQuery, graphene.ObjectType):
@@ -8,7 +21,7 @@ class Query(MeQuery, graphene.ObjectType):
 
 
 class Mutation(graphene.ObjectType):
-    register = graphql_auth_mutations.Register.Field()
+    register = Register.Field()
     verify_account = graphql_auth_mutations.VerifyAccount.Field()
     resend_activation_email = graphql_auth_mutations.ResendActivationEmail.Field()
     send_password_reset_email = graphql_auth_mutations.SendPasswordResetEmail.Field()
