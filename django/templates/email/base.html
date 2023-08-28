@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        .header img {
+            max-width: 150px;
+        }
+
+        .content {
+            padding: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 10px 0;
+            font-size: 12px;
+            color: #888888;
+        }
+
+        .footer a {
+            color: #888888;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://cpj.ai/wp-content/uploads/2024/07/cropped-image-1.png" alt="Logo">
+        </div>
+        <div class="content">
+            {% block content %}
+            <!-- Main content goes here -->
+            {% endblock %}
+        </div>
+        <div class="footer">
+            &copy; {{ current_year }} CPJ. All rights reserved.
+            <a href="{{ unsubscribe_link }}">Unsubscribe</a>
+        </div>
+    </div>
+</body>
+
+</html>
