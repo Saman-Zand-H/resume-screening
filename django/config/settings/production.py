@@ -6,7 +6,8 @@ DEBUG = False
 
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = os.environ.get("EMAIL_PORT", "")
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
