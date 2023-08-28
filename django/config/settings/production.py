@@ -18,7 +18,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ALLOWED_HOSTS = [SITE_DOMAIN]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://p.dev.cpjcompany.com/",
+    "https://p.dev.cpjcompany.com",
 ]
 
 # SSL Configuration
