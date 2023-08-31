@@ -179,7 +179,6 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifyToken",
         "graphql_auth.mutations.RefreshToken",
         "graphql_auth.mutations.RevokeToken",
-        "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
 
