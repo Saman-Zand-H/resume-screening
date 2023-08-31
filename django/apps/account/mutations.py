@@ -13,15 +13,6 @@ User = get_user_model()
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
 
-    token = graphene.String(description="The token required to verify account after registration")
-
-    @classmethod
-    def mutate(cls, *args, **kwargs):
-        response = super().mutate(*args, **kwargs)
-        if response.success:
-            response.token = get_token(User.objects.get(email=kwargs.get("email")), TokenAction.ACTIVATION)
-        return response
-
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
     token = graphene.String(description="The token required to set password after registration with password_reset")
