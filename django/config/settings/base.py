@@ -190,7 +190,9 @@ GRAPHQL_AUTH = {
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
+    "EMAIL_ASYNC_TASK": "apps.account.tasks.graphql_auth_async_email",
 }
+
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
