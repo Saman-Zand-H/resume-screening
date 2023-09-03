@@ -48,3 +48,5 @@ echo_new_line
 
 echo_log ">_ sudo systemctl restart $GUNICORN_BASE_NAME.service"
 sudo systemctl restart $GUNICORN_BASE_NAME.service
+echo_log ">_ sudo systemctl restart $CELERY_BASE_NAME.service"
+sudo systemctl restart $CELERY_BASE_NAME.service

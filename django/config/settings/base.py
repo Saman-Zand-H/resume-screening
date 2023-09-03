@@ -179,7 +179,6 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifyToken",
         "graphql_auth.mutations.RefreshToken",
         "graphql_auth.mutations.RevokeToken",
-        "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
 
@@ -190,7 +189,7 @@ GRAPHQL_AUTH = {
     "ALLOW_PASSWORDLESS_REGISTRATION": True,
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
-    "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(hours=1),
+    "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
 }
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -229,3 +228,7 @@ SOCIALACCOUNT_PROVIDERS = {
 # We need these lines below to allow the Google sign in popup to work.
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
 SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+CELERY_BROKER_URL = REDIS_URL

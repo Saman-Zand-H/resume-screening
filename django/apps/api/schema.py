@@ -1,27 +1,9 @@
 import graphene
-from account.schema import Mutation as AccountMutation
-from account.schema import Query as AccountQuery
+from account.mutations import Mutation as AccountMutation
+from account.queries import Query as AccountQuery
 
-
-class AddNumber(graphene.Mutation):
-    class Arguments:
-        number = graphene.Int()
-
-    sum = graphene.Int()
-
-    def mutate(self, info, number):
-        return AddNumber(sum=number + 1)
-
-
-class TestQuery(graphene.ObjectType):
-    ping = graphene.String()
-
-    def resolve_ping(self, info):
-        return "pong"
-
-
-class TestMutation(graphene.ObjectType):
-    add_number = AddNumber.Field()
+from .mutations import Mutation as TestMutation
+from .queries import Query as TestQuery
 
 
 class Query(AccountQuery, TestQuery, graphene.ObjectType):

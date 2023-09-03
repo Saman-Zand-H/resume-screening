@@ -10,3 +10,5 @@ django-redis~=5.4.0
 gunicorn~=23.0.0
 uvicorn~=0.30.6
 django-cors-headers~=4.4.0
+celery~=5.4.0
+graphene-django-query-optimizer~=0.10.1
