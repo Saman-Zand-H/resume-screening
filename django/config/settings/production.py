@@ -32,7 +32,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{REDIS_URL}/1",
+        "LOCATION": f"{REDIS_URL}/1",  # noqa
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
@@ -40,3 +40,5 @@ CACHES = {
         },
     }
 }
+
+GRAPHQL_AUTH["EMAIL_ASYNC_TASK"] = "apps.account.tasks.graphql_auth_async_email"  # noqa
