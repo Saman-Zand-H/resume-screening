@@ -9,7 +9,7 @@ from rest_framework.serializers import ValidationError
 from django.contrib.auth import get_user_model
 
 from .forms import PasswordLessRegisterForm
-from .views import GoogleOAuth2View
+from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 User = get_user_model()
 
@@ -30,20 +30,27 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         return response
 
 
-class GoogleAuth(SuccessErrorsOutput, graphene.Mutation):
+class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
 
     token = graphene.String()
     refresh_token = graphene.String()
 
+    data = None
+    view = None
+
     @classmethod
-    def mutate(cls, root, info, code, **kwargs):
-        data = {"code": code}
+    def setup(cls, root, info, **kwargs):
+        pass
+
+    @classmethod
+    def mutate(cls, root, info, **kwargs):
+        cls.setup(root, info, **kwargs)
         try:
-            auth = GoogleOAuth2View.serializer_class(
-                data=data, context={"view": GoogleOAuth2View, "request": info.context}
-            ).validate(data)
+            auth = cls.view.serializer_class(
+                data=cls.data, context={"view": cls.view, "request": info.context}
+            ).validate(cls.data)
         except ValidationError as e:
             return cls(success=False, errors={"code": e.detail})
         user = auth.get("user")
@@ -52,30 +59,24 @@ class GoogleAuth(SuccessErrorsOutput, graphene.Mutation):
         on_token_auth_resolve((info.context, user, cls))
         cls.success = True
         cls.errors = None
-        return cls
+        return cls()
 
 
-class LinkedInAuth(SuccessErrorsOutput, graphene.Mutation):
-    class Arguments:
-        code = graphene.String(required=True)
+class GoogleAuth(BaseSocialAuth):
+    @classmethod
+    def setup(cls, root, info, code):
+        cls.data = {"code": code}
+        cls.view = GoogleOAuth2View
 
-    token = graphene.String()
-    refresh_token = graphene.String()
+
+class LinkedInAuth(BaseSocialAuth):
+    class Arguments(BaseSocialAuth.Arguments):
+        redirect_uri = graphene.String(required=True)
 
     @classmethod
-    def mutate(cls, root, info, code, **kwargs):
-        data = {"code": code}
-
-        # try:
-        #     auth = GoogleOAuth2View.serializer_class(
-        #         data=data, context={"view": GoogleOAuth2View, "request": info.context}
-        #     ).validate(data)
-        # except ValidationError as e:
-        #     return cls(success=False, errors={"code": e.detail})
-        # on_token_auth_resolve((info.context, auth.get("user"), cls))
-        cls.success = True
-        cls.errors = None
-        return cls
+    def setup(cls, root, info, code, **kwargs):
+        cls.data = {"code": code}
+        cls.view = type("View", (LinkedInOAuth2View,), {"callback_url": kwargs.get("redirect_uri")})
 
 
 class Mutation(graphene.ObjectType):
@@ -90,4 +91,4 @@ class Mutation(graphene.ObjectType):
     refresh_token = graphql_auth_mutations.RefreshToken.Field()
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
     google_auth = GoogleAuth.Field()
-    # linkedin_auth = LinkedInAuth.Field()
+    linkedin_auth = LinkedInAuth.Field()
