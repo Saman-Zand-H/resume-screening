@@ -57,7 +57,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         on_token_auth_resolve((info.context, user, cls))
         cls.success = True
         cls.errors = None
-        return cls()
+        return cls
 
 
 class GoogleAuth(BaseSocialAuth):
