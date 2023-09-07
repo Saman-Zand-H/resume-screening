@@ -37,20 +37,18 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
     token = graphene.String()
     refresh_token = graphene.String()
 
-    data = None
-    view = None
-
     @classmethod
     def setup(cls, root, info, **kwargs):
-        pass
+        return NotImplemented
 
     @classmethod
     def mutate(cls, root, info, **kwargs):
-        cls.setup(root, info, **kwargs)
+        payload = cls.setup(root, info, **kwargs)
+        data = payload.get("data")
+        view = payload.get("view")
+
         try:
-            auth = cls.view.serializer_class(
-                data=cls.data, context={"view": cls.view, "request": info.context}
-            ).validate(cls.data)
+            auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
         except ValidationError as e:
             return cls(success=False, errors={"code": e.detail})
         user = auth.get("user")
@@ -65,8 +63,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
 class GoogleAuth(BaseSocialAuth):
     @classmethod
     def setup(cls, root, info, code):
-        cls.data = {"code": code}
-        cls.view = GoogleOAuth2View
+        return {"data": {"code": code}, "view": GoogleOAuth2View}
 
 
 class LinkedInAuth(BaseSocialAuth):
@@ -75,8 +72,10 @@ class LinkedInAuth(BaseSocialAuth):
 
     @classmethod
     def setup(cls, root, info, code, **kwargs):
-        cls.data = {"code": code}
-        cls.view = type("View", (LinkedInOAuth2View,), {"callback_url": kwargs.get("redirect_uri")})
+        return {
+            "data": {"code": code},
+            "view": type("View", (LinkedInOAuth2View,), {"callback_url": kwargs.get("redirect_uri")}),
+        }
 
 
 class Mutation(graphene.ObjectType):
