@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     "graphene_django",
     "allauth",
     "allauth.account",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "dj_rest_auth",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.openid_connect",
@@ -190,7 +193,13 @@ GRAPHQL_AUTH = {
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
-    "EMAIL_ASYNC_TASK": "apps.account.tasks.graphql_auth_async_email",
+    "EMAIL_TEMPLATE_VARIABLES": {
+        "frontend_url": os.environ.get("FRONTEND_URL", "http://localhost:5173"),
+        "frontend_url_account_verify": os.environ.get("FRONTEND_URL_ACCOUNT_VERIFY", "/auth/verify"),
+        "frontend_url_password_reset": os.environ.get(
+            "FRONTEND_URL_PASSWORD_RESET", "/auth/reset-password/set-password"
+        ),
+    },
 }
 
 
@@ -226,6 +235,8 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 
+SOCIALACCOUNT_ADAPTER = "account.adapters.SocialAccountAdapter"
+HEADLESS_ONLY = True
 
 # We need these lines below to allow the Google sign in popup to work.
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
