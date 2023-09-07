@@ -236,6 +236,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 SOCIALACCOUNT_ADAPTER = "account.adapters.SocialAccountAdapter"
+HEADLESS_ONLY = True
 
 # We need these lines below to allow the Google sign in popup to work.
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
