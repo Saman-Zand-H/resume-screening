@@ -46,7 +46,10 @@ class GoogleAuth(SuccessErrorsOutput, graphene.Mutation):
             ).validate(data)
         except ValidationError as e:
             return cls(success=False, errors={"code": e.detail})
-        on_token_auth_resolve((info.context, auth.get("user"), cls))
+        user = auth.get("user")
+        user.status.verified = True
+        user.status.save(update_fields=["verified"])
+        # on_token_auth_resolve((info.context, user, cls))
         cls.success = True
         cls.errors = None
         return cls
