@@ -1,11 +1,15 @@
 import graphene
 from graphql_auth import mutations as graphql_auth_mutations
+from graphql_auth.bases import SuccessErrorsOutput
 from graphql_auth.constants import TokenAction
 from graphql_auth.utils import get_token, get_token_payload
+from graphql_jwt.decorators import on_token_auth_resolve
+from rest_framework.serializers import ValidationError
 
 from django.contrib.auth import get_user_model
 
 from .forms import PasswordLessRegisterForm
+from .views import GoogleOAuth2View
 
 User = get_user_model()
 
@@ -26,6 +30,51 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         return response
 
 
+class GoogleAuth(SuccessErrorsOutput, graphene.Mutation):
+    class Arguments:
+        code = graphene.String(required=True)
+
+    token = graphene.String()
+    refresh_token = graphene.String()
+
+    @classmethod
+    def mutate(cls, root, info, code, **kwargs):
+        data = {"code": code}
+        try:
+            auth = GoogleOAuth2View.serializer_class(
+                data=data, context={"view": GoogleOAuth2View, "request": info.context}
+            ).validate(data)
+        except ValidationError as e:
+            return cls(success=False, errors={"code": e.detail})
+        on_token_auth_resolve((info.context, auth.get("user"), cls))
+        cls.success = True
+        cls.errors = None
+        return cls
+
+
+class LinkedInAuth(SuccessErrorsOutput, graphene.Mutation):
+    class Arguments:
+        code = graphene.String(required=True)
+
+    token = graphene.String()
+    refresh_token = graphene.String()
+
+    @classmethod
+    def mutate(cls, root, info, code, **kwargs):
+        data = {"code": code}
+
+        # try:
+        #     auth = GoogleOAuth2View.serializer_class(
+        #         data=data, context={"view": GoogleOAuth2View, "request": info.context}
+        #     ).validate(data)
+        # except ValidationError as e:
+        #     return cls(success=False, errors={"code": e.detail})
+        # on_token_auth_resolve((info.context, auth.get("user"), cls))
+        cls.success = True
+        cls.errors = None
+        return cls
+
+
 class Mutation(graphene.ObjectType):
     register = Register.Field()
     verify_account = VerifyAccount.Field()
@@ -37,3 +86,5 @@ class Mutation(graphene.ObjectType):
     verify_token = graphql_auth_mutations.VerifyToken.Field()
     refresh_token = graphql_auth_mutations.RefreshToken.Field()
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
+    google_auth = GoogleAuth.Field()
+    # linkedin_auth = LinkedInAuth.Field()

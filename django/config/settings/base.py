@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     "graphene_django",
     "allauth",
     "allauth.account",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "dj_rest_auth",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.openid_connect",
@@ -232,6 +235,7 @@ SOCIALACCOUNT_PROVIDERS = {
     },
 }
 
+SOCIALACCOUNT_ADAPTER = "account.adapters.SocialAccountAdapter"
 
 # We need these lines below to allow the Google sign in popup to work.
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
