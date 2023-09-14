@@ -187,9 +187,8 @@ GRAPHQL_JWT = {
 
 GRAPHQL_AUTH = {
     "LOGIN_ALLOWED_FIELDS": ["email"],
-    "ALLOW_LOGIN_NOT_VERIFIED": False,
+    "ALLOW_LOGIN_NOT_VERIFIED": True,
     "ALLOW_LOGIN_WITH_SECONDARY_EMAIL": False,
-    "ALLOW_PASSWORDLESS_REGISTRATION": True,
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
@@ -207,8 +206,8 @@ SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [
             {
-                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
-                "secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+                "client_id": "291860381370-5edd58ekvbiu2c4s30pka7fnqiuql71q.apps.googleusercontent.com",
+                "secret": "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",
                 "key": "",
             },
         ],
@@ -225,8 +224,8 @@ SOCIALACCOUNT_PROVIDERS = {
             {
                 "provider_id": "linkedin",
                 "name": "LinkedIn",
-                "client_id": os.environ.get("LINKEDIN_OAUTH_CLIENT_ID"),
-                "secret": os.environ.get("LINKEDIN_OAUTH_CLIENT_SECRET"),
+                "client_id": "86u7vhd9pki7zb",
+                "secret": "WPL_AP1.REMbXvGR6M2YShrC.LfeAtQ==",
                 "settings": {
                     "server_url": "https://www.linkedin.com/oauth",
                 },

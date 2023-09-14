@@ -1,33 +1,14 @@
 import graphene
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
-from graphql_auth.constants import TokenAction
-from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
 from rest_framework.serializers import ValidationError
 
 from django.contrib.auth import get_user_model
 
-from .forms import PasswordLessRegisterForm
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 User = get_user_model()
-
-
-class Register(graphql_auth_mutations.Register):
-    form = PasswordLessRegisterForm
-
-
-class VerifyAccount(graphql_auth_mutations.VerifyAccount):
-    token = graphene.String(description="The token required to set password after registration with password_reset")
-
-    @classmethod
-    def mutate(cls, *args, **kwargs):
-        response = super().mutate(*args, **kwargs)
-        if response.success:
-            payload = get_token_payload(kwargs.get("token"), TokenAction.ACTIVATION, None)
-            response.token = get_token(User.objects.get(**payload), TokenAction.PASSWORD_RESET)
-        return response
 
 
 class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
@@ -51,6 +32,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
             auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
         except ValidationError as e:
             return cls(success=False, errors={"code": e.detail})
+
         user = auth.get("user")
         user.status.verified = True
         user.status.save(update_fields=["verified"])
@@ -79,8 +61,8 @@ class LinkedInAuth(BaseSocialAuth):
 
 
 class Mutation(graphene.ObjectType):
-    register = Register.Field()
-    verify_account = VerifyAccount.Field()
+    register = graphql_auth_mutations.Register.Field()
+    verify_account = graphql_auth_mutations.VerifyAccount.Field()
     resend_activation_email = graphql_auth_mutations.ResendActivationEmail.Field()
     send_password_reset_email = graphql_auth_mutations.SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
