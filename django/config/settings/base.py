@@ -191,7 +191,7 @@ GRAPHQL_AUTH = {
     "ALLOW_LOGIN_WITH_SECONDARY_EMAIL": False,
     "ALLOW_PASSWORDLESS_REGISTRATION": True,
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
-    "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
+    "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=1),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
     "EMAIL_TEMPLATE_VARIABLES": {
         "frontend_url": os.environ.get("FRONTEND_URL", "http://localhost:5173"),

@@ -1,12 +1,16 @@
 import graphene
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
-from graphql_auth.constants import TokenAction
+from graphql_auth.constants import Messages, TokenAction
+from graphql_auth.exceptions import EmailAlreadyInUseError
+from graphql_auth.models import UserStatus
+from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
 from rest_framework.serializers import ValidationError
 
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
 from .views import GoogleOAuth2View, LinkedInOAuth2View
@@ -16,6 +20,22 @@ User = get_user_model()
 
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        email = kwargs.get(User.EMAIL_FIELD)
+        try:
+            UserStatus.clean_email(email)
+        except EmailAlreadyInUseError:
+            user = User.objects.get(**{User.EMAIL_FIELD: email})
+            if (
+                not user.status.verified
+                and user.last_login is None
+                and user.date_joined + graphql_auth_settings.EXPIRATION_ACTIVATION_TOKEN < timezone.now()
+            ):
+                user.delete()
+
+        return super().mutate(*args, **kwargs)
 
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
