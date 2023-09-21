@@ -65,7 +65,6 @@ def graphql_auth_async_email(func, args):
     user_email = func.__self__.user.email
 
     info = args[0]
-    # arg[1] is optional and would be the argument for email addresses
     arg = args[1] if len(args) == 2 else None
 
     serializable_context = SerializableContext(info.context)
