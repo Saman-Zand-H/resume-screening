@@ -52,7 +52,7 @@ class UserProfile(models.Model):
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
     full_body_image = models.ImageField(
-        upload_to="profile_images/",
+        upload_to=full_body_image_path,
         validators=[ValidateFileSize(5)],
         null=True,
         blank=True,
