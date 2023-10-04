@@ -55,6 +55,7 @@ INSTALLED_APPS = [
 ]
 
 INSTALLED_APPS += [
+    "common",
     "api",
     "account",
 ]
