@@ -6,7 +6,7 @@ from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
-from .models import User
+from .models import User, UserProfile
 
 
 @register(User)
@@ -42,3 +42,11 @@ class UserStatusAdmin(admin.ModelAdmin):
     list_display = ("user", "verified", "archived", "secondary_email")
     search_fields = ("user__email",)
     list_filter = ("verified", "archived")
+
+
+@register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
+    search_fields = ("user__email", "job__name")
+    list_filter = ("skin_color", "eye_color")
+    raw_id_fields = ("user", "job")
