@@ -1,4 +1,5 @@
 from colorfield.fields import ColorField
+from common.models import Job
 from common.validators import ValidateFileSize
 
 from django.contrib.auth.models import AbstractUser
@@ -19,7 +20,7 @@ User._meta.get_field("username").null = True
 
 
 def full_body_image_path(instance, filename):
-    return f"full_body_images/{instance.user.id}/{filename}"
+    return f"profile/{instance.user.id}/full_body_image/{filename}"
 
 
 class UserProfile(models.Model):
@@ -58,6 +59,7 @@ class UserProfile(models.Model):
         blank=True,
         verbose_name=_("Full Body Image"),
     )
+    job = models.ManyToManyField(Job, verbose_name=_("Job"), blank=True)
 
     class Meta:
         verbose_name = _("User Profile")
