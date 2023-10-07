@@ -39,9 +39,21 @@ class Job(models.Model):
         return self.title
 
 
+class Field(models.Model):
+    name = models.CharField(max_length=255, verbose_name=_("Field"))
+
+    class Meta:
+        verbose_name = _("Field")
+        verbose_name_plural = _("Fields")
+
+    def __str__(self):
+        return self.name
+
+
 class University(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"))
+    website = models.URLField(verbose_name=_("Website"))
 
     class Meta:
         verbose_name = _("University")

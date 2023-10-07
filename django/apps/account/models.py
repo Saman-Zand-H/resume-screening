@@ -1,11 +1,35 @@
 from colorfield.fields import ColorField
-from common.models import Job, University
-from common.validators import ValidateFileSize
+from common.models import Field, Job, University
+from common.validators import (
+    DOCUMENT_FILE_EXTENSION_VALIDATOR,
+    DOCUMENT_FILE_SIZE_VALIDATOR,
+    IMAGE_FILE_SIZE_VALIDATOR,
+)
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+def full_body_image_path(instance, filename):
+    return f"profile/{instance.user.id}/full_body_image/{filename}"
+
+
+def get_education_verification_path(path, instance, filename):
+    return f"profile/{instance.education.user.id}/education_verification/{path}/{filename}"
+
+
+def ices_document_path(instance, filename):
+    return get_education_verification_path("ices", instance, filename)
+
+
+def citizen_document_path(instance, filename):
+    return get_education_verification_path("citizen", instance, filename)
+
+
+def degree_file_path(instance, filename):
+    return get_education_verification_path("degree", instance, filename)
 
 
 class UserManager(BaseUserManager):
@@ -30,10 +54,6 @@ User._meta.get_field("email").blank = False
 User._meta.get_field("email").null = False
 User._meta.get_field("username").blank = True
 User._meta.get_field("username").null = True
-
-
-def full_body_image_path(instance, filename):
-    return f"profile/{instance.user.id}/full_body_image/{filename}"
 
 
 class UserProfile(models.Model):
@@ -67,7 +87,7 @@ class UserProfile(models.Model):
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
     full_body_image = models.ImageField(
         upload_to=full_body_image_path,
-        validators=[ValidateFileSize(5)],
+        validators=[IMAGE_FILE_SIZE_VALIDATOR],
         null=True,
         blank=True,
         verbose_name=_("Full Body Image"),
@@ -82,31 +102,20 @@ class UserProfile(models.Model):
         return self.user.email
 
 
-class Field(models.Model):
-    name = models.CharField(max_length=255, verbose_name=_("Field"))
-
-    class Meta:
-        verbose_name = _("Field")
-        verbose_name_plural = _("Fields")
-
-    def __str__(self):
-        return self.name
-
-
 class Education(models.Model):
     class DegreeChoices(models.TextChoices):
-        BACHELORS = "Bachelors", _("Bachelors")
-        MASTERS = "Masters", _("Masters")
-        PHD = "PhD", _("PhD")
-        ASSOCIATE = "Associate", _("Associate")
-        DIPLOMA = "Diploma", _("Diploma")
-        CERTIFICATE = "Certificate", _("Certificate")
+        BACHELORS = "bachelors", _("Bachelors")
+        MASTERS = "masters", _("Masters")
+        PHD = "phd", _("PhD")
+        ASSOCIATE = "associate", _("Associate")
+        DIPLOMA = "diploma", _("Diploma")
+        CERTIFICATE = "certificate", _("Certificate")
 
     class StatusChoices(models.TextChoices):
-        VERIFIED = "Verified", _("Verified")
-        REJECTED = "Rejected", _("Rejected")
-        PENDING = "Pending", _("Pending")
-        DRAFT = "Draft", _("Draft")
+        VERIFIED = "verified", _("Verified")
+        REJECTED = "rejected", _("Rejected")
+        PENDING = "pending", _("Pending")
+        DRAFT = "draft", _("Draft")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
@@ -132,3 +141,77 @@ class Education(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.degree} in {self.field.name}"
+
+
+class EducationVerification(models.Model):
+    class MethodChoices(models.TextChoices):
+        IEE = (
+            "iee",
+            _("International Education Evaluation"),
+        )
+        COMMUNICATION = "communication", _("Communication")
+        SELF_VERIFICATION = "self_verification", _("Self Verification")
+
+    education = models.ForeignKey(Education, on_delete=models.CASCADE, verbose_name=_("Education"))
+    method = models.CharField(max_length=50, choices=MethodChoices.choices, verbose_name=_("Verification Method"))
+
+    is_verified = models.BooleanField(default=False, verbose_name=_("Is Verified"))
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+
+    class Meta:
+        verbose_name = _("Education Verification")
+        verbose_name_plural = _("Education Verifications")
+
+    def __str__(self):
+        return f"{self.education.user.email} - {self.education.degree} Verification"
+
+
+class EducationVerificationMethodAbstract(models.Model):
+    education_verification = models.OneToOneField(
+        EducationVerification,
+        on_delete=models.CASCADE,
+        verbose_name=_("Education Verification"),
+    )
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.education_verification.education.user.email} - {self.education_verification.education.degree} Verification"
+
+
+class IEEMethod(EducationVerificationMethodAbstract):
+    class EvaluatorChoices(models.TextChoices):
+        WES = "wes", _("World Education Services")
+        IQAS = "iqas", _("International Qualifications Assessment Service")
+        ICAS = "icas", _("International Credential Assessment Service of Canada")
+        CES = "ces", _("Comparative Education Service")
+
+    ices_document = models.FileField(
+        upload_to=ices_document_path,
+        verbose_name=_("ICES Document"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+    citizen_document = models.FileField(
+        upload_to=citizen_document_path,
+        verbose_name=_("Citizen Document"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+    evaluator = models.CharField(
+        max_length=50,
+        choices=EvaluatorChoices.choices,
+        verbose_name=_("Academic Credential Evaluator"),
+    )
+
+
+class CommunicationMethod(EducationVerificationMethodAbstract):
+    email = models.EmailField(verbose_name=_("Email"))
+    department = models.CharField(max_length=255, verbose_name=_("Department"))
+    person = models.CharField(max_length=255, verbose_name=_("Person"))
+    degree_file = models.FileField(
+        upload_to=degree_file_path,
+        verbose_name=_("Degree File"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
