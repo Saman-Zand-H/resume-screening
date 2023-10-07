@@ -3,13 +3,26 @@ from common.models import Job, University
 from common.validators import ValidateFileSize
 
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, **kwargs):
+        kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
+        return super().create_user(**kwargs)
+
+    def create_superuser(self, **kwargs):
+        kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
+        return super().create_superuser(**kwargs)
 
 
 class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+    objects = UserManager()
 
 
 User._meta.get_field("email")._unique = True
