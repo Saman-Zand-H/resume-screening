@@ -205,6 +205,10 @@ class IEEMethod(EducationVerificationMethodAbstract):
         verbose_name=_("Academic Credential Evaluator"),
     )
 
+    class Meta:
+        verbose_name = _("International Education Evaluation Method")
+        verbose_name_plural = _("International Education Evaluation Methods")
+
 
 class CommunicationMethod(EducationVerificationMethodAbstract):
     email = models.EmailField(verbose_name=_("Email"))
@@ -215,3 +219,7 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         verbose_name=_("Degree File"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
+
+    class Meta:
+        verbose_name = _("Communication Method")
+        verbose_name_plural = _("Communication Methods")
