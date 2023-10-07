@@ -1,3 +1,5 @@
+from cities_light.models import City
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -35,3 +37,15 @@ class Job(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class University(models.Model):
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"))
+
+    class Meta:
+        verbose_name = _("University")
+        verbose_name_plural = _("Universities")
+
+    def __str__(self):
+        return self.name
