@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "corsheaders",
     "colorfield",
+    "cities_light",
 ]
 
 INSTALLED_APPS += [
