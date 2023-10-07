@@ -1,7 +1,7 @@
 import graphene
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
-from graphql_auth.constants import Messages, TokenAction
+from graphql_auth.constants import TokenAction
 from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings

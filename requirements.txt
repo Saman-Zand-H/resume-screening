@@ -14,3 +14,5 @@ celery~=5.4
 graphene-django-query-optimizer~=0.10
 dj-rest-auth~=6.0
 django-colorfield~=0.11
+graphene-django-cud~=0.13
+graphene-file-upload~=1.3

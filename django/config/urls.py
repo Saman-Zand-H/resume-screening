@@ -1,5 +1,5 @@
 from apps.api.schema import schema
-from graphene_django.views import GraphQLView
+from graphene_file_upload.django import FileUploadGraphQLView as GraphQLView
 
 from django.conf import settings
 from django.conf.urls.static import static
