@@ -114,7 +114,7 @@ class AccountMutation(graphene.ObjectType):
 
 
 class Mutation(graphene.ObjectType):
-    account = graphene.Field(AccountMutation)
+    account = graphene.Field(AccountMutation, required=True)
 
     def resolve_account(self, *args, **kwargs):
         return AccountMutation()
