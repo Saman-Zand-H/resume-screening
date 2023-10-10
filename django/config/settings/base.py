@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "graphene_django",
     "allauth",
+    "allauth.account",
     "rest_framework",
     "rest_framework.authtoken",
     "dj_rest_auth",
@@ -56,7 +57,6 @@ INSTALLED_APPS = [
 ]
 
 INSTALLED_APPS += [
-    "allauth_account",
     "common",
     "api",
     "account",
@@ -165,7 +165,7 @@ FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = "account.User"
+AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
