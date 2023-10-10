@@ -1,9 +1,10 @@
 import graphene
 from account.mutations import Mutation as AccountMutation
 from account.queries import Query as AccountQuery
+from common.queries import Query as CommonQuery
 
 
-class Query(AccountQuery, graphene.ObjectType):
+class Query(AccountQuery, CommonQuery, graphene.ObjectType):
     pass
 
 
