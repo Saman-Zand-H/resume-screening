@@ -165,7 +165,7 @@ FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = "accounts.User"
+AUTH_USER_MODEL = "auth_account.User"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
