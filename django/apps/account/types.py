@@ -1,8 +1,8 @@
 import graphene
+from common.types import JobType
 from graphene_django.types import DjangoObjectType
 
 from .models import UserProfile
-from common.types import JobType
 
 
 class UserProfileType(DjangoObjectType):
