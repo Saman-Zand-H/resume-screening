@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import UserProfile
+from .models import Profile
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 User = get_user_model()
@@ -103,20 +103,15 @@ class LinkedInAuth(BaseSocialAuth):
 
 class UpdateUserProfileMutation(DjangoUpdateMutation):
     class Meta:
-        model = UserProfile
+        model = Profile
         login_required = True
         exclude = ("user",)
-        # many_to_many_extras = {
-        #     'job': {
-        #         'by_id': {"type": "ID"}
-        #     }
-        # }
 
         @classmethod
         def mutate(cls, root, info, input, id):
             user = info.context.user
 
-            if not UserProfile.objects.filter(user=user).exists():
+            if not Profile.objects.filter(user=user).exists():
                 raise GraphQLError("UserProfile does not exist for this user.")
 
             input["user"] = user.id
@@ -126,7 +121,7 @@ class UpdateUserProfileMutation(DjangoUpdateMutation):
 
 class CreateUserProfileMutation(DjangoCreateMutation):
     class Meta:
-        model = UserProfile
+        model = Profile
         login_required = True
         exclude = ("user",)
 
@@ -134,7 +129,7 @@ class CreateUserProfileMutation(DjangoCreateMutation):
         def mutate(cls, root, info, input):
             user = info.context.user
 
-            if UserProfile.objects.filter(user=user).exists():
+            if Profile.objects.filter(user=user).exists():
                 raise GraphQLError("UserProfile already exists for this user.")
 
             input["user"] = user.id

@@ -11,8 +11,8 @@ from .models import (
     Education,
     EducationVerification,
     IEEMethod,
+    Profile,
     User,
-    UserProfile,
 )
 
 
@@ -52,8 +52,8 @@ class UserStatusAdmin(admin.ModelAdmin):
     raw_id_fields = ("user",)
 
 
-@register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
+@register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
     search_fields = ("user__email", "job__name")
     list_filter = ("skin_color", "eye_color")

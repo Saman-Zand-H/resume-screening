@@ -56,7 +56,7 @@ User._meta.get_field("username").blank = True
 User._meta.get_field("username").null = True
 
 
-class UserProfile(models.Model):
+class Profile(models.Model):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", "Very Fair"
         FAIR = "#F0D5B1", "Fair"
@@ -103,7 +103,7 @@ class UserProfile(models.Model):
 
 
 class Education(models.Model):
-    class DegreeChoices(models.TextChoices):
+    class Degree(models.TextChoices):
         BACHELORS = "bachelors", _("Bachelors")
         MASTERS = "masters", _("Masters")
         PHD = "phd", _("PhD")
@@ -111,7 +111,7 @@ class Education(models.Model):
         DIPLOMA = "diploma", _("Diploma")
         CERTIFICATE = "certificate", _("Certificate")
 
-    class StatusChoices(models.TextChoices):
+    class Status(models.TextChoices):
         VERIFIED = "verified", _("Verified")
         REJECTED = "rejected", _("Rejected")
         PENDING = "pending", _("Pending")
@@ -119,15 +119,15 @@ class Education(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
-    degree = models.CharField(max_length=50, choices=DegreeChoices.choices, verbose_name=_("Degree"))
+    degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
     university = models.ForeignKey(University, on_delete=models.CASCADE, verbose_name=_("University"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     status = models.CharField(
         max_length=50,
-        choices=StatusChoices.choices,
+        choices=Status.choices,
         verbose_name=_("Status"),
-        default=StatusChoices.PENDING,
+        default=Status.PENDING,
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -183,7 +183,7 @@ class EducationVerificationMethodAbstract(models.Model):
 
 
 class IEEMethod(EducationVerificationMethodAbstract):
-    class EvaluatorChoices(models.TextChoices):
+    class Evaluator(models.TextChoices):
         WES = "wes", _("World Education Services")
         IQAS = "iqas", _("International Qualifications Assessment Service")
         ICAS = "icas", _("International Credential Assessment Service of Canada")
@@ -201,7 +201,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
     )
     evaluator = models.CharField(
         max_length=50,
-        choices=EvaluatorChoices.choices,
+        choices=Evaluator.choices,
         verbose_name=_("Academic Credential Evaluator"),
     )
 

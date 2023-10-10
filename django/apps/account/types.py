@@ -2,22 +2,22 @@ import graphene
 from common.types import JobType
 from graphene_django.types import DjangoObjectType
 
-from .models import UserProfile
+from .models import Profile
 
 
-class UserProfileType(DjangoObjectType):
+class ProfileType(DjangoObjectType):
     job = graphene.List(JobType)
 
     class Meta:
-        model = UserProfile
+        model = Profile
         fields = (
-            UserProfile.height.field.name,
-            UserProfile.weight.field.name,
-            UserProfile.skin_color.field.name,
-            UserProfile.hair_color.field.name,
-            UserProfile.eye_color.field.name,
-            UserProfile.full_body_image.field.name,
-            UserProfile.job.field.name,
+            Profile.height.field.name,
+            Profile.weight.field.name,
+            Profile.skin_color.field.name,
+            Profile.hair_color.field.name,
+            Profile.eye_color.field.name,
+            Profile.full_body_image.field.name,
+            Profile.job.field.name,
         )
 
     def resolve_job(self, info):
