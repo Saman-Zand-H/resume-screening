@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Field, Job, JobCategory, JobIndustry
+from .models import Field, Job, JobCategory, JobIndustry, University
 
 
 @admin.register(JobCategory)
@@ -27,3 +27,11 @@ class FieldAdmin(admin.ModelAdmin):
     list_display = ("name",)
     search_fields = ("name",)
     list_filter = ("name",)
+
+
+@admin.register(University)
+class UniversityAdmin(admin.ModelAdmin):
+    list_display = ("name", "city", "website")
+    search_fields = ("name", "city__name", "website")
+    list_filter = ("name",)
+    raw_id_fields = ("city",)
