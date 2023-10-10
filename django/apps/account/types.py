@@ -1,6 +1,6 @@
 import graphene
 from common.types import JobType
-from graphene_django.types import DjangoObjectType
+from query_optimizer import DjangoObjectType
 
 from .models import Profile
 

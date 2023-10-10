@@ -1,6 +1,4 @@
 import graphene
-from graphene_django_cud.mutations import DjangoCreateMutation, DjangoUpdateMutation
-from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
 from graphql_auth.constants import TokenAction
@@ -15,7 +13,6 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Profile
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 User = get_user_model()
@@ -101,41 +98,6 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class UpdateUserProfileMutation(DjangoUpdateMutation):
-    class Meta:
-        model = Profile
-        login_required = True
-        exclude = ("user",)
-
-        @classmethod
-        def mutate(cls, root, info, input, id):
-            user = info.context.user
-
-            if not Profile.objects.filter(user=user).exists():
-                raise GraphQLError("UserProfile does not exist for this user.")
-
-            input["user"] = user.id
-            profile_id = user.userprofile.id
-            return super().mutate(root, info, input, profile_id)
-
-
-class CreateUserProfileMutation(DjangoCreateMutation):
-    class Meta:
-        model = Profile
-        login_required = True
-        exclude = ("user",)
-
-        @classmethod
-        def mutate(cls, root, info, input):
-            user = info.context.user
-
-            if Profile.objects.filter(user=user).exists():
-                raise GraphQLError("UserProfile already exists for this user.")
-
-            input["user"] = user.id
-            return super().mutate(root, info, input)
-
-
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -149,8 +111,6 @@ class AccountMutation(graphene.ObjectType):
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
-    update_user_profile = UpdateUserProfileMutation.Field()
-    create_user_profile = CreateUserProfileMutation.Field()
 
 
 class Mutation(graphene.ObjectType):
