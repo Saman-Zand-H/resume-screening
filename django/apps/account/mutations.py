@@ -8,12 +8,18 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
 from rest_framework.serializers import ValidationError
+from graphql import GraphQLError
+
+from graphene_django_cud.mutations import DjangoUpdateMutation, DjangoCreateMutation
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
 from .views import GoogleOAuth2View, LinkedInOAuth2View
+from .models import UserProfile
+from .types import UserProfileType
+
 
 User = get_user_model()
 
@@ -98,6 +104,48 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
+class UpdateUserProfileMutation(DjangoUpdateMutation):
+    class Meta:
+        model = UserProfile
+        login_required = True
+        exclude = ('user',)
+        # many_to_many_extras = {
+        #     'job': {
+        #         'by_id': {"type": "ID"}
+        #     }
+        # }
+
+        @classmethod
+        def mutate(cls, root, info, input, id):
+            user = info.context.user
+            
+            if not UserProfile.objects.filter(user=user).exists():
+                raise GraphQLError("UserProfile does not exist for this user.")
+
+            input['user'] = user.id
+            profile_id = user.userprofile.id
+            return super().mutate(root, info, input, profile_id)
+
+
+
+
+class CreateUserProfileMutation(DjangoCreateMutation):
+    class Meta:
+        model = UserProfile
+        login_required = True
+        exclude = ('user',)
+        
+        @classmethod
+        def mutate(cls, root, info, input):
+            user = info.context.user
+            
+            if UserProfile.objects.filter(user=user).exists():
+                raise GraphQLError("UserProfile already exists for this user.")
+
+            input['user'] = user.id
+            return super().mutate(root, info, input)
+
+
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -111,6 +159,8 @@ class AccountMutation(graphene.ObjectType):
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
+    update_user_profile = UpdateUserProfileMutation.Field()
+    create_user_profile = CreateUserProfileMutation.Field()
 
 
 class Mutation(graphene.ObjectType):
