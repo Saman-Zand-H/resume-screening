@@ -98,9 +98,9 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class Mutation(graphene.ObjectType):
+class AccountMutation(graphene.ObjectType):
     register = Register.Field()
-    verify_account = VerifyAccount.Field()
+    verify = VerifyAccount.Field()
     resend_activation_email = graphql_auth_mutations.ResendActivationEmail.Field()
     send_password_reset_email = graphql_auth_mutations.SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
@@ -111,3 +111,10 @@ class Mutation(graphene.ObjectType):
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
+
+
+class Mutation(graphene.ObjectType):
+    account = graphene.Field(AccountMutation)
+
+    def resolve_account(self, *args, **kwargs):
+        return AccountMutation()
