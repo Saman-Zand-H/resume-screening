@@ -8,12 +8,15 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
 from rest_framework.serializers import ValidationError
+from graphene_django_cud.mutations import DjangoPatchMutation, DjangoDeleteMutation
+from graphql import GraphQLError
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
 from .views import GoogleOAuth2View, LinkedInOAuth2View
+from .models import Education
 
 User = get_user_model()
 
@@ -98,6 +101,48 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
+class EducationUpdateMutation(DjangoPatchMutation):
+    class Meta:
+        model = Education
+        login_required = True
+        exclude = (
+            Education.user.field.name,
+            Education.status.field.name,
+            "educationverification_set",
+            Education.created_at.field.name,
+            Education.updated_at.field.name,
+        )
+
+    @classmethod
+    def check_permissions(cls, root, info, input, id, obj):
+        super().check_permissions(root, info, input, id, obj)
+        user = info.context.user
+        if obj.user != user:
+            raise GraphQLError("You don't have permission to modify this education record.")
+        if obj.status != Education.Status.DRAFT:
+            raise GraphQLError("You can only modify education records with 'draft' status.")
+
+
+class EducationDeleteMutation(DjangoDeleteMutation):
+    class Meta:
+        model = Education
+        login_required = True
+
+    @classmethod
+    def check_permissions(cls, root, info, id, obj):
+        super().check_permissions(root, info, id, obj)
+        user = info.context.user
+        if obj.user != user:
+            raise GraphQLError("You don't have permission to modify this education record.")
+        if obj.status != Education.Status.DRAFT:
+            raise GraphQLError("You can only modify education records with 'draft' status.")
+
+
+class EducationMutation(graphene.ObjectType):
+    update = EducationUpdateMutation.Field()
+    delete = EducationDeleteMutation.Field()
+
+
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -111,6 +156,10 @@ class AccountMutation(graphene.ObjectType):
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
+    education = graphene.Field(EducationMutation)
+
+    def resolve_education(self, *args, **kwargs):
+        return EducationMutation()
 
 
 class Mutation(graphene.ObjectType):
