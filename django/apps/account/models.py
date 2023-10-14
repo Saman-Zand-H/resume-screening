@@ -6,6 +6,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 
+from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
@@ -117,6 +118,14 @@ class Education(models.Model):
         PENDING = "pending", _("Pending")
         DRAFT = "draft", _("Draft")
 
+    class Method(models.TextChoices):
+        IEE = (
+            "iee",
+            _("International Education Evaluation"),
+        )
+        COMMUNICATION = "communication", _("Communication")
+        SELF_VERIFICATION = "self_verification", _("Self Verification")
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
@@ -127,13 +136,33 @@ class Education(models.Model):
         max_length=50,
         choices=Status.choices,
         verbose_name=_("Status"),
-        default=Status.PENDING,
+        default=Status.PENDING.value,
     )
+    method = models.CharField(max_length=50, choices=Method.choices, verbose_name=_("Verification Method"))
+    is_verified = models.BooleanField(default=False, verbose_name=_("Is Verified"))
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name=_("Created At"),
     )
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+
+    @staticmethod
+    def get_method_models():
+        _models = []
+        for model in apps.get_models():
+            if issubclass(model, EducationVerificationMethodAbstract):
+                _models.append(model)
+        return _models
+
+    @staticmethod
+    def get_method_choices():
+        choices = dict.fromkeys(Education.Method.values)
+        return choices | {
+            method: model
+            for method in choices.keys()
+            for model in Education.get_method_models()
+            if model.method == method
+        }
 
     class Meta:
         verbose_name = _("Education")
@@ -142,44 +171,29 @@ class Education(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.degree} in {self.field.name}"
 
-
-class EducationVerification(models.Model):
-    class MethodChoices(models.TextChoices):
-        IEE = (
-            "iee",
-            _("International Education Evaluation"),
-        )
-        COMMUNICATION = "communication", _("Communication")
-        SELF_VERIFICATION = "self_verification", _("Self Verification")
-
-    education = models.ForeignKey(Education, on_delete=models.CASCADE, verbose_name=_("Education"))
-    method = models.CharField(max_length=50, choices=MethodChoices.choices, verbose_name=_("Verification Method"))
-
-    is_verified = models.BooleanField(default=False, verbose_name=_("Is Verified"))
-
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
-
-    class Meta:
-        verbose_name = _("Education Verification")
-        verbose_name_plural = _("Education Verifications")
-
-    def __str__(self):
-        return f"{self.education.user.email} - {self.education.degree} Verification"
+    def save(self, *args, **kwargs):
+        if self.method == self.Method.SELF_VERIFICATION:
+            self.status = self.Status.VERIFIED.value
+            self.is_verified = True
+        super().save(*args, **kwargs)
 
 
 class EducationVerificationMethodAbstract(models.Model):
-    education_verification = models.OneToOneField(
-        EducationVerification,
+    education = models.OneToOneField(
+        Education,
         on_delete=models.CASCADE,
-        verbose_name=_("Education Verification"),
+        verbose_name=_("Education"),
     )
 
     class Meta:
         abstract = True
 
+    @classmethod
+    def get_related_name(cls):
+        return cls.education.field.related_query_name()
+
     def __str__(self):
-        return f"{self.education_verification.education.user.email} - {self.education_verification.education.degree} Verification"
+        return f"{self.education.user.email} - {self.education.degree} Verification"
 
 
 class IEEMethod(EducationVerificationMethodAbstract):
@@ -188,6 +202,8 @@ class IEEMethod(EducationVerificationMethodAbstract):
         IQAS = "iqas", _("International Qualifications Assessment Service")
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
+
+    method = Education.Method.IEE
 
     ices_document = models.FileField(
         upload_to=ices_document_path,
@@ -211,6 +227,8 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 
 class CommunicationMethod(EducationVerificationMethodAbstract):
+    method = Education.Method.COMMUNICATION
+
     email = models.EmailField(verbose_name=_("Email"))
     department = models.CharField(max_length=255, verbose_name=_("Department"))
     person = models.CharField(max_length=255, verbose_name=_("Person"))

@@ -9,7 +9,6 @@ from .forms import UserChangeForm
 from .models import (
     CommunicationMethod,
     Education,
-    EducationVerification,
     IEEMethod,
     Profile,
     User,
@@ -68,25 +67,17 @@ class EducationAdmin(admin.ModelAdmin):
     raw_id_fields = ("user", "field")
 
 
-@register(EducationVerification)
-class EducationVerificationAdmin(admin.ModelAdmin):
-    list_display = ("education", "method", "is_verified", "created_at", "updated_at")
-    search_fields = ("education__user__email", "education__degree", "method")
-    list_filter = ("method", "is_verified")
-    raw_id_fields = ("education",)
-
-
 @register(IEEMethod)
 class IEEMethodAdmin(admin.ModelAdmin):
-    list_display = ("education_verification", "ices_document", "citizen_document", "evaluator")
-    search_fields = ("education_verification__education__user__email", "evaluator")
+    list_display = ("education", "ices_document", "citizen_document", "evaluator")
+    search_fields = ("education__user__email", "evaluator")
     list_filter = ("evaluator",)
-    raw_id_fields = ("education_verification",)
+    raw_id_fields = ("education",)
 
 
 @register(CommunicationMethod)
 class CommunicationMethodAdmin(admin.ModelAdmin):
-    list_display = ("education_verification", "email", "department", "person", "degree_file")
-    search_fields = ("education_verification__education__user__email", "email", "department", "person")
+    list_display = ("education", "email", "department", "person", "degree_file")
+    search_fields = ("education__user__email", "email", "department", "person")
     list_filter = ("department",)
-    raw_id_fields = ("education_verification",)
+    raw_id_fields = ("education",)

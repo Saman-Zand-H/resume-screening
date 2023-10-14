@@ -8,7 +8,7 @@ from .types import CityNode, FieldType, UniversityType
 class CommonQuery(graphene.ObjectType):
     universities = graphene.List(UniversityType)
     fields = graphene.List(FieldType)
-    cities = DjangoFilterConnectionField(CityNode, max_limit=15)
+    cities = DjangoFilterConnectionField(CityNode)
 
     def resolve_universities(self, info):
         return University.objects.all()

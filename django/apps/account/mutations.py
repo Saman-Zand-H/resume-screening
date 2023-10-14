@@ -1,4 +1,11 @@
 import graphene
+from graphene_django_cud.mutations import (
+    DjangoCreateMutation,
+    DjangoDeleteMutation,
+    DjangoPatchMutation,
+    DjangoUpdateMutation,
+)
+from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
 from graphql_auth.constants import TokenAction
@@ -7,16 +14,14 @@ from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
-from rest_framework.serializers import ValidationError
-from graphene_django_cud.mutations import DjangoPatchMutation, DjangoDeleteMutation, DjangoUpdateMutation
-from graphql import GraphQLError
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
+from .models import Education, Profile
 from .views import GoogleOAuth2View, LinkedInOAuth2View
-from .models import Profile, Education
 
 User = get_user_model()
 
@@ -116,6 +121,51 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
         return super().mutate(root, info, input, profile.id)
 
 
+class EducationCreateMutation(DjangoCreateMutation):
+    class Meta:
+        model = Education
+        login_required = True
+        fields = (
+            Education.field.field.name,
+            Education.degree.field.name,
+            Education.university.field.name,
+            Education.start.field.name,
+            Education.end.field.name,
+            Education.method.field.name,
+            *(m.get_related_name() for m in Education.get_method_models()),
+        )
+
+        one_to_one_extras = {m.get_related_name(): {"type": "auto"} for m in Education.get_method_models()}
+
+    @classmethod
+    def validate(cls, root, info, input):
+        models = Education.get_method_models()
+        method = input.get(Education.method.field.name)
+
+        if method.value == Education.Method.SELF_VERIFICATION:
+            for m in models:
+                if input.get(m.get_related_name()):
+                    raise GraphQLError("Self verification method can't have any method inputs.")
+        else:
+            method_inputs_exist = [input.get(m.get_related_name()) is not None for m in models]
+            if not input.get((field_name := Education.get_method_choices().get(method.value).get_related_name())):
+                raise GraphQLError(f"{field_name} method must be provided.")
+            if sum(method_inputs_exist) > 1:
+                raise GraphQLError("Only one of the methods can be provided.")
+
+        return super().validate(root, info, input)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        if isinstance(obj, Education):
+            obj.user = info.context.user
+        else:
+            try:
+                obj.full_clean()
+            except ValidationError as e:
+                raise GraphQLError(e.message_dict)
+
+
 class EducationUpdateMutation(DjangoPatchMutation):
     class Meta:
         model = Education
@@ -158,6 +208,7 @@ class ProfileMutation(graphene.ObjectType):
 
 
 class EducationMutation(graphene.ObjectType):
+    create = EducationCreateMutation.Field()
     update = EducationUpdateMutation.Field()
     delete = EducationDeleteMutation.Field()
 
