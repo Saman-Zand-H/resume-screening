@@ -1,20 +1,15 @@
 import graphene
 from graphene_django.filter import DjangoFilterConnectionField
 
-from .models import Field, University
-from .types import CityNode, FieldType, UniversityType
+from .types import CityNode, CountryNode, FieldNode, RegionNode, UniversityNode
 
 
 class CommonQuery(graphene.ObjectType):
-    universities = graphene.List(UniversityType)
-    fields = graphene.List(FieldType)
+    universities = DjangoFilterConnectionField(UniversityNode)
+    fields = DjangoFilterConnectionField(FieldNode)
+    countries = DjangoFilterConnectionField(CountryNode)
+    regions = DjangoFilterConnectionField(RegionNode)
     cities = DjangoFilterConnectionField(CityNode)
-
-    def resolve_universities(self, info):
-        return University.objects.all()
-
-    def resolve_fields(self, info):
-        return Field.objects.all()
 
 
 class Query(graphene.ObjectType):

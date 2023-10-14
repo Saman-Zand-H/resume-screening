@@ -9,45 +9,69 @@ from query_optimizer import DjangoObjectType
 from .models import Field, Job, University
 
 
-class JobType(DjangoObjectType):
+class JobNode(DjangoObjectType):
     class Meta:
         model = Job
-        fields = (Job.id.field.name, Job.title.field.name)
+        interfaces = (relay.Node,)
+        fields = (
+            Job.id.field.name,
+            Job.title.field.name,
+        )
 
 
-class UniversityType(DjangoObjectType):
+class UniversityNode(DjangoObjectType):
     class Meta:
         model = University
+        interfaces = (relay.Node,)
         fields = (
             University.id.field.name,
             University.name.field.name,
             University.city.field.name,
             University.website.field.name,
         )
+        filter_fields = {
+            University.name.field.name: ["icontains"],
+        }
 
 
-class FieldType(DjangoObjectType):
+class FieldNode(DjangoObjectType):
     class Meta:
         model = Field
-        fields = (Field.id.field.name, Field.name.field.name)
+        interfaces = (relay.Node,)
+        fields = (
+            Field.id.field.name,
+            Field.name.field.name,
+        )
+        filter_fields = {
+            Field.name.field.name: ["icontains"],
+        }
 
 
-class CountryType(DjangoObjectType):
+class CountryNode(DjangoObjectType):
     class Meta:
         model = Country
         interfaces = (relay.Node,)
         fields = list(CountryTypeBase._meta.fields.keys())
+        filter_fields = {
+            Country.name.field.name: ["icontains"],
+        }
 
 
-class RegionType(DjangoObjectType):
+class RegionNode(DjangoObjectType):
     class Meta:
         model = Region
+        interfaces = (relay.Node,)
         fields = list(RegionTypeBase._meta.fields.keys())
+        filter_fields = {
+            Region.name.field.name: ["icontains"],
+            Region.country.field.name: ["exact"],
+        }
 
 
-class SubRegionType(DjangoObjectType):
+class SubRegionNode(DjangoObjectType):
     class Meta:
         model = SubRegion
+        interfaces = (relay.Node,)
         fields = list(SubRegionTypeBase._meta.fields.keys())
 
 
@@ -57,5 +81,6 @@ class CityNode(DjangoObjectType):
         interfaces = (relay.Node,)
         fields = list(CityTypeBase._meta.fields.keys())
         filter_fields = {
-            City.display_name.field.name: ["icontains"],
+            City.name.field.name: ["icontains"],
+            City.region.field.name: ["exact"],
         }

@@ -1,12 +1,12 @@
 import graphene
-from common.types import JobType
+from common.types import JobNode
 from query_optimizer import DjangoObjectType
 
 from .models import CommunicationMethod, Education, IEEMethod, Profile
 
 
 class ProfileType(DjangoObjectType):
-    job = graphene.List(JobType)
+    job = graphene.List(JobNode)
 
     class Meta:
         model = Profile
