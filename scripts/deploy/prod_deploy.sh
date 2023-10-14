@@ -40,7 +40,7 @@ echo_new_line
 # python3 $MANAGE_PATH compilemessages
 echo_new_line
 echo_log ">_ python3 $MANAGE_PATH makemigrations auth graphql_auth"
-python3 $MANAGE_PATH makemigrations auth
+python3 $MANAGE_PATH makemigrations auth graphql_auth
 echo_new_line
 echo_log ">_ python3 $MANAGE_PATH migrate"
 python3 $MANAGE_PATH migrate
