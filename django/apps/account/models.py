@@ -105,7 +105,6 @@ class Profile(models.Model):
     class EmploymentStatus(models.TextChoices):
         EMPLOYED = "employed", _("Employed")
         UNEMPLOYED = "unemployed", _("Unemployed")
-        STUDENT = "student", _("Student")
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
