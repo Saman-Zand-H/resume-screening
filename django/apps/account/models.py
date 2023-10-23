@@ -3,6 +3,7 @@ import contextlib
 from cities_light.models import City
 from colorfield.fields import ColorField
 from common.models import Field, Job, University
+from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -11,7 +12,6 @@ from common.validators import (
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 
-from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
@@ -219,11 +219,7 @@ class Education(models.Model):
 
     @staticmethod
     def get_method_models():
-        _models = []
-        for model in apps.get_models():
-            if issubclass(model, EducationVerificationMethodAbstract):
-                _models.append(model)
-        return _models
+        return get_all_subclasses(EducationVerificationMethodAbstract)
 
     @staticmethod
     def get_method_choices():
