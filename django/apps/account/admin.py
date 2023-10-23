@@ -22,23 +22,37 @@ class UserAdmin(UserAdminBase):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "usable_password", "password1", "password2"),
+                "fields": (User.USERNAME_FIELD, "usable_password", "password1", "password2"),
             },
         ),
     )
     form = UserChangeForm
-    list_display = ("email", "first_name", "last_name", "is_staff")
+    list_display = (
+        User.USERNAME_FIELD,
+        User.first_name.field.name,
+        User.last_name.field.name,
+        User.is_staff.field.name,
+    )
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
         fieldsets = list(self.fieldsets)
         fieldsets[0] = (
             None,
-            {"fields": ("email", "password")},
+            {"fields": (User.USERNAME_FIELD, User.password.field.name)},
         )
         fieldsets[1] = (
             _("Personal info"),
-            {"fields": ("first_name", "last_name", "username")},
+            {
+                "fields": (
+                    User.first_name.field.name,
+                    User.last_name.field.name,
+                    User.username.field.name,
+                    User.gender.field.name,
+                    User.birth_date.field.name,
+                    User.phone.field.name,
+                )
+            },
         )
         self.fieldsets = tuple(fieldsets)
 
