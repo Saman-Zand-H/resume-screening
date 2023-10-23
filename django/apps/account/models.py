@@ -1,3 +1,5 @@
+import contextlib
+
 from cities_light.models import City
 from colorfield.fields import ColorField
 from common.models import Field, Job, University
@@ -7,12 +9,15 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from phonenumber_field.modelfields import PhoneNumberField
+from phonenumber_field.phonenumber import PhoneNumber
 
 from django.apps import apps
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from .validators import LinkedInUsernameValidator, WhatsAppValidator
 
 
 def full_body_image_path(instance, filename):
@@ -127,6 +132,19 @@ class Contact(models.Model):
         ADDRESS = "address", _("Address")
         LINKEDIN = "linkedin", _("LinkedIn")
         WHATSAPP = "whatsapp", _("WhatsApp")
+        PHONE = "phone", _("Phone")
+
+    VALIDATORS = {
+        ContactType.WEBSITE: models.URLField().run_validators,
+        ContactType.ADDRESS: None,
+        ContactType.LINKEDIN: LinkedInUsernameValidator(),
+        ContactType.WHATSAPP: WhatsAppValidator(),
+        ContactType.PHONE: PhoneNumberField().run_validators,
+    }
+
+    VALUE_FIXERS = {
+        ContactType.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
+    }
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
     type = models.CharField(
@@ -144,6 +162,16 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.type}: {self.value}"
+
+    def clean(self, *args, **kwargs):
+        if self.type in self.VALIDATORS:
+            with contextlib.suppress(TypeError):
+                self.VALIDATORS[self.type](self.value)
+        else:
+            raise NotImplementedError(f"Validation for {self.type} is not implemented")
+
+        if self.type in self.VALUE_FIXERS:
+            self.value = self.VALUE_FIXERS[self.type](self.value)
 
 
 class Education(models.Model):
