@@ -1,4 +1,7 @@
 from colorfield.fields import ColorField
+from phonenumber_field.modelfields import PhoneNumberField
+from cities_light.models import City
+
 from common.models import Field, Job, University
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
@@ -44,8 +47,24 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractUser):
+    class Gender(models.TextChoices):
+        MALE = "male", _("Male")
+        FEMALE = "female", _("Female")
+        NOT_KNOWN = "not_known", _("Not Known")
+        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
+
+    gender = models.CharField(
+        max_length=50,
+        choices=Gender.choices,
+        verbose_name=_("Gender"),
+        null=True,
+        blank=True,
+    )
+    birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
+    phone_number = PhoneNumberField(verbose_name=_("Phone Number"), null=True, blank=True)
 
     objects = UserManager()
 
@@ -94,6 +113,7 @@ class Profile(models.Model):
         verbose_name=_("Full Body Image"),
     )
     job = models.ManyToManyField(Job, verbose_name=_("Job"), blank=True)
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("User Profile")
