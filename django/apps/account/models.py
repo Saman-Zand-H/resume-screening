@@ -1,13 +1,12 @@
-from colorfield.fields import ColorField
-from phonenumber_field.modelfields import PhoneNumberField
 from cities_light.models import City
-
+from colorfield.fields import ColorField
 from common.models import Field, Job, University
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
+from phonenumber_field.modelfields import PhoneNumberField
 
 from django.apps import apps
 from django.contrib.auth.models import AbstractUser
@@ -64,7 +63,7 @@ class User(AbstractUser):
         blank=True,
     )
     birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
-    phone_number = PhoneNumberField(verbose_name=_("Phone Number"), null=True, blank=True)
+    phone = PhoneNumberField(verbose_name=_("Phone Number"), null=True, blank=True)
 
     objects = UserManager()
 
