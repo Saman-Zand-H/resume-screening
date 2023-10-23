@@ -111,6 +111,13 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
         model = Profile
         login_required = True
         exclude = (Profile.user.field.name,)
+        custom_fields = {
+            User.first_name.field.name: graphene.String(),
+            User.last_name.field.name: graphene.String(),
+            User.gender.field.name: graphene.String(),
+            User.birth_date.field.name: graphene.Date(),
+            User.phone_number.field.name: graphene.String(),
+        }
 
     @classmethod
     def mutate(cls, root, info, input, id):
@@ -118,6 +125,19 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
         if not user.is_authenticated:
             raise GraphQLError("You must be logged in to update your profile.")
         profile, _ = Profile.objects.get_or_create(user=user)
+
+        user_fields = [
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.gender.field.name,
+            User.birth_date.field.name,
+            User.phone_number.field.name,
+        ]
+        for field in user_fields:
+            if field in input:
+                setattr(user, field, input[field])
+        user.save()
+
         return super().mutate(root, info, input, profile.id)
 
 
