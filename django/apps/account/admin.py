@@ -6,13 +6,7 @@ from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
-from .models import (
-    CommunicationMethod,
-    Education,
-    IEEMethod,
-    Profile,
-    User,
-)
+from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, User
 
 
 @register(User)
@@ -22,23 +16,37 @@ class UserAdmin(UserAdminBase):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "usable_password", "password1", "password2"),
+                "fields": (User.USERNAME_FIELD, "usable_password", "password1", "password2"),
             },
         ),
     )
     form = UserChangeForm
-    list_display = ("email", "first_name", "last_name", "is_staff")
+    list_display = (
+        User.USERNAME_FIELD,
+        User.first_name.field.name,
+        User.last_name.field.name,
+        User.is_staff.field.name,
+    )
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
         fieldsets = list(self.fieldsets)
         fieldsets[0] = (
             None,
-            {"fields": ("email", "password")},
+            {"fields": (User.USERNAME_FIELD, User.password.field.name)},
         )
         fieldsets[1] = (
             _("Personal info"),
-            {"fields": ("first_name", "last_name", "username")},
+            {
+                "fields": (
+                    User.first_name.field.name,
+                    User.last_name.field.name,
+                    User.username.field.name,
+                    User.gender.field.name,
+                    User.birth_date.field.name,
+                    User.phone.field.name,
+                )
+            },
         )
         self.fieldsets = tuple(fieldsets)
 
@@ -56,7 +64,15 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
     search_fields = ("user__email", "job__name")
     list_filter = ("skin_color", "eye_color")
-    raw_id_fields = ("user", "job")
+    raw_id_fields = ("user", "job", "city")
+
+
+@register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = ("user", "type", "value")
+    search_fields = ("user__email", "type", "value")
+    list_filter = ("type",)
+    raw_id_fields = ("user",)
 
 
 @register(Education)

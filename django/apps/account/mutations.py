@@ -15,16 +15,13 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
 
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Education, Profile
-from .views import GoogleOAuth2View, LinkedInOAuth2View
+from .models import Education, Profile, User
 from .types import GenderEnum
-
-User = get_user_model()
+from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
 class Register(graphql_auth_mutations.Register):
@@ -117,7 +114,7 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
             User.last_name.field.name: graphene.String(),
             User.gender.field.name: GenderEnum(),
             User.birth_date.field.name: graphene.Date(),
-            User.phone_number.field.name: graphene.String(),
+            User.phone.field.name: graphene.String(),
         }
 
     @classmethod
@@ -132,7 +129,7 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
             User.last_name.field.name,
             User.gender.field.name,
             User.birth_date.field.name,
-            User.phone_number.field.name,
+            User.phone.field.name,
         ]
         for field in user_fields:
             if field in input:
