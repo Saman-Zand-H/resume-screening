@@ -22,6 +22,7 @@ from django.utils import timezone
 from .forms import PasswordLessRegisterForm
 from .models import Education, Profile
 from .views import GoogleOAuth2View, LinkedInOAuth2View
+from .types import GenderEnum
 
 User = get_user_model()
 
@@ -114,7 +115,7 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
         custom_fields = {
             User.first_name.field.name: graphene.String(),
             User.last_name.field.name: graphene.String(),
-            User.gender.field.name: graphene.String(),
+            User.gender.field.name: GenderEnum(),
             User.birth_date.field.name: graphene.Date(),
             User.phone_number.field.name: graphene.String(),
         }

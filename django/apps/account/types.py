@@ -5,6 +5,13 @@ from query_optimizer import DjangoObjectType
 from .models import CommunicationMethod, Education, IEEMethod, Profile
 
 
+class GenderEnum(graphene.Enum):
+    MALE = "male"
+    FEMALE = "female"
+    NOT_KNOWN = "not_known"
+    NOT_APPLICABLE = "not_applicable"
+
+
 class ProfileType(DjangoObjectType):
     job = graphene.List(JobNode)
 
