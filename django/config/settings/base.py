@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "colorfield",
     "cities_light",
+    "phonenumber_field",
 ]
 
 INSTALLED_APPS += [
