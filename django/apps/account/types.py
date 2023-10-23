@@ -26,14 +26,10 @@ class ContactType(DjangoObjectType):
     class Meta:
         model = Contact
         fields = (
+            Contact.id.field.name,
             Contact.type.field.name,
             Contact.value.field.name,
         )
-
-
-class ContactInput(graphene.InputObjectType):
-    type = graphene.String(required=True)
-    value = graphene.String(required=True)
 
 
 class EducationMethodFieldTypes(graphene.ObjectType):

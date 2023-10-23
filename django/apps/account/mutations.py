@@ -1,5 +1,8 @@
+import contextlib
+
 import graphene
 from graphene_django_cud.mutations import (
+    DjangoBatchCreateMutation,
     DjangoCreateMutation,
     DjangoDeleteMutation,
     DjangoPatchMutation,
@@ -15,17 +18,13 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve
 
-from django.contrib.auth import get_user_model
-from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Education, Profile, Contact
+from .models import Contact, Education, Profile, User
+from .types import GenderEnum
 from .views import GoogleOAuth2View, LinkedInOAuth2View
-from .types import GenderEnum, ContactInput, ContactType
-
-User = get_user_model()
 
 
 class Register(graphql_auth_mutations.Register):
@@ -123,8 +122,6 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
     @classmethod
     def mutate(cls, root, info, input, id):
         user = info.context.user
-        if not user.is_authenticated:
-            raise GraphQLError("You must be logged in to update your profile.")
         profile, _ = Profile.objects.get_or_create(user=user)
 
         user_fields = [
@@ -141,37 +138,34 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
         return super().mutate(root, info, input, profile.id)
 
 
-class SetContactsMutation(graphene.Mutation):
-    class Arguments:
-        contacts = graphene.List(ContactInput, required=True)
-
-    success = graphene.Boolean()
-    contacts = graphene.List(ContactType)
+class SetContactsMutation(DjangoBatchCreateMutation):
+    class Meta:
+        model = Contact
+        login_required = True
+        fields = (
+            Contact.type.field.name,
+            Contact.value.field.name,
+        )
 
     @classmethod
-    @transaction.atomic
-    def mutate(cls, root, info, contacts):
-        user = info.context.user
-        if not user.is_authenticated:
-            raise GraphQLError("You must be logged in to add contacts.")
+    def before_mutate(cls, root, info, input):
+        if len(input) > len(set([c.get(Contact.type.field.name) for c in input])):
+            raise GraphQLError("Contact types must be unique.")
+        return super().before_mutate(root, info, input)
 
-        created_contacts = []
-        errors = []
-        for contact_data in contacts:
-            contact = Contact(
-                user=user,
-                type=contact_data.type,
-                value=contact_data.value,
-            )
-            try:
-                contact.full_clean()
-                contact.save()
-                created_contacts.append(contact)
-            except ValidationError as e:
-                errors.append(f"Error for contact {contact_data.type}: {', '.join(e.messages)}")
-        if errors:
-            raise GraphQLError("\n".join(errors))
-        return cls(success=True, contacts=created_contacts)
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+        with contextlib.suppress(Contact.DoesNotExist):
+            obj.pk = Contact.objects.get(user=obj.user, type=obj.type).pk
+        try:
+            obj.full_clean(validate_unique=False)
+        except ValidationError as e:
+            raise GraphQLError(next(iter(e.messages)))
+
+    @classmethod
+    def after_mutate(cls, root, info, input, created_objs, return_data):
+        Contact.objects.filter(user=info.context.user).exclude(pk__in=[obj.pk for obj in created_objs]).delete()
 
 
 class EducationCreateMutation(DjangoCreateMutation):
