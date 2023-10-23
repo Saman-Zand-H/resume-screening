@@ -81,6 +81,7 @@ GRAPHENE = {
     "MIDDLEWARE": [
         "graphql_jwt.middleware.JSONWebTokenMiddleware",
     ],
+    "JWT_EXPIRATION_DELTA": timedelta(minutes=30),
 }
 
 ROOT_URLCONF = "config.urls"
