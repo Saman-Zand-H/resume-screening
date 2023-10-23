@@ -1,20 +1,12 @@
 import graphene
-from common.types import JobNode
 from query_optimizer import DjangoObjectType
 
-from .models import CommunicationMethod, Education, IEEMethod, Profile
+from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, User
 
-
-class GenderEnum(graphene.Enum):
-    MALE = "male"
-    FEMALE = "female"
-    NOT_KNOWN = "not_known"
-    NOT_APPLICABLE = "not_applicable"
+GenderEnum = graphene.Enum("Gender", User.Gender.choices)
 
 
 class ProfileType(DjangoObjectType):
-    job = graphene.List(JobNode)
-
     class Meta:
         model = Profile
         fields = (
@@ -28,8 +20,14 @@ class ProfileType(DjangoObjectType):
             Profile.city.field.name,
         )
 
-    def resolve_job(self, info):
-        return self.job.all()
+
+class ContactType(DjangoObjectType):
+    class Meta:
+        model = Contact
+        fields = (
+            Contact.type.field.name,
+            Contact.value.field.name,
+        )
 
 
 class EducationMethodFieldTypes(graphene.ObjectType):

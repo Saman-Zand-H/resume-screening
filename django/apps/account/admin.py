@@ -6,13 +6,7 @@ from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
-from .models import (
-    CommunicationMethod,
-    Education,
-    IEEMethod,
-    Profile,
-    User,
-)
+from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, User
 
 
 @register(User)
@@ -70,7 +64,15 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
     search_fields = ("user__email", "job__name")
     list_filter = ("skin_color", "eye_color")
-    raw_id_fields = ("user", "job")
+    raw_id_fields = ("user", "job", "city")
+
+
+@register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = ("user", "type", "value")
+    search_fields = ("user__email", "type", "value")
+    list_filter = ("type",)
+    raw_id_fields = ("user",)
 
 
 @register(Education)

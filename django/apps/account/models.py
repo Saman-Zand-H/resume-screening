@@ -131,12 +131,20 @@ class Contact(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
     type = models.CharField(
-        max_length=50, choices=ContactType.choices, verbose_name=_("Type"), default=ContactType.WEBSITE
+        max_length=50,
+        choices=ContactType.choices,
+        verbose_name=_("Type"),
+        default=ContactType.WEBSITE.value,
     )
     value = models.CharField(max_length=255, verbose_name=_("Value"))
 
     class Meta:
         unique_together = ("user", "type")
+        verbose_name = _("Contact")
+        verbose_name_plural = _("Contacts")
+
+    def __str__(self):
+        return f"{self.user.email} - {self.type}: {self.value}"
 
 
 class Education(models.Model):
