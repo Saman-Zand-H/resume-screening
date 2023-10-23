@@ -14,6 +14,9 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+import re
 
 
 def full_body_image_path(instance, filename):
@@ -138,6 +141,32 @@ class Contact(models.Model):
 
     class Meta:
         unique_together = ("user", "type")
+
+    def full_clean(self, *args, **kwargs):
+        super().full_clean(*args, **kwargs)
+        cleaning_method = getattr(self, f"clean_{self.type}", None)
+        if cleaning_method:
+            cleaning_method()
+
+    def clean_website(self):
+        url_validator = URLValidator()
+        try:
+            url_validator(self.value)
+        except ValidationError:
+            raise ValidationError(_("Invalid website URL"))
+
+    def clean_address(self):
+        if len(self.value) < 5:
+            raise ValidationError(_("Address is too short"))
+
+    def clean_linkedin(self):
+        linkedin_pattern = r"^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/.*$"
+        if not re.match(linkedin_pattern, self.value):
+            raise ValidationError(_("Invalid LinkedIn profile URL"))
+
+    def clean_whatsapp(self):
+        # TODO: add validation
+        pass
 
 
 class Education(models.Model):
