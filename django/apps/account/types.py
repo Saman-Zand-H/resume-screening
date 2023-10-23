@@ -18,6 +18,7 @@ class ProfileType(DjangoObjectType):
             Profile.eye_color.field.name,
             Profile.full_body_image.field.name,
             Profile.job.field.name,
+            Profile.city.field.name,
         )
 
     def resolve_job(self, info):
