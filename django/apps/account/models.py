@@ -63,7 +63,6 @@ class User(AbstractUser):
         blank=True,
     )
     birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
-    phone = PhoneNumberField(verbose_name=_("Phone Number"), null=True, blank=True)
 
     objects = UserManager()
 

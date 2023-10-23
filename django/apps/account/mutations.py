@@ -114,7 +114,6 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
             User.last_name.field.name: graphene.String(),
             User.gender.field.name: GenderEnum(),
             User.birth_date.field.name: graphene.Date(),
-            User.phone.field.name: graphene.String(),
         }
 
     @classmethod
@@ -129,7 +128,6 @@ class ProfileUpdateMutation(DjangoUpdateMutation):
             User.last_name.field.name,
             User.gender.field.name,
             User.birth_date.field.name,
-            User.phone.field.name,
         ]
         for field in user_fields:
             if field in input:

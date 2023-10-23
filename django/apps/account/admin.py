@@ -44,7 +44,6 @@ class UserAdmin(UserAdminBase):
                     User.username.field.name,
                     User.gender.field.name,
                     User.birth_date.field.name,
-                    User.phone.field.name,
                 )
             },
         )
