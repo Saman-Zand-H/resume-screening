@@ -208,6 +208,14 @@ class EducationUpdateMutation(DjangoPatchMutation):
             raise GraphQLError("You can only modify education records with 'draft' status.")
 
 
+class EducationUpdateStatusMutation(DjangoPatchMutation):
+    class Meta:
+        model = Education
+        login_required = True
+        fields = (Education.status.field.name,)
+        type_name = "PatchEducationStatusInput"
+
+
 class EducationDeleteMutation(DjangoDeleteMutation):
     class Meta:
         model = Education
@@ -230,6 +238,7 @@ class ProfileMutation(graphene.ObjectType):
 class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
     update = EducationUpdateMutation.Field()
+    update_status = EducationUpdateStatusMutation.Field()
     delete = EducationDeleteMutation.Field()
 
 
