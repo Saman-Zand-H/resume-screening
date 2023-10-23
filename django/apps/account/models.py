@@ -123,6 +123,23 @@ class Profile(models.Model):
         return self.user.email
 
 
+class Contact(models.Model):
+    class ContactType(models.TextChoices):
+        WEBSITE = "website", _("Website")
+        ADDRESS = "address", _("Address")
+        LINKEDIN = "linkedin", _("LinkedIn")
+        WHATSAPP = "whatsapp", _("WhatsApp")
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
+    type = models.CharField(
+        max_length=50, choices=ContactType.choices, verbose_name=_("Type"), default=ContactType.WEBSITE
+    )
+    value = models.CharField(max_length=255, verbose_name=_("Value"))
+
+    class Meta:
+        unique_together = ("user", "type")
+
+
 class Education(models.Model):
     class Degree(models.TextChoices):
         BACHELORS = "bachelors", _("Bachelors")
