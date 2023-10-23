@@ -102,6 +102,11 @@ class Profile(models.Model):
         RED = "#FF4500", "Red"
         VIOLET = "#8F00FF", "Violet"
 
+    class EmploymentStatus(models.TextChoices):
+        EMPLOYED = "employed", _("Employed")
+        UNEMPLOYED = "unemployed", _("Unemployed")
+        STUDENT = "student", _("Student")
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -115,6 +120,13 @@ class Profile(models.Model):
         blank=True,
         verbose_name=_("Full Body Image"),
     )
+    employment_status = models.CharField(
+        max_length=50,
+        choices=EmploymentStatus.choices,
+        verbose_name=_("Employment Status"),
+        null=True,
+        blank=True,
+    )
     job = models.ManyToManyField(Job, verbose_name=_("Job"), blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
 
@@ -127,7 +139,7 @@ class Profile(models.Model):
 
 
 class Contact(models.Model):
-    class ContactType(models.TextChoices):
+    class Type(models.TextChoices):
         WEBSITE = "website", _("Website")
         ADDRESS = "address", _("Address")
         LINKEDIN = "linkedin", _("LinkedIn")
@@ -135,23 +147,23 @@ class Contact(models.Model):
         PHONE = "phone", _("Phone")
 
     VALIDATORS = {
-        ContactType.WEBSITE: models.URLField().run_validators,
-        ContactType.ADDRESS: None,
-        ContactType.LINKEDIN: LinkedInUsernameValidator(),
-        ContactType.WHATSAPP: WhatsAppValidator(),
-        ContactType.PHONE: PhoneNumberField().run_validators,
+        Type.WEBSITE: models.URLField().run_validators,
+        Type.ADDRESS: None,
+        Type.LINKEDIN: LinkedInUsernameValidator(),
+        Type.WHATSAPP: WhatsAppValidator(),
+        Type.PHONE: PhoneNumberField().run_validators,
     }
 
     VALUE_FIXERS = {
-        ContactType.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
+        Type.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
     }
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
     type = models.CharField(
         max_length=50,
-        choices=ContactType.choices,
+        choices=Type.choices,
         verbose_name=_("Type"),
-        default=ContactType.WEBSITE.value,
+        default=Type.WEBSITE.value,
     )
     value = models.CharField(max_length=255, verbose_name=_("Value"))
 
