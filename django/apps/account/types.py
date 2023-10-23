@@ -30,6 +30,11 @@ class ContactType(DjangoObjectType):
         )
 
 
+class ContactInput(graphene.InputObjectType):
+    type = graphene.String(required=True)
+    value = graphene.String(required=True)
+
+
 class EducationMethodFieldTypes(graphene.ObjectType):
     method = graphene.String()
     field = graphene.String()
