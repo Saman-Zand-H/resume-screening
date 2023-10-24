@@ -107,35 +107,41 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class ProfileUpdateMutation(DjangoUpdateMutation):
+USER_MUTATION_FIELDS = {
+    User.first_name.field.name: graphene.String(),
+    User.last_name.field.name: graphene.String(),
+    User.gender.field.name: GenderEnum(),
+    User.birth_date.field.name: graphene.Date(),
+}
+
+
+class ProfileUpdateMutation(DjangoCreateMutation):
     class Meta:
         model = Profile
         login_required = True
         exclude = (Profile.user.field.name,)
-        custom_fields = {
-            User.first_name.field.name: graphene.String(),
-            User.last_name.field.name: graphene.String(),
-            User.gender.field.name: GenderEnum(),
-            User.birth_date.field.name: graphene.Date(),
-        }
+        custom_fields = USER_MUTATION_FIELDS
 
     @classmethod
-    def mutate(cls, root, info, input, id):
+    def before_create_obj(cls, info, input, obj):
         user = info.context.user
-        profile, _ = Profile.objects.get_or_create(user=user)
 
-        user_fields = [
-            User.first_name.field.name,
-            User.last_name.field.name,
-            User.gender.field.name,
-            User.birth_date.field.name,
-        ]
+        user_fields = USER_MUTATION_FIELDS.keys()
         for field in user_fields:
             if field in input:
                 setattr(user, field, input[field])
+        user.full_clean()
         user.save()
 
-        return super().mutate(root, info, input, profile.id)
+        profile, _ = Profile.objects.get_or_create(user=user)
+        obj.pk = profile.pk
+        obj.user = user
+
+        try:
+            obj.full_clean(validate_unique=False)
+        except ValidationError as e:
+            field, message = next(iter(e.message_dict.items()))
+            raise GraphQLError(f"{field}: {message[0]}")
 
 
 class SetContactsMutation(DjangoBatchCreateMutation):
