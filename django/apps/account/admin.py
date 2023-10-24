@@ -63,7 +63,7 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
     search_fields = ("user__email", "job__name")
     list_filter = ("skin_color", "eye_color")
-    raw_id_fields = ("user", "job", "city")
+    raw_id_fields = ("user", "interested_jobs", "city")
 
 
 @register(Contact)

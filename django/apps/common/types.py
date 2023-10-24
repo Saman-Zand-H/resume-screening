@@ -6,7 +6,33 @@ from cities_light.models import City, Country, Region, SubRegion
 from graphene import relay
 from query_optimizer import DjangoObjectType
 
-from .models import Field, Job, University
+from .models import Field, Job, JobCategory, JobIndustry, University
+
+
+class JobIndustryNode(DjangoObjectType):
+    class Meta:
+        model = JobIndustry
+        interfaces = (relay.Node,)
+        fields = (
+            JobIndustry.id.field.name,
+            JobIndustry.title.field.name,
+        )
+        filter_fields = {
+            JobIndustry.title.field.name: ["icontains"],
+        }
+
+
+class JobCategoryNode(DjangoObjectType):
+    class Meta:
+        model = JobCategory
+        interfaces = (relay.Node,)
+        fields = (
+            JobCategory.id.field.name,
+            JobCategory.title.field.name,
+        )
+        filter_fields = {
+            JobCategory.title.field.name: ["icontains"],
+        }
 
 
 class JobNode(DjangoObjectType):
@@ -16,7 +42,12 @@ class JobNode(DjangoObjectType):
         fields = (
             Job.id.field.name,
             Job.title.field.name,
+            Job.category.field.name,
+            Job.industry.field.name,
         )
+        filter_fields = {
+            Job.title.field.name: ["icontains"],
+        }
 
 
 class UniversityNode(DjangoObjectType):

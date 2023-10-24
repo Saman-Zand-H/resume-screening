@@ -126,7 +126,7 @@ class Profile(models.Model):
         null=True,
         blank=True,
     )
-    job = models.ManyToManyField(Job, verbose_name=_("Job"), blank=True)
+    interested_jobs = models.ManyToManyField(Job, verbose_name=_("Interested Jobs"), blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
 
     class Meta:

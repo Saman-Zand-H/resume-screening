@@ -17,7 +17,7 @@ class ProfileType(DjangoObjectType):
             Profile.eye_color.field.name,
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
-            Profile.job.field.name,
+            Profile.interested_jobs.field.name,
             Profile.city.field.name,
         )
 
