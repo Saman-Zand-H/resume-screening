@@ -76,14 +76,6 @@ MIDDLEWARE = [
 ]
 
 
-GRAPHENE = {
-    "SCHEMA": "api.schema.schema",
-    "MIDDLEWARE": [
-        "graphql_jwt.middleware.JSONWebTokenMiddleware",
-    ],
-    "JWT_EXPIRATION_DELTA": timedelta(hours=10),
-}
-
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -175,8 +167,17 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
+
+GRAPHENE = {
+    "SCHEMA": "api.schema.schema",
+    "MIDDLEWARE": [
+        "graphql_jwt.middleware.JSONWebTokenMiddleware",
+    ],
+}
+
 GRAPHQL_JWT = {
     "JWT_VERIFY_EXPIRATION": True,
+    "JWT_EXPIRATION_DELTA": timedelta(hours=10),
     "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
     "JWT_GET_USER_BY_NATURAL_KEY_HANDLER": "graphql_auth.utils.get_user_by_natural_key",
     "JWT_ALLOW_ANY_CLASSES": [
