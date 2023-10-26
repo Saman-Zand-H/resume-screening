@@ -4,7 +4,6 @@ import graphene
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
-    DjangoDeleteMutation,
     DjangoPatchMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
