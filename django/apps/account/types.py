@@ -1,9 +1,7 @@
 import graphene
 from query_optimizer import DjangoObjectType
 
-from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, User
-
-GenderEnum = graphene.Enum("Gender", User.Gender.choices)
+from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile
 
 
 class ProfileType(DjangoObjectType):

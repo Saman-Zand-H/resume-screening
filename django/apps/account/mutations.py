@@ -6,8 +6,8 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
     DjangoDeleteMutation,
     DjangoPatchMutation,
-    DjangoUpdateMutation,
 )
+from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
@@ -23,7 +23,6 @@ from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
 from .models import Contact, Education, Profile, User
-from .types import GenderEnum
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -107,12 +106,19 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-USER_MUTATION_FIELDS = {
-    User.first_name.field.name: graphene.String(),
-    User.last_name.field.name: graphene.String(),
-    User.gender.field.name: GenderEnum(),
-    User.birth_date.field.name: graphene.Date(),
-}
+USER_MUTATION_FIELDS = get_input_fields_for_model(
+    User,
+    fields=(
+        fields := (
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.gender.field.name,
+            User.birth_date.field.name,
+        )
+    ),
+    optional_fields=fields,
+    exclude=tuple(),
+)
 
 
 class ProfileUpdateMutation(DjangoCreateMutation):
@@ -127,9 +133,9 @@ class ProfileUpdateMutation(DjangoCreateMutation):
         user = info.context.user
 
         user_fields = USER_MUTATION_FIELDS.keys()
-        for field in user_fields:
-            if field in input:
-                setattr(user, field, input[field])
+        for user_field in user_fields:
+            if (user_field_value := input.get(user_field)) is not None:
+                setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
         user.full_clean()
         user.save()
 
@@ -140,8 +146,8 @@ class ProfileUpdateMutation(DjangoCreateMutation):
         try:
             obj.full_clean(validate_unique=False)
         except ValidationError as e:
-            field, message = next(iter(e.message_dict.items()))
-            raise GraphQLError(f"{field}: {message[0]}")
+            user_field, message = next(iter(e.message_dict.items()))
+            raise GraphQLError(f"{user_field}: {message[0]}")
 
 
 class SetContactsMutation(DjangoBatchCreateMutation):

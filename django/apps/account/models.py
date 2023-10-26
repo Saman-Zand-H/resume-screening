@@ -17,7 +17,7 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from .validators import LinkedInUsernameValidator, WhatsAppValidator
+from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
 def full_body_image_path(instance, filename):
@@ -60,6 +60,24 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
+    FIELDS_PROPERTIES = {
+        "email": {
+            "_unique": True,
+            "blank": False,
+            "null": False,
+        },
+        "username": {
+            "blank": True,
+            "null": True,
+        },
+        "first_name": {
+            "validators": [NameValidator()],
+        },
+        "last_name": {
+            "validators": [NameValidator()],
+        },
+    }
+
     gender = models.CharField(
         max_length=50,
         choices=Gender.choices,
@@ -72,11 +90,9 @@ class User(AbstractUser):
     objects = UserManager()
 
 
-User._meta.get_field("email")._unique = True
-User._meta.get_field("email").blank = False
-User._meta.get_field("email").null = False
-User._meta.get_field("username").blank = True
-User._meta.get_field("username").null = True
+for field, properties in User.FIELDS_PROPERTIES.items():
+    for key, value in properties.items():
+        setattr(User._meta.get_field(field), key, value)
 
 
 class Profile(models.Model):

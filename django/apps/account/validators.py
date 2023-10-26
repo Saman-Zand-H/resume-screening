@@ -10,3 +10,8 @@ class LinkedInUsernameValidator(RegexValidator):
 class WhatsAppValidator(RegexValidator):
     regex = r"^(https:\/\/)?(www\.)?wa\.me\/[0-9]+\/?$"
     message = _("Enter a valid WhatsApp username. This value may contain only numbers.")
+
+
+class NameValidator(RegexValidator):
+    regex = r"^[A-Za-z\s]*$"
+    message = _("Enter a valid name. This value may contain only letters and spaces.")
