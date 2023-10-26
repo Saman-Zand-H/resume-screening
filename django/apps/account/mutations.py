@@ -225,49 +225,12 @@ class EducationCreateMutation(DjangoCreateMutation):
                 raise GraphQLError(e.message_dict)
 
 
-class EducationUpdateMutation(DjangoPatchMutation):
-    class Meta:
-        model = Education
-        login_required = True
-        exclude = (
-            Education.user.field.name,
-            Education.status.field.name,
-            "educationverification_set",
-            Education.created_at.field.name,
-            Education.updated_at.field.name,
-        )
-
-    @classmethod
-    def check_permissions(cls, root, info, input, id, obj):
-        super().check_permissions(root, info, input, id, obj)
-        user = info.context.user
-        if obj.user != user:
-            raise GraphQLError("You don't have permission to modify this education record.")
-        if obj.status != Education.Status.DRAFT:
-            raise GraphQLError("You can only modify education records with 'draft' status.")
-
-
 class EducationUpdateStatusMutation(DjangoPatchMutation):
     class Meta:
         model = Education
         login_required = True
         fields = (Education.status.field.name,)
         type_name = "PatchEducationStatusInput"
-
-
-class EducationDeleteMutation(DjangoDeleteMutation):
-    class Meta:
-        model = Education
-        login_required = True
-
-    @classmethod
-    def check_permissions(cls, root, info, id, obj):
-        super().check_permissions(root, info, id, obj)
-        user = info.context.user
-        if obj.user != user:
-            raise GraphQLError("You don't have permission to modify this education record.")
-        if obj.status != Education.Status.DRAFT:
-            raise GraphQLError("You can only modify education records with 'draft' status.")
 
 
 class ProfileMutation(graphene.ObjectType):
@@ -277,9 +240,7 @@ class ProfileMutation(graphene.ObjectType):
 
 class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
-    update = EducationUpdateMutation.Field()
     update_status = EducationUpdateStatusMutation.Field()
-    delete = EducationDeleteMutation.Field()
 
 
 class AccountMutation(graphene.ObjectType):
