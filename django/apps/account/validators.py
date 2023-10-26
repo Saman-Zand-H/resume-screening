@@ -1,3 +1,8 @@
+import contextlib
+
+from phonenumber_field.modelfields import PhoneNumberField
+
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 
@@ -9,7 +14,13 @@ class LinkedInUsernameValidator(RegexValidator):
 
 class WhatsAppValidator(RegexValidator):
     regex = r"^(https:\/\/)?(www\.)?wa\.me\/[0-9]+\/?$"
-    message = _("Enter a valid WhatsApp username. This value may contain only numbers.")
+    message = _("Enter a valid WhatsApp username eg: https://wa.me/1234567890 or +1234567890")
+
+    def __call__(self, value):
+        with contextlib.suppress(ValidationError):
+            PhoneNumberField().run_validators(value)
+            return
+        return super().__call__(value)
 
 
 class NameValidator(RegexValidator):

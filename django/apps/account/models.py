@@ -11,6 +11,7 @@ from common.validators import (
 )
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
+from phonenumbers.phonenumberutil import NumberParseException
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
@@ -38,6 +39,12 @@ def citizen_document_path(instance, filename):
 
 def degree_file_path(instance, filename):
     return get_education_verification_path("degree", instance, filename)
+
+
+def fix_whatsapp_value(value):
+    with contextlib.suppress(NumberParseException):
+        return PhoneNumber.from_string(value).as_e164
+    return value
 
 
 class UserManager(BaseUserManager):
@@ -171,6 +178,7 @@ class Contact(models.Model):
 
     VALUE_FIXERS = {
         Type.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
+        Type.WHATSAPP: fix_whatsapp_value,
     }
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
