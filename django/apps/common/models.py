@@ -61,3 +61,14 @@ class University(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Skill(models.Model):
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+
+    class Meta:
+        verbose_name = _("Skill")
+        verbose_name_plural = _("Skills")
+
+    def __str__(self):
+        return self.title
