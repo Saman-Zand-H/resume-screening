@@ -2,7 +2,7 @@ import contextlib
 
 from cities_light.models import City
 from colorfield.fields import ColorField
-from common.models import Field, Job, University
+from common.models import Field, Job, University, Skill
 from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
@@ -341,3 +341,25 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
     class Meta:
         verbose_name = _("Communication Method")
         verbose_name_plural = _("Communication Methods")
+
+
+class WorkExperience(models.Model):
+    class Status(models.TextChoices):
+        SUBMITED = "submited", _("Submited")
+        DRAFT = "draft", _("Draft")
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="work_experiences")
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
+    start = models.DateField(verbose_name=_("Start Date"))
+    end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
+    organization = models.CharField(max_length=255, verbose_name=_("Organization"))
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
+    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"))
+
+    class Meta:
+        verbose_name = _("Work Experience")
+        verbose_name_plural = _("Work Experiences")
+
+    def __str__(self):
+        return f"{self.job.title} - {self.organization}"
