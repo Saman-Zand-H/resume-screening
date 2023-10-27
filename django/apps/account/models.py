@@ -104,26 +104,24 @@ for field, properties in User.FIELDS_PROPERTIES.items():
 
 class Profile(models.Model):
     class SkinColor(models.TextChoices):
-        VERY_FAIR = "#FFDFC4", "Very Fair"
-        FAIR = "#F0D5B1", "Fair"
-        LIGHT = "#E5B897", "Light"
-        LIGHT_MEDIUM = "#D9A377", "Light Medium"
-        MEDIUM = "#C68642", "Medium"
-        OLIVE = "#A86B33", "Olive"
-        BROWN = "#8D5524", "Brown"
-        DARK_BROWN = "#603913", "Dark Brown"
-        VERY_DARK = "#3B260B", "Very Dark"
-        DEEP = "#100C08", "Deep"
+        VERY_FAIR = "#FFDFC4", _("Very Fair")
+        FAIR = "#F0D5B1", _("Fair")
+        LIGHT = "#E5B897", _("Light")
+        LIGHT_MEDIUM = "#D9A377", _("Light Medium")
+        MEDIUM = "#C68642", _("Medium")
+        OLIVE = "#A86B33", _("Olive")
+        BROWN = "#8D5524", _("Brown")
+        DARK_BROWN = "#603913", _("Dark Brown")
+        VERY_DARK = "#3B260B", _("Very Dark")
+        DEEP = "#100C08", _("Deep")
 
     class EyeColor(models.TextChoices):
-        AMBER = "#FFBF00", "Amber"
-        BLUE = "#5DADEC", "Blue"
-        BROWN = "#6B4226", "Brown"
-        GRAY = "#BEBEBE", "Gray"
-        GREEN = "#1CAC78", "Green"
-        HAZEL = "#8E7618", "Hazel"
-        RED = "#FF4500", "Red"
-        VIOLET = "#8F00FF", "Violet"
+        AMBER = "#FFBF00", _("Amber")
+        BLUE = "#5DADEC", _("Blue")
+        BROWN = "#6B4226", _("Brown")
+        GRAY = "#BEBEBE", _("Gray")
+        GREEN = "#1CAC78", _("Green")
+        HAZEL = "#8E7618", _("Hazel")
 
     class EmploymentStatus(models.TextChoices):
         EMPLOYED = "employed", _("Employed")
