@@ -388,3 +388,17 @@ class LanguageCertificate(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.language} - {self.certificate_name}"
+    
+
+class CertificateAndLicense(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="certificate_and_licenses"
+    )
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
+    issued_at = models.DateField(verbose_name=_("Issued At"))
+    expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Certificate And License")
+        verbose_name_plural = _("Certificates And Licenses")
