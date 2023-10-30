@@ -72,3 +72,14 @@ class Skill(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class LanguageProficiencyTest(models.Model):
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+
+    class Meta:
+        verbose_name = _("Language Proficiency Test")
+        verbose_name_plural = _("Language Proficiency Tests")
+
+    def __str__(self):
+        return self.title
