@@ -58,6 +58,15 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         return response
 
 
+class RefreshToken(graphql_auth_mutations.RefreshToken):
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        field = super().Field(*args, **kwargs)
+        del cls._meta.fields["refresh_token"]
+        del cls._meta.fields["refresh_expires_in"]
+        return field
+
+
 class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
@@ -273,15 +282,6 @@ class EducationMutation(graphene.ObjectType):
 
 class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
-
-
-class RefreshToken(graphql_auth_mutations.RefreshToken):
-    @classmethod
-    def Field(cls, *args, **kwargs):
-        field = super().Field(*args, **kwargs)
-        del cls._meta.fields["refresh_token"]
-        del cls._meta.fields["refresh_expires_in"]
-        return field
 
 
 class AccountMutation(graphene.ObjectType):
