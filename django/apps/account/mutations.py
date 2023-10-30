@@ -275,6 +275,15 @@ class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
 
 
+class RefreshToken(graphql_auth_mutations.RefreshToken):
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        field = super().Field(*args, **kwargs)
+        del cls._meta.fields["refresh_token"]
+        del cls._meta.fields["refresh_expires_in"]
+        return field
+
+
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -284,7 +293,7 @@ class AccountMutation(graphene.ObjectType):
     password_change = graphql_auth_mutations.PasswordChange.Field()
     token_auth = graphql_auth_mutations.ObtainJSONWebToken.Field()
     verify_token = graphql_auth_mutations.VerifyToken.Field()
-    refresh_token = graphql_auth_mutations.RefreshToken.Field()
+    refresh_token = RefreshToken.Field()
     revoke_token = graphql_auth_mutations.RevokeToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()

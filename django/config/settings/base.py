@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "django_extensions",
     "django_filters",
     "graphql_auth",
+    "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "corsheaders",
     "colorfield",
     "cities_light",
@@ -175,6 +176,8 @@ GRAPHENE = {
 }
 
 GRAPHQL_JWT = {
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
     "JWT_EXPIRATION_DELTA": timedelta(minutes=5),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_GET_USER_BY_NATURAL_KEY_HANDLER": "graphql_auth.utils.get_user_by_natural_key",
