@@ -364,3 +364,27 @@ class WorkExperience(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.job.title} - {self.organization}"
+    
+
+class LanguageCertificate(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="language_certificates"
+    )
+    # TODO: make this foreignkey
+    language = models.CharField(max_length=255, verbose_name=_("Language"))
+    # TODO: make this foreignkey
+    certificate_name = models.CharField(max_length=255, verbose_name=_("Certificate Name"))
+    issued_at = models.DateField(verbose_name=_("Issued At"))
+    expired_at = models.DateField(verbose_name=_("Expired At"))
+    listening_score = models.FloatField(verbose_name=_("Listening Score"))
+    reading_score = models.FloatField(verbose_name=_("Reading Score"))
+    writing_score = models.FloatField(verbose_name=_("Writing Score"))
+    speaking_score = models.FloatField(verbose_name=_("Speaking Score"))
+    band_score = models.FloatField(verbose_name=_("Band Score"))
+
+    class Meta:
+        verbose_name = _("Language Certificate")
+        verbose_name_plural = _("Language Certificates")
+
+    def __str__(self):
+        return f"{self.user.email} - {self.language} - {self.certificate_name}"
