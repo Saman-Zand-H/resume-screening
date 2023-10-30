@@ -5,6 +5,7 @@ from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
     DjangoPatchMutation,
+    DjangoDeleteMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql import GraphQLError
@@ -21,7 +22,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Contact, Education, Profile, User
+from .models import Contact, Education, Profile, User, LanguageCertificate
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -232,6 +233,31 @@ class EducationUpdateStatusMutation(DjangoPatchMutation):
         type_name = "PatchEducationStatusInput"
 
 
+class LanguageCertificateCreateMutation(DjangoCreateMutation):
+    class Meta:
+        model = LanguageCertificate
+        login_required = True
+        fields = (
+            LanguageCertificate.language.field.name,
+            LanguageCertificate.test.field.name,
+            LanguageCertificate.issued_at.field.name,
+            LanguageCertificate.expired_at.field.name,
+            LanguageCertificate.listening_score.field.name,
+            LanguageCertificate.reading_score.field.name,
+            LanguageCertificate.writing_score.field.name,
+            LanguageCertificate.speaking_score.field.name,
+            LanguageCertificate.band_score.field.name,
+        )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+        try:
+            obj.full_clean()
+        except ValidationError as e:
+            raise GraphQLError(e.message_dict)
+
+
 class ProfileMutation(graphene.ObjectType):
     update = ProfileUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -240,6 +266,10 @@ class ProfileMutation(graphene.ObjectType):
 class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
     update_status = EducationUpdateStatusMutation.Field()
+
+
+class LanguageCertificateMutation(graphene.ObjectType):
+    create = LanguageCertificateCreateMutation.Field()
 
 
 class AccountMutation(graphene.ObjectType):
@@ -257,12 +287,16 @@ class AccountMutation(graphene.ObjectType):
     linkedin_auth = LinkedInAuth.Field()
     profile = graphene.Field(ProfileMutation)
     education = graphene.Field(EducationMutation)
+    language_certificate = graphene.Field(LanguageCertificateMutation)
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
 
     def resolve_education(self, *args, **kwargs):
         return EducationMutation()
+
+    def resolve_language_certificate(self, *args, **kwargs):
+        return LanguageCertificateMutation()
 
 
 class Mutation(graphene.ObjectType):
