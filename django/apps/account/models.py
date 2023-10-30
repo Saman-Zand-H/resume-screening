@@ -2,7 +2,7 @@ import contextlib
 
 from cities_light.models import City
 from colorfield.fields import ColorField
-from common.models import Field, Job, University, Skill
+from common.models import Language, Field, Job, University, Skill, LanguageProficiencyTest
 from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
@@ -370,10 +370,12 @@ class LanguageCertificate(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="language_certificates"
     )
-    # TODO: make this foreignkey
-    language = models.CharField(max_length=255, verbose_name=_("Language"))
-    # TODO: make this foreignkey
-    certificate_name = models.CharField(max_length=255, verbose_name=_("Certificate Name"))
+    language = models.ForeignKey(
+        Language, on_delete=models.CASCADE, verbose_name=_("Language"), related_name="certificates"
+    )
+    test = models.ForeignKey(
+        LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="certificates"
+    )
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"))
     listening_score = models.FloatField(verbose_name=_("Listening Score"))
@@ -387,7 +389,7 @@ class LanguageCertificate(models.Model):
         verbose_name_plural = _("Language Certificates")
 
     def __str__(self):
-        return f"{self.user.email} - {self.language} - {self.certificate_name}"
+        return f"{self.user.email} - {self.language.name} - {self.test.title}"
 
 
 class CertificateAndLicense(models.Model):

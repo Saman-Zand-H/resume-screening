@@ -6,7 +6,18 @@ from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
-from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, User, WorkExperience
+from .models import (
+    CommunicationMethod,
+    Contact,
+    Education,
+    IEEMethod,
+    Profile,
+    User,
+    WorkExperience,
+    LanguageCertificate,
+    CertificateAndLicense,
+    UserSkill,
+)
 
 
 @register(User)
@@ -109,3 +120,38 @@ class WorkExperienceAdmin(admin.ModelAdmin):
         "user",
         "city",
     )
+
+
+@register(LanguageCertificate)
+class LanguageCertificateAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "language__code", "test__title", "issued_at", "expired_at", "band_score")
+    search_fields = (
+        "user__email",
+        "language__code",
+    )
+    list_filter = ("language__code", "test__title", "issued_at", "expired_at")
+    raw_id_fields = ("user", "language", "test")
+
+
+@register(CertificateAndLicense)
+class CertificateAndLicenseAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "title", "certifier", "issued_at", "expired_at")
+    search_fields = ("user__email", "title")
+    list_filter = ("certifier", "issued_at", "expired_at")
+    raw_id_fields = ("user",)
+
+
+@register(UserSkill)
+class UserSkillAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user",
+        "get_skills",
+    )
+    search_fields = ("user__email",)
+    raw_id_fields = ("user", "skills")
+
+    def get_skills(self, obj):
+        return ", ".join([skill.title for skill in obj.skills.all()])
+
+    get_skills.short_description = "Skills"

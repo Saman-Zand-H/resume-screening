@@ -4,6 +4,19 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class Language(models.Model):
+    name = models.CharField(_("Language Name"), max_length=50, unique=True)
+    code = models.CharField(_("Language Code"), max_length=5, unique=True)
+
+    class Meta:
+        verbose_name = _("Language")
+        verbose_name_plural = _("Languages")
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class JobCategory(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
 
