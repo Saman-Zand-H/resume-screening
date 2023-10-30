@@ -2,7 +2,14 @@ import contextlib
 
 from cities_light.models import City
 from colorfield.fields import ColorField
-from common.models import Language, Field, Job, University, Skill, LanguageProficiencyTest
+from common.models import (
+    Field,
+    Job,
+    Language,
+    LanguageProficiencyTest,
+    Skill,
+    University,
+)
 from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
@@ -111,7 +118,7 @@ class Profile(models.Model):
         MEDIUM = "#C68642", _("Medium")
         OLIVE = "#A86B33", _("Olive")
         BROWN = "#8D5524", _("Brown")
-        DARK_BROWN = "#603913", _("Dark Brown")
+        DARK_BROWN = "#60391C", _("Dark Brown")
         VERY_DARK = "#3B260B", _("Very Dark")
         DEEP = "#100C08", _("Deep")
 

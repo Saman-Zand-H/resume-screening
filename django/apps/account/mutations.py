@@ -6,7 +6,6 @@ from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
     DjangoPatchMutation,
-    DjangoDeleteMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql import GraphQLError
@@ -23,7 +22,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Contact, Education, Profile, User, LanguageCertificate
+from .models import Contact, Education, LanguageCertificate, Profile, User
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -125,7 +124,7 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 )
 
 
-class ProfileUpdateMutation(DjangoCreateMutation):
+class UserUpdateMutation(DjangoCreateMutation):
     class Meta:
         model = Profile
         login_required = True
@@ -263,7 +262,7 @@ class LanguageCertificateCreateMutation(DjangoCreateMutation):
 
 
 class ProfileMutation(graphene.ObjectType):
-    update = ProfileUpdateMutation.Field()
+    update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
 
 
