@@ -1,0 +1,129 @@
+[
+  {
+    "model": "common.language",
+    "pk": 1,
+    "fields": {
+      "name": "English",
+      "code": "en"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 2,
+    "fields": {
+      "name": "Spanish",
+      "code": "es"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 3,
+    "fields": {
+      "name": "French",
+      "code": "fr"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 4,
+    "fields": {
+      "name": "German",
+      "code": "de"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 5,
+    "fields": {
+      "name": "Chinese",
+      "code": "zh"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 6,
+    "fields": {
+      "name": "Japanese",
+      "code": "ja"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 7,
+    "fields": {
+      "name": "Korean",
+      "code": "ko"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 8,
+    "fields": {
+      "name": "Arabic",
+      "code": "ar"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 9,
+    "fields": {
+      "name": "Hindi",
+      "code": "hi"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 10,
+    "fields": {
+      "name": "Portuguese",
+      "code": "pt"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 11,
+    "fields": {
+      "name": "Italian",
+      "code": "it"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 12,
+    "fields": {
+      "name": "Dutch",
+      "code": "nl"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 13,
+    "fields": {
+      "name": "Russian",
+      "code": "ru"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 14,
+    "fields": {
+      "name": "Swedish",
+      "code": "sv"
+    }
+  },
+  {
+    "model": "common.language",
+    "pk": 15,
+    "fields": {
+      "name": "Turkish",
+      "code": "tr"
+    }
+  },
+  {
+    "model":"common.language",
+    "pk": 16,
+    "fields": {
+      "name": "Farsi",
+      "code": "fa"
+  }
+]
