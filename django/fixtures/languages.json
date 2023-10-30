@@ -120,10 +120,11 @@
     }
   },
   {
-    "model":"common.language",
+    "model": "common.language",
     "pk": 16,
     "fields": {
       "name": "Farsi",
       "code": "fa"
+    }
   }
 ]
