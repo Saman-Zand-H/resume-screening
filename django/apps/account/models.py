@@ -348,11 +348,12 @@ class WorkExperience(models.Model):
         SUBMITED = "submited", _("Submited")
         DRAFT = "draft", _("Draft")
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="work_experiences")
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="work_experiences")
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
+    # TODO: check if organization field is a foreignkey
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
     status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"))
@@ -362,4 +363,4 @@ class WorkExperience(models.Model):
         verbose_name_plural = _("Work Experiences")
 
     def __str__(self):
-        return f"{self.job.title} - {self.organization}"
+        return f"{self.user.email} - {self.job.title} - {self.organization}"
