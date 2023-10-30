@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
@@ -15,7 +16,7 @@ from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
-from graphql_jwt.decorators import on_token_auth_resolve
+from graphql_jwt.decorators import on_token_auth_resolve, refresh_expiration
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -63,12 +64,15 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
 
     token = graphene.String()
     refresh_token = graphene.String()
+    refresh_expires_in = graphene.Int()
+    payload = GenericScalar()
 
     @classmethod
     def setup(cls, root, info, **kwargs):
         return NotImplemented
 
     @classmethod
+    @refresh_expiration
     def mutate(cls, root, info, **kwargs):
         payload = cls.setup(root, info, **kwargs)
         data = payload.get("data")

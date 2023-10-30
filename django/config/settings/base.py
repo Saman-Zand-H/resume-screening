@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "django_extensions",
     "django_filters",
     "graphql_auth",
-    "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "corsheaders",
     "colorfield",
     "cities_light",
@@ -176,9 +175,8 @@ GRAPHENE = {
 }
 
 GRAPHQL_JWT = {
-    "JWT_VERIFY_EXPIRATION": True,
-    "JWT_EXPIRATION_DELTA": timedelta(hours=10),
-    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
+    "JWT_EXPIRATION_DELTA": timedelta(minutes=5),
+    "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_GET_USER_BY_NATURAL_KEY_HANDLER": "graphql_auth.utils.get_user_by_natural_key",
     "JWT_ALLOW_ANY_CLASSES": [
         "graphql_auth.mutations.Register",
@@ -215,8 +213,8 @@ SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [
             {
-                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
-                "secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+                "client_id": "291860381370-5edd58ekvbiu2c4s30pka7fnqiuql71q.apps.googleusercontent.com",
+                "secret": "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",
                 "key": "",
             },
         ],
