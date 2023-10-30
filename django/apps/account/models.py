@@ -364,7 +364,7 @@ class WorkExperience(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.job.title} - {self.organization}"
-    
+
 
 class LanguageCertificate(models.Model):
     user = models.ForeignKey(
@@ -388,7 +388,7 @@ class LanguageCertificate(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.language} - {self.certificate_name}"
-    
+
 
 class CertificateAndLicense(models.Model):
     user = models.ForeignKey(
@@ -402,3 +402,12 @@ class CertificateAndLicense(models.Model):
     class Meta:
         verbose_name = _("Certificate And License")
         verbose_name_plural = _("Certificates And Licenses")
+
+
+class UserSkill(models.Model):
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="skills")
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="users")
+
+    class Meta:
+        verbose_name = _("User Skill")
+        verbose_name_plural = _("User Skills")
