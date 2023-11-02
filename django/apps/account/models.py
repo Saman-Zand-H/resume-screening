@@ -360,7 +360,6 @@ class WorkExperience(models.Model):
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
-    # TODO: check if organization field is a foreignkey
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
     status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"))
