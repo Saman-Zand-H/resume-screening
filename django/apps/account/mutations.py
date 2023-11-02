@@ -246,7 +246,7 @@ class EducationUpdateStatusMutation(DjangoPatchMutation):
         type_name = "PatchEducationStatusInput"
 
 
-class WorkExperienceCreateMutation(DjangoCreateMutation):
+class WorkExperienceMutationMixin:
     class Meta:
         model = WorkExperience
         login_required = True
@@ -259,25 +259,20 @@ class WorkExperienceCreateMutation(DjangoCreateMutation):
             WorkExperience.city.field.name,
             WorkExperience.status.field.name,
         )
+
+
+class WorkExperienceCreateMutation(WorkExperienceMutationMixin, DjangoCreateMutation):
+    class Meta(WorkExperienceMutationMixin.Meta):
+        pass
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
         obj.user = info.context.user
 
 
-class WorkExperienceUpdateMutation(DjangoPatchMutation):
-    class Meta:
-        model = WorkExperience
-        login_required = True
-        fields = (
-            WorkExperience.job.field.name,
-            WorkExperience.start.field.name,
-            WorkExperience.end.field.name,
-            WorkExperience.skills.field.name,
-            WorkExperience.organization.field.name,
-            WorkExperience.city.field.name,
-            WorkExperience.status.field.name,
-        )
+class WorkExperienceUpdateMutation(WorkExperienceMutationMixin, DjangoPatchMutation):
+    class Meta(WorkExperienceMutationMixin.Meta):
+        pass
 
     @classmethod
     def check_permissions(cls, root, info, input, id, obj):
