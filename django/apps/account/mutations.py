@@ -246,7 +246,7 @@ class EducationUpdateStatusMutation(DjangoPatchMutation):
         type_name = "PatchEducationStatusInput"
 
 
-class WorkExperinceCreateMutation(DjangoCreateMutation):
+class WorkExperienceCreateMutation(DjangoCreateMutation):
     class Meta:
         model = WorkExperience
         login_required = True
@@ -263,6 +263,27 @@ class WorkExperinceCreateMutation(DjangoCreateMutation):
     @classmethod
     def before_create_obj(cls, info, input, obj):
         obj.user = info.context.user
+
+
+class WorkExperienceUpdateMutation(DjangoPatchMutation):
+    class Meta:
+        model = WorkExperience
+        login_required = True
+        fields = (
+            WorkExperience.job.field.name,
+            WorkExperience.start.field.name,
+            WorkExperience.end.field.name,
+            WorkExperience.skills.field.name,
+            WorkExperience.organization.field.name,
+            WorkExperience.city.field.name,
+            WorkExperience.status.field.name,
+        )
+
+    @classmethod
+    def check_permissions(cls, root, info, input, id, obj):
+        if obj.user != info.context.user:
+            raise GraphQLError("Not permitted to modify this record.")
+        return super().check_permissions(root, info, input, id, obj)
 
 
 class LanguageCertificateMutationMixin:
@@ -341,8 +362,9 @@ class EducationMutation(graphene.ObjectType):
     update_status = EducationUpdateStatusMutation.Field()
 
 
-class WorkExperinceMutation(graphene.ObjectType):
-    create = WorkExperinceCreateMutation.Field()
+class WorkExperienceMutation(graphene.ObjectType):
+    create = WorkExperienceCreateMutation.Field()
+    update = WorkExperienceUpdateMutation.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):
@@ -366,7 +388,7 @@ class AccountMutation(graphene.ObjectType):
     linkedin_auth = LinkedInAuth.Field()
     profile = graphene.Field(ProfileMutation)
     education = graphene.Field(EducationMutation)
-    work_experience = graphene.Field(WorkExperinceMutation)
+    work_experience = graphene.Field(WorkExperienceMutation)
     language_certificate = graphene.Field(LanguageCertificateMutation)
 
     def resolve_profile(self, *args, **kwargs):
@@ -376,7 +398,7 @@ class AccountMutation(graphene.ObjectType):
         return EducationMutation()
 
     def resolve_work_experience(self, *args, **kwargs):
-        return WorkExperinceMutation()
+        return WorkExperienceMutation()
 
     def resolve_language_certificate(self, *args, **kwargs):
         return LanguageCertificateMutation()
