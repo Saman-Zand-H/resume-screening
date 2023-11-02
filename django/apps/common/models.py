@@ -89,6 +89,8 @@ class Skill(models.Model):
 
 class LanguageProficiencyTest(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
+    min_score = models.FloatField(verbose_name=_("Minimum Score"))
+    max_score = models.FloatField(verbose_name=_("Maximum Score"))
 
     class Meta:
         verbose_name = _("Language Proficiency Test")
