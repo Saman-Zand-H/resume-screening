@@ -286,6 +286,18 @@ class WorkExperienceUpdateMutation(DjangoPatchMutation):
         return super().check_permissions(root, info, input, id, obj)
 
 
+class WorkExperienceDeleteMutation(DjangoDeleteMutation):
+    class Meta:
+        model = WorkExperience
+        login_required = True
+
+    @classmethod
+    def check_permissions(cls, root, info, id, obj):
+        if obj.user != info.context.user:
+            raise GraphQLError("Not permitted to delete this record.")
+        return super().check_permissions(root, info, id, obj)
+
+
 class LanguageCertificateMutationMixin:
     class Meta:
         model = LanguageCertificate
@@ -365,6 +377,7 @@ class EducationMutation(graphene.ObjectType):
 class WorkExperienceMutation(graphene.ObjectType):
     create = WorkExperienceCreateMutation.Field()
     update = WorkExperienceUpdateMutation.Field()
+    delete = WorkExperienceDeleteMutation.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):
