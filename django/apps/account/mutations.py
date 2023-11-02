@@ -23,7 +23,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Contact, Education, LanguageCertificate, Profile, User
+from .models import Contact, Education, WorkExperience, LanguageCertificate, Profile, User
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -246,6 +246,25 @@ class EducationUpdateStatusMutation(DjangoPatchMutation):
         type_name = "PatchEducationStatusInput"
 
 
+class WorkExperinceCreateMutation(DjangoCreateMutation):
+    class Meta:
+        model = WorkExperience
+        login_required = True
+        fields = (
+            WorkExperience.job.field.name,
+            WorkExperience.start.field.name,
+            WorkExperience.end.field.name,
+            WorkExperience.skills.field.name,
+            WorkExperience.organization.field.name,
+            WorkExperience.city.field.name,
+            WorkExperience.status.field.name,
+        )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+
+
 class LanguageCertificateMutationMixin:
     class Meta:
         model = LanguageCertificate
@@ -322,6 +341,10 @@ class EducationMutation(graphene.ObjectType):
     update_status = EducationUpdateStatusMutation.Field()
 
 
+class WorkExperinceMutation(graphene.ObjectType):
+    create = WorkExperinceCreateMutation.Field()
+
+
 class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
     update = LanguageCertificateUpdateMutation.Field()
@@ -343,6 +366,7 @@ class AccountMutation(graphene.ObjectType):
     linkedin_auth = LinkedInAuth.Field()
     profile = graphene.Field(ProfileMutation)
     education = graphene.Field(EducationMutation)
+    work_experience = graphene.Field(WorkExperinceMutation)
     language_certificate = graphene.Field(LanguageCertificateMutation)
 
     def resolve_profile(self, *args, **kwargs):
@@ -350,6 +374,9 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_education(self, *args, **kwargs):
         return EducationMutation()
+
+    def resolve_work_experience(self, *args, **kwargs):
+        return WorkExperinceMutation()
 
     def resolve_language_certificate(self, *args, **kwargs):
         return LanguageCertificateMutation()
