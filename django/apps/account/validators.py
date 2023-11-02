@@ -8,8 +8,8 @@ from django.utils.translation import gettext_lazy as _
 
 
 class LinkedInUsernameValidator(RegexValidator):
-    regex = r"^(https:\/\/)?(www\.)?linkedin\.com\/in\/[A-Za-z0-9_.-]+\/?$"
-    message = _("Enter a valid LinkedIn username. This value may contain only letters, numbers, and _.")
+    regex = r"^(https:\/\/)?(www\.)?linkedin\.com\/in\/[A-Za-z0-9_-]+\/?$"
+    message = _("Enter a valid LinkedIn username url eg: https://www.linkedin.com/in/username")
 
 
 class WhatsAppValidator(RegexValidator):
