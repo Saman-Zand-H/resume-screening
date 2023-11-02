@@ -6,6 +6,7 @@ from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
     DjangoPatchMutation,
+    DjangoDeleteMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql import GraphQLError
@@ -283,6 +284,22 @@ class LanguageCertificateCreateMutation(LanguageCertificateMutationMixin, Django
         obj.user = info.context.user
 
 
+class LanguageCertificateUpdateMutation(LanguageCertificateMutationMixin, DjangoPatchMutation):
+    class Meta(LanguageCertificateMutationMixin.Meta):
+        pass
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj):
+        super().apply_full_clean(obj)
+        return super().before_save(root, info, input, id, obj)
+
+    @classmethod
+    def check_permissions(cls, root, info, input, id, obj):
+        if obj.user != info.context.user:
+            raise GraphQLError("Not permitted to modify this record.")
+        return super().check_permissions(root, info, input, id, obj)
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -295,6 +312,7 @@ class EducationMutation(graphene.ObjectType):
 
 class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
+    update = LanguageCertificateUpdateMutation.Field()
 
 
 class AccountMutation(graphene.ObjectType):
