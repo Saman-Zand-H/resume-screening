@@ -1,7 +1,7 @@
 import graphene
 from query_optimizer import DjangoObjectType
 
-from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, LanguageCertificate
+from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, WorkExperience, LanguageCertificate
 
 
 class ProfileType(DjangoObjectType):
@@ -81,6 +81,21 @@ class CommunicationMethodType(DjangoObjectType):
             CommunicationMethod.department.field.name,
             CommunicationMethod.person.field.name,
             CommunicationMethod.degree_file.field.name,
+        )
+
+
+class WorkExperienceType(DjangoObjectType):
+    class Meta:
+        model = WorkExperience
+        fields = (
+            WorkExperience.id.field.name,
+            WorkExperience.job.field.name,
+            WorkExperience.start.field.name,
+            WorkExperience.end.field.name,
+            WorkExperience.skills.field.name,
+            WorkExperience.organization.field.name,
+            WorkExperience.city.field.name,
+            WorkExperience.status.field.name,
         )
 
 
