@@ -245,7 +245,7 @@ class EducationUpdateStatusMutation(DjangoPatchMutation):
         type_name = "PatchEducationStatusInput"
 
 
-class LanguageCertificateCreateMutation(DjangoCreateMutation):
+class LanguageCertificateMutationMixin:
     class Meta:
         model = LanguageCertificate
         login_required = True
@@ -262,12 +262,25 @@ class LanguageCertificateCreateMutation(DjangoCreateMutation):
         )
 
     @classmethod
-    def before_create_obj(cls, info, input, obj):
-        obj.user = info.context.user
+    def apply_full_clean(cls, obj):
         try:
             obj.full_clean()
         except ValidationError as e:
             raise GraphQLError(e.message_dict)
+
+
+class LanguageCertificateCreateMutation(LanguageCertificateMutationMixin, DjangoCreateMutation):
+    class Meta(LanguageCertificateMutationMixin.Meta):
+        pass
+
+    @classmethod
+    def before_save(cls, root, info, input, obj):
+        super().apply_full_clean(obj)
+        return super().before_save(root, info, input, obj)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
 
 
 class ProfileMutation(graphene.ObjectType):
