@@ -300,6 +300,18 @@ class LanguageCertificateUpdateMutation(LanguageCertificateMutationMixin, Django
         return super().check_permissions(root, info, input, id, obj)
 
 
+class LanguageCertificateDeleteMutation(DjangoDeleteMutation):
+    class Meta:
+        model = LanguageCertificate
+        login_required = True
+
+    @classmethod
+    def check_permissions(cls, root, info, id, obj):
+        if obj.user != info.context.user:
+            raise GraphQLError("Not permitted to delete this record.")
+        return super().check_permissions(root, info, id, obj)
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -313,6 +325,7 @@ class EducationMutation(graphene.ObjectType):
 class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
     update = LanguageCertificateUpdateMutation.Field()
+    delete = LanguageCertificateDeleteMutation.Field()
 
 
 class AccountMutation(graphene.ObjectType):
