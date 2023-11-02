@@ -6,7 +6,7 @@ from cities_light.models import City, Country, Region, SubRegion
 from graphene import relay
 from query_optimizer import DjangoObjectType
 
-from .models import Field, Job, JobCategory, JobIndustry, University, Language
+from .models import Field, Job, JobCategory, JobIndustry, University, Language, LanguageProficiencyTest
 
 
 class JobIndustryNode(DjangoObjectType):
@@ -128,4 +128,19 @@ class LanguageNode(DjangoObjectType):
         )
         filter_fields = {
             Language.name.field.name: ["icontains"],
+        }
+
+
+class LanguageProficiencyTestNode(DjangoObjectType):
+    class Meta:
+        model = LanguageProficiencyTest
+        interfaces = (relay.Node,)
+        fields = (
+            LanguageProficiencyTest.id.field.name,
+            LanguageProficiencyTest.title.field.name,
+            LanguageProficiencyTest.min_score.field.name,
+            LanguageProficiencyTest.max_score.field.name,
+        )
+        filter_fields = {
+            LanguageProficiencyTest.title.field.name: ["icontains"],
         }
