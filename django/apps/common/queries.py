@@ -1,7 +1,7 @@
 import graphene
 from graphene_django.filter import DjangoFilterConnectionField
 
-from .types import CityNode, CountryNode, FieldNode, JobNode, RegionNode, UniversityNode
+from .types import CityNode, CountryNode, FieldNode, JobNode, RegionNode, UniversityNode, LanguageNode
 
 
 class CommonQuery(graphene.ObjectType):
@@ -11,6 +11,7 @@ class CommonQuery(graphene.ObjectType):
     regions = DjangoFilterConnectionField(RegionNode)
     cities = DjangoFilterConnectionField(CityNode)
     jobs = DjangoFilterConnectionField(JobNode)
+    languages = DjangoFilterConnectionField(LanguageNode)
 
 
 class Query(graphene.ObjectType):

@@ -6,7 +6,7 @@ from cities_light.models import City, Country, Region, SubRegion
 from graphene import relay
 from query_optimizer import DjangoObjectType
 
-from .models import Field, Job, JobCategory, JobIndustry, University
+from .models import Field, Job, JobCategory, JobIndustry, University, Language
 
 
 class JobIndustryNode(DjangoObjectType):
@@ -114,4 +114,18 @@ class CityNode(DjangoObjectType):
         filter_fields = {
             City.name.field.name: ["icontains"],
             City.region.field.name: ["exact"],
+        }
+
+
+class LanguageNode(DjangoObjectType):
+    class Meta:
+        model = Language
+        interfaces = (relay.Node,)
+        fields = (
+            Language.id.field.name,
+            Language.name.field.name,
+            Language.code.field.name,
+        )
+        filter_fields = {
+            Language.name.field.name: ["icontains"],
         }
