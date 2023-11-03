@@ -20,11 +20,15 @@ from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
+from django.forms import ValidationError
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from .choices import DocumentStatus
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
@@ -214,7 +218,24 @@ class Contact(models.Model):
             self.value = self.VALUE_FIXERS[self.type](self.value)
 
 
-class Education(models.Model):
+class DocumentAbstract(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
+    status = models.CharField(
+        max_length=50,
+        choices=DocumentStatus.choices,
+        verbose_name=_("Status"),
+        default=DocumentStatus.DRAFTED.value,
+    )
+    verified_at = models.DateTimeField(verbose_name=_("Verified At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    allow_self_verification = models.BooleanField(default=False, verbose_name=_("Allow Self Verification"))
+
+    class Meta:
+        abstract = True
+
+
+class Education(DocumentAbstract):
     class Degree(models.TextChoices):
         BACHELORS = "bachelors", _("Bachelors")
         MASTERS = "masters", _("Masters")
@@ -223,39 +244,19 @@ class Education(models.Model):
         DIPLOMA = "diploma", _("Diploma")
         CERTIFICATE = "certificate", _("Certificate")
 
-    class Status(models.TextChoices):
-        VERIFIED = "verified", _("Verified")
-        REJECTED = "rejected", _("Rejected")
-        PENDING = "pending", _("Pending")
-        DRAFT = "draft", _("Draft")
-
     class Method(models.TextChoices):
         IEE = (
             "iee",
             _("International Education Evaluation"),
         )
         COMMUNICATION = "communication", _("Communication")
-        SELF_VERIFICATION = "self_verification", _("Self Verification")
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
     university = models.ForeignKey(University, on_delete=models.CASCADE, verbose_name=_("University"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
-    status = models.CharField(
-        max_length=50,
-        choices=Status.choices,
-        verbose_name=_("Status"),
-        default=Status.PENDING.value,
-    )
     method = models.CharField(max_length=50, choices=Method.choices, verbose_name=_("Verification Method"))
-    is_verified = models.BooleanField(default=False, verbose_name=_("Is Verified"))
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name=_("Created At"),
-    )
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
 
     @staticmethod
     def get_method_models():
@@ -291,6 +292,8 @@ class EducationVerificationMethodAbstract(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_("Education"),
     )
+    verified_at = models.DateTimeField(verbose_name=_("Verified At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
         abstract = True

@@ -5,8 +5,8 @@ from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
-    DjangoPatchMutation,
     DjangoDeleteMutation,
+    DjangoPatchMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql import GraphQLError
@@ -23,7 +23,14 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
-from .models import Contact, Education, WorkExperience, LanguageCertificate, Profile, User
+from .models import (
+    Contact,
+    Education,
+    LanguageCertificate,
+    Profile,
+    User,
+    WorkExperience,
+)
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
