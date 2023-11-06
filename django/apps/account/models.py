@@ -389,6 +389,43 @@ class WorkExperience(DocumentAbstract):
         return f"{self.user.email} - {self.job.title} - {self.organization}"
 
 
+class WorkExperienceVerificationMethodAbstract(models.Model):
+    work_experience = models.OneToOneField(WorkExperience, on_delete=models.CASCADE, verbose_name=_("Work Experience"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.work_experience} Verification"
+
+
+class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
+    method = WorkExperienceVerificationMethodAbstract.Method.EMPLOYER_LETTER
+    employer_letter = models.FileField(
+        upload_to=employer_letter_path,
+        verbose_name=_("Employer Letter"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+
+    class Meta:
+        verbose_name = _("Employer Letter Method")
+        verbose_name_plural = _("Employer Letter Methods")
+
+
+class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
+    method = WorkExperienceVerificationMethodAbstract.Method.PAYSTUBS
+    paystubs = models.FileField(
+        upload_to=paystubs_path,
+        verbose_name=_("Employer Letter"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+
+    class Meta:
+        verbose_name = _("Paystubs Method")
+        verbose_name_plural = _("Paystubs Methods")
+
+
 class LanguageCertificate(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="language_certificates"
