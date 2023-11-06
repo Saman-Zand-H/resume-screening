@@ -7,16 +7,16 @@ from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
 from .models import (
+    CertificateAndLicense,
     CommunicationMethod,
     Contact,
     Education,
     IEEMethod,
+    LanguageCertificate,
     Profile,
     User,
-    WorkExperience,
-    LanguageCertificate,
-    CertificateAndLicense,
     UserSkill,
+    WorkExperience,
 )
 
 

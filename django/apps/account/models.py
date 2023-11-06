@@ -20,15 +20,13 @@ from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
 
-from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.core import checks
+from django.core.exceptions import ValidationError
 from django.db import models
-from django.forms import ValidationError
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .choices import DocumentStatus
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
@@ -219,12 +217,19 @@ class Contact(models.Model):
 
 
 class DocumentAbstract(models.Model):
+    class Status(models.TextChoices):
+        DRAFTED = "drafted", _("Drafted")
+        SUBMITTED = "submitted", _("Submitted")
+        REJECTED = "rejected", _("Rejected")
+        VERIFIED = "verified", _("Verified")
+        SELF_VERIFIED = "self_verified", _("Self Verified")
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
     status = models.CharField(
         max_length=50,
-        choices=DocumentStatus.choices,
+        choices=Status.choices,
         verbose_name=_("Status"),
-        default=DocumentStatus.DRAFTED.value,
+        default=Status.DRAFTED.value,
     )
     verified_at = models.DateTimeField(verbose_name=_("Verified At"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
@@ -233,6 +238,65 @@ class DocumentAbstract(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        if not cls.get_verification_abstract_model():
+            errors.append(checks.Error("get_verification_abstract_model must be return a  abstract model", obj=cls))
+        return errors
+
+    @classmethod
+    def get_verification_abstract_model(cls):
+        return None
+
+    @classmethod
+    def get_method_models(cls):
+        return get_all_subclasses(cls.get_verification_abstract_model())
+
+    def get_verification_methods(self):
+        for model in self.get_method_models():
+            with contextlib.suppress(model.DoesNotExist):
+                yield getattr(self, model.get_related_name())
+
+    def get_verification_method(self):
+        return next(self.get_verification_methods(), None)
+
+
+class DocumentVerificationMethodAbstract(models.Model):
+    verified_at = models.DateTimeField(verbose_name=_("Verified At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    DOCUMENT_FIELD = None
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.document.user.email} - {self.document.status} Verification"
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        if hasattr(cls, "DOCUMENT_FIELD") and not cls.DOCUMENT_FIELD:
+            errors.append(checks.Error("DOCUMENT_FIELD must be set or is not exist", obj=cls))
+        return errors
+
+    @classmethod
+    def get_document_field(cls):
+        return getattr(cls, cls.DOCUMENT_FIELD).field
+
+    @classmethod
+    def get_related_name(cls):
+        return cls.get_document_field().related_query_name()
+
+    def get_document(self):
+        return getattr(self, self.DOCUMENT_FIELD)
+
+    def clean(self, *args, **kwargs):
+        document = self.get_document()
+        if (methods := list(document.get_verification_methods())) and len(methods) > 1:
+            raise ValidationError(f"{document._meta.verbose_name} already has a verification method")
 
 
 class Education(DocumentAbstract):
@@ -244,63 +308,31 @@ class Education(DocumentAbstract):
         DIPLOMA = "diploma", _("Diploma")
         CERTIFICATE = "certificate", _("Certificate")
 
-    class Method(models.TextChoices):
-        IEE = (
-            "iee",
-            _("International Education Evaluation"),
-        )
-        COMMUNICATION = "communication", _("Communication")
-
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
     university = models.ForeignKey(University, on_delete=models.CASCADE, verbose_name=_("University"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
-    method = models.CharField(max_length=50, choices=Method.choices, verbose_name=_("Verification Method"))
-
-    @staticmethod
-    def get_method_models():
-        return get_all_subclasses(EducationVerificationMethodAbstract)
-
-    @staticmethod
-    def get_method_choices():
-        choices = dict.fromkeys(Education.Method.values)
-        return choices | {
-            method: model
-            for method in choices.keys()
-            for model in Education.get_method_models()
-            if model.method == method
-        }
 
     class Meta:
         verbose_name = _("Education")
         verbose_name_plural = _("Educations")
 
-    def __str__(self):
-        return f"{self.user.email} - {self.degree} in {self.field.name}"
-
-    def save(self, *args, **kwargs):
-        if self.method == self.Method.SELF_VERIFICATION:
-            self.status = self.Status.VERIFIED.value
-            self.is_verified = True
-        super().save(*args, **kwargs)
+    @classmethod
+    def get_verification_abstract_model(cls):
+        return EducationVerificationMethodAbstract
 
 
-class EducationVerificationMethodAbstract(models.Model):
+class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
     education = models.OneToOneField(
         Education,
         on_delete=models.CASCADE,
         verbose_name=_("Education"),
     )
-    verified_at = models.DateTimeField(verbose_name=_("Verified At"), null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    DOCUMENT_FIELD = "education"
 
     class Meta:
         abstract = True
-
-    @classmethod
-    def get_related_name(cls):
-        return cls.education.field.related_query_name()
 
     def __str__(self):
         return f"{self.education.user.email} - {self.education.degree} Verification"
@@ -312,8 +344,6 @@ class IEEMethod(EducationVerificationMethodAbstract):
         IQAS = "iqas", _("International Qualifications Assessment Service")
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
-
-    method = Education.Method.IEE
 
     ices_document = models.FileField(
         upload_to=ices_document_path,
@@ -337,8 +367,6 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 
 class CommunicationMethod(EducationVerificationMethodAbstract):
-    method = Education.Method.COMMUNICATION
-
     email = models.EmailField(verbose_name=_("Email"))
     department = models.CharField(max_length=255, verbose_name=_("Department"))
     person = models.CharField(max_length=255, verbose_name=_("Person"))

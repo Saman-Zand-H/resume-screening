@@ -1,7 +1,15 @@
 import graphene
 from query_optimizer import DjangoObjectType
 
-from .models import CommunicationMethod, Contact, Education, IEEMethod, Profile, WorkExperience, LanguageCertificate
+from .models import (
+    CommunicationMethod,
+    Contact,
+    Education,
+    IEEMethod,
+    LanguageCertificate,
+    Profile,
+    WorkExperience,
+)
 
 
 class ProfileType(DjangoObjectType):
@@ -36,8 +44,6 @@ class EducationMethodFieldTypes(graphene.ObjectType):
 
 
 class EducationType(DjangoObjectType):
-    method_fields = graphene.List(EducationMethodFieldTypes)
-
     class Meta:
         model = Education
         fields = (
@@ -50,15 +56,8 @@ class EducationType(DjangoObjectType):
             Education.status.field.name,
             Education.created_at.field.name,
             Education.updated_at.field.name,
-            IEEMethod.get_related_name(),
-            CommunicationMethod.get_related_name(),
+            *(m.get_related_name() for m in Education.get_method_models()),
         )
-
-    def resolve_method_fields(self, info):
-        return [
-            EducationMethodFieldTypes(method=method, field=model.get_related_name() if model else None)
-            for method, model in self.get_method_choices().items()
-        ]
 
 
 class IEEMethodType(DjangoObjectType):

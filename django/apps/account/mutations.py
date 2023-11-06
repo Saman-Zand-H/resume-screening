@@ -7,6 +7,7 @@ from graphene_django_cud.mutations import (
     DjangoCreateMutation,
     DjangoDeleteMutation,
     DjangoPatchMutation,
+    DjangoUpdateMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql import GraphQLError
@@ -23,8 +24,15 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .forms import PasswordLessRegisterForm
+from .mixins import (
+    DocumentCheckPermissionsMixin,
+    DocumentCUDFieldMixin,
+    DocumentCUDMixin,
+    DocumentUpdateMutationMixin,
+)
 from .models import (
     Contact,
+    DocumentAbstract,
     Education,
     LanguageCertificate,
     Profile,
@@ -200,49 +208,96 @@ class SetContactsMutation(DjangoBatchCreateMutation):
         Contact.objects.filter(user=info.context.user).exclude(pk__in=[obj.pk for obj in created_objs]).delete()
 
 
-class EducationCreateMutation(DjangoCreateMutation):
+class DocumentCreateMutationBase(DocumentCUDFieldMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
-        model = Education
-        login_required = True
-        fields = (
-            Education.field.field.name,
-            Education.degree.field.name,
-            Education.university.field.name,
-            Education.start.field.name,
-            Education.end.field.name,
-            Education.method.field.name,
-            *(m.get_related_name() for m in Education.get_method_models()),
-        )
-
-        one_to_one_extras = {m.get_related_name(): {"type": "auto"} for m in Education.get_method_models()}
-
-    @classmethod
-    def validate(cls, root, info, input):
-        models = Education.get_method_models()
-        method = input.get(Education.method.field.name)
-
-        if method.value == Education.Method.SELF_VERIFICATION:
-            for m in models:
-                if input.get(m.get_related_name()):
-                    raise GraphQLError("Self verification method can't have any method inputs.")
-        else:
-            method_inputs_exist = [input.get(m.get_related_name()) is not None for m in models]
-            if not input.get((field_name := Education.get_method_choices().get(method.value).get_related_name())):
-                raise GraphQLError(f"{field_name} method must be provided.")
-            if sum(method_inputs_exist) > 1:
-                raise GraphQLError("Only one of the methods can be provided.")
-
-        return super().validate(root, info, input)
+        abstract = True
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
-        if isinstance(obj, Education):
-            obj.user = info.context.user
-        else:
-            try:
-                obj.full_clean()
-            except ValidationError as e:
-                raise GraphQLError(e.message_dict)
+        obj.user = info.context.user
+        cls.full_clean(obj)
+
+
+class DocumentPatchMutationBase(DocumentCUDFieldMixin, DocumentUpdateMutationMixin, DjangoPatchMutation):
+    class Meta:
+        abstract = True
+
+
+class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoUpdateMutation):
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        model = kwargs.get("model")
+        kwargs.update(
+            {
+                "type_name": f"Set{model.__name__}VerificationMethodInput",
+                "fields": (*(m.get_related_name() for m in model.get_method_models()),),
+                "one_to_one_extras": {
+                    m.get_related_name(): {
+                        "type": "auto",
+                        "exclude_fields": (model.verified_at.field.name,),
+                    }
+                    for m in model.get_method_models()
+                },
+            }
+        )
+        return super().__init_subclass_with_meta__(*args, **kwargs)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        cls.full_clean(obj)
+
+    @classmethod
+    def validate(cls, root, info, input, id, obj):
+        models = obj.get_method_models()
+        method_inputs_exist = [input.get(m.get_related_name()) is not None for m in models]
+
+        if not any(method_inputs_exist):
+            raise GraphQLError("At least one method must be provided.")
+
+        if sum(method_inputs_exist) > 1:
+            raise GraphQLError("Only one of the methods can be provided.")
+
+        return super().validate(root, info, input, id, obj)
+
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        obj.status = DocumentAbstract.Status.SUBMITTED.value
+        obj.save(update_fields=[DocumentAbstract.status.field.name])
+        return super().after_mutate(root, info, id, input, obj, return_data)
+
+
+EDUCATION_MUTATION_FIELDS = (
+    Education.field.field.name,
+    Education.degree.field.name,
+    Education.university.field.name,
+    Education.start.field.name,
+    Education.end.field.name,
+)
+
+
+class EducationCreateMutation(DocumentCreateMutationBase):
+    class Meta:
+        model = Education
+        fields = EDUCATION_MUTATION_FIELDS
+
+
+class EducationUpdateMutation(DocumentPatchMutationBase):
+    class Meta:
+        model = Education
+        fields = EDUCATION_MUTATION_FIELDS
+
+
+class EducationDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
+    class Meta:
+        model = Education
+
+
+class EducationSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+    class Meta:
+        model = Education
 
 
 class EducationUpdateStatusMutation(DjangoPatchMutation):
@@ -373,7 +428,10 @@ class ProfileMutation(graphene.ObjectType):
 
 class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
+    update = EducationUpdateMutation.Field()
+    delete = EducationDeleteMutation.Field()
     update_status = EducationUpdateStatusMutation.Field()
+    set_verification_method = EducationSetVerificationMethodMutation.Field()
 
 
 class WorkExperienceMutation(graphene.ObjectType):
