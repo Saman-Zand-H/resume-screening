@@ -401,7 +401,7 @@ class WorkExperienceVerificationMethodAbstract(models.Model):
 
 
 class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
-    method = WorkExperienceVerificationMethodAbstract.Method.EMPLOYER_LETTER
+    method = WorkExperience.Method.EMPLOYER_LETTER
     employer_letter = models.FileField(
         upload_to=employer_letter_path,
         verbose_name=_("Employer Letter"),
@@ -414,7 +414,7 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
 
 
 class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
-    method = WorkExperienceVerificationMethodAbstract.Method.PAYSTUBS
+    method = WorkExperience.Method.PAYSTUBS
     paystubs = models.FileField(
         upload_to=paystubs_path,
         verbose_name=_("Employer Letter"),
@@ -467,6 +467,7 @@ class CertificateAndLicense(models.Model):
         User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="certificate_and_licenses"
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
+    # TODO: make it foreignkey
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
