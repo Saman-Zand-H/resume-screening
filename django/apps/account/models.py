@@ -426,6 +426,16 @@ class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
         verbose_name_plural = _("Paystubs Methods")
 
 
+class ReferenceCheckEmployer(models.Model):
+    work_experience_verification = models.ForeignKey(
+        EmployerLetterMethod, on_delete=models.CASCADE, verbose_name=_("Work Experience Verification")
+    )
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    email = models.EmailField(verbose_name=_("Email"))
+    phone_nubmer = PhoneNumberField(verbose_name=_("Phone Number"))
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, verbose_name=_("Position"))
+
+
 class LanguageCertificate(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="language_certificates"
