@@ -7,6 +7,7 @@ from common.models import (
     Job,
     Language,
     LanguageProficiencyTest,
+    Position,
     Skill,
     University,
 )
@@ -38,6 +39,10 @@ def get_education_verification_path(path, instance, filename):
     return f"profile/{instance.education.user.id}/education_verification/{path}/{filename}"
 
 
+def get_work_experience_verification_path(path, instance, filename):
+    return f"profile/{instance.work_experience.user.id}/work_experience_verification/{path}/{filename}"
+
+
 def ices_document_path(instance, filename):
     return get_education_verification_path("ices", instance, filename)
 
@@ -48,6 +53,14 @@ def citizen_document_path(instance, filename):
 
 def degree_file_path(instance, filename):
     return get_education_verification_path("degree", instance, filename)
+
+
+def employer_letter_path(instance, filename):
+    return get_work_experience_verification_path("employer_letter", instance, filename)
+
+
+def paystubs_path(instance, filename):
+    return get_work_experience_verification_path("paystubs", instance, filename)
 
 
 def fix_whatsapp_value(value):
@@ -224,7 +237,7 @@ class DocumentAbstract(models.Model):
         VERIFIED = "verified", _("Verified")
         SELF_VERIFIED = "self_verified", _("Self Verified")
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"))
     status = models.CharField(
         max_length=50,
         choices=Status.choices,
@@ -381,19 +394,20 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         verbose_name_plural = _("Communication Methods")
 
 
-class WorkExperience(models.Model):
-    class Status(models.TextChoices):
-        SUBMITED = "submited", _("Submited")
-        DRAFT = "draft", _("Draft")
+class WorkExperience(DocumentAbstract):
+    class Method(models.TextChoices):
+        EMPLOYER_LETTER = "employer_letter", _("Employer Letter")
+        PAYSTUBS = "paystubs", _("Paystubs")
 
-    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="work_experiences")
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
-    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"))
+    method = models.CharField(
+        max_length=50, choices=Method.choices, verbose_name=_("Verification Method"), null=True, blank=True
+    )
 
     class Meta:
         verbose_name = _("Work Experience")
@@ -401,6 +415,57 @@ class WorkExperience(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.job.title} - {self.organization}"
+
+    @classmethod
+    def get_verification_abstract_model(cls):
+        return WorkExperienceVerificationMethodAbstract
+
+
+class WorkExperienceVerificationMethodAbstract(models.Model):
+    work_experience = models.OneToOneField(WorkExperience, on_delete=models.CASCADE, verbose_name=_("Work Experience"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.work_experience} Verification"
+
+
+class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
+    method = WorkExperience.Method.EMPLOYER_LETTER
+    employer_letter = models.FileField(
+        upload_to=employer_letter_path,
+        verbose_name=_("Employer Letter"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+
+    class Meta:
+        verbose_name = _("Employer Letter Method")
+        verbose_name_plural = _("Employer Letter Methods")
+
+
+class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
+    method = WorkExperience.Method.PAYSTUBS
+    paystubs = models.FileField(
+        upload_to=paystubs_path,
+        verbose_name=_("Employer Letter"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+
+    class Meta:
+        verbose_name = _("Paystubs Method")
+        verbose_name_plural = _("Paystubs Methods")
+
+
+class ReferenceCheckEmployer(models.Model):
+    work_experience_verification = models.ForeignKey(
+        EmployerLetterMethod, on_delete=models.CASCADE, verbose_name=_("Work Experience Verification")
+    )
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    email = models.EmailField(verbose_name=_("Email"))
+    phone_nubmer = PhoneNumberField(verbose_name=_("Phone Number"))
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, verbose_name=_("Position"))
 
 
 class LanguageCertificate(models.Model):
@@ -434,6 +499,7 @@ class CertificateAndLicense(models.Model):
         User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="certificate_and_licenses"
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
+    # TODO: make it foreignkey
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
