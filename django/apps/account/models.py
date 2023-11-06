@@ -8,6 +8,7 @@ from common.models import (
     Language,
     LanguageProficiencyTest,
     Skill,
+    Position,
     University,
 )
 from common.utils import get_all_subclasses
@@ -40,6 +41,10 @@ def get_education_verification_path(path, instance, filename):
     return f"profile/{instance.education.user.id}/education_verification/{path}/{filename}"
 
 
+def get_work_experience_verification_path(path, instance, filename):
+    return f"profile/{instance.work_experience.user.id}/work_experience_verification/{path}/{filename}"
+
+
 def ices_document_path(instance, filename):
     return get_education_verification_path("ices", instance, filename)
 
@@ -50,6 +55,14 @@ def citizen_document_path(instance, filename):
 
 def degree_file_path(instance, filename):
     return get_education_verification_path("degree", instance, filename)
+
+
+def employer_letter_path(instance, filename):
+    return get_work_experience_verification_path("employer_letter", instance, filename)
+
+
+def paystubs_path(instance, filename):
+    return get_work_experience_verification_path("paystubs", instance, filename)
 
 
 def fix_whatsapp_value(value):
@@ -219,7 +232,7 @@ class Contact(models.Model):
 
 
 class DocumentAbstract(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"))
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"))
     status = models.CharField(
         max_length=50,
         choices=DocumentStatus.choices,
@@ -353,19 +366,20 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         verbose_name_plural = _("Communication Methods")
 
 
-class WorkExperience(models.Model):
-    class Status(models.TextChoices):
-        SUBMITED = "submited", _("Submited")
-        DRAFT = "draft", _("Draft")
+class WorkExperience(DocumentAbstract):
+    class Method(models.TextChoices):
+        EMPLOYER_LETTER = "employer_letter", _("Employer Letter")
+        PAYSTUBS = "paystubs", _("Paystubs")
 
-    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="work_experiences")
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
-    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"))
+    method = models.CharField(
+        max_length=50, choices=Method.choices, verbose_name=_("Verification Method"), null=True, blank=True
+    )
 
     class Meta:
         verbose_name = _("Work Experience")
