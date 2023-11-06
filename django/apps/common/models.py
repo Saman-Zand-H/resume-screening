@@ -87,6 +87,17 @@ class Skill(models.Model):
         return self.title
 
 
+class Position(models.Model):
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+
+    class Meta:
+        verbose_name = _("Position")
+        verbose_name_plural = _("Positions")
+
+    def __str__(self):
+        return self.title
+
+
 class LanguageProficiencyTest(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     min_score = models.FloatField(verbose_name=_("Minimum Score"))
