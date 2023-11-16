@@ -4,9 +4,17 @@ from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
 from graphene import relay
-from query_optimizer import DjangoObjectType
+from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from .models import Field, Job, JobCategory, JobIndustry, University, Language, LanguageProficiencyTest
+from .models import (
+    Field,
+    Job,
+    JobCategory,
+    JobIndustry,
+    Language,
+    LanguageProficiencyTest,
+    University,
+)
 
 
 class JobIndustryNode(DjangoObjectType):

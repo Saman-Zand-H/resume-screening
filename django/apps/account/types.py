@@ -1,5 +1,5 @@
 import graphene
-from query_optimizer import DjangoObjectType
+from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from .models import (
     CommunicationMethod,
