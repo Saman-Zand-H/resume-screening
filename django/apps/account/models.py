@@ -237,7 +237,7 @@ class DocumentAbstract(models.Model):
         VERIFIED = "verified", _("Verified")
         SELF_VERIFIED = "self_verified", _("Self Verified")
 
-    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"))
+    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="%(class)ss")
     status = models.CharField(
         max_length=50,
         choices=Status.choices,

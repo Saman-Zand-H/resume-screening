@@ -1,5 +1,8 @@
 import graphene
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
+from graphql_auth.queries import CountableConnection
+from graphql_auth.queries import UserNode as BaseUserNode
+from graphql_auth.settings import graphql_auth_settings
 
 from .models import (
     CommunicationMethod,
@@ -8,6 +11,7 @@ from .models import (
     IEEMethod,
     LanguageCertificate,
     Profile,
+    User,
     WorkExperience,
 )
 
@@ -119,4 +123,24 @@ class LanguageCertificateType(DjangoObjectType):
             LanguageCertificate.writing_score.field.name,
             LanguageCertificate.speaking_score.field.name,
             LanguageCertificate.band_score.field.name,
+        )
+
+
+class UserNode(BaseUserNode):
+    class Meta:
+        model = User
+        filter_fields = graphql_auth_settings.USER_NODE_FILTER_FIELDS
+        interfaces = (graphene.relay.Node,)
+        connection_class = CountableConnection
+        fields = (
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.gender.field.name,
+            User.email.field.name,
+            User.birth_date.field.name,
+            Profile.user.field.related_query_name(),
+            Contact.user.field.related_query_name(),
+            Education.user.field.related_query_name(),
+            WorkExperience.user.field.related_query_name(),
+            LanguageCertificate.user.field.related_query_name(),
         )

@@ -2,7 +2,7 @@ import graphene
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
 
-from .types import EducationType
+from .types import EducationType, UserNode
 
 
 class EducationQuery(graphene.ObjectType):
@@ -14,6 +14,7 @@ class EducationQuery(graphene.ObjectType):
 
 
 class Query(MeQuery, graphene.ObjectType):
+    me = graphene.Field(UserNode)
     education = graphene.Field(EducationQuery)
 
     def resolve_education(self, info):
