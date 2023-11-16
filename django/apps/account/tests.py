@@ -180,3 +180,55 @@ class AuthTestCase(GraphQLTestCase):
         self.assertIsNone(response["data"]["tokenAuth"]["token"])
         self.assertIsNone(response["data"]["tokenAuth"]["refreshToken"])
         self.assertIsNone(response["data"]["tokenAuth"]["user"])
+
+
+class AccountTestCase(GraphQLTestCase):
+    GRAPHQL_URL = "/graphql"
+
+    def setUp(self):
+        self.update_profile_mutation = """
+        mutation UpdateProfile($weight: Int, $fullBodyImage: Upload, $eyeColor: AuthAccountProfileEyeColorChoices, $hairColor: String, $height: Int, $job: [ID], $skinColor: AuthAccountProfileSkinColorChoices, $id: ID       ) {
+                account {
+                    profile {
+                    update(
+                        id: $id
+                        input: {eyeColor: $eyeColor, fullBodyImage: $fullBodyImage, hairColor: $hairColor, height: $height, job: $job, skinColor: $skinColor, weight: $weight}
+                    ) {
+                        profile {
+                        eyeColor
+                        fullBodyImage
+                        hairColor
+                        height
+                        skinColor
+                        weight
+                        }
+                    }
+                    }
+                }
+            }
+        """
+
+    def update_profile(self, variables):
+        response = self.query(self.update_profile_mutation, operation_name="UpdateProfile")
+        return response.json()
+    
+    def test_update_profile(self):
+        variables = {
+            "weight": 70,
+            "fullBodyImage": "image.jpg",
+            "eyeColor": "BROWN",
+            "hairColor": "BLACK",
+            "height": 180,
+            "job": [1, 2],
+            "skinColor": "WHITE",
+            "id": 1
+        }
+
+        response = self.update_profile(variables)
+
+        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["eyeColor"], variables["eyeColor"])
+        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["hairColor"], variables["hairColor"])
+        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["height"], variables["height"])
+        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["skinColor"], variables["skinColor"])
+        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["weight"], variables["weight"])
+        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["fullBodyImage"], variables["fullBodyImage"])

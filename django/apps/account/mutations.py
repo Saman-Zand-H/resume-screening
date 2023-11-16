@@ -38,7 +38,9 @@ from .models import (
     Profile,
     User,
     WorkExperience,
+    ReferenceCheckEmployer,
 )
+from .choices import DocumentStatus
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -385,6 +387,7 @@ class LanguageCertificateCreateMutation(LanguageCertificateMutationMixin, Django
 
     @classmethod
     def before_save(cls, root, info, input, obj):
+        # TODO: override before_save itself and use positional arguments, the last item for accessing obj
         super().apply_full_clean(obj)
         return super().before_save(root, info, input, obj)
 
@@ -482,3 +485,41 @@ class Mutation(graphene.ObjectType):
 
     def resolve_account(self, *args, **kwargs):
         return AccountMutation()
+
+
+class WorkExperienceReferenceCheckEmployerCreateMutation(DjangoCreateMutation):
+    class Meta:
+        model = ReferenceCheckEmployer
+        login_required = True
+        fields = (
+            ReferenceCheckEmployer.work_experience_verification.field.name,
+            ReferenceCheckEmployer.name.field.name,
+            ReferenceCheckEmployer.email.field.name,
+            ReferenceCheckEmployer.phone_nubmer.field.name,
+            ReferenceCheckEmployer.position.field.name,
+        )
+
+
+    # create_reference_check_employer = WorkExperienceReferenceCheckEmployerCreateMutation.Field()
+
+# class WEDeleteUpdate:
+    # if obj.user != info.context.user or obj.status != DocumentStatus.DRAFTED.value:
+
+
+
+# class WorkExperienceMutationMixin:
+#     class Meta:
+#         model = WorkExperience
+#         login_required = True
+#         fields = (
+#             WorkExperience.job.field.name,
+#             WorkExperience.start.field.name,
+#             WorkExperience.end.field.name,
+#             WorkExperience.skills.field.name,
+#             WorkExperience.organization.field.name,
+#             WorkExperience.city.field.name,
+#             WorkExperience.allow_self_verification.field.name,
+#             *(m.get_related_name() for m in WorkExperience.get_method_models()),
+#         )
+
+#         one_to_one_extras = {m.get_related_name(): {"type": "auto"} for m in WorkExperience.get_method_models()}

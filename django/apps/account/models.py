@@ -516,3 +516,16 @@ class UserSkill(models.Model):
     class Meta:
         verbose_name = _("User Skill")
         verbose_name_plural = _("User Skills")
+
+
+
+class WE:
+    @staticmethod
+    def get_method_models():
+        return get_all_subclasses(WorkExperienceVerificationMethodAbstract)
+    
+
+class WEVMA:
+    @classmethod
+    def get_related_name(cls):
+        return cls.work_experience.field.related_query_name()

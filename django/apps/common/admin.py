@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Field, Job, JobCategory, JobIndustry, University, Skill, Language, LanguageProficiencyTest
+from .models import Field, Job, JobCategory, JobIndustry, University, Skill, Position, Language, LanguageProficiencyTest
 
 
 @admin.register(JobCategory)
@@ -54,6 +54,15 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(LanguageProficiencyTest)
 class LanguageProficiencyTestAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "title",
+    )
+    search_fields = ("title",)
+
+
+@admin.register(Position)
+class PositionAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "title",

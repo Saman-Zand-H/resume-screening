@@ -13,6 +13,9 @@ from .models import (
     Profile,
     User,
     WorkExperience,
+    EmployerLetterMethod,
+    PaystubsMethod,
+    ReferenceCheckEmployer,
 )
 
 
@@ -106,6 +109,46 @@ class WorkExperienceType(DjangoObjectType):
             WorkExperience.organization.field.name,
             WorkExperience.city.field.name,
             WorkExperience.status.field.name,
+            WorkExperience.created_at.field.name,
+            WorkExperience.updated_at.field.name,
+            *(m.get_related_name() for m in WorkExperience.get_method_models()),
+        )
+
+    
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        return super().get_queryset(queryset, info).filter(user=user)
+
+
+class EmployerLetterMethodType(DjangoObjectType):
+    class Meta:
+        model = EmployerLetterMethod
+        fields = (
+            EmployerLetterMethod.id.field.name,
+            EmployerLetterMethod.employer_letter.field.name,
+        )
+
+
+class PaystubsMethodType(DjangoObjectType):
+    class Meta:
+        model = PaystubsMethod
+        fields = (
+            PaystubsMethod.id.field.name,
+            PaystubsMethod.paystubs.field.name,
+        )
+
+
+class ReferenceCheckEmployerType(DjangoObjectType):
+    class Meta:
+        model = ReferenceCheckEmployer
+        fields = (
+            ReferenceCheckEmployer.name.field.name,
+            ReferenceCheckEmployer.email.field.name,
+            ReferenceCheckEmployer.phone_nubmer.field.name,
+            ReferenceCheckEmployer.position.field.name,
         )
 
 
