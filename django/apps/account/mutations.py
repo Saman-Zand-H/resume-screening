@@ -40,7 +40,6 @@ from .models import (
     WorkExperience,
     ReferenceCheckEmployer,
 )
-from .choices import DocumentStatus
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -310,51 +309,36 @@ class EducationUpdateStatusMutation(DjangoPatchMutation):
         type_name = "PatchEducationStatusInput"
 
 
-class WorkExperienceMutationMixin:
+WORK_EXPERIENCE_MUTATION_FIELDS = (
+    WorkExperience.job.field.name,
+    WorkExperience.start.field.name,
+    WorkExperience.end.field.name,
+    WorkExperience.skills.field.name,
+    WorkExperience.organization.field.name,
+    WorkExperience.city.field.name,
+)
+
+
+class WorkExperienceCreateMutation(DocumentCreateMutationBase):
     class Meta:
         model = WorkExperience
-        login_required = True
-        fields = (
-            WorkExperience.job.field.name,
-            WorkExperience.start.field.name,
-            WorkExperience.end.field.name,
-            WorkExperience.skills.field.name,
-            WorkExperience.organization.field.name,
-            WorkExperience.city.field.name,
-            WorkExperience.status.field.name,
-        )
+        fields = WORK_EXPERIENCE_MUTATION_FIELDS
 
 
-class WorkExperienceCreateMutation(WorkExperienceMutationMixin, DjangoCreateMutation):
-    class Meta(WorkExperienceMutationMixin.Meta):
-        pass
-
-    @classmethod
-    def before_create_obj(cls, info, input, obj):
-        obj.user = info.context.user
-
-
-class WorkExperienceUpdateMutation(WorkExperienceMutationMixin, DjangoPatchMutation):
-    class Meta(WorkExperienceMutationMixin.Meta):
-        pass
-
-    @classmethod
-    def check_permissions(cls, root, info, input, id, obj):
-        if obj.user != info.context.user:
-            raise GraphQLError("Not permitted to modify this record.")
-        return super().check_permissions(root, info, input, id, obj)
-
-
-class WorkExperienceDeleteMutation(DjangoDeleteMutation):
+class WorkExperienceUpdateMutation(DocumentPatchMutationBase):
     class Meta:
         model = WorkExperience
-        login_required = True
+        fields = WORK_EXPERIENCE_MUTATION_FIELDS
 
-    @classmethod
-    def check_permissions(cls, root, info, id, obj):
-        if obj.user != info.context.user:
-            raise GraphQLError("Not permitted to delete this record.")
-        return super().check_permissions(root, info, id, obj)
+
+class WorkExperienceDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
+    class Meta:
+        model = WorkExperience
+
+
+class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+    class Meta:
+        model = WorkExperience
 
 
 class LanguageCertificateMutationMixin:
@@ -441,6 +425,7 @@ class WorkExperienceMutation(graphene.ObjectType):
     create = WorkExperienceCreateMutation.Field()
     update = WorkExperienceUpdateMutation.Field()
     delete = WorkExperienceDeleteMutation.Field()
+    set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):
@@ -485,41 +470,3 @@ class Mutation(graphene.ObjectType):
 
     def resolve_account(self, *args, **kwargs):
         return AccountMutation()
-
-
-class WorkExperienceReferenceCheckEmployerCreateMutation(DjangoCreateMutation):
-    class Meta:
-        model = ReferenceCheckEmployer
-        login_required = True
-        fields = (
-            ReferenceCheckEmployer.work_experience_verification.field.name,
-            ReferenceCheckEmployer.name.field.name,
-            ReferenceCheckEmployer.email.field.name,
-            ReferenceCheckEmployer.phone_nubmer.field.name,
-            ReferenceCheckEmployer.position.field.name,
-        )
-
-
-    # create_reference_check_employer = WorkExperienceReferenceCheckEmployerCreateMutation.Field()
-
-# class WEDeleteUpdate:
-    # if obj.user != info.context.user or obj.status != DocumentStatus.DRAFTED.value:
-
-
-
-# class WorkExperienceMutationMixin:
-#     class Meta:
-#         model = WorkExperience
-#         login_required = True
-#         fields = (
-#             WorkExperience.job.field.name,
-#             WorkExperience.start.field.name,
-#             WorkExperience.end.field.name,
-#             WorkExperience.skills.field.name,
-#             WorkExperience.organization.field.name,
-#             WorkExperience.city.field.name,
-#             WorkExperience.allow_self_verification.field.name,
-#             *(m.get_related_name() for m in WorkExperience.get_method_models()),
-#         )
-
-#         one_to_one_extras = {m.get_related_name(): {"type": "auto"} for m in WorkExperience.get_method_models()}
