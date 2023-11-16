@@ -395,19 +395,12 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
 
 
 class WorkExperience(DocumentAbstract):
-    class Method(models.TextChoices):
-        EMPLOYER_LETTER = "employer_letter", _("Employer Letter")
-        PAYSTUBS = "paystubs", _("Paystubs")
-
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
-    method = models.CharField(
-        max_length=50, choices=Method.choices, verbose_name=_("Verification Method"), null=True, blank=True
-    )
 
     class Meta:
         verbose_name = _("Work Experience")
@@ -421,9 +414,9 @@ class WorkExperience(DocumentAbstract):
         return WorkExperienceVerificationMethodAbstract
 
 
-class WorkExperienceVerificationMethodAbstract(models.Model):
+class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstract):
     work_experience = models.OneToOneField(WorkExperience, on_delete=models.CASCADE, verbose_name=_("Work Experience"))
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    DOCUMENT_FIELD = "work_experience"
 
     class Meta:
         abstract = True
@@ -433,7 +426,6 @@ class WorkExperienceVerificationMethodAbstract(models.Model):
 
 
 class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
-    method = WorkExperience.Method.EMPLOYER_LETTER
     employer_letter = models.FileField(
         upload_to=employer_letter_path,
         verbose_name=_("Employer Letter"),
@@ -446,7 +438,6 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
 
 
 class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
-    method = WorkExperience.Method.PAYSTUBS
     paystubs = models.FileField(
         upload_to=paystubs_path,
         verbose_name=_("Employer Letter"),
@@ -466,6 +457,13 @@ class ReferenceCheckEmployer(models.Model):
     email = models.EmailField(verbose_name=_("Email"))
     phone_nubmer = PhoneNumberField(verbose_name=_("Phone Number"))
     position = models.ForeignKey(Position, on_delete=models.CASCADE, verbose_name=_("Position"))
+
+    class Meta:
+        verbose_name = _("Reference Check Employer")
+        verbose_name_plural = _("Reference Check Employers")
+
+    def __str__(self):
+        return f"{self.work_experience_verification} - {self.name}"
 
 
 class LanguageCertificate(models.Model):
@@ -516,16 +514,3 @@ class UserSkill(models.Model):
     class Meta:
         verbose_name = _("User Skill")
         verbose_name_plural = _("User Skills")
-
-
-
-class WE:
-    @staticmethod
-    def get_method_models():
-        return get_all_subclasses(WorkExperienceVerificationMethodAbstract)
-    
-
-class WEVMA:
-    @classmethod
-    def get_related_name(cls):
-        return cls.work_experience.field.related_query_name()
