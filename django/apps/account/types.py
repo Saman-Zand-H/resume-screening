@@ -59,6 +59,13 @@ class EducationType(DjangoObjectType):
             *(m.get_related_name() for m in Education.get_method_models()),
         )
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        return super().get_queryset(queryset, info).filter(user=user)
+
 
 class IEEMethodType(DjangoObjectType):
     class Meta:
