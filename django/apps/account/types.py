@@ -145,9 +145,10 @@ class ReferenceCheckEmployerType(DjangoObjectType):
     class Meta:
         model = ReferenceCheckEmployer
         fields = (
+            ReferenceCheckEmployer.id.field.name,
             ReferenceCheckEmployer.name.field.name,
             ReferenceCheckEmployer.email.field.name,
-            ReferenceCheckEmployer.phone_nubmer.field.name,
+            ReferenceCheckEmployer.phone_number.field.name,
             ReferenceCheckEmployer.position.field.name,
         )
 
