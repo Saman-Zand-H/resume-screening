@@ -17,6 +17,9 @@ from .models import (
     User,
     UserSkill,
     WorkExperience,
+    EmployerLetterMethod,
+    PaystubsMethod,
+    ReferenceCheckEmployer,
 )
 
 
@@ -120,6 +123,48 @@ class WorkExperienceAdmin(admin.ModelAdmin):
         "user",
         "city",
     )
+
+
+@register(EmployerLetterMethod)
+class EmployerLetterMethodAdmin(admin.ModelAdmin):
+    list_display = (
+        "work_experience",
+        "employer_letter",
+        "verified_at",
+        "created_at",
+    )
+    search_fields = ("work_experience__user__email",)
+    list_filter = (
+        "verified_at",
+        "created_at",
+    )
+    raw_id_fields = ("work_experience",)
+
+
+@register(PaystubsMethod)
+class PaystubsMethodAdmin(admin.ModelAdmin):
+    list_display = (
+        "work_experience",
+        "paystubs",
+        "verified_at",
+        "created_at",
+    )
+    search_fields = ("work_experience__user__email",)
+    list_filter = (
+        "verified_at",
+        "created_at",
+    )
+    raw_id_fields = ("work_experience",)
+
+
+@register(ReferenceCheckEmployer)
+class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
+    list_display = ("work_experience_verification", "name", "email", "phone_number", "position")
+    search_fields = (
+        "email",
+        "phone_number",
+    )
+    raw_id_fields = ("work_experience_verification",)
 
 
 @register(LanguageCertificate)
