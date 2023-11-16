@@ -14,6 +14,8 @@ from .models import (
     Language,
     LanguageProficiencyTest,
     University,
+    Position,
+    Skill,
 )
 
 
@@ -151,4 +153,30 @@ class LanguageProficiencyTestNode(DjangoObjectType):
         )
         filter_fields = {
             LanguageProficiencyTest.title.field.name: ["icontains"],
+        }
+
+
+class PositionNode(DjangoObjectType):
+    class Meta:
+        model = Position
+        interfaces = (relay.Node,)
+        fields = (
+            Position.id.field.name,
+            Position.title.field.name,
+        )
+        filter_fields = {
+            Position.title.field.name: ["icontains"],
+        }
+
+
+class SkillNode(DjangoObjectType):
+    class Meta:
+        model = Skill
+        interfaces = (relay.Node,)
+        fields = (
+            Skill.id.field.name,
+            Skill.title.field.name,
+        )
+        filter_fields = {
+            Skill.title.field.name: ["icontains"],
         }
