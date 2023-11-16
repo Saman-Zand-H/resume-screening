@@ -455,7 +455,7 @@ class ReferenceCheckEmployer(models.Model):
     )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     email = models.EmailField(verbose_name=_("Email"))
-    phone_nubmer = PhoneNumberField(verbose_name=_("Phone Number"))
+    phone_number = PhoneNumberField(verbose_name=_("Phone Number"))
     position = models.ForeignKey(Position, on_delete=models.CASCADE, verbose_name=_("Position"))
 
     class Meta:
