@@ -29,6 +29,7 @@ from .mixins import (
     DocumentCUDFieldMixin,
     DocumentCUDMixin,
     DocumentUpdateMutationMixin,
+    FullCleanMixin,
 )
 from .models import (
     Contact,
@@ -341,71 +342,41 @@ class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodM
         model = WorkExperience
 
 
-class LanguageCertificateMutationMixin:
+LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
+    LanguageCertificate.language.field.name,
+    LanguageCertificate.test.field.name,
+    LanguageCertificate.issued_at.field.name,
+    LanguageCertificate.expired_at.field.name,
+    LanguageCertificate.listening_score.field.name,
+    LanguageCertificate.reading_score.field.name,
+    LanguageCertificate.writing_score.field.name,
+    LanguageCertificate.speaking_score.field.name,
+    LanguageCertificate.band_score.field.name,
+)
+
+
+class LanguageCertificateCreateMutation(FullCleanMixin, DjangoCreateMutation):
     class Meta:
         model = LanguageCertificate
         login_required = True
-        fields = (
-            LanguageCertificate.language.field.name,
-            LanguageCertificate.test.field.name,
-            LanguageCertificate.issued_at.field.name,
-            LanguageCertificate.expired_at.field.name,
-            LanguageCertificate.listening_score.field.name,
-            LanguageCertificate.reading_score.field.name,
-            LanguageCertificate.writing_score.field.name,
-            LanguageCertificate.speaking_score.field.name,
-            LanguageCertificate.band_score.field.name,
-        )
-
-    @classmethod
-    def apply_full_clean(cls, obj):
-        try:
-            obj.full_clean()
-        except ValidationError as e:
-            raise GraphQLError(e.message_dict)
-
-
-class LanguageCertificateCreateMutation(LanguageCertificateMutationMixin, DjangoCreateMutation):
-    class Meta(LanguageCertificateMutationMixin.Meta):
-        pass
-
-    @classmethod
-    def before_save(cls, root, info, input, obj):
-        # TODO: override before_save itself and use positional arguments, the last item for accessing obj
-        super().apply_full_clean(obj)
-        return super().before_save(root, info, input, obj)
+        fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
         obj.user = info.context.user
 
 
-class LanguageCertificateUpdateMutation(LanguageCertificateMutationMixin, DjangoPatchMutation):
-    class Meta(LanguageCertificateMutationMixin.Meta):
-        pass
-
-    @classmethod
-    def before_save(cls, root, info, input, id, obj):
-        super().apply_full_clean(obj)
-        return super().before_save(root, info, input, id, obj)
-
-    @classmethod
-    def check_permissions(cls, root, info, input, id, obj):
-        if obj.user != info.context.user:
-            raise GraphQLError("Not permitted to modify this record.")
-        return super().check_permissions(root, info, input, id, obj)
-
-
-class LanguageCertificateDeleteMutation(DjangoDeleteMutation):
+class LanguageCertificateUpdateMutation(FullCleanMixin, DocumentCheckPermissionsMixin, DjangoPatchMutation):
     class Meta:
         model = LanguageCertificate
         login_required = True
+        fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
 
-    @classmethod
-    def check_permissions(cls, root, info, id, obj):
-        if obj.user != info.context.user:
-            raise GraphQLError("Not permitted to delete this record.")
-        return super().check_permissions(root, info, id, obj)
+
+class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
+    class Meta:
+        model = LanguageCertificate
+        login_required = True
 
 
 class ProfileMutation(graphene.ObjectType):
