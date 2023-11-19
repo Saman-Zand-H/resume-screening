@@ -40,6 +40,7 @@ from .models import (
     User,
     WorkExperience,
     ReferenceCheckEmployer,
+    CertificateAndLicense,
 )
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -379,6 +380,25 @@ class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDel
         login_required = True
 
 
+CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
+    CertificateAndLicense.title.field.name,
+    CertificateAndLicense.certifier.field.name,
+    CertificateAndLicense.issued_at.field.name,
+    CertificateAndLicense.expired_at.field.name,
+)
+
+
+class CertificateAndLicenseCreateMutation(FullCleanMixin, DjangoCreateMutation):
+    class Meta:
+        model = CertificateAndLicense
+        login_required = True
+        fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -405,6 +425,10 @@ class LanguageCertificateMutation(graphene.ObjectType):
     delete = LanguageCertificateDeleteMutation.Field()
 
 
+class CertificateAndLicenseMutation(graphene.ObjectType):
+    create = CertificateAndLicenseCreateMutation.Field()
+
+
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -422,6 +446,7 @@ class AccountMutation(graphene.ObjectType):
     education = graphene.Field(EducationMutation)
     work_experience = graphene.Field(WorkExperienceMutation)
     language_certificate = graphene.Field(LanguageCertificateMutation)
+    certificate_and_license = graphene.Field(CertificateAndLicenseMutation)
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
@@ -434,6 +459,9 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_language_certificate(self, *args, **kwargs):
         return LanguageCertificateMutation()
+
+    def resolve_certificate_and_license(self, *args, **kwargs):
+        return CertificateAndLicenseMutation()
 
 
 class Mutation(graphene.ObjectType):
