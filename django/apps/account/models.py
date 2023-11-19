@@ -483,6 +483,12 @@ class LanguageCertificate(models.Model):
     writing_score = models.FloatField(verbose_name=_("Writing Score"))
     speaking_score = models.FloatField(verbose_name=_("Speaking Score"))
     band_score = models.FloatField(verbose_name=_("Band Score"))
+    status = models.CharField(
+        max_length=50,
+        choices=DocumentAbstract.Status.choices[:2],
+        verbose_name=_("Status"),
+        default=DocumentAbstract.Status.DRAFTED.value,
+    )
 
     class Meta:
         verbose_name = _("Language Certificate")
@@ -497,7 +503,6 @@ class CertificateAndLicense(models.Model):
         User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="certificate_and_licenses"
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
-    # TODO: make it foreignkey
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
