@@ -510,6 +510,8 @@ class LanguageCertificate(models.Model):
         ):
             raise ValidationError(_("All scores must be between minimum and maximum score of the test"))
 
+        if self.issued_at > self.expired_at:
+            raise ValidationError(_("Issued date must be before expired date"))
         return super().clean()
 
 
