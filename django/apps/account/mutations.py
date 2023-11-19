@@ -406,6 +406,12 @@ class CertificateAndLicenseUpdateMutation(FullCleanMixin, DocumentCheckPermissio
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
 
 
+class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
+    class Meta:
+        model = CertificateAndLicense
+        login_required = True
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -435,6 +441,7 @@ class LanguageCertificateMutation(graphene.ObjectType):
 class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
     update = CertificateAndLicenseUpdateMutation.Field()
+    delete = CertificateAndLicenseDeleteMutation.Field()
 
 
 class AccountMutation(graphene.ObjectType):
