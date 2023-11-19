@@ -497,6 +497,21 @@ class LanguageCertificate(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.language.name} - {self.test.title}"
 
+    def clean(self):
+        if not all(
+            self.test.min_score <= score <= self.test.max_score
+            for score in (
+                self.listening_score,
+                self.reading_score,
+                self.writing_score,
+                self.speaking_score,
+                self.band_score,
+            )
+        ):
+            raise ValidationError(_("All scores must be between minimum and maximum score of the test"))
+
+        return super().clean()
+
 
 class CertificateAndLicense(models.Model):
     user = models.ForeignKey(
