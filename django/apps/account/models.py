@@ -521,10 +521,21 @@ class CertificateAndLicense(models.Model):
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
+    status = models.CharField(
+        max_length=50,
+        choices=DocumentAbstract.Status.choices[:2],
+        verbose_name=_("Status"),
+        default=DocumentAbstract.Status.DRAFTED.value,
+    )
 
     class Meta:
         verbose_name = _("Certificate And License")
         verbose_name_plural = _("Certificates And Licenses")
+
+    def clean(self):
+        if self.expired_at and self.issued_at > self.expired_at:
+            raise ValidationError(_("Issued date must be before expired date"))
+        return super().clean()
 
 
 class UserSkill(models.Model):
