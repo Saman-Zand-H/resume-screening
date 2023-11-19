@@ -115,6 +115,7 @@ class User(AbstractUser):
         blank=True,
     )
     birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="users")
 
     objects = UserManager()
 
@@ -538,12 +539,3 @@ class CertificateAndLicense(models.Model):
         if self.expired_at and self.issued_at > self.expired_at:
             raise ValidationError(_("Issued date must be before expired date"))
         return super().clean()
-
-
-class UserSkill(models.Model):
-    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="skills")
-    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="users")
-
-    class Meta:
-        verbose_name = _("User Skill")
-        verbose_name_plural = _("User Skills")

@@ -15,7 +15,6 @@ from .models import (
     LanguageCertificate,
     Profile,
     User,
-    UserSkill,
     WorkExperience,
     EmployerLetterMethod,
     PaystubsMethod,
@@ -184,19 +183,3 @@ class CertificateAndLicenseAdmin(admin.ModelAdmin):
     search_fields = ("user__email", "title")
     list_filter = ("certifier", "issued_at", "expired_at")
     raw_id_fields = ("user",)
-
-
-@register(UserSkill)
-class UserSkillAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "user",
-        "get_skills",
-    )
-    search_fields = ("user__email",)
-    raw_id_fields = ("user", "skills")
-
-    def get_skills(self, obj):
-        return ", ".join([skill.title for skill in obj.skills.all()])
-
-    get_skills.short_description = "Skills"
