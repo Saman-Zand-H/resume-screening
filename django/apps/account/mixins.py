@@ -58,3 +58,14 @@ class DocumentUpdateMutationMixin(DocumentCheckPermissionsMixin, DocumentCUDMixi
         obj = super().update_obj(*args, **kwargs)
         cls.full_clean(obj)
         return obj
+
+
+class FullCleanMixin:
+    @classmethod
+    def before_save(cls, *args, **kwargs):
+        obj = args[-1]
+        try:
+            obj.full_clean()
+        except ValidationError as e:
+            raise GraphQLError(e.message_dict)
+        return super().before_save(*args, **kwargs)
