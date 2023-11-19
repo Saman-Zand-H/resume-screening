@@ -10,6 +10,7 @@ from .models import (
     Education,
     IEEMethod,
     LanguageCertificate,
+    CertificateAndLicense,
     Profile,
     User,
     WorkExperience,
@@ -114,7 +115,6 @@ class WorkExperienceType(DjangoObjectType):
             *(m.get_related_name() for m in WorkExperience.get_method_models()),
         )
 
-    
     @classmethod
     def get_queryset(cls, queryset, info):
         user = info.context.user
@@ -167,6 +167,18 @@ class LanguageCertificateType(DjangoObjectType):
             LanguageCertificate.writing_score.field.name,
             LanguageCertificate.speaking_score.field.name,
             LanguageCertificate.band_score.field.name,
+        )
+
+
+class CertificateAndLicenseType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicense
+        fields = (
+            CertificateAndLicense.id.field.name,
+            CertificateAndLicense.title.field.name,
+            CertificateAndLicense.certifier.field.name,
+            CertificateAndLicense.issued_at.field.name,
+            CertificateAndLicense.expired_at.field.name,
         )
 
 
