@@ -19,6 +19,8 @@ from .models import (
     ReferenceCheckEmployer,
 )
 
+from .mixins import FilterQuerySetByUserMixin
+
 
 class ProfileType(DjangoObjectType):
     class Meta:
@@ -51,7 +53,7 @@ class EducationMethodFieldTypes(graphene.ObjectType):
     field = graphene.String()
 
 
-class EducationType(DjangoObjectType):
+class EducationType(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = Education
         fields = (
@@ -66,13 +68,6 @@ class EducationType(DjangoObjectType):
             Education.updated_at.field.name,
             *(m.get_related_name() for m in Education.get_method_models()),
         )
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        user = info.context.user
-        if not user:
-            return queryset.none()
-        return super().get_queryset(queryset, info).filter(user=user)
 
 
 class IEEMethodType(DjangoObjectType):
@@ -98,7 +93,7 @@ class CommunicationMethodType(DjangoObjectType):
         )
 
 
-class WorkExperienceType(DjangoObjectType):
+class WorkExperienceType(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = WorkExperience
         fields = (
@@ -114,13 +109,6 @@ class WorkExperienceType(DjangoObjectType):
             WorkExperience.updated_at.field.name,
             *(m.get_related_name() for m in WorkExperience.get_method_models()),
         )
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        user = info.context.user
-        if not user:
-            return queryset.none()
-        return super().get_queryset(queryset, info).filter(user=user)
 
 
 class EmployerLetterMethodType(DjangoObjectType):
@@ -153,7 +141,7 @@ class ReferenceCheckEmployerType(DjangoObjectType):
         )
 
 
-class LanguageCertificateType(DjangoObjectType):
+class LanguageCertificateType(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = LanguageCertificate
         fields = (
@@ -169,15 +157,8 @@ class LanguageCertificateType(DjangoObjectType):
             LanguageCertificate.band_score.field.name,
         )
 
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        user = info.context.user
-        if not user:
-            return queryset.none()
-        return super().get_queryset(queryset, info).filter(user=user)
 
-
-class CertificateAndLicenseType(DjangoObjectType):
+class CertificateAndLicenseType(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = CertificateAndLicense
         fields = (
@@ -187,13 +168,6 @@ class CertificateAndLicenseType(DjangoObjectType):
             CertificateAndLicense.issued_at.field.name,
             CertificateAndLicense.expired_at.field.name,
         )
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        user = info.context.user
-        if not user:
-            return queryset.none()
-        return super().get_queryset(queryset, info).filter(user=user)
 
 
 class UserNode(BaseUserNode):
@@ -224,4 +198,3 @@ class UserSkillType(DjangoObjectType):
             User.id.field.name,
             User.skills.field.name,
         )
-

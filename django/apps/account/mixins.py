@@ -69,3 +69,12 @@ class FullCleanMixin:
         except ValidationError as e:
             raise GraphQLError(e.message_dict)
         return super().before_save(*args, **kwargs)
+
+
+class FilterQuerySetByUserMixin:
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        return super().get_queryset(queryset, info).filter(user=user)
