@@ -42,6 +42,7 @@ from .models import (
     ReferenceCheckEmployer,
     CertificateAndLicense,
 )
+from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -179,6 +180,24 @@ class UserUpdateMutation(DjangoCreateMutation):
         except ValidationError as e:
             user_field, message = next(iter(e.message_dict.items()))
             raise GraphQLError(f"{user_field}: {message[0]}")
+
+
+class UserSkillInput(graphene.InputObjectType):
+    skills = graphene.List(graphene.ID, required=True)
+
+
+class UserSetSkillsMutation(graphene.Mutation):
+    class Arguments:
+        input = UserSkillInput(required=True)
+
+    user = graphene.Field(UserSkillType)
+
+    @staticmethod
+    def mutate(root, info, input):
+        user = info.context.user
+        skills = input.get("skills")
+        user.skills.set(skills)
+        return UserSetSkillsMutation(user=user)
 
 
 class SetContactsMutation(DjangoBatchCreateMutation):
@@ -415,6 +434,7 @@ class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoD
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
+    set_skills = UserSetSkillsMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):

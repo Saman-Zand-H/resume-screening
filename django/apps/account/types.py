@@ -200,3 +200,13 @@ class UserNode(BaseUserNode):
             WorkExperience.user.field.related_query_name(),
             LanguageCertificate.user.field.related_query_name(),
         )
+
+
+class UserSkillType(DjangoObjectType):
+    class Meta:
+        model = User
+        fields = (
+            User.id.field.name,
+            User.skills.field.name,
+        )
+
