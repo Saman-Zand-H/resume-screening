@@ -181,6 +181,13 @@ class CertificateAndLicenseType(DjangoObjectType):
             CertificateAndLicense.expired_at.field.name,
         )
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        return super().get_queryset(queryset, info).filter(user=user)
+
 
 class UserNode(BaseUserNode):
     class Meta:
