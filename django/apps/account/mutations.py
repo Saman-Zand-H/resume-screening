@@ -375,28 +375,26 @@ LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
 )
 
 
-class LanguageCertificateCreateMutation(FullCleanMixin, DjangoCreateMutation):
+class LanguageCertificateCreateMutation(DocumentCreateMutationBase):
     class Meta:
         model = LanguageCertificate
-        login_required = True
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
 
-    @classmethod
-    def before_create_obj(cls, info, input, obj):
-        obj.user = info.context.user
 
-
-class LanguageCertificateUpdateMutation(FullCleanMixin, DocumentCheckPermissionsMixin, DjangoPatchMutation):
+class LanguageCertificateUpdateMutation(DocumentPatchMutationBase):
     class Meta:
         model = LanguageCertificate
-        login_required = True
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
 
 
 class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
     class Meta:
         model = LanguageCertificate
-        login_required = True
+
+
+class LanguageCertificateSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+    class Meta:
+        model = LanguageCertificate
 
 
 CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
@@ -456,6 +454,7 @@ class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
     update = LanguageCertificateUpdateMutation.Field()
     delete = LanguageCertificateDeleteMutation.Field()
+    set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
 
 
 class CertificateAndLicenseMutation(graphene.ObjectType):

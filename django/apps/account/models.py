@@ -43,6 +43,10 @@ def get_work_experience_verification_path(path, instance, filename):
     return f"profile/{instance.work_experience.user.id}/work_experience_verification/{path}/{filename}"
 
 
+def get_language_certificate_verification_path(path, instance, filename):
+    return f"profile/{instance.language_certificate.user.id}/language_certificate_verification/{path}/{filename}"
+
+
 def ices_document_path(instance, filename):
     return get_education_verification_path("ices", instance, filename)
 
@@ -61,6 +65,10 @@ def employer_letter_path(instance, filename):
 
 def paystubs_path(instance, filename):
     return get_work_experience_verification_path("paystubs", instance, filename)
+
+
+def language_certificate_path(instance, filename):
+    return get_language_certificate_verification_path("language_certificate", instance, filename)
 
 
 def fix_whatsapp_value(value):
@@ -467,10 +475,7 @@ class ReferenceCheckEmployer(models.Model):
         return f"{self.work_experience_verification} - {self.name}"
 
 
-class LanguageCertificate(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="language_certificates"
-    )
+class LanguageCertificate(DocumentAbstract):
     language = models.ForeignKey(
         Language, on_delete=models.CASCADE, verbose_name=_("Language"), related_name="certificates"
     )
@@ -484,12 +489,6 @@ class LanguageCertificate(models.Model):
     writing_score = models.FloatField(verbose_name=_("Writing Score"))
     speaking_score = models.FloatField(verbose_name=_("Speaking Score"))
     band_score = models.FloatField(verbose_name=_("Band Score"))
-    status = models.CharField(
-        max_length=50,
-        choices=DocumentAbstract.Status.choices[:2],
-        verbose_name=_("Status"),
-        default=DocumentAbstract.Status.DRAFTED.value,
-    )
 
     class Meta:
         verbose_name = _("Language Certificate")
@@ -497,6 +496,10 @@ class LanguageCertificate(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.language.name} - {self.test.title}"
+
+    @classmethod
+    def get_verification_abstract_model(cls):
+        return LanguageCertificateVerificationMethodAbstract
 
     def clean(self):
         if not all(
@@ -514,6 +517,39 @@ class LanguageCertificate(models.Model):
         if self.issued_at > self.expired_at:
             raise ValidationError(_("Issued date must be before expired date"))
         return super().clean()
+
+
+class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAbstract):
+    language_certificate = models.OneToOneField(
+        LanguageCertificate, on_delete=models.CASCADE, verbose_name=_("Language Certificate")
+    )
+    DOCUMENT_FIELD = "language_certificate"
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.language_certificate.test.title} ({self.language_certificate.language.name}) Verification"
+
+
+class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
+    certificate_file = models.FileField(
+        upload_to=language_certificate_path,
+        verbose_name=_("Language Certificate"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+
+    class Meta:
+        verbose_name = _("Offline Method")
+        verbose_name_plural = _("Offline Methods")
+
+
+class OnlineMethod(LanguageCertificateVerificationMethodAbstract):
+    certificate_link = models.URLField(verbose_name=_("Link"))
+
+    class Meta:
+        verbose_name = _("Online Method")
+        verbose_name_plural = _("Online Methods")
 
 
 class CertificateAndLicense(models.Model):
