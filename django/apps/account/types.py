@@ -169,6 +169,13 @@ class LanguageCertificateType(DjangoObjectType):
             LanguageCertificate.band_score.field.name,
         )
 
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        return super().get_queryset(queryset, info).filter(user=user)
+
 
 class CertificateAndLicenseType(DjangoObjectType):
     class Meta:
