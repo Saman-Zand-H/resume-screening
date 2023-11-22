@@ -199,6 +199,7 @@ class UserNode(BaseUserNode):
             Education.user.field.related_query_name(),
             WorkExperience.user.field.related_query_name(),
             LanguageCertificate.user.field.related_query_name(),
+            User.skills.field.name,
         )
 
 
