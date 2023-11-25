@@ -10,6 +10,7 @@ from graphene_django_cud.mutations import (
     DjangoUpdateMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
+from graphene_django_cud.util.model import disambiguate_ids
 from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
@@ -196,7 +197,7 @@ class UserSetSkillsMutation(graphene.Mutation):
     def mutate(root, info, input):
         user = info.context.user
         skills = input.get("skills")
-        user.skills.set(skills)
+        user.skills.set(disambiguate_ids(skills))
         return UserSetSkillsMutation(user=user)
 
 
