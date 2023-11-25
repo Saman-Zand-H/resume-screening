@@ -19,6 +19,9 @@ from .models import (
     EmployerLetterMethod,
     PaystubsMethod,
     ReferenceCheckEmployer,
+    OfflineMethod,
+    OnlineMethod,
+    CertificateAndLicenseVerificationMethod,
 )
 
 
@@ -183,3 +186,27 @@ class CertificateAndLicenseAdmin(admin.ModelAdmin):
     search_fields = ("user__email", "title")
     list_filter = ("certifier", "issued_at", "expired_at")
     raw_id_fields = ("user",)
+
+
+@register(OfflineMethod)
+class OfflineMethodAdmin(admin.ModelAdmin):
+    list_display = ("language_certificate", "verified_at", "created_at")
+    search_fields = ("language_certificate__user__email",)
+    list_filter = ("verified_at", "created_at")
+    raw_id_fields = ("language_certificate",)
+
+
+@register(OnlineMethod)
+class OnlineMethodAdmin(admin.ModelAdmin):
+    list_display = ("language_certificate", "verified_at", "created_at")
+    search_fields = ("language_certificate__user__email",)
+    list_filter = ("verified_at", "created_at")
+    raw_id_fields = ("language_certificate",)
+
+
+@register(CertificateAndLicenseVerificationMethod)
+class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
+    list_display = ("certificate_and_license", "verified_at", "created_at")
+    search_fields = ("certificate_and_license__user__email",)
+    list_filter = ("verified_at", "created_at")
+    raw_id_fields = ("certificate_and_license",)
