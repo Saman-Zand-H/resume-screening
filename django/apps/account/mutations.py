@@ -30,7 +30,6 @@ from .mixins import (
     DocumentCUDFieldMixin,
     DocumentCUDMixin,
     DocumentUpdateMutationMixin,
-    FullCleanMixin,
 )
 from .models import (
     Contact,
