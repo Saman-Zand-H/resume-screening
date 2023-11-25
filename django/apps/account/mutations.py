@@ -406,28 +406,26 @@ CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
 )
 
 
-class CertificateAndLicenseCreateMutation(FullCleanMixin, DjangoCreateMutation):
+class CertificateAndLicenseCreateMutation(DocumentCreateMutationBase):
     class Meta:
         model = CertificateAndLicense
-        login_required = True
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
 
-    @classmethod
-    def before_create_obj(cls, info, input, obj):
-        obj.user = info.context.user
 
-
-class CertificateAndLicenseUpdateMutation(FullCleanMixin, DocumentCheckPermissionsMixin, DjangoPatchMutation):
+class CertificateAndLicenseUpdateMutation(DocumentPatchMutationBase):
     class Meta:
         model = CertificateAndLicense
-        login_required = True
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
 
 
 class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
     class Meta:
         model = CertificateAndLicense
-        login_required = True
+
+
+class CertificateAndLicenseSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+    class Meta:
+        model = CertificateAndLicense
 
 
 class ProfileMutation(graphene.ObjectType):
@@ -462,6 +460,7 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
     update = CertificateAndLicenseUpdateMutation.Field()
     delete = CertificateAndLicenseDeleteMutation.Field()
+    set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
 
 
 class AccountMutation(graphene.ObjectType):

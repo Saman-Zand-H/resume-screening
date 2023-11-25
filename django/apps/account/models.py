@@ -47,6 +47,10 @@ def get_language_certificate_verification_path(path, instance, filename):
     return f"profile/{instance.language_certificate.user.id}/language_certificate_verification/{path}/{filename}"
 
 
+def get_certificate_and_license_verification_path(path, instance, filename):
+    return f"profile/{instance.certificate_and_license.user.id}/certificate_and_license_verification/{path}/{filename}"
+
+
 def ices_document_path(instance, filename):
     return get_education_verification_path("ices", instance, filename)
 
@@ -69,6 +73,10 @@ def paystubs_path(instance, filename):
 
 def language_certificate_path(instance, filename):
     return get_language_certificate_verification_path("language_certificate", instance, filename)
+
+
+def certificate_and_license_path(instance, filename):
+    return get_certificate_and_license_verification_path("certificate_and_license", instance, filename)
 
 
 def fix_whatsapp_value(value):
@@ -552,26 +560,52 @@ class OnlineMethod(LanguageCertificateVerificationMethodAbstract):
         verbose_name_plural = _("Online Methods")
 
 
-class CertificateAndLicense(models.Model):
-    user = models.ForeignKey(
-        User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="certificate_and_licenses"
-    )
+class CertificateAndLicense(DocumentAbstract):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
-    status = models.CharField(
-        max_length=50,
-        choices=DocumentAbstract.Status.choices[:2],
-        verbose_name=_("Status"),
-        default=DocumentAbstract.Status.DRAFTED.value,
-    )
 
     class Meta:
         verbose_name = _("Certificate And License")
         verbose_name_plural = _("Certificates And Licenses")
 
+    def __str__(self):
+        return f"{self.user.email} - {self.title}"
+
+    @classmethod
+    def get_verification_abstract_model(cls):
+        return CertificateAndLicenseVerificationMethodAbstract
+
     def clean(self):
         if self.expired_at and self.issued_at > self.expired_at:
             raise ValidationError(_("Issued date must be before expired date"))
         return super().clean()
+
+
+class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethodAbstract):
+    certificate_and_license = models.OneToOneField(
+        CertificateAndLicense, on_delete=models.CASCADE, verbose_name=_("Certificate And License")
+    )
+    DOCUMENT_FIELD = "certificate_and_license"
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.certificate_and_license.title} Verification"
+
+
+class CertificateAndLicenseVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
+    certificate_link = models.URLField(verbose_name=_("Link"), null=True, blank=True)
+    certificate_file = models.FileField(
+        upload_to=certificate_and_license_path,
+        verbose_name=_("Certificate And License"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = _("Certificate And License Verification Method")
+        verbose_name_plural = _("Certificate And License Verification Methods")
