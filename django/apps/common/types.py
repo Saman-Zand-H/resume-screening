@@ -57,6 +57,8 @@ class JobNode(DjangoObjectType):
         )
         filter_fields = {
             Job.title.field.name: ["icontains"],
+            Job.category.field.name: ["exact"],
+            Job.industry.field.name: ["exact"],
         }
 
 
