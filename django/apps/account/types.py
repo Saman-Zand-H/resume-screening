@@ -4,22 +4,21 @@ from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
+from .mixins import FilterQuerySetByUserMixin
 from .models import (
+    CertificateAndLicense,
     CommunicationMethod,
     Contact,
     Education,
+    EmployerLetterMethod,
     IEEMethod,
     LanguageCertificate,
-    CertificateAndLicense,
+    PaystubsMethod,
     Profile,
+    ReferenceCheckEmployer,
     User,
     WorkExperience,
-    EmployerLetterMethod,
-    PaystubsMethod,
-    ReferenceCheckEmployer,
 )
-
-from .mixins import FilterQuerySetByUserMixin
 
 
 class ProfileType(DjangoObjectType):
@@ -187,6 +186,7 @@ class UserNode(BaseUserNode):
             Education.user.field.related_query_name(),
             WorkExperience.user.field.related_query_name(),
             LanguageCertificate.user.field.related_query_name(),
+            CertificateAndLicense.user.field.related_query_name(),
             User.skills.field.name,
         )
 
