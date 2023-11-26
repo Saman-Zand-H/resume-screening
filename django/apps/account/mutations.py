@@ -39,6 +39,7 @@ from .models import (
     EmployerLetterMethod,
     LanguageCertificate,
     Profile,
+    ReferenceCheckEmployer,
     User,
     WorkExperience,
 )
@@ -366,12 +367,23 @@ class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodM
             EmployerLetterMethod: {
                 "type": "WorkExperienceEmployerLetterMethodInput",
                 "many_to_one_extras": {
-                    "employers": {
+                    ReferenceCheckEmployer.work_experience_verification.field.related_query_name(): {
                         "exact": {"type": "auto"},
                     },
                 },
             }
         }
+
+    @classmethod
+    def validate(cls, root, info, input, id, obj):
+        employer_letter_method = input.get(EmployerLetterMethod.get_related_name())
+
+        if employer_letter_method and not employer_letter_method.get(
+            ReferenceCheckEmployer.work_experience_verification.field.related_query_name()
+        ):
+            raise GraphQLError("Employer letter method must be associated with a work experience verification.")
+
+        return super().validate(root, info, input, id, obj)
 
 
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
