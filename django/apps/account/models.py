@@ -468,7 +468,10 @@ class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
 
 class ReferenceCheckEmployer(models.Model):
     work_experience_verification = models.ForeignKey(
-        EmployerLetterMethod, on_delete=models.CASCADE, verbose_name=_("Work Experience Verification")
+        EmployerLetterMethod,
+        on_delete=models.CASCADE,
+        verbose_name=_("Work Experience Verification"),
+        related_name="reference_check_employers",
     )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     email = models.EmailField(verbose_name=_("Email"))

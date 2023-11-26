@@ -362,6 +362,27 @@ class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodM
         model = WorkExperience
 
 
+class WESVMM(DjangoUpdateMutation):
+    class Meta:
+        model = WorkExperience
+        login_required = True
+        fields = (*(m.get_related_name() for m in model.get_method_models()),)
+        one_to_one_extras = {
+            "employerlettermethod": {
+                # "exact": {
+                "type": "auto",
+                "exclude_fields": (model.verified_at.field.name,),
+                "many_to_one_extras": {
+                    "reference_check_employers": {
+                        "add": {"type": "auto"},
+                        "remove": True,
+                    }
+                },
+                # }
+            }
+        }
+
+
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
     LanguageCertificate.language.field.name,
     LanguageCertificate.test.field.name,
@@ -446,6 +467,7 @@ class WorkExperienceMutation(graphene.ObjectType):
     update = WorkExperienceUpdateMutation.Field()
     delete = WorkExperienceDeleteMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
+    test = WESVMM.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):
