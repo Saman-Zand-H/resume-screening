@@ -18,6 +18,14 @@ class EducationQuery(graphene.ObjectType):
         return EducationType.get_node(info, id)
 
 
+class WorkExperienceQuery(graphene.ObjectType):
+    get = graphene.List(WorkExperienceType)
+
+    @login_required
+    def resolve_get(self, info):
+        return WorkExperienceType.get_queryset(WorkExperienceType._meta.model.objects, info)
+
+
 class LanguageCertificateQuery(graphene.ObjectType):
     get = graphene.Field(CertificateAndLicenseType, id=graphene.Int())
 
@@ -37,11 +45,15 @@ class CertificateAndLicenseQuery(graphene.ObjectType):
 class Query(MeQuery, graphene.ObjectType):
     me = graphene.Field(UserNode)
     education = graphene.Field(EducationQuery)
+    work_experience = graphene.Field(WorkExperienceQuery)
     language_certificate = graphene.Field(LanguageCertificateQuery)
     certificate_and_license = graphene.Field(CertificateAndLicenseQuery)
 
     def resolve_education(self, info):
         return EducationQuery()
+
+    def resolve_work_experience(self, info):
+        return WorkExperienceQuery()
 
     def resolve_language_certificate(self, info):
         return LanguageCertificateQuery()
