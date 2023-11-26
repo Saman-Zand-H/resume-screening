@@ -106,6 +106,7 @@ class WorkExperienceType(FilterQuerySetByUserMixin, DjangoObjectType):
             WorkExperience.status.field.name,
             WorkExperience.created_at.field.name,
             WorkExperience.updated_at.field.name,
+            WorkExperience.status.field.name,
             *(m.get_related_name() for m in WorkExperience.get_method_models()),
         )
 
@@ -155,6 +156,7 @@ class LanguageCertificateType(FilterQuerySetByUserMixin, DjangoObjectType):
             LanguageCertificate.writing_score.field.name,
             LanguageCertificate.speaking_score.field.name,
             LanguageCertificate.band_score.field.name,
+            LanguageCertificate.status.field.name,
         )
 
 
@@ -167,6 +169,7 @@ class CertificateAndLicenseType(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.certifier.field.name,
             CertificateAndLicense.issued_at.field.name,
             CertificateAndLicense.expired_at.field.name,
+            CertificateAndLicense.status.field.name,
         )
 
 
