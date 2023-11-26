@@ -2,7 +2,13 @@ import graphene
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
 
-from .types import EducationType, UserNode, WorkExperienceType, CertificateAndLicenseType, LanguageCertificateType
+from .types import (
+    CertificateAndLicenseType,
+    EducationType,
+    LanguageCertificateType,
+    UserNode,
+    WorkExperienceType,
+)
 
 
 class EducationQuery(graphene.ObjectType):
@@ -32,15 +38,11 @@ class CertificateAndLicenseQuery(graphene.ObjectType):
 class Query(MeQuery, graphene.ObjectType):
     me = graphene.Field(UserNode)
     education = graphene.Field(EducationQuery)
-    work_experience = graphene.Field(WorkExperienceQuery)
     language_certificate = graphene.Field(LanguageCertificateQuery)
     certificate_and_license = graphene.Field(CertificateAndLicenseQuery)
 
     def resolve_education(self, info):
         return EducationQuery()
-
-    def resolve_work_experience(self, info):
-        return WorkExperienceQuery()
 
     def resolve_language_certificate(self, info):
         return LanguageCertificateQuery()
