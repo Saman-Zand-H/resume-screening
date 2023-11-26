@@ -7,11 +7,12 @@ from .types import (
     EducationType,
     LanguageCertificateType,
     UserNode,
+    WorkExperienceType,
 )
 
 
 class EducationQuery(graphene.ObjectType):
-    get = graphene.Field(EducationType, id=graphene.Int())
+    get = graphene.Field(EducationType, id=graphene.ID())
 
     @login_required
     def resolve_get(self, info, id):
@@ -19,26 +20,26 @@ class EducationQuery(graphene.ObjectType):
 
 
 class WorkExperienceQuery(graphene.ObjectType):
-    get = graphene.List(WorkExperienceType)
+    get = graphene.Field(WorkExperienceType, id=graphene.ID())
 
     @login_required
-    def resolve_get(self, info):
-        return WorkExperienceType.get_queryset(WorkExperienceType._meta.model.objects, info)
+    def resolve_get(self, info, id):
+        return WorkExperienceType.get_node(info, id)
 
 
 class LanguageCertificateQuery(graphene.ObjectType):
-    get = graphene.Field(CertificateAndLicenseType, id=graphene.Int())
+    get = graphene.Field(CertificateAndLicenseType, id=graphene.ID())
 
     @login_required
-    def resolve_get(self, info):
+    def resolve_get(self, info, id):
         return LanguageCertificateType.get_node(info, id)
 
 
 class CertificateAndLicenseQuery(graphene.ObjectType):
-    get = graphene.Field(CertificateAndLicenseType, id=graphene.Int())
+    get = graphene.Field(CertificateAndLicenseType, id=graphene.ID())
 
     @login_required
-    def resolve_get(self, info):
+    def resolve_get(self, info, id):
         return CertificateAndLicenseType.get_node(info, id)
 
 
