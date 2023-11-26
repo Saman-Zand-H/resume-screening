@@ -7,7 +7,6 @@ from .types import (
     EducationType,
     LanguageCertificateType,
     UserNode,
-    WorkExperienceType,
 )
 
 
@@ -20,19 +19,19 @@ class EducationQuery(graphene.ObjectType):
 
 
 class LanguageCertificateQuery(graphene.ObjectType):
-    get = graphene.List(LanguageCertificateType)
+    get = graphene.Field(CertificateAndLicenseType, id=graphene.Int())
 
     @login_required
     def resolve_get(self, info):
-        return LanguageCertificateType.get_queryset(LanguageCertificateType._meta.model.objects, info)
+        return LanguageCertificateType.get_node(info, id)
 
 
 class CertificateAndLicenseQuery(graphene.ObjectType):
-    get = graphene.List(CertificateAndLicenseType)
+    get = graphene.Field(CertificateAndLicenseType, id=graphene.Int())
 
     @login_required
     def resolve_get(self, info):
-        return CertificateAndLicenseType.get_queryset(CertificateAndLicenseType._meta.model.objects, info)
+        return CertificateAndLicenseType.get_node(info, id)
 
 
 class Query(MeQuery, graphene.ObjectType):
