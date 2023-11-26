@@ -32,15 +32,15 @@ from .mixins import (
     DocumentUpdateMutationMixin,
 )
 from .models import (
+    CertificateAndLicense,
     Contact,
     DocumentAbstract,
     Education,
+    EmployerLetterMethod,
     LanguageCertificate,
     Profile,
     User,
     WorkExperience,
-    ReferenceCheckEmployer,
-    CertificateAndLicense,
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
@@ -252,6 +252,7 @@ class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoU
     @classmethod
     def __init_subclass_with_meta__(cls, *args, **kwargs):
         model = kwargs.get("model")
+        method_extras = kwargs.pop("method_extras", {})
         kwargs.update(
             {
                 "type_name": f"Set{model.__name__}VerificationMethodInput",
@@ -260,6 +261,7 @@ class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoU
                     m.get_related_name(): {
                         "type": "auto",
                         "exclude_fields": (model.verified_at.field.name,),
+                        **method_extras.get(m, {}),
                     }
                     for m in model.get_method_models()
                 },
@@ -360,25 +362,14 @@ class WorkExperienceDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMu
 class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
     class Meta:
         model = WorkExperience
-
-
-class WESVMM(DjangoUpdateMutation):
-    class Meta:
-        model = WorkExperience
-        login_required = True
-        fields = (*(m.get_related_name() for m in model.get_method_models()),)
-        one_to_one_extras = {
-            "employerlettermethod": {
-                # "exact": {
-                "type": "auto",
-                "exclude_fields": (model.verified_at.field.name,),
+        method_extras = {
+            EmployerLetterMethod: {
+                "type": "WorkExperienceEmployerLetterMethodInput",
                 "many_to_one_extras": {
-                    "reference_check_employers": {
-                        "add": {"type": "auto"},
-                        "remove": True,
-                    }
+                    "employers": {
+                        "exact": {"type": "auto"},
+                    },
                 },
-                # }
             }
         }
 
@@ -467,7 +458,6 @@ class WorkExperienceMutation(graphene.ObjectType):
     update = WorkExperienceUpdateMutation.Field()
     delete = WorkExperienceDeleteMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
-    test = WESVMM.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):

@@ -116,6 +116,7 @@ class EmployerLetterMethodType(DjangoObjectType):
         fields = (
             EmployerLetterMethod.id.field.name,
             EmployerLetterMethod.employer_letter.field.name,
+            ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
         )
 
 

@@ -471,7 +471,7 @@ class ReferenceCheckEmployer(models.Model):
         EmployerLetterMethod,
         on_delete=models.CASCADE,
         verbose_name=_("Work Experience Verification"),
-        related_name="reference_check_employers",
+        related_name="employers",
     )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     email = models.EmailField(verbose_name=_("Email"))
