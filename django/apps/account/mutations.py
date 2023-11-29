@@ -427,6 +427,11 @@ class LanguageCertificateSetVerificationMethodMutation(DocumentSetVerificationMe
         model = LanguageCertificate
 
 
+class LanguageCertificateUpdateStatusMutation(UpdateStatusMixin):
+    class Meta:
+        model = LanguageCertificate
+
+
 CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
     CertificateAndLicense.title.field.name,
     CertificateAndLicense.certifier.field.name,
@@ -483,6 +488,7 @@ class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
     update = LanguageCertificateUpdateMutation.Field()
     delete = LanguageCertificateDeleteMutation.Field()
+    update_status = LanguageCertificateUpdateStatusMutation.Field()
     set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
 
 
