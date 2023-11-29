@@ -599,16 +599,21 @@ class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethod
         return f"{self.certificate_and_license.title} Verification"
 
 
-class CertificateAndLicenseVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
-    certificate_link = models.URLField(verbose_name=_("Link"), null=True, blank=True)
+class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
     certificate_file = models.FileField(
         upload_to=certificate_and_license_path,
         verbose_name=_("Certificate And License"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
-        null=True,
-        blank=True,
     )
 
     class Meta:
-        verbose_name = _("Certificate And License Verification Method")
-        verbose_name_plural = _("Certificate And License Verification Methods")
+        verbose_name = _("Certificate And License Offline Verification Method")
+        verbose_name_plural = _("Certificate And License Offline Verification Methods")
+
+
+class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
+    certificate_link = models.URLField(verbose_name=_("Link"))
+
+    class Meta:
+        verbose_name = _("Certificate And License Online Verification Method")
+        verbose_name_plural = _("Certificate And License Online Verification Methods")
