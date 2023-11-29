@@ -326,12 +326,9 @@ class EducationSetVerificationMethodMutation(DocumentSetVerificationMethodMutati
         model = Education
 
 
-class EducationUpdateStatusMutation(DjangoPatchMutation):
+class EducationUpdateStatusMutation(UpdateStatusMixin):
     class Meta:
         model = Education
-        login_required = True
-        fields = (Education.status.field.name,)
-        type_name = "PatchEducationStatusInput"
 
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
