@@ -462,6 +462,11 @@ class CertificateAndLicenseSetVerificationMethodMutation(DocumentSetVerification
         model = CertificateAndLicense
 
 
+class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
+    class Meta:
+        model = CertificateAndLicense
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -496,6 +501,7 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
     update = CertificateAndLicenseUpdateMutation.Field()
     delete = CertificateAndLicenseDeleteMutation.Field()
+    update_status = CertificateAndLicenseUpdateStatusMutation.Field()
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
 
 
