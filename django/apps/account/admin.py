@@ -21,7 +21,8 @@ from .models import (
     ReferenceCheckEmployer,
     OfflineMethod,
     OnlineMethod,
-    CertificateAndLicenseVerificationMethod,
+    CertificateAndLicenseOfflineVerificationMethod,
+    CertificateAndLicenseOnlineVerificationMethod,
 )
 
 
@@ -92,7 +93,7 @@ class ContactAdmin(admin.ModelAdmin):
 
 @register(Education)
 class EducationAdmin(admin.ModelAdmin):
-    list_display = ("user", "field", "degree", "start", "end", "status")
+    list_display = ("id", "user", "field", "degree", "start", "end", "status")
     search_fields = ("user__email", "field__name", "degree", "city__name")
     list_filter = ("degree", "status")
     raw_id_fields = ("user", "field")
@@ -171,7 +172,7 @@ class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
 
 @register(LanguageCertificate)
 class LanguageCertificateAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "language__code", "test__title", "issued_at", "expired_at", "band_score")
+    list_display = ("id", "user", "language__code", "test__title", "status", "issued_at", "expired_at", "band_score")
     search_fields = (
         "user__email",
         "language__code",
@@ -182,7 +183,7 @@ class LanguageCertificateAdmin(admin.ModelAdmin):
 
 @register(CertificateAndLicense)
 class CertificateAndLicenseAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "title", "certifier", "issued_at", "expired_at")
+    list_display = ("id", "user", "title", "certifier", "status", "issued_at", "expired_at")
     search_fields = ("user__email", "title")
     list_filter = ("certifier", "issued_at", "expired_at")
     raw_id_fields = ("user",)
@@ -204,8 +205,16 @@ class OnlineMethodAdmin(admin.ModelAdmin):
     raw_id_fields = ("language_certificate",)
 
 
-@register(CertificateAndLicenseVerificationMethod)
+@register(CertificateAndLicenseOfflineVerificationMethod)
 class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
+    list_display = ("certificate_and_license", "verified_at", "created_at")
+    search_fields = ("certificate_and_license__user__email",)
+    list_filter = ("verified_at", "created_at")
+    raw_id_fields = ("certificate_and_license",)
+
+
+@register(CertificateAndLicenseOnlineVerificationMethod)
+class CertificateAndLicenseOnlineVerificationMethodAdmin(admin.ModelAdmin):
     list_display = ("certificate_and_license", "verified_at", "created_at")
     search_fields = ("certificate_and_license__user__email",)
     list_filter = ("verified_at", "created_at")
