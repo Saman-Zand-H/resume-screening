@@ -30,6 +30,7 @@ from .mixins import (
     DocumentCUDFieldMixin,
     DocumentCUDMixin,
     DocumentUpdateMutationMixin,
+    UpdateStatusMixin,
 )
 from .models import (
     CertificateAndLicense,
@@ -386,6 +387,11 @@ class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodM
         return super().validate(root, info, input, id, obj)
 
 
+class WorkExperienceUpdateStatusMutation(UpdateStatusMixin):
+    class Meta:
+        model = WorkExperience
+
+
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
     LanguageCertificate.language.field.name,
     LanguageCertificate.test.field.name,
@@ -469,6 +475,7 @@ class WorkExperienceMutation(graphene.ObjectType):
     create = WorkExperienceCreateMutation.Field()
     update = WorkExperienceUpdateMutation.Field()
     delete = WorkExperienceDeleteMutation.Field()
+    update_status = WorkExperienceUpdateStatusMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
 
 

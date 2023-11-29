@@ -1,7 +1,7 @@
 from graphql import GraphQLError
 
 from django.core.exceptions import ValidationError
-
+from graphene_django_cud.mutations import DjangoPatchMutation
 from .models import (
     DocumentAbstract,
 )
@@ -67,3 +67,20 @@ class FilterQuerySetByUserMixin:
         if not user:
             return queryset.none()
         return super().get_queryset(queryset, info).filter(user=user)
+
+
+class UpdateStatusMixin(DjangoPatchMutation):
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        model = kwargs.get("model")
+        kwargs.update(
+            {
+                "login_required": True,
+                "type_name": f"Patch{model.__name__}StatusInput",
+                "fields": (model.status.field.name,),
+            }
+        )
+        return super().__init_subclass_with_meta__(*args, **kwargs)
