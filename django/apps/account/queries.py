@@ -28,7 +28,7 @@ class WorkExperienceQuery(graphene.ObjectType):
 
 
 class LanguageCertificateQuery(graphene.ObjectType):
-    get = graphene.Field(CertificateAndLicenseType, id=graphene.ID())
+    get = graphene.Field(LanguageCertificateType, id=graphene.ID())
 
     @login_required
     def resolve_get(self, info, id):
