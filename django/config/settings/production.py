@@ -20,6 +20,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     os.environ.get("FRONTEND_URL"),
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 
 # SSL Configuration
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
