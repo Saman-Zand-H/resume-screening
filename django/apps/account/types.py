@@ -66,6 +66,7 @@ class EducationType(FilterQuerySetByUserMixin, DjangoObjectType):
             Education.status.field.name,
             Education.created_at.field.name,
             Education.updated_at.field.name,
+            Education.allow_self_verification.field.name,
             *(m.get_related_name() for m in Education.get_method_models()),
         )
 
@@ -108,6 +109,7 @@ class WorkExperienceType(FilterQuerySetByUserMixin, DjangoObjectType):
             WorkExperience.created_at.field.name,
             WorkExperience.updated_at.field.name,
             WorkExperience.status.field.name,
+            WorkExperience.allow_self_verification.field.name,
             *(m.get_related_name() for m in WorkExperience.get_method_models()),
         )
 
@@ -158,6 +160,7 @@ class LanguageCertificateType(FilterQuerySetByUserMixin, DjangoObjectType):
             LanguageCertificate.speaking_score.field.name,
             LanguageCertificate.band_score.field.name,
             LanguageCertificate.status.field.name,
+            LanguageCertificate.allow_self_verification.field.name,
         )
 
 
@@ -171,6 +174,7 @@ class CertificateAndLicenseType(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.issued_at.field.name,
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
+            CertificateAndLicense.allow_self_verification.field.name,
         )
 
 
