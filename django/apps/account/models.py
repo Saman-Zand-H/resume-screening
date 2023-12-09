@@ -643,7 +643,6 @@ class CanadaVisa(models.Model):
         max_length=50,
         choices=Status.choices,
         verbose_name=_("Status"),
-        default=Status.PENDING.value,
     )
     citizenship_document = models.FileField(
         upload_to=citizenship_document_path,

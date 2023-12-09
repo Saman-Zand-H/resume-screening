@@ -43,6 +43,7 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
+    CanadaVisa,
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
@@ -464,6 +465,17 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
         model = CertificateAndLicense
 
 
+class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
+    class Meta:
+        model = CanadaVisa
+        exclude_fields = ("user", )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+        cls.full_clean(obj)
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
@@ -502,6 +514,10 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
 
 
+class CanadaVisaMutation(graphene.ObjectType):
+    create = CanadaVisaCreateMutation.Field()
+
+
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -520,6 +536,7 @@ class AccountMutation(graphene.ObjectType):
     work_experience = graphene.Field(WorkExperienceMutation)
     language_certificate = graphene.Field(LanguageCertificateMutation)
     certificate_and_license = graphene.Field(CertificateAndLicenseMutation)
+    canada_visa = graphene.Field(CanadaVisaMutation)
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
@@ -535,6 +552,9 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_certificate_and_license(self, *args, **kwargs):
         return CertificateAndLicenseMutation()
+
+    def resolve_canada_visa(self, *args, **kwargs):
+        return CanadaVisaMutation()
 
 
 class Mutation(graphene.ObjectType):

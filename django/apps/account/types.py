@@ -18,6 +18,7 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
+    CanadaVisa,
 )
 
 
@@ -170,6 +171,17 @@ class CertificateAndLicenseType(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.issued_at.field.name,
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
+        )
+
+
+class CanadaVisaType(DjangoObjectType):
+    class Meta:
+        model = CanadaVisa
+        fields = (
+            CanadaVisa.id.field.name,
+            CanadaVisa.nationality.field.name,
+            CanadaVisa.status.field.name,
+            CanadaVisa.citizenship_document.field.name,
         )
 
 
