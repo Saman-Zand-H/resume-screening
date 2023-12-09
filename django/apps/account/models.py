@@ -1,6 +1,6 @@
 import contextlib
 
-from cities_light.models import City
+from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.models import (
     Field,
@@ -77,6 +77,10 @@ def language_certificate_path(instance, filename):
 
 def certificate_and_license_path(instance, filename):
     return get_certificate_and_license_verification_path("certificate_and_license", instance, filename)
+
+
+def citizenship_document_path(instance, filename):
+    return f"profile/{instance.user.id}/citizenship_document/{filename}"
 
 
 def fix_whatsapp_value(value):
@@ -617,3 +621,32 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
     class Meta:
         verbose_name = _("Certificate And License Online Verification Method")
         verbose_name_plural = _("Certificate And License Online Verification Methods")
+
+
+class CanadaVisa(models.Model):
+    class Status(models.TextChoices):
+        STUDY_PERMIT = "study_permit", _("Study Permit")
+        WORK_PERMIT = "work_permit", _("Work Permit")
+        PERMANENT_RESIDENCY = "permanent_residency", _("Permanent Residency")
+        VISITOR_VISA = "visitor_visa", _("Visitor Visa")
+        REFUGEE_STATUS = "refugee_status", _("Refugee Status")
+        CITIZENSHIP = "citizenship", _("Citizenship")
+        TEMPORARY_RESIDENCY = "temporary_residency", _("Temporary Residency")
+        PENDING = "pending", _("Pending")
+        OTHER = "other", _("Other")
+
+    user = models.OneToOneField(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="canada_visa")
+    nationality = models.ForeignKey(
+        Country, on_delete=models.CASCADE, verbose_name=_("Nationality"), related_name="canada_visas"
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        verbose_name=_("Status"),
+        default=Status.PENDING.value,
+    )
+    citizenship_document = models.FileField(
+        upload_to=citizenship_document_path,
+        verbose_name=_("Citizenship Document"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
