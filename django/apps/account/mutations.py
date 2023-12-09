@@ -468,7 +468,7 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
 class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
-        exclude_fields = ("user", )
+        exclude = ("user", )
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
