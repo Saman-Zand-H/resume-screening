@@ -99,9 +99,11 @@ class Position(models.Model):
 
 
 class LanguageProficiencyTest(models.Model):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
     min_score = models.FloatField(verbose_name=_("Minimum Score"))
     max_score = models.FloatField(verbose_name=_("Maximum Score"))
+    overall_min_score = models.FloatField(verbose_name=_("Overall Minimum Score"))
+    overall_max_score = models.FloatField(verbose_name=_("Overall Maximum Score"))
 
     class Meta:
         verbose_name = _("Language Proficiency Test")

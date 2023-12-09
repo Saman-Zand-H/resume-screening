@@ -524,10 +524,12 @@ class LanguageCertificate(DocumentAbstract):
                 self.reading_score,
                 self.writing_score,
                 self.speaking_score,
-                self.band_score,
             )
         ):
             raise ValidationError(_("All scores must be between minimum and maximum score of the test"))
+
+        if not self.test.overall_min_score <= self.band_score <= self.test.overall_max_score:
+            raise ValidationError(_("Band score must be between overall minimum and maximum score of the test"))
 
         if self.issued_at > self.expired_at:
             raise ValidationError(_("Issued date must be before expired date"))
