@@ -23,6 +23,7 @@ from .models import (
     OnlineMethod,
     CertificateAndLicenseOfflineVerificationMethod,
     CertificateAndLicenseOnlineVerificationMethod,
+    CanadaVisa,
 )
 
 
@@ -219,3 +220,11 @@ class CertificateAndLicenseOnlineVerificationMethodAdmin(admin.ModelAdmin):
     search_fields = ("certificate_and_license__user__email",)
     list_filter = ("verified_at", "created_at")
     raw_id_fields = ("certificate_and_license",)
+
+
+@register(CanadaVisa)
+class CanadaVisaAdmin(admin.ModelAdmin):
+    list_display = ("user", "nationality", "status",)
+    search_fields = ("user__email", "nationality")
+    list_filter = ("status",)
+    raw_id_fields = ("user", "nationality",)
