@@ -105,7 +105,6 @@ class WorkExperienceType(FilterQuerySetByUserMixin, DjangoObjectType):
             WorkExperience.skills.field.name,
             WorkExperience.organization.field.name,
             WorkExperience.city.field.name,
-            WorkExperience.status.field.name,
             WorkExperience.created_at.field.name,
             WorkExperience.updated_at.field.name,
             WorkExperience.status.field.name,
