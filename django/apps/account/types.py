@@ -53,9 +53,10 @@ class EducationMethodFieldTypes(graphene.ObjectType):
     field = graphene.String()
 
 
-class EducationType(FilterQuerySetByUserMixin, DjangoObjectType):
+class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = Education
+        interfaces = (graphene.relay.Node,)
         fields = (
             Education.id.field.name,
             Education.field.field.name,
@@ -94,9 +95,10 @@ class CommunicationMethodType(DjangoObjectType):
         )
 
 
-class WorkExperienceType(FilterQuerySetByUserMixin, DjangoObjectType):
+class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = WorkExperience
+        interfaces = (graphene.relay.Node,)
         fields = (
             WorkExperience.id.field.name,
             WorkExperience.job.field.name,
@@ -144,9 +146,10 @@ class ReferenceCheckEmployerType(DjangoObjectType):
         )
 
 
-class LanguageCertificateType(FilterQuerySetByUserMixin, DjangoObjectType):
+class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = LanguageCertificate
+        interfaces = (graphene.relay.Node,)
         fields = (
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
@@ -163,9 +166,10 @@ class LanguageCertificateType(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class CertificateAndLicenseType(FilterQuerySetByUserMixin, DjangoObjectType):
+class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = CertificateAndLicense
+        interfaces = (graphene.relay.Node,)
         fields = (
             CertificateAndLicense.id.field.name,
             CertificateAndLicense.title.field.name,
@@ -189,6 +193,11 @@ class CanadaVisaType(DjangoObjectType):
 
 
 class UserNode(BaseUserNode):
+    educations = graphene.List(EducationNode)
+    workexperiences = graphene.List(WorkExperienceNode)
+    languagecertificates = graphene.List(LanguageCertificateNode)
+    certificateandlicenses = graphene.List(CertificateAndLicenseNode)
+
     class Meta:
         model = User
         filter_fields = graphql_auth_settings.USER_NODE_FILTER_FIELDS
@@ -202,12 +211,20 @@ class UserNode(BaseUserNode):
             User.birth_date.field.name,
             Profile.user.field.related_query_name(),
             Contact.user.field.related_query_name(),
-            Education.user.field.related_query_name(),
-            WorkExperience.user.field.related_query_name(),
-            LanguageCertificate.user.field.related_query_name(),
-            CertificateAndLicense.user.field.related_query_name(),
             User.skills.field.name,
         )
+
+    def resolve_educations(self, info):
+        return self.educations.all().order_by("-id")
+
+    def resolve_workexperiences(self, info):
+        return self.workexperiences.all().order_by("-id")
+
+    def resolve_languagecertificates(self, info):
+        return self.languagecertificates.all().order_by("-id")
+
+    def resolve_certificateandlicenses(self, info):
+        return self.certificateandlicenses.all().order_by("-id")
 
 
 class UserSkillType(DjangoObjectType):

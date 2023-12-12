@@ -5,44 +5,44 @@ from graphene_django_cud.util.model import disambiguate_id
 
 
 from .types import (
-    CertificateAndLicenseType,
-    EducationType,
-    LanguageCertificateType,
+    CertificateAndLicenseNode,
+    EducationNode,
+    LanguageCertificateNode,
     UserNode,
-    WorkExperienceType,
+    WorkExperienceNode,
 )
 
 
 class EducationQuery(graphene.ObjectType):
-    get = graphene.Field(EducationType, id=graphene.ID())
+    get = graphene.Field(EducationNode, id=graphene.ID())
 
     @login_required
     def resolve_get(self, info, id):
-        return EducationType.get_node(info, disambiguate_id(id))
+        return EducationNode.get_node(info, disambiguate_id(id))
 
 
 class WorkExperienceQuery(graphene.ObjectType):
-    get = graphene.Field(WorkExperienceType, id=graphene.ID())
+    get = graphene.Field(WorkExperienceNode, id=graphene.ID())
 
     @login_required
     def resolve_get(self, info, id):
-        return WorkExperienceType.get_node(info, disambiguate_id(id))
+        return WorkExperienceNode.get_node(info, disambiguate_id(id))
 
 
 class LanguageCertificateQuery(graphene.ObjectType):
-    get = graphene.Field(LanguageCertificateType, id=graphene.ID())
+    get = graphene.Field(LanguageCertificateNode, id=graphene.ID())
 
     @login_required
     def resolve_get(self, info, id):
-        return LanguageCertificateType.get_node(info, disambiguate_id(id))
+        return LanguageCertificateNode.get_node(info, disambiguate_id(id))
 
 
 class CertificateAndLicenseQuery(graphene.ObjectType):
-    get = graphene.Field(CertificateAndLicenseType, id=graphene.ID())
+    get = graphene.Field(CertificateAndLicenseNode, id=graphene.ID())
 
     @login_required
     def resolve_get(self, info, id):
-        return CertificateAndLicenseType.get_node(info, disambiguate_id(id))
+        return CertificateAndLicenseNode.get_node(info, disambiguate_id(id))
 
 
 class Query(MeQuery, graphene.ObjectType):
