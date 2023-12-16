@@ -181,9 +181,10 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class CanadaVisaType(DjangoObjectType):
+class CanadaVisaNode(FilterQuerySetByUserMixin,DjangoObjectType):
     class Meta:
         model = CanadaVisa
+        interfaces = (graphene.relay.Node,)
         fields = (
             CanadaVisa.id.field.name,
             CanadaVisa.nationality.field.name,
@@ -212,6 +213,7 @@ class UserNode(BaseUserNode):
             Profile.user.field.related_query_name(),
             Contact.user.field.related_query_name(),
             User.skills.field.name,
+            CanadaVisa.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
