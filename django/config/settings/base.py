@@ -250,3 +250,6 @@ HEADLESS_ONLY = True
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+
+CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities500.zip"]
+
