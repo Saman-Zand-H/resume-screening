@@ -3,9 +3,10 @@ from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
-from graphene import relay
+from graphene import relay, Enum
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
+from .exceptions import Errors, Error
 from .models import (
     Field,
     Job,
@@ -17,6 +18,9 @@ from .models import (
     Position,
     Skill,
 )
+
+enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
+ErrorType = Enum("Errors", enum_values)
 
 
 class JobIndustryNode(DjangoObjectType):

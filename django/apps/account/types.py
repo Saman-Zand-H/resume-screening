@@ -181,7 +181,7 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class CanadaVisaNode(FilterQuerySetByUserMixin,DjangoObjectType):
+class CanadaVisaNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = CanadaVisa
         interfaces = (graphene.relay.Node,)

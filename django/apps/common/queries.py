@@ -2,6 +2,7 @@ import graphene
 from graphene_django.filter import DjangoFilterConnectionField
 
 from .types import (
+    ErrorType,
     CityNode,
     CountryNode,
     FieldNode,
@@ -32,8 +33,19 @@ class CommonQuery(graphene.ObjectType):
     positions = DjangoFilterConnectionField(PositionNode)
 
 
+class MetaDataQuery(graphene.ObjectType):
+    errors = graphene.List(ErrorType)
+
+    def resolve_errors(self, info):
+        return list(ErrorType)
+
+
 class Query(graphene.ObjectType):
     common = graphene.Field(CommonQuery)
+    meta_data = graphene.Field(MetaDataQuery)
 
     def resolve_common(self, info):
         return CommonQuery()
+
+    def resolve_meta_data(self, info):
+        return MetaDataQuery()
