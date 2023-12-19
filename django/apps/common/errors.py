@@ -22,7 +22,6 @@ class Error:
 
 @dataclasses.dataclass
 class Errors:
-    VALIDATION_ERROR = Error("VALIDATION_ERROR", "Validation Error", HttpResponseBadRequest.status_code)
     UNAUTHORIZED = Error("UNAUTHORIZED", "Unauthorized", 401)
     BAD_REQUEST = Error("BAD_REQUEST", "Bad request", HttpResponseBadRequest.status_code)
     PERMISSION_DENIED = Error("PERMISSION_DENIED", "Permission denied", HttpResponseForbidden.status_code)
@@ -33,7 +32,7 @@ class Errors:
 
 
 EXCEPTION_ERROR_MAP = {
-    DjangoValidationError: Errors.VALIDATION_ERROR,
+    DjangoValidationError: Errors.BAD_REQUEST,
     ObjectDoesNotExist: Errors.NOT_FOUND,
     PermissionDenied: Errors.PERMISSION_DENIED,
     PermissionError: Errors.PERMISSION_DENIED,
