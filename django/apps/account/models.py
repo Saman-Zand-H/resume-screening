@@ -242,7 +242,10 @@ class Contact(models.Model):
     def clean(self, *args, **kwargs):
         if self.type in self.VALIDATORS:
             with contextlib.suppress(TypeError):
-                self.VALIDATORS[self.type](self.value)
+                try:
+                    self.VALIDATORS[self.type](self.value)
+                except ValidationError as e:
+                    raise ValidationError({self.type: next(iter(e.messages))}) from e
         else:
             raise NotImplementedError(f"Validation for {self.type} is not implemented")
 
@@ -544,7 +547,7 @@ class LanguageCertificate(DocumentAbstract):
             )
 
         if self.issued_at > self.expired_at:
-            raise ValidationError({"expired_at":_("Expired date must be after Issued date")})
+            raise ValidationError({"expired_at": _("Expired date must be after Issued date")})
         return super().clean()
 
 
@@ -600,7 +603,7 @@ class CertificateAndLicense(DocumentAbstract):
 
     def clean(self):
         if self.expired_at and self.issued_at > self.expired_at:
-            raise ValidationError({"expired_at":_("Expired date must be after Issued date")})
+            raise ValidationError({"expired_at": _("Expired date must be after Issued date")})
         return super().clean()
 
 

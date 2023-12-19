@@ -1,7 +1,6 @@
-from graphql import GraphQLError
-
-from django.core.exceptions import ValidationError
+from common.exceptions import GraphQLErrorBadRequest
 from graphene_django_cud.mutations import DjangoPatchMutation
+
 from .models import (
     DocumentAbstract,
 )
@@ -19,10 +18,7 @@ class DocumentCUDMixin:
 
     @classmethod
     def full_clean(cls, obj):
-        try:
-            obj.full_clean()
-        except ValidationError as e:
-            raise GraphQLError(e.message_dict)
+        obj.full_clean()
 
 
 class DocumentCUDFieldMixin:
@@ -44,10 +40,10 @@ class DocumentCheckPermissionsMixin(DocumentCUDMixin):
     def check_permissions(cls, *args):
         info, obj = args[1], args[-1]
         if obj.user != info.context.user:
-            raise GraphQLError("Not permitted to modify this record.")
+            raise PermissionError("Not permitted to modify this record.")
 
         if obj.status != DocumentAbstract.Status.DRAFTED:
-            raise GraphQLError("Only drafted documents can be modified.")
+            raise GraphQLErrorBadRequest("Only drafted documents can be modified.")
 
         return super().check_permissions(*args)
 

@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
@@ -33,6 +34,7 @@ from .mixins import (
     UpdateStatusMixin,
 )
 from .models import (
+    CanadaVisa,
     CertificateAndLicense,
     Contact,
     DocumentAbstract,
@@ -43,7 +45,6 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
-    CanadaVisa,
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
@@ -178,11 +179,7 @@ class UserUpdateMutation(DjangoCreateMutation):
         obj.pk = profile.pk
         obj.user = user
 
-        try:
-            obj.full_clean(validate_unique=False)
-        except ValidationError as e:
-            user_field, message = next(iter(e.message_dict.items()))
-            raise GraphQLError(f"{user_field}: {message[0]}")
+        obj.full_clean(validate_unique=False)
 
 
 class UserSkillInput(graphene.InputObjectType):
@@ -215,7 +212,7 @@ class SetContactsMutation(DjangoBatchCreateMutation):
     @classmethod
     def before_mutate(cls, root, info, input):
         if len(input) > len(set([c.get(Contact.type.field.name) for c in input])):
-            raise GraphQLError("Contact types must be unique.")
+            raise GraphQLErrorBadRequest("Contact types must be unique.")
         return super().before_mutate(root, info, input)
 
     @classmethod
@@ -223,10 +220,7 @@ class SetContactsMutation(DjangoBatchCreateMutation):
         obj.user = info.context.user
         with contextlib.suppress(Contact.DoesNotExist):
             obj.pk = Contact.objects.get(user=obj.user, type=obj.type).pk
-        try:
-            obj.full_clean(validate_unique=False)
-        except ValidationError as e:
-            raise GraphQLError(next(iter(e.messages)))
+        obj.full_clean(validate_unique=False)
 
     @classmethod
     def after_mutate(cls, root, info, input, created_objs, return_data):
@@ -282,10 +276,10 @@ class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoU
         method_inputs_exist = [input.get(m.get_related_name()) is not None for m in models]
 
         if not any(method_inputs_exist):
-            raise GraphQLError("At least one method must be provided.")
+            raise GraphQLErrorBadRequest("At least one method must be provided.")
 
         if sum(method_inputs_exist) > 1:
-            raise GraphQLError("Only one of the methods can be provided.")
+            raise GraphQLErrorBadRequest("Only one of the methods can be provided.")
 
         return super().validate(root, info, input, id, obj)
 
@@ -468,7 +462,7 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
 class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
-        exclude = ("user", )
+        exclude = ("user",)
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
