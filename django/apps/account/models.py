@@ -356,6 +356,11 @@ class Education(DocumentAbstract):
     def get_verification_abstract_model(cls):
         return EducationVerificationMethodAbstract
 
+    def clean(self):
+        if self.end and self.start > self.end:
+            raise ValidationError({"end": _("End date must be after Start date")})
+        return super().clean()
+
 
 class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
     education = models.OneToOneField(
@@ -433,6 +438,11 @@ class WorkExperience(DocumentAbstract):
     @classmethod
     def get_verification_abstract_model(cls):
         return WorkExperienceVerificationMethodAbstract
+
+    def clean(self):
+        if self.end and self.start > self.end:
+            raise ValidationError({"end": _("End date must be after Start date")})
+        return super().clean()
 
 
 class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstract):
@@ -529,10 +539,12 @@ class LanguageCertificate(DocumentAbstract):
             raise ValidationError(_("All scores must be between minimum and maximum score of the test"))
 
         if not self.test.overall_min_score <= self.band_score <= self.test.overall_max_score:
-            raise ValidationError(_("Band score must be between overall minimum and maximum score of the test"))
+            raise ValidationError(
+                {"band_score": _("Band score must be between overall minimum and maximum score of the test")}
+            )
 
         if self.issued_at > self.expired_at:
-            raise ValidationError(_("Issued date must be before expired date"))
+            raise ValidationError({"expired_at":_("Expired date must be after Issued date")})
         return super().clean()
 
 
@@ -588,7 +600,7 @@ class CertificateAndLicense(DocumentAbstract):
 
     def clean(self):
         if self.expired_at and self.issued_at > self.expired_at:
-            raise ValidationError(_("Issued date must be before expired date"))
+            raise ValidationError({"expired_at":_("Expired date must be after Issued date")})
         return super().clean()
 
 
