@@ -15,17 +15,17 @@ EXCEPTION_SERIALIZERS = {
 
 
 class GraphQLError(BaseGraphQLError):
-    error: Error = Errors.INTERNAL_SERVER_ERROR
+    error: Optional[Error] = None
 
     def __init__(
         self,
-        error: Error,
+        error: Error = None,
         *,
         message: str = None,
         extensions: Optional[dict] = None,
         exception: Exception = None,
     ):
-        self.error = error or self.error
+        self.error = error or self.error or Errors.INTERNAL_SERVER_ERROR
 
         if extensions is None:
             extensions = {}
@@ -48,3 +48,12 @@ class GraphQLError(BaseGraphQLError):
             "message": self.message,
             "extensions": self.extensions,
         }
+
+
+class GraphQLErrorBaseException(GraphQLError):
+    def __init__(self, message: str, *args, **kwargs):
+        super().__init__(message=message, *args, **kwargs)
+
+
+class GraphQLErrorBadRequest(GraphQLErrorBaseException):
+    error = Errors.BAD_REQUEST
