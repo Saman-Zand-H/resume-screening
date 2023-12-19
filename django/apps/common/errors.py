@@ -2,6 +2,7 @@ import dataclasses
 from typing import Optional
 
 from graphql_jwt.exceptions import PermissionDenied as JWTPermissionDenied
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -33,6 +34,7 @@ class Errors:
 
 EXCEPTION_ERROR_MAP = {
     DjangoValidationError: Errors.BAD_REQUEST,
+    DRFValidationError: Errors.BAD_REQUEST,
     ObjectDoesNotExist: Errors.NOT_FOUND,
     PermissionDenied: Errors.PERMISSION_DENIED,
     PermissionError: Errors.PERMISSION_DENIED,

@@ -3,14 +3,16 @@ from dataclasses import asdict
 from typing import Optional
 
 from graphql import GraphQLError as BaseGraphQLError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .errors import Error, Errors
 
 EXCEPTION_SERIALIZERS = {
-    ValidationError: lambda e: dict(fields=getattr(e, "message_dict", None)),
+    DjangoValidationError: lambda e: dict(fields=getattr(e, "message_dict", None)),
+    DRFValidationError: lambda e: dict(message=str(e.detail[0])),
 }
 
 
@@ -31,7 +33,6 @@ class GraphQLError(BaseGraphQLError):
             extensions = {}
 
         extensions.update(asdict(self.error))
-        del extensions["message"]
 
         if settings.DEBUG and exception:
             extensions.update({"details": str(exception)})
@@ -40,6 +41,8 @@ class GraphQLError(BaseGraphQLError):
         if (exception_class := type(exception)) in EXCEPTION_SERIALIZERS:
             extensions.update(EXCEPTION_SERIALIZERS[exception_class](exception))
 
+        message = extensions.get("message", message or self.error.message)
+        extensions.pop("message", None)
         super().__init__(message=message or self.error.message, extensions=extensions)
 
     def as_dict(self):
