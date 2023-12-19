@@ -102,7 +102,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
 
     @classmethod
     def setup(cls, root, info, **kwargs):
-        return NotImplemented
+        return NotImplementedError
 
     @classmethod
     @refresh_expiration
@@ -111,10 +111,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         data = payload.get("data")
         view = payload.get("view")
 
-        try:
-            auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
-        except ValidationError as e:
-            return cls(success=False, errors={"code": e.detail})
+        auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
         user = auth.get("user")
         user.status.verified = True
         user.status.save(update_fields=["verified"])
