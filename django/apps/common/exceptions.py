@@ -40,12 +40,11 @@ class GraphQLError(BaseGraphQLError):
 
         if (exception_class := type(exception)) in EXCEPTION_SERIALIZERS:
             extensions.update(EXCEPTION_SERIALIZERS[exception_class](exception))
-
-        message = extensions.get("message", message or self.error.message)
+        message = message or extensions.get("message")
         extensions.pop("message", None)
         super().__init__(message=message or self.error.message, extensions=extensions)
 
-    def as_dict(self):
+    def asdict(self):
         return {
             "error": self.error,
             "message": self.message,
@@ -54,7 +53,7 @@ class GraphQLError(BaseGraphQLError):
 
 
 class GraphQLErrorBaseException(GraphQLError):
-    def __init__(self, message: str, *args, **kwargs):
+    def __init__(self, message: str = None, *args, **kwargs):
         super().__init__(message=message, *args, **kwargs)
 
 
