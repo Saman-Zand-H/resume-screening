@@ -1,27 +1,45 @@
 import dataclasses
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from typing import Optional
+
 from graphql_jwt.exceptions import PermissionDenied as JWTPermissionDenied
+
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.http import (
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseNotFound,
+    HttpResponseServerError,
+)
 
 
 @dataclasses.dataclass
 class Error:
     code: str
     message: str
+    staus_code: Optional[int] = 500
 
 
 @dataclasses.dataclass
 class Errors:
-    VALIDATION_ERROR = Error("VALIDATION_ERROR", "Validation Error")
-    NOT_FOUND = Error("NOT_FOUND", "Not found")
-    PERMISSION_DENIED = Error("PERMISSION_DENIED", "Permission denied")
-    AUTHENTICATION_ERROR = Error("AUTHENTICATION_ERROR", "Authentication error")
-    INTERNAL_SERVER_ERROR = Error("INTERNAL_SERVER_ERROR", "An unexpected error occurred")
+    VALIDATION_ERROR = Error("VALIDATION_ERROR", "Validation Error", HttpResponseBadRequest.status_code)
+    UNAUTHORIZED = Error("UNAUTHORIZED", "Unauthorized", 401)
+    BAD_REQUEST = Error("BAD_REQUEST", "Bad request", HttpResponseBadRequest.status_code)
+    PERMISSION_DENIED = Error("PERMISSION_DENIED", "Permission denied", HttpResponseForbidden.status_code)
+    NOT_FOUND = Error("NOT_FOUND", "Not found", HttpResponseNotFound.status_code)
+    INTERNAL_SERVER_ERROR = Error(
+        "INTERNAL_SERVER_ERROR", "An unexpected error occurred", HttpResponseServerError.status_code
+    )
 
 
-ERROR_MAP = {
+EXCEPTION_ERROR_MAP = {
     DjangoValidationError: Errors.VALIDATION_ERROR,
     ObjectDoesNotExist: Errors.NOT_FOUND,
     PermissionDenied: Errors.PERMISSION_DENIED,
-    JWTPermissionDenied: Errors.PERMISSION_DENIED,
+    PermissionError: Errors.PERMISSION_DENIED,
+    JWTPermissionDenied: Errors.UNAUTHORIZED,
+}
+
+EXCEPTION_ERROR_TEXT_MAP = {
+    "Must be logged in to access this mutation.": Errors.UNAUTHORIZED,
 }

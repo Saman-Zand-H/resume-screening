@@ -1,24 +1,20 @@
-from django.core.exceptions import ValidationError
-from django.conf import settings
-
-from .exceptions import BaseGraphQLError
-from .errors import ERROR_MAP, Errors
+from .exceptions import GraphQLError
+from .utils import map_exception_to_error
 
 
 class ErrorHandlingMiddleware:
-    def resolve(self, next, root, info, **args):
+    def resolve(self, next_resolver, root, info, **args):
         try:
-            return next(root, info, **args)
+            return next_resolver(root, info, **args)
         except Exception as e:
-            error = Errors.INTERNAL_SERVER_ERROR
-            for k, v in ERROR_MAP.items():
-                if isinstance(e, k):
-                    error = v
-                    break
+            base_exception = GraphQLError
+            kwargs = {}
 
-            extensions = {}
-            if settings.DEBUG:
-                extensions.update({"details": str(e)})
-            if isinstance(e, ValidationError):
-                extensions.update({"fields": getattr(e, "message_dict", None)})
-            raise BaseGraphQLError(error=error, extensions=extensions)
+            if isinstance(e, GraphQLError):
+                base_exception = e.__class__
+                kwargs.update(e.as_dict())
+            else:
+                error = map_exception_to_error(e.__class__, str(e))
+                kwargs.update({"error": error})
+            kwargs.update({"exception": e})
+            raise base_exception(**kwargs)

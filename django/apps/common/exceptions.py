@@ -1,20 +1,50 @@
-from graphql import GraphQLError
+import traceback
+from dataclasses import asdict
 from typing import Optional
+
+from graphql import GraphQLError as BaseGraphQLError
+
+from django.conf import settings
+from django.core.exceptions import ValidationError
+
 from .errors import Error, Errors
 
+EXCEPTION_SERIALIZERS = {
+    ValidationError: lambda e: dict(fields=getattr(e, "message_dict", None)),
+}
 
-class BaseGraphQLError(GraphQLError):
-    error: Optional[Error] = Errors.INTERNAL_SERVER_ERROR
-    code = None
-    message = None
 
-    def __init__(self, error: Error = None, extensions: dict = None):
+class GraphQLError(BaseGraphQLError):
+    error: Error = Errors.INTERNAL_SERVER_ERROR
+
+    def __init__(
+        self,
+        error: Error,
+        *,
+        message: str = None,
+        extensions: Optional[dict] = None,
+        exception: Exception = None,
+    ):
         self.error = error or self.error
-        self.code = self.error.code
-        self.message = self.error.message
 
         if extensions is None:
             extensions = {}
-        if "code" not in extensions:
-            extensions["code"] = self.code
-        super().__init__(message=self.message, extensions=extensions)
+
+        extensions.update(asdict(self.error))
+        del extensions["message"]
+
+        if settings.DEBUG and exception:
+            extensions.update({"details": str(exception)})
+            print("".join(traceback.TracebackException.from_exception(exception).format()))
+
+        if (exception_class := type(exception)) in EXCEPTION_SERIALIZERS:
+            extensions.update(EXCEPTION_SERIALIZERS[exception_class](exception))
+
+        super().__init__(message=message or self.error.message, extensions=extensions)
+
+    def as_dict(self):
+        return {
+            "error": self.error,
+            "message": self.message,
+            "extensions": self.extensions,
+        }
