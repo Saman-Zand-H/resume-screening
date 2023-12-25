@@ -217,8 +217,8 @@ SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [
             {
-                "client_id": "291860381370-5edd58ekvbiu2c4s30pka7fnqiuql71q.apps.googleusercontent.com",
-                "secret": "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",
+                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
+                "secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
                 "key": "",
             },
         ],
