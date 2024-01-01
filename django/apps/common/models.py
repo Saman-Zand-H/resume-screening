@@ -1,7 +1,10 @@
 from cities_light.models import City
+from mptt.models import MPTTModel, TreeForeignKey
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from django.core.exceptions import ValidationError
 
 
 class Language(models.Model):
@@ -76,8 +79,14 @@ class University(models.Model):
         return self.name
 
 
-class Skill(models.Model):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+class Skill(MPTTModel):
+    title = models.CharField(
+        max_length=255,
+        unique=True,
+        verbose_name=_("Title"),
+    )
+    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="children")
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Skill")
@@ -85,6 +94,10 @@ class Skill(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        if self.job and self.parent is not None:
+            raise ValidationError({"job": _("Only level one skills can have jobs")})
 
 
 class Position(models.Model):

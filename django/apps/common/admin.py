@@ -1,4 +1,5 @@
 from django.contrib import admin
+from mptt.admin import MPTTModelAdmin
 
 from .models import Field, Job, JobCategory, JobIndustry, University, Skill, Position, Language, LanguageProficiencyTest
 
@@ -38,12 +39,17 @@ class UniversityAdmin(admin.ModelAdmin):
 
 
 @admin.register(Skill)
-class SkillAdmin(admin.ModelAdmin):
+class SkillAdmin(MPTTModelAdmin):
     list_display = (
         "id",
         "title",
+        "parent",
+        "job",
     )
-    search_fields = ("title",)
+    search_fields = (
+        "title",
+        "parent__title",
+    )
 
 
 @admin.register(Language)
