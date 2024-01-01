@@ -147,6 +147,7 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
             User.last_name.field.name,
             User.gender.field.name,
             User.birth_date.field.name,
+            User.raw_skills.field.name,
         )
     ),
     optional_fields=fields,
