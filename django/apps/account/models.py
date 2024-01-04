@@ -10,6 +10,7 @@ from common.models import (
     Position,
     Skill,
     University,
+    JobAssessment,
 )
 from common.utils import get_all_subclasses
 from common.validators import (
@@ -669,3 +670,38 @@ class CanadaVisa(models.Model):
         verbose_name=_("Citizenship Document"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
+
+
+class JobAssessmentResult(models.Model):
+    # class JobAssessmentResult(ComputedFieldsModel):
+    class Status(models.TextChoices):
+        NOT_STARTED = "not_started", _("Not Started")
+        STARTED = "started", _("Started")
+        IN_PROGRESS = "in_progress", _("In Progress")
+        COMPLETED = "completed", _("Completed")
+        TIMEOUT = "timeout", _("Timeout")
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="job_assessment_results"
+    )
+    job_assessment = models.ForeignKey(
+        JobAssessment, on_delete=models.CASCADE, verbose_name=_("Job Assessment"), related_name="results"
+    )
+    status = models.CharField(
+        max_length=64, choices=Status.choices, verbose_name=_("Status"), default=Status.NOT_STARTED
+    )
+    score = models.JSONField(verbose_name=_("Score"), null=True, blank=True)
+    # user_score = models.CharField(max_length=32, verbose_name=_("User Score"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+
+    # @computed(models.CharField(max_length=32), depends=[("self", ["user_score"])])
+    # def computed_field(self):
+    #     pass
+
+    class Meta:
+        verbose_name = _("Job Assessment Result")
+        verbose_name_plural = _("Job Assessment Results")
+
+    def __str__(self):
+        return f"{self.user.email} - {self.job_assessment.title} - {self.score}"
