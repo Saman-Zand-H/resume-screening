@@ -3,21 +3,21 @@ from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
-from graphene import relay, Enum
+from graphene import Enum, relay
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from .exceptions import Errors, Error
+from .exceptions import Error, Errors
 from .models import (
     Field,
     Job,
+    JobAssessment,
     JobCategory,
     JobIndustry,
     Language,
     LanguageProficiencyTest,
-    University,
     Position,
     Skill,
-    JobAssessment,
+    University,
 )
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
@@ -189,9 +189,10 @@ class SkillNode(DjangoObjectType):
         }
 
 
-class JobAssessmentType(DjangoObjectType):
+class JobAssessmentNode(DjangoObjectType):
     class Meta:
         model = JobAssessment
+        interfaces = (relay.Node,)
         fields = (
             JobAssessment.id.field.name,
             JobAssessment.service_id.field.name,
@@ -199,3 +200,14 @@ class JobAssessmentType(DjangoObjectType):
             JobAssessment.description_rendered.field.name,
             JobAssessment.resumable.field.name,
         )
+        filter_fields = {
+            JobAssessment.service_id.field.name: ["icontains"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        intereseted_jobs = user.profile.interested_jobs.all()
+        return super().get_queryset(queryset, info).filter(related_jobs__in=intereseted_jobs).distinct().order_by("-id")
