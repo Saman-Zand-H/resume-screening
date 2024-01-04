@@ -17,6 +17,7 @@ from .models import (
     University,
     Position,
     Skill,
+    JobAssessment,
 )
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
@@ -186,3 +187,15 @@ class SkillNode(DjangoObjectType):
         filter_fields = {
             Skill.title.field.name: ["icontains"],
         }
+
+
+class JobAssessmentType(DjangoObjectType):
+    class Meta:
+        model = JobAssessment
+        fields = (
+            JobAssessment.id.field.name,
+            JobAssessment.service_id.field.name,
+            JobAssessment.logo.field.name,
+            JobAssessment.description_rendered.field.name,
+            JobAssessment.resumable.field.name,
+        )
