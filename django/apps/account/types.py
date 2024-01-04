@@ -19,6 +19,7 @@ from .models import (
     User,
     WorkExperience,
     CanadaVisa,
+    JobAssessmentResult,
 )
 
 
@@ -193,6 +194,18 @@ class CanadaVisaNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
+    class Meta:
+        model = JobAssessmentResult
+        interfaces = (graphene.relay.Node,)
+        fields = (
+            JobAssessmentResult.id.field.name,
+            JobAssessmentResult.job_assessment.field.name,
+            JobAssessmentResult.status.field.name,
+            # JobAssessmentResult.user_score.field.name,
+        )
+
+
 class UserNode(BaseUserNode):
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
@@ -214,6 +227,7 @@ class UserNode(BaseUserNode):
             Contact.user.field.related_query_name(),
             User.skills.field.name,
             CanadaVisa.user.field.related_query_name(),
+            JobAssessmentResult.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
