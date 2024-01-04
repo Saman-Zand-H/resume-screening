@@ -223,9 +223,10 @@ class UserNode(BaseUserNode):
             User.gender.field.name,
             User.email.field.name,
             User.birth_date.field.name,
+            User.skills.field.name,
+            User.available_jobs.field.name,
             Profile.user.field.related_query_name(),
             Contact.user.field.related_query_name(),
-            User.skills.field.name,
             CanadaVisa.user.field.related_query_name(),
             JobAssessmentResult.user.field.related_query_name(),
         )
