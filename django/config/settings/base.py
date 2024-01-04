@@ -32,6 +32,7 @@ SECRET_KEY = "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2
 # Application definition
 
 INSTALLED_APPS = [
+    "markdownfield",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
