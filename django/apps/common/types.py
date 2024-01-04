@@ -3,6 +3,7 @@ from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
+import graphene
 from graphene import Enum, relay
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
@@ -51,6 +52,8 @@ class JobCategoryNode(DjangoObjectType):
 
 
 class JobNode(DjangoObjectType):
+    assessments = graphene.List("common.types.JobAssessmentNode")
+
     class Meta:
         model = Job
         interfaces = (relay.Node,)
@@ -59,12 +62,16 @@ class JobNode(DjangoObjectType):
             Job.title.field.name,
             Job.category.field.name,
             Job.industry.field.name,
+            JobAssessment.related_jobs.field.related_query_name(),
         )
         filter_fields = {
             Job.title.field.name: ["icontains"],
             Job.category.field.name: ["exact"],
             Job.industry.field.name: ["exact"],
         }
+
+    def resolve_assessments(self, info):
+        return self.assessments.all()
 
 
 class UniversityNode(DjangoObjectType):
@@ -196,6 +203,7 @@ class JobAssessmentNode(DjangoObjectType):
         fields = (
             JobAssessment.id.field.name,
             JobAssessment.service_id.field.name,
+            JobAssessment.title.field.name,
             JobAssessment.logo.field.name,
             JobAssessment.description_rendered.field.name,
             JobAssessment.resumable.field.name,
