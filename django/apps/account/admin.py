@@ -79,12 +79,22 @@ class UserStatusAdmin(admin.ModelAdmin):
     raw_id_fields = ("user",)
 
 
+class ProfileInterestedJobsInline(admin.TabularInline):
+    model = Profile.interested_jobs.through
+    extra = 1
+
+
 @register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
     search_fields = ("user__email", "job__name")
     list_filter = ("skin_color", "eye_color")
-    raw_id_fields = ("user", "interested_jobs", "city")
+    raw_id_fields = (
+        "user",
+        "interested_jobs",
+        "city",
+    )
+    inlines = (ProfileInterestedJobsInline,)
 
 
 @register(Contact)
@@ -227,10 +237,17 @@ class CertificateAndLicenseOnlineVerificationMethodAdmin(admin.ModelAdmin):
 
 @register(CanadaVisa)
 class CanadaVisaAdmin(admin.ModelAdmin):
-    list_display = ("user", "nationality", "status",)
+    list_display = (
+        "user",
+        "nationality",
+        "status",
+    )
     search_fields = ("user__email", "nationality")
     list_filter = ("status",)
-    raw_id_fields = ("user", "nationality",)
+    raw_id_fields = (
+        "user",
+        "nationality",
+    )
 
 
 @register(JobAssessmentResult)

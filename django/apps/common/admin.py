@@ -87,6 +87,11 @@ class PositionAdmin(admin.ModelAdmin):
     search_fields = ("title",)
 
 
+class JobAssessmentInline(admin.TabularInline):
+    model = JobAssessment.related_jobs.through
+    extra = 1
+
+
 @admin.register(JobAssessment)
 class JobAssessmentAdmin(admin.ModelAdmin):
     list_display = (
@@ -98,3 +103,4 @@ class JobAssessmentAdmin(admin.ModelAdmin):
     )
     search_fields = ("service_id",)
     list_filter = ("resumable",)
+    inlines = (JobAssessmentInline,)
