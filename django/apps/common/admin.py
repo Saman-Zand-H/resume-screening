@@ -1,7 +1,18 @@
 from django.contrib import admin
 from mptt.admin import MPTTModelAdmin
 
-from .models import Field, Job, JobCategory, JobIndustry, University, Skill, Position, Language, LanguageProficiencyTest
+from .models import (
+    Field,
+    Job,
+    JobCategory,
+    JobIndustry,
+    University,
+    Skill,
+    Position,
+    Language,
+    LanguageProficiencyTest,
+    JobAssessment,
+)
 
 
 @admin.register(JobCategory)
@@ -74,3 +85,16 @@ class PositionAdmin(admin.ModelAdmin):
         "title",
     )
     search_fields = ("title",)
+
+
+@admin.register(JobAssessment)
+class JobAssessmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "service_id",
+        "title",
+        "description",
+        "resumable",
+    )
+    search_fields = ("service_id",)
+    list_filter = ("resumable",)

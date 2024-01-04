@@ -24,6 +24,7 @@ from .models import (
     CertificateAndLicenseOfflineVerificationMethod,
     CertificateAndLicenseOnlineVerificationMethod,
     CanadaVisa,
+    JobAssessmentResult,
 )
 
 
@@ -230,3 +231,28 @@ class CanadaVisaAdmin(admin.ModelAdmin):
     search_fields = ("user__email", "nationality")
     list_filter = ("status",)
     raw_id_fields = ("user", "nationality",)
+
+
+@register(JobAssessmentResult)
+class JobAssessmentResultAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "job_assessment",
+        "score",
+        "status",
+        "created_at",
+        "updated_at",
+    )
+    search_fields = (
+        "user__email",
+        "job_assessment__title",
+    )
+    list_filter = (
+        "status",
+        "created_at",
+        "updated_at",
+    )
+    raw_id_fields = (
+        "user",
+        "job_assessment",
+    )
