@@ -12,6 +12,7 @@ from .models import (
     Field,
     Job,
     JobAssessment,
+    JobAssessmentJob,
     JobCategory,
     JobIndustry,
     Language,
@@ -52,8 +53,6 @@ class JobCategoryNode(DjangoObjectType):
 
 
 class JobNode(DjangoObjectType):
-    assessments = graphene.List("common.types.JobAssessmentNode")
-
     class Meta:
         model = Job
         interfaces = (relay.Node,)
@@ -69,9 +68,6 @@ class JobNode(DjangoObjectType):
             Job.category.field.name: ["exact"],
             Job.industry.field.name: ["exact"],
         }
-
-    def resolve_assessments(self, info):
-        return self.assessments.all()
 
 
 class UniversityNode(DjangoObjectType):
@@ -196,7 +192,20 @@ class SkillNode(DjangoObjectType):
         }
 
 
+class JobAssessmentJobNode(DjangoObjectType):
+    class Meta:
+        model = JobAssessmentJob
+        interfaces = (relay.Node,)
+        fields = (
+            JobAssessmentJob.id.field.name,
+            JobAssessmentJob.job.field.name,
+            JobAssessmentJob.required.field.name,
+        )
+
+
 class JobAssessmentNode(DjangoObjectType):
+    jobs = graphene.List(JobAssessmentJobNode)
+
     class Meta:
         model = JobAssessment
         interfaces = (relay.Node,)
@@ -205,17 +214,19 @@ class JobAssessmentNode(DjangoObjectType):
             JobAssessment.service_id.field.name,
             JobAssessment.title.field.name,
             JobAssessment.logo.field.name,
+            JobAssessment.description.field.name,
             JobAssessment.description_rendered.field.name,
             JobAssessment.resumable.field.name,
         )
+
         filter_fields = {
+            JobAssessment.related_jobs.field.name: ["exact"],
+            JobAssessment.title.field.name: ["icontains"],
             JobAssessment.service_id.field.name: ["icontains"],
+            JobAssessment.resumable.field.name: ["exact"],
+            "job_assessment_jobs__required": ["exact"],
         }
 
-    @classmethod
-    def get_queryset(cls, queryset, info):
+    def resolve_jobs(self, info):
         user = info.context.user
-        if not user:
-            return queryset.none()
-        intereseted_jobs = user.profile.interested_jobs.all()
-        return super().get_queryset(queryset, info).filter(related_jobs__in=intereseted_jobs).distinct().order_by("-id")
+        return self.job_assessment_jobs.filter(job__in=user.profile.interested_jobs.values_list("pk", flat=True))

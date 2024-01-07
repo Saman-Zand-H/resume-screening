@@ -160,8 +160,10 @@ class JobAssessment(models.Model):
 
 
 class JobAssessmentJob(models.Model):
-    job_assessment = models.ForeignKey(JobAssessment, on_delete=models.CASCADE, verbose_name=_("Job Assessment"))
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"))
+    job_assessment = models.ForeignKey(
+        JobAssessment, on_delete=models.CASCADE, verbose_name=_("Job Assessment"), related_name="job_assessment_jobs"
+    )
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="job_assessment_jobs")
     required = models.BooleanField(default=False, verbose_name=_("Required"))
 
     class Meta:

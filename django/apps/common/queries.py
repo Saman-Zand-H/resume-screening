@@ -32,7 +32,6 @@ class CommonQuery(graphene.ObjectType):
     job_categories = DjangoFilterConnectionField(JobCategoryNode)
     skills = DjangoFilterConnectionField(SkillNode)
     positions = DjangoFilterConnectionField(PositionNode)
-    job_assessments = DjangoFilterConnectionField(JobAssessmentNode)
 
 
 class MetaDataQuery(graphene.ObjectType):
