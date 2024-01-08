@@ -256,4 +256,6 @@ CELERY_RESULT_BACKEND = REDIS_URL
 
 CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities500.zip"]
 
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
+
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", os.environ.get("GOOGLE_API_KEY"))
