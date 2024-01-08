@@ -21,6 +21,7 @@ from common.validators import (
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
+from computedfields.models import ComputedFieldsModel, computed
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
@@ -675,8 +676,7 @@ class CanadaVisa(models.Model):
     )
 
 
-class JobAssessmentResult(models.Model):
-    # class JobAssessmentResult(ComputedFieldsModel):
+class JobAssessmentResult(ComputedFieldsModel):
     class Status(models.TextChoices):
         NOT_STARTED = "not_started", _("Not Started")
         STARTED = "started", _("Started")
@@ -694,13 +694,12 @@ class JobAssessmentResult(models.Model):
         max_length=64, choices=Status.choices, verbose_name=_("Status"), default=Status.NOT_STARTED
     )
     score = models.JSONField(verbose_name=_("Score"), null=True, blank=True)
-    # user_score = models.CharField(max_length=32, verbose_name=_("User Score"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
 
-    # @computed(models.CharField(max_length=32), depends=[("self", ["user_score"])])
-    # def computed_field(self):
-    #     pass
+    @computed(models.CharField(max_length=32, null=True, blank=True), depends=[("self", ["score"])])
+    def user_score(self):
+        return ""
 
     class Meta:
         verbose_name = _("Job Assessment Result")
