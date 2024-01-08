@@ -63,6 +63,7 @@ INSTALLED_APPS += [
     "common",
     "api",
     "account",
+    "ai",
 ]
 
 MIDDLEWARE = [
@@ -255,3 +256,4 @@ CELERY_RESULT_BACKEND = REDIS_URL
 
 CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities500.zip"]
 
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", os.environ.get("GOOGLE_API_KEY"))
