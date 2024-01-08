@@ -21,9 +21,13 @@ from .models import (
     CanadaVisa,
     JobAssessmentResult,
 )
+from common.types import JobAssessmentNode
+from common.models import JobAssessment
 
 
 class ProfileType(DjangoObjectType):
+    job_assessments = graphene.List(JobAssessmentNode)
+
     class Meta:
         model = Profile
         fields = (
@@ -38,6 +42,9 @@ class ProfileType(DjangoObjectType):
             Profile.job_assessment_bookmarks.field.name,
             Profile.city.field.name,
         )
+
+    def resolve_job_assessments(self, info):
+        return JobAssessment.objects.filter(related_jobs__in=self.interested_jobs.all()).distinct()
 
 
 class ContactType(DjangoObjectType):
