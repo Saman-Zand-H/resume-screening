@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "cities_light",
     "phonenumber_field",
     "mptt",
+    "computedfields"
 ]
 
 INSTALLED_APPS += [
