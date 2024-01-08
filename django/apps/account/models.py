@@ -195,6 +195,9 @@ class Profile(models.Model):
         blank=True,
     )
     interested_jobs = models.ManyToManyField(Job, verbose_name=_("Interested Jobs"), blank=True)
+    job_assessment_bookmarks = models.ManyToManyField(
+        JobAssessment, verbose_name=_("Job Assessment Bookmarks"), blank=True, related_name="bookmarked_by"
+    )
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
 
     class Meta:

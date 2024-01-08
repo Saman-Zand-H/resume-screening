@@ -35,6 +35,7 @@ class ProfileType(DjangoObjectType):
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
             Profile.interested_jobs.field.name,
+            Profile.job_assessment_bookmarks.field.name,
             Profile.city.field.name,
         )
 
