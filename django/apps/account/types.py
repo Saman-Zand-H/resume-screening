@@ -210,7 +210,9 @@ class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
             JobAssessmentResult.id.field.name,
             JobAssessmentResult.job_assessment.field.name,
             JobAssessmentResult.status.field.name,
-            # JobAssessmentResult.user_score.field.name,
+            JobAssessmentResult.user_score.field.name,
+            JobAssessmentResult.created_at.field.name,
+            JobAssessmentResult.updated_at.field.name,
         )
 
 
@@ -219,6 +221,7 @@ class UserNode(BaseUserNode):
     workexperiences = graphene.List(WorkExperienceNode)
     languagecertificates = graphene.List(LanguageCertificateNode)
     certificateandlicenses = graphene.List(CertificateAndLicenseNode)
+    job_assessment_results = graphene.List(JobAssessmentResultNode)
 
     class Meta:
         model = User
@@ -236,7 +239,6 @@ class UserNode(BaseUserNode):
             Profile.user.field.related_query_name(),
             Contact.user.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
-            JobAssessmentResult.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
@@ -250,6 +252,9 @@ class UserNode(BaseUserNode):
 
     def resolve_certificateandlicenses(self, info):
         return self.certificateandlicenses.all().order_by("-id")
+
+    def resolve_job_assessment_results(self, info):
+        return self.job_assessment_results.all().order_by("-id")
 
 
 class UserSkillType(DjangoObjectType):
