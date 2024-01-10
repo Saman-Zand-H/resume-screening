@@ -45,6 +45,7 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
+    JobAssessmentResult,
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
@@ -469,10 +470,30 @@ class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         cls.full_clean(obj)
 
 
+class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
+    class Meta:
+        model = JobAssessmentResult
+        fields = (JobAssessmentResult.job_assessment.field.name,)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+        cls.full_clean(obj)
+
+    @classmethod
+    def validate(cls, root, info, input):
+        user = info.context.user
+        job_assessment_id = input.get(JobAssessmentResult.job_assessment.field.name)
+        if not user.profile.interested_jobs.filter(assessments=job_assessment_id).exists():
+            raise ValidationError({JobAssessmentResult.job_assessment.field.name: "Not related to the user."})
+        return super().validate(root, info, input)
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
+    start_job_assessment = JobAssessmentCreateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
