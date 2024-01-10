@@ -257,5 +257,5 @@ class UserSkillType(DjangoObjectType):
         model = User
         fields = (
             User.id.field.name,
-            User.skills.field.name,
+            User.raw_skills.field.name,
         )

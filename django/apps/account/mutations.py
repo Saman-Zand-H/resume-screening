@@ -181,7 +181,7 @@ class UserUpdateMutation(DjangoCreateMutation):
 
 
 class UserSkillInput(graphene.InputObjectType):
-    skills = graphene.List(graphene.ID, required=True)
+    skills = graphene.List(graphene.String, required=True)
 
 
 class UserSetSkillsMutation(graphene.Mutation):
@@ -194,7 +194,8 @@ class UserSetSkillsMutation(graphene.Mutation):
     def mutate(root, info, input):
         user = info.context.user
         skills = input.get("skills")
-        user.skills.set(disambiguate_ids(skills))
+        user.raw_skills = skills
+        user.save(update_fields=[User.raw_skills.field.name])
         return UserSetSkillsMutation(user=user)
 
 
