@@ -214,8 +214,8 @@ class JobAssessmentNode(DjangoObjectType):
             JobAssessment.service_id.field.name,
             JobAssessment.title.field.name,
             JobAssessment.logo.field.name,
+            JobAssessment.short_description.field.name,
             JobAssessment.description.field.name,
-            JobAssessment.description_rendered.field.name,
             JobAssessment.resumable.field.name,
         )
 

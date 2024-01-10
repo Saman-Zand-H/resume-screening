@@ -679,7 +679,6 @@ class CanadaVisa(models.Model):
 class JobAssessmentResult(ComputedFieldsModel):
     class Status(models.TextChoices):
         NOT_STARTED = "not_started", _("Not Started")
-        STARTED = "started", _("Started")
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
         TIMEOUT = "timeout", _("Timeout")

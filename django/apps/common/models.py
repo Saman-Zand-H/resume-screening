@@ -147,8 +147,8 @@ class JobAssessment(models.Model):
         blank=True,
         verbose_name=_("Logo"),
     )
+    short_description = models.CharField(max_length=255, verbose_name=_("Short Description"))
     description = MarkdownField(rendered_field="description_rendered", validator=VALIDATOR_STANDARD)
-    description_rendered = RenderedMarkdownField()
     resumable = models.BooleanField(default=False, verbose_name=_("Resumable"))
 
     class Meta:
@@ -165,6 +165,7 @@ class JobAssessmentJob(models.Model):
     )
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="job_assessment_jobs")
     required = models.BooleanField(default=False, verbose_name=_("Required"))
+    retry_interval = models.DurationField(null=True, blank=True, verbose_name=_("Retry Interval"))  
 
     class Meta:
         verbose_name = _("Job Assessment Job")
