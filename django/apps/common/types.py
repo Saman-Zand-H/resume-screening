@@ -61,7 +61,6 @@ class JobNode(DjangoObjectType):
             Job.title.field.name,
             Job.category.field.name,
             Job.industry.field.name,
-            JobAssessment.related_jobs.field.related_query_name(),
         )
         filter_fields = {
             Job.title.field.name: ["icontains"],
