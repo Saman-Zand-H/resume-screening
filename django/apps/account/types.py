@@ -67,8 +67,6 @@ class JobAssessmentNode(DjangoObjectType):
 
 
 class ProfileType(DjangoObjectType):
-    job_assessments = graphene.List(JobAssessmentNode)
-
     class Meta:
         model = Profile
         fields = (
@@ -82,9 +80,6 @@ class ProfileType(DjangoObjectType):
             Profile.interested_jobs.field.name,
             Profile.city.field.name,
         )
-
-    def resolve_job_assessments(self, info):
-        return JobAssessment.objects.filter(related_jobs__in=self.interested_jobs.all()).distinct()
 
 
 class ContactType(DjangoObjectType):
@@ -247,6 +242,7 @@ class UserNode(BaseUserNode):
     workexperiences = graphene.List(WorkExperienceNode)
     languagecertificates = graphene.List(LanguageCertificateNode)
     certificateandlicenses = graphene.List(CertificateAndLicenseNode)
+    job_assessments = graphene.List(JobAssessmentNode)
 
     class Meta:
         model = User
@@ -277,6 +273,9 @@ class UserNode(BaseUserNode):
 
     def resolve_certificateandlicenses(self, info):
         return self.certificateandlicenses.all().order_by("-id")
+
+    def resolve_job_assessments(self, info):
+        return JobAssessment.objects.filter(related_jobs__in=self.profile.interested_jobs.all()).distinct()
 
 
 class UserSkillType(DjangoObjectType):
