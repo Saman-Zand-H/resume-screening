@@ -21,3 +21,6 @@ django-phonenumber-field[phonenumbers]~=8.0
 django-mptt~=0.16.0
 django-markdownfield~=0.11.0
 django-computedfields~=0.2.6
+openai~=1.54
+python-magic~=0.4
+google-cloud-vision~=3.8
