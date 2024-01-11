@@ -32,7 +32,7 @@ class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
         fields = (
             JobAssessmentResult.id.field.name,
             JobAssessmentResult.status.field.name,
-            JobAssessmentResult.user_score.field.name,
+            JobAssessmentResult.score.field.name,
             JobAssessmentResult.created_at.field.name,
             JobAssessmentResult.updated_at.field.name,
         )
