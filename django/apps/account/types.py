@@ -21,8 +21,49 @@ from .models import (
     CanadaVisa,
     JobAssessmentResult,
 )
-from common.types import JobAssessmentNode
+from common.types import JobAssessmentJobNode
 from common.models import JobAssessment
+
+
+class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
+    class Meta:
+        model = JobAssessmentResult
+        interfaces = (graphene.relay.Node,)
+        fields = (
+            JobAssessmentResult.id.field.name,
+            JobAssessmentResult.status.field.name,
+            JobAssessmentResult.user_score.field.name,
+            JobAssessmentResult.created_at.field.name,
+            JobAssessmentResult.updated_at.field.name,
+        )
+
+
+class JobAssessmentNode(DjangoObjectType):
+    jobs = graphene.List(JobAssessmentJobNode)
+    results = graphene.List(JobAssessmentResultNode)
+
+    class Meta:
+        model = JobAssessment
+        interfaces = (graphene.relay.Node,)
+        fields = (
+            JobAssessment.id.field.name,
+            JobAssessment.service_id.field.name,
+            JobAssessment.title.field.name,
+            JobAssessment.logo.field.name,
+            JobAssessment.short_description.field.name,
+            JobAssessment.description.field.name,
+            JobAssessment.resumable.field.name,
+        )
+
+    def resolve_jobs(self, info):
+        user = info.context.user
+        return self.job_assessment_jobs.filter(job__in=user.profile.interested_jobs.values_list("pk", flat=True))
+
+    def resolve_results(self, info):
+        user = info.context.user
+        if not user:
+            return []
+        return JobAssessmentResult.objects.filter(job_assessment=self, user=user).order_by("-id")
 
 
 class ProfileType(DjangoObjectType):
@@ -39,7 +80,6 @@ class ProfileType(DjangoObjectType):
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
             Profile.interested_jobs.field.name,
-            Profile.job_assessment_bookmarks.field.name,
             Profile.city.field.name,
         )
 
@@ -202,26 +242,11 @@ class CanadaVisaNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
-    class Meta:
-        model = JobAssessmentResult
-        interfaces = (graphene.relay.Node,)
-        fields = (
-            JobAssessmentResult.id.field.name,
-            JobAssessmentResult.job_assessment.field.name,
-            JobAssessmentResult.status.field.name,
-            JobAssessmentResult.user_score.field.name,
-            JobAssessmentResult.created_at.field.name,
-            JobAssessmentResult.updated_at.field.name,
-        )
-
-
 class UserNode(BaseUserNode):
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
     languagecertificates = graphene.List(LanguageCertificateNode)
     certificateandlicenses = graphene.List(CertificateAndLicenseNode)
-    job_assessment_results = graphene.List(JobAssessmentResultNode)
 
     class Meta:
         model = User
@@ -252,9 +277,6 @@ class UserNode(BaseUserNode):
 
     def resolve_certificateandlicenses(self, info):
         return self.certificateandlicenses.all().order_by("-id")
-
-    def resolve_job_assessment_results(self, info):
-        return self.job_assessment_results.all().order_by("-id")
 
 
 class UserSkillType(DjangoObjectType):

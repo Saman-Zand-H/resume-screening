@@ -3,7 +3,6 @@ from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
-import graphene
 from graphene import Enum, relay
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
@@ -11,7 +10,6 @@ from .exceptions import Error, Errors
 from .models import (
     Field,
     Job,
-    JobAssessment,
     JobAssessmentJob,
     JobCategory,
     JobIndustry,
@@ -21,6 +19,7 @@ from .models import (
     Skill,
     University,
 )
+
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = Enum("Errors", enum_values)
@@ -200,32 +199,3 @@ class JobAssessmentJobNode(DjangoObjectType):
             JobAssessmentJob.job.field.name,
             JobAssessmentJob.required.field.name,
         )
-
-
-class JobAssessmentNode(DjangoObjectType):
-    jobs = graphene.List(JobAssessmentJobNode)
-
-    class Meta:
-        model = JobAssessment
-        interfaces = (relay.Node,)
-        fields = (
-            JobAssessment.id.field.name,
-            JobAssessment.service_id.field.name,
-            JobAssessment.title.field.name,
-            JobAssessment.logo.field.name,
-            JobAssessment.short_description.field.name,
-            JobAssessment.description.field.name,
-            JobAssessment.resumable.field.name,
-        )
-
-        filter_fields = {
-            JobAssessment.related_jobs.field.name: ["exact"],
-            JobAssessment.title.field.name: ["icontains"],
-            JobAssessment.service_id.field.name: ["icontains"],
-            JobAssessment.resumable.field.name: ["exact"],
-            "job_assessment_jobs__required": ["exact"],
-        }
-
-    def resolve_jobs(self, info):
-        user = info.context.user
-        return self.job_assessment_jobs.filter(job__in=user.profile.interested_jobs.values_list("pk", flat=True))

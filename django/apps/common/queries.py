@@ -15,7 +15,6 @@ from .types import (
     JobCategoryNode,
     SkillNode,
     PositionNode,
-    JobAssessmentNode,
 )
 
 
