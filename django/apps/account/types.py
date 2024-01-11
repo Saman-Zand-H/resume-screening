@@ -83,10 +83,10 @@ class JobAssessmentNode(DjangoObjectType):
 
         if filters:
             if filters.created_at_start and filters.created_at_end:
-                results = results.filter(results__created_at__range=[filters.created_at_start, filters.created_at_end])
+                results = results.filter(created_at__range=[filters.created_at_start, filters.created_at_end])
 
             if filters.updated_at_start and filters.updated_at_end:
-                results = results.filter(results__updated_at__range=[filters.updated_at_start, filters.updated_at_end])
+                results = results.filter(updated_at__range=[filters.updated_at_start, filters.updated_at_end])
         return results
 
 
