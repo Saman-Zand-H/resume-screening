@@ -269,6 +269,7 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+    readonly_fields = ("score",)
     raw_id_fields = (
         "user",
         "job_assessment",

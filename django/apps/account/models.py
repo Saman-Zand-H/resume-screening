@@ -435,7 +435,6 @@ class WorkExperience(DocumentAbstract):
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
-    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="work_experiences")
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
 
@@ -683,6 +682,12 @@ class JobAssessmentResult(ComputedFieldsModel):
         COMPLETED = "completed", _("Completed")
         TIMEOUT = "timeout", _("Timeout")
 
+    class UserScore(models.TextChoices):
+        AVARAGE = "average", _("Average")
+        GOOD = "good", _("Good")
+        GREAT = "greate", _("Great")
+        EXCEPTIONAL = "exceptional", _("Exceptional")
+
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="job_assessment_results"
     )
@@ -692,13 +697,24 @@ class JobAssessmentResult(ComputedFieldsModel):
     status = models.CharField(
         max_length=64, choices=Status.choices, verbose_name=_("Status"), default=Status.NOT_STARTED
     )
-    score = models.JSONField(verbose_name=_("Score"), null=True, blank=True)
+    raw_score = models.JSONField(verbose_name=_("Raw Score"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
 
-    @computed(models.CharField(max_length=32, null=True, blank=True), depends=[("self", ["score"])])
-    def user_score(self):
-        return ""
+    @computed(
+        models.CharField(max_length=32, choices=UserScore.choices, null=True, blank=True),
+        depends=[("self", ["raw_score"])],
+    )
+    def score(self):
+        score = self.raw_score.get("score")
+        if score:
+            if score < 50:
+                return self.UserScore.AVARAGE
+            elif score < 65:
+                return self.UserScore.GOOD
+            elif score < 85:
+                return self.UserScore.GREAT
+            return self.UserScore.EXCEPTIONAL
 
     class Meta:
         verbose_name = _("Job Assessment Result")
