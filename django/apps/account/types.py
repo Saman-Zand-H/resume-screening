@@ -3,6 +3,7 @@ from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectT
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
+from django.db.models import Q, Count
 
 from .mixins import FilterQuerySetByUserMixin
 from .models import (
@@ -25,6 +26,18 @@ from common.types import JobAssessmentJobNode
 from common.models import JobAssessment
 
 
+class JobAssessmentResultFilterInput(graphene.InputObjectType):
+    created_at_start = graphene.Date()
+    created_at_end = graphene.Date()
+    updated_at_start = graphene.Date()
+    updated_at_end = graphene.Date()
+
+
+class JobAssessmentFilterInput(graphene.InputObjectType):
+    required = graphene.Boolean()
+    no_results = graphene.Boolean()
+
+
 class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = JobAssessmentResult
@@ -40,7 +53,9 @@ class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class JobAssessmentNode(DjangoObjectType):
     jobs = graphene.List(JobAssessmentJobNode)
-    results = graphene.List(JobAssessmentResultNode)
+    results = graphene.List(
+        JobAssessmentResultNode, filters=graphene.Argument(JobAssessmentResultFilterInput, required=False)
+    )
 
     class Meta:
         model = JobAssessment
@@ -59,11 +74,20 @@ class JobAssessmentNode(DjangoObjectType):
         user = info.context.user
         return self.job_assessment_jobs.filter(job__in=user.profile.interested_jobs.values_list("pk", flat=True))
 
-    def resolve_results(self, info):
+    def resolve_results(self, info, filters=None):
         user = info.context.user
         if not user:
             return []
-        return JobAssessmentResult.objects.filter(job_assessment=self, user=user).order_by("-id")
+
+        results = JobAssessmentResult.objects.filter(job_assessment=self, user=user).order_by("-id")
+
+        if filters:
+            if filters.created_at_start and filters.created_at_end:
+                results = results.filter(results__created_at__range=[filters.created_at_start, filters.created_at_end])
+
+            if filters.updated_at_start and filters.updated_at_end:
+                results = results.filter(results__updated_at__range=[filters.updated_at_start, filters.updated_at_end])
+        return results
 
 
 class ProfileType(DjangoObjectType):
@@ -241,7 +265,9 @@ class UserNode(BaseUserNode):
     workexperiences = graphene.List(WorkExperienceNode)
     languagecertificates = graphene.List(LanguageCertificateNode)
     certificateandlicenses = graphene.List(CertificateAndLicenseNode)
-    job_assessments = graphene.List(JobAssessmentNode)
+    job_assessments = graphene.List(
+        JobAssessmentNode, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
+    )
 
     class Meta:
         model = User
@@ -273,8 +299,21 @@ class UserNode(BaseUserNode):
     def resolve_certificateandlicenses(self, info):
         return self.certificateandlicenses.all().order_by("-id")
 
-    def resolve_job_assessments(self, info):
-        return JobAssessment.objects.filter(related_jobs__in=self.profile.interested_jobs.all()).distinct()
+    def resolve_job_assessments(self, info, filters=None):
+        qs = JobAssessment.objects
+        q_object = Q(related_jobs__in=self.profile.interested_jobs.all())
+
+        if filters:
+            if filters.required is True:
+                q_object &= Q(job_assessment_jobs__required=True)
+            elif filters.required is False:
+                qs = qs.annotate(
+                    required_job_assessments=Count("job_assessment_jobs", filter=Q(job_assessment_jobs__required=True))
+                ).filter(required_job_assessments=0)
+            if filters.no_results is not None:
+                q_object &= Q(results__isnull=filters.no_results)
+
+        return qs.filter(q_object).distinct().order_by("-id")
 
 
 class UserSkillType(DjangoObjectType):
