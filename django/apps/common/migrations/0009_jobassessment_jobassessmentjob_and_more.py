@@ -5,6 +5,7 @@ import common.validators
 import django.db.models.deletion
 import markdownfield.models
 from django.db import migrations, models
+from criteria.models import job_assessment_logo_path
 
 
 class Migration(migrations.Migration):
@@ -20,7 +21,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('service_id', models.CharField(max_length=64, verbose_name='Service ID')),
                 ('title', models.CharField(max_length=255, verbose_name='Title')),
-                ('logo', models.ImageField(blank=True, null=True, upload_to=common.models.job_assessment_logo_path, validators=[common.validators.ValidateFileSize(max=3)], verbose_name='Logo')),
+                ('logo', models.ImageField(blank=True, null=True, upload_to=job_assessment_logo_path, validators=[common.validators.ValidateFileSize(max=3)], verbose_name='Logo')),
                 ('description', markdownfield.models.MarkdownField(rendered_field='description_rendered')),
                 ('description_rendered', markdownfield.models.RenderedMarkdownField()),
                 ('resumable', models.BooleanField(default=False, verbose_name='Resumable')),

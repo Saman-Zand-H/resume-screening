@@ -11,7 +11,6 @@ from .models import (
     Position,
     Language,
     LanguageProficiencyTest,
-    JobAssessment,
 )
 
 
@@ -85,22 +84,3 @@ class PositionAdmin(admin.ModelAdmin):
         "title",
     )
     search_fields = ("title",)
-
-
-class JobAssessmentInline(admin.TabularInline):
-    model = JobAssessment.related_jobs.through
-    extra = 1
-
-
-@admin.register(JobAssessment)
-class JobAssessmentAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "service_id",
-        "title",
-        "description",
-        "resumable",
-    )
-    search_fields = ("service_id",)
-    list_filter = ("resumable",)
-    inlines = (JobAssessmentInline,)

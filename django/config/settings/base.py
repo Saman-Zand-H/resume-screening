@@ -65,6 +65,7 @@ INSTALLED_APPS += [
     "api",
     "account",
     "ai",
+    "criteria",
 ]
 
 MIDDLEWARE = [

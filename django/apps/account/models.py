@@ -10,7 +10,6 @@ from common.models import (
     Position,
     Skill,
     University,
-    JobAssessment,
 )
 from common.utils import get_all_subclasses
 from common.validators import (
@@ -21,7 +20,6 @@ from common.validators import (
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
-from computedfields.models import ComputedFieldsModel, computed
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import UserManager as BaseUserManager
@@ -196,9 +194,6 @@ class Profile(models.Model):
         blank=True,
     )
     interested_jobs = models.ManyToManyField(Job, verbose_name=_("Interested Jobs"), blank=True)
-    job_assessment_bookmarks = models.ManyToManyField(
-        JobAssessment, verbose_name=_("Job Assessment Bookmarks"), blank=True, related_name="bookmarked_by"
-    )
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
 
     class Meta:
@@ -675,50 +670,6 @@ class CanadaVisa(models.Model):
     )
 
 
-class JobAssessmentResult(ComputedFieldsModel):
-    class Status(models.TextChoices):
-        NOT_STARTED = "not_started", _("Not Started")
-        IN_PROGRESS = "in_progress", _("In Progress")
-        COMPLETED = "completed", _("Completed")
-        TIMEOUT = "timeout", _("Timeout")
-
-    class UserScore(models.TextChoices):
-        AVARAGE = "average", _("Average")
-        GOOD = "good", _("Good")
-        GREAT = "greate", _("Great")
-        EXCEPTIONAL = "exceptional", _("Exceptional")
-
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="job_assessment_results"
-    )
-    job_assessment = models.ForeignKey(
-        JobAssessment, on_delete=models.CASCADE, verbose_name=_("Job Assessment"), related_name="results"
-    )
-    status = models.CharField(
-        max_length=64, choices=Status.choices, verbose_name=_("Status"), default=Status.NOT_STARTED
-    )
-    raw_score = models.JSONField(verbose_name=_("Raw Score"), null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
-
-    @computed(
-        models.CharField(max_length=32, choices=UserScore.choices, null=True, blank=True),
-        depends=[("self", ["raw_score"])],
-    )
-    def score(self):
-        score = self.raw_score.get("score")
-        if score:
-            if score < 50:
-                return self.UserScore.AVARAGE
-            elif score < 65:
-                return self.UserScore.GOOD
-            elif score < 85:
-                return self.UserScore.GREAT
-            return self.UserScore.EXCEPTIONAL
-
-    class Meta:
-        verbose_name = _("Job Assessment Result")
-        verbose_name_plural = _("Job Assessment Results")
-
-    def __str__(self):
-        return f"{self.user.email} - {self.job_assessment.title} - {self.score}"
+    # def clean(self):
+    #     # TODO: add retry validation, Check retry interval, status of last job assessment to be COMPLETED or TIMEOUT
+    #     pass

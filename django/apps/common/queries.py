@@ -6,7 +6,6 @@ from .types import (
     CityNode,
     CountryNode,
     FieldNode,
-    JobNode,
     RegionNode,
     UniversityNode,
     LanguageNode,
@@ -24,7 +23,6 @@ class CommonQuery(graphene.ObjectType):
     countries = DjangoFilterConnectionField(CountryNode)
     regions = DjangoFilterConnectionField(RegionNode)
     cities = DjangoFilterConnectionField(CityNode)
-    jobs = DjangoFilterConnectionField(JobNode)
     languages = DjangoFilterConnectionField(LanguageNode)
     languages_proficiency_tests = DjangoFilterConnectionField(LanguageProficiencyTestNode)
     job_industries = DjangoFilterConnectionField(JobIndustryNode)

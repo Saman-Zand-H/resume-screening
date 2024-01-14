@@ -10,7 +10,6 @@ from .exceptions import Error, Errors
 from .models import (
     Field,
     Job,
-    JobAssessmentJob,
     JobCategory,
     JobIndustry,
     Language,
@@ -188,14 +187,3 @@ class SkillNode(DjangoObjectType):
         filter_fields = {
             Skill.title.field.name: ["icontains"],
         }
-
-
-class JobAssessmentJobNode(DjangoObjectType):
-    class Meta:
-        model = JobAssessmentJob
-        interfaces = (relay.Node,)
-        fields = (
-            JobAssessmentJob.id.field.name,
-            JobAssessmentJob.job.field.name,
-            JobAssessmentJob.required.field.name,
-        )
