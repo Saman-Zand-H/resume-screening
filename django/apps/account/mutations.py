@@ -145,7 +145,6 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
             User.last_name.field.name,
             User.gender.field.name,
             User.birth_date.field.name,
-            User.raw_skills.field.name,
         )
     ),
     optional_fields=fields,
@@ -176,6 +175,15 @@ class UserUpdateMutation(DjangoCreateMutation):
         obj.user = user
 
         obj.full_clean(validate_unique=False)
+
+    @classmethod
+    def validate(cls, root, info, input):
+        user = info.context.user
+        if (interested_jobs := input.get(Profile.interested_jobs.field.name)):
+            available_jobs = user.available_jobs.values_list("id", flat=True)
+            if not all(int(job) in available_jobs for job in interested_jobs):
+                raise GraphQLErrorBadRequest("Interested jobs must be in available jobs.")
+        return super().validate(root, info, input)
 
 
 class UserSkillInput(graphene.InputObjectType):
