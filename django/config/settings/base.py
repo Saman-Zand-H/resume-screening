@@ -260,8 +260,10 @@ CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities50
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
 
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", os.environ.get("GOOGLE_API_KEY"))
+
 CRITERIA_SETTINGS = {
     "BASE_URL": os.environ.get("CRITERIA_BASE_URL", "https://integrations.criteriacorp.com/api/v1"),
-    "AUTH_TOKEN": os.environ.get("CRITERIA_AUTH_TOKEN"),
+    "AUTH_TOKEN": "e38d07743cb5c780ebf7d752435589f954f8e57a",
     "AUTH_TYPE": os.environ.get("CRITERIA_AUTH_TYPE", "Bearer"),
 }
