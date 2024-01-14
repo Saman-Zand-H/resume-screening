@@ -668,8 +668,3 @@ class CanadaVisa(models.Model):
         verbose_name=_("Citizenship Document"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
-
-
-    # def clean(self):
-    #     # TODO: add retry validation, Check retry interval, status of last job assessment to be COMPLETED or TIMEOUT
-    #     pass
