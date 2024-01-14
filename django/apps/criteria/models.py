@@ -87,6 +87,8 @@ class JobAssessmentResult(ComputedFieldsModel):
         depends=[("self", ["raw_score"])],
     )
     def score(self):
+        if self.raw_score is None:
+            return
         score = self.raw_score.get("score")
         if score:
             if score < 65:
