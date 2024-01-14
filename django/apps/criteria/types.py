@@ -1,6 +1,9 @@
 import graphene
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
+from django.utils import timezone
+from datetime import timedelta
+
 from .models import JobAssessment, JobAssessmentResult, JobAssessmentJob
 
 from account.mixins import FilterQuerySetByUserMixin
@@ -47,6 +50,7 @@ class JobAssessmentNode(DjangoObjectType):
     results = graphene.List(
         JobAssessmentResultNode, filters=graphene.Argument(JobAssessmentResultFilterInput, required=False)
     )
+    can_retry = graphene.Boolean()
 
     class Meta:
         model = JobAssessment
@@ -79,3 +83,15 @@ class JobAssessmentNode(DjangoObjectType):
             if filters.updated_at_start and filters.updated_at_end:
                 results = results.filter(updated_at__range=[filters.updated_at_start, filters.updated_at_end])
         return results
+
+    def resolve_can_retry(self, info):
+        user = info.context.user
+        last_result = JobAssessmentResult.objects.filter(job_assessment=self, user=user).last()
+        if not last_result:
+            return True
+        if last_result.status in [JobAssessmentResult.Status.COMPLETED, JobAssessmentResult.Status.TIMEOUT]:
+            retry_interval = (
+                JobAssessmentJob.objects.filter(job_assessment=self).values_list("retry_interval", flat=True).first()
+            ) or timedelta(weeks=1)
+            return last_result.updated_at + retry_interval < timezone.now()
+        return False
