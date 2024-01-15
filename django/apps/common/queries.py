@@ -14,6 +14,7 @@ from .types import (
     JobCategoryNode,
     SkillNode,
     PositionNode,
+    JobNode,
 )
 
 
@@ -29,6 +30,7 @@ class CommonQuery(graphene.ObjectType):
     job_categories = DjangoFilterConnectionField(JobCategoryNode)
     skills = DjangoFilterConnectionField(SkillNode)
     positions = DjangoFilterConnectionField(PositionNode)
+    jobs = DjangoFilterConnectionField(JobNode)
 
 
 class MetaDataQuery(graphene.ObjectType):
