@@ -108,7 +108,7 @@ class OpenAIService:
         return self.get_run_result(run)
 
     def assistant_vector_store_update_cache(self, cachable_vector_store: CachableVectorStore) -> bool:
-        self.vector_store_get_or_create_cache(cachable_vector_store)[1]
+        self.vector_store_get_or_create_cache(cachable_vector_store)
         return self.assistant_vector_store_add([self.vector_store_get_or_create(cachable_vector_store.id).id])
 
     def message_to_json(self, message: Message) -> dict:
