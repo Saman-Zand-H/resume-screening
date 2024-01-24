@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
 
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
@@ -30,6 +33,8 @@ class JobAssessment(models.Model):
     short_description = models.CharField(max_length=255, verbose_name=_("Short Description"))
     description = MarkdownField(rendered_field="description_rendered", validator=VALIDATOR_STANDARD)
     resumable = models.BooleanField(default=False, verbose_name=_("Resumable"))
+    retry_interval = models.DurationField(default=timedelta(weeks=1), verbose_name=_("Retry Interval"))
+    count_limit = models.PositiveIntegerField(default=10, verbose_name=_("Count Limit"))
 
     class Meta:
         verbose_name = _("Job Assessment")
@@ -38,6 +43,24 @@ class JobAssessment(models.Model):
     def __str__(self):
         return self.title
 
+    def can_start(self, user):
+        results = self.results.filter(user=user)
+        if results.exists():
+            if results.count() >= self.count_limit:
+                raise ValidationError(
+                    {JobAssessmentResult.job_assessment.field.name: "You have reached the limit of assessments."}
+                )
+            last_result = results.last()
+            if last_result.status in (JobAssessmentResult.Status.COMPLETED, JobAssessmentResult.Status.TIMEOUT):
+                if last_result.updated_at + self.retry_interval >= timezone.now():
+                    raise ValidationError(
+                        {JobAssessmentResult.job_assessment.field.name: "You can't start a new assessment yet."}
+                    )
+            else:
+                raise ValidationError(
+                    {JobAssessmentResult.job_assessment.field.name: "There is an incomplete assessment."}
+                )
+
 
 class JobAssessmentJob(models.Model):
     job_assessment = models.ForeignKey(
@@ -45,7 +68,6 @@ class JobAssessmentJob(models.Model):
     )
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="job_assessment_jobs")
     required = models.BooleanField(default=False, verbose_name=_("Required"))
-    retry_interval = models.DurationField(null=True, blank=True, verbose_name=_("Retry Interval"))
 
     class Meta:
         verbose_name = _("Job Assessment Job")

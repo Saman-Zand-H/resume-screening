@@ -1,8 +1,7 @@
 import graphene
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from django.utils import timezone
-from datetime import timedelta
+from django.core.exceptions import ValidationError
 
 from .models import JobAssessment, JobAssessmentResult, JobAssessmentJob
 
@@ -86,12 +85,8 @@ class JobAssessmentNode(DjangoObjectType):
 
     def resolve_can_retry(self, info):
         user = info.context.user
-        last_result = JobAssessmentResult.objects.filter(job_assessment=self, user=user).last()
-        if not last_result:
+        try:
+            self.can_start(user)
             return True
-        if last_result.status in [JobAssessmentResult.Status.COMPLETED, JobAssessmentResult.Status.TIMEOUT]:
-            retry_interval = (
-                JobAssessmentJob.objects.filter(job_assessment=self).values_list("retry_interval", flat=True).first()
-            ) or timedelta(weeks=1)
-            return last_result.updated_at + retry_interval < timezone.now()
-        return False
+        except ValidationError:
+            return False
