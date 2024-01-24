@@ -1,9 +1,24 @@
+import contextlib
 import json
 from collections import namedtuple
 
 from celery import shared_task
 
+from account.models import Resume
 from django.contrib.auth import get_user_model
+
+from .utils import extract_available_jobs, extract_resume_text
+
+
+def find_available_jobs(resume_pk: int) -> bool:
+    resume = Resume.objects.get(pk=resume_pk)
+    with contextlib.closing(resume.file) as file:
+        resume_text = extract_resume_text(file.read())
+    jobs = extract_available_jobs(resume_text)
+    if jobs:
+        resume.user.available_jobs.set(jobs)
+        return True
+    return False
 
 
 class SerializableContext:

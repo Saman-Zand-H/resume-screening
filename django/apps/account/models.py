@@ -29,6 +29,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from .utils import extract_resume_text
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
@@ -82,6 +83,10 @@ def certificate_and_license_path(instance, filename):
 
 def citizenship_document_path(instance, filename):
     return f"profile/{instance.user.id}/citizenship_document/{filename}"
+
+
+def resume_path(instance, filename):
+    return f"profile/{instance.user.id}/resume/{filename}"
 
 
 def fix_whatsapp_value(value):
@@ -668,3 +673,30 @@ class CanadaVisa(models.Model):
         verbose_name=_("Citizenship Document"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
+
+
+class Resume(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="resume")
+    file = models.FileField(
+        upload_to=resume_path,
+        verbose_name=_("Resume"),
+        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
+    )
+    text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True, editable=False)
+
+    class Meta:
+        verbose_name = _("Resume")
+        verbose_name_plural = _("Resumes")
+
+    def __str__(self):
+        return self.user.email
+
+    def set_resume_text(self):
+        self.text = extract_resume_text(self.file.read())
+        self.save(update_fields=[Resume.text.field.name])
+        return self.text
+
+    def get_or_set_resume_text(self):
+        if not self.text:
+            return self.set_resume_text()
+        return self.text

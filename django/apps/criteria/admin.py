@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin import register
 
-from .models import JobAssessmentResult, JobAssessment
+from .models import JobAssessment, JobAssessmentResult
 
 
 class JobAssessmentInline(admin.TabularInline):
@@ -13,12 +13,12 @@ class JobAssessmentInline(admin.TabularInline):
 class JobAssessmentAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "service_id",
+        "package_id",
         "title",
         "description",
         "resumable",
     )
-    search_fields = ("service_id",)
+    search_fields = ("package_id",)
     list_filter = ("resumable",)
     inlines = (JobAssessmentInline,)
 
@@ -42,7 +42,7 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-    readonly_fields = ("score",)
+    readonly_fields = ("score", "order_id")
     raw_id_fields = (
         "user",
         "job_assessment",

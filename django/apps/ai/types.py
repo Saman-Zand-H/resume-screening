@@ -1,7 +1,14 @@
 from collections.abc import Callable
-from typing import Any, List
+from enum import Enum
+from typing import Any, List, Union
 
-from pydantic import BaseModel
+from google.cloud import vision
+from pydantic import BaseModel, ConfigDict
+
+
+class FileType(Enum):
+    IMAGE = "image"
+    PDF = "pdf"
 
 
 class CachableVectorStore(BaseModel):
@@ -13,3 +20,11 @@ class CachableVectorStore(BaseModel):
 
     cache_key: str
     """The cache key for the vector store."""
+
+
+class FileToTextResult(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    text: str
+    file_type: FileType
+    response: Union[vision.AnnotateImageResponse, vision.AnnotateFileResponse]

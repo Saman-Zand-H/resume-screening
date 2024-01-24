@@ -1,10 +1,4 @@
-from enum import Enum
-
-
-class FileType(Enum):
-    IMAGE = "image"
-    PDF = "pdf"
-
+from .types import FileType
 
 FILE_TYPE_MAPPING = {
     "image/": FileType.IMAGE,

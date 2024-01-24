@@ -3,25 +3,37 @@ from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
+import uuid
 
+from account.models import User
+from common.models import Job
+from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
-
-from common.models import Job
-from common.validators import IMAGE_FILE_SIZE_VALIDATOR
-from account.models import User
 
 
 def job_assessment_logo_path(instance, filename):
     return f"job_assessment/logo/{instance.user.id}/{filename}"
 
 
+class JobAssessmentQuerySet(models.QuerySet):
+    def filter_by_required(self, required, jobs):
+        if required:
+            return self.filter(job_assessment_jobs__required=True, job_assessment_jobs__job__in=jobs)
+        return self.annotate(
+            required_job_assessments=models.Count(
+                "job_assessment_jobs",
+                filter=models.Q(job_assessment_jobs__required=True, job_assessment_jobs__job__in=jobs),
+            )
+        ).filter(required_job_assessments=0)
+
+
 class JobAssessment(models.Model):
     related_jobs = models.ManyToManyField(
         Job, through="JobAssessmentJob", verbose_name=_("Related Jobs"), related_name="assessments"
     )
-    service_id = models.CharField(max_length=64, verbose_name=_("Service ID"))
+    package_id = models.CharField(max_length=64, verbose_name=_("Package ID"))
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     logo = models.ImageField(
         upload_to=job_assessment_logo_path,
@@ -35,6 +47,8 @@ class JobAssessment(models.Model):
     resumable = models.BooleanField(default=False, verbose_name=_("Resumable"))
     retry_interval = models.DurationField(default=timedelta(weeks=1), verbose_name=_("Retry Interval"))
     count_limit = models.PositiveIntegerField(default=10, verbose_name=_("Count Limit"))
+
+    objects = JobAssessmentQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("Job Assessment")
@@ -60,6 +74,9 @@ class JobAssessment(models.Model):
                 raise ValidationError(
                     {JobAssessmentResult.job_assessment.field.name: "There is an incomplete assessment."}
                 )
+
+    def is_required(self, jobs):
+        return JobAssessment.objects.filter_by_required(True, jobs).filter(pk=self.pk).exists()
 
 
 class JobAssessmentJob(models.Model):
@@ -88,7 +105,7 @@ class JobAssessmentResult(ComputedFieldsModel):
     class UserScore(models.TextChoices):
         AVARAGE = "average", _("Average")
         GOOD = "good", _("Good")
-        GREAT = "greate", _("Great")
+        GREAT = "great", _("Great")
         EXCEPTIONAL = "exceptional", _("Exceptional")
 
     user = models.ForeignKey(
@@ -103,6 +120,7 @@ class JobAssessmentResult(ComputedFieldsModel):
     raw_score = models.JSONField(verbose_name=_("Raw Score"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    order_id = models.UUIDField(editable=False, default=uuid.uuid4, verbose_name=_("Order ID"))
 
     @computed(
         models.CharField(max_length=32, choices=UserScore.choices, null=True, blank=True),

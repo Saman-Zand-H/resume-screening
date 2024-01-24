@@ -1,4 +1,4 @@
-from typing import Dict, Optional, TypedDict, Union
+from typing import Dict, Optional, Union
 
 import magic
 from google.cloud import vision
@@ -6,12 +6,7 @@ from google.cloud import vision
 from django.conf import settings
 
 from .constants import FILE_TYPE_MAPPING, FileType
-
-
-class FileToTextResult(TypedDict):
-    text: str
-    file_type: FileType
-    response: Union[vision.AnnotateImageResponse, vision.AnnotateFileResponse]
+from .types import FileToTextResult
 
 
 class GoogleServices:
@@ -61,4 +56,4 @@ class GoogleServices:
                 text = response.text_annotations[0].description
             case FileType.PDF:
                 text = "\n".join([page.full_text_annotation.text for page in response.responses])
-        return {"text": text, "file_type": file_type, "response": response}
+        return FileToTextResult(text=text, file_type=file_type, response=response)

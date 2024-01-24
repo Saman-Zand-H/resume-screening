@@ -1,12 +1,16 @@
 import graphene
+from criteria.models import JobAssessment
+from criteria.types import JobAssessmentFilterInput, JobAssessmentNode
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
-from django.db.models import Q, Count
+
+from django.db.models import Count, Q
 
 from .mixins import FilterQuerySetByUserMixin
 from .models import (
+    CanadaVisa,
     CertificateAndLicense,
     CommunicationMethod,
     Contact,
@@ -19,10 +23,7 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
-    CanadaVisa,
 )
-from criteria.models import JobAssessment
-from criteria.types import JobAssessmentNode, JobAssessmentFilterInput
 
 
 class ProfileType(DjangoObjectType):
@@ -236,19 +237,13 @@ class UserNode(BaseUserNode):
 
     def resolve_job_assessments(self, info, filters=None):
         qs = JobAssessment.objects
-        q_object = Q(related_jobs__in=self.profile.interested_jobs.all())
+        interested_jobs = self.profile.interested_jobs.all()
 
         if filters:
-            if filters.required is True:
-                q_object &= Q(job_assessment_jobs__required=True)
-            elif filters.required is False:
-                qs = qs.annotate(
-                    required_job_assessments=Count("job_assessment_jobs", filter=Q(job_assessment_jobs__required=True))
-                ).filter(required_job_assessments=0)
-            if filters.no_results is not None:
-                q_object &= Q(results__isnull=filters.no_results)
+            if filters.required is not None:
+                qs = qs.filter_by_required(filters.required, interested_jobs)
 
-        return qs.filter(q_object).distinct().order_by("-id")
+        return qs.filter(related_jobs__in=interested_jobs).distinct().order_by("-id")
 
 
 class UserSkillType(DjangoObjectType):

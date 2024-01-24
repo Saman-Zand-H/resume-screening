@@ -7,23 +7,24 @@ from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
 from .models import (
+    CanadaVisa,
     CertificateAndLicense,
+    CertificateAndLicenseOfflineVerificationMethod,
+    CertificateAndLicenseOnlineVerificationMethod,
     CommunicationMethod,
     Contact,
     Education,
+    EmployerLetterMethod,
     IEEMethod,
     LanguageCertificate,
-    Profile,
-    User,
-    WorkExperience,
-    EmployerLetterMethod,
-    PaystubsMethod,
-    ReferenceCheckEmployer,
     OfflineMethod,
     OnlineMethod,
-    CertificateAndLicenseOfflineVerificationMethod,
-    CertificateAndLicenseOnlineVerificationMethod,
-    CanadaVisa,
+    PaystubsMethod,
+    Profile,
+    ReferenceCheckEmployer,
+    Resume,
+    User,
+    WorkExperience,
 )
 
 
@@ -247,3 +248,13 @@ class CanadaVisaAdmin(admin.ModelAdmin):
         "user",
         "nationality",
     )
+
+
+@register(Resume)
+class ResumeAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "file",
+    )
+    search_fields = ("user__email", "file")
+    raw_id_fields = ("user",)

@@ -10,8 +10,16 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .errors import Error, Errors
 
+
+def django_validation_error_serializer(e: DjangoValidationError):
+    message_dict = getattr(e, "message_dict", None)
+    if message_dict:
+        return dict(fields=message_dict)
+    return dict(message=e.message, fields={})
+
+
 EXCEPTION_SERIALIZERS = {
-    DjangoValidationError: lambda e: dict(fields=getattr(e, "message_dict", None)),
+    DjangoValidationError: django_validation_error_serializer,
     DRFValidationError: lambda e: dict(message=str(e.detail[0])),
 }
 
