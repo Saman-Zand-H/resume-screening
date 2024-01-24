@@ -57,23 +57,24 @@ class JobAssessment(models.Model):
     def __str__(self):
         return self.title
 
-    def can_start(self, user):
+    def can_start(self, user) -> tuple[bool, ValidationError]:
         results = self.results.filter(user=user)
         if results.exists():
             if results.count() >= self.count_limit:
-                raise ValidationError(
+                return False, ValidationError(
                     {JobAssessmentResult.job_assessment.field.name: "You have reached the limit of assessments."}
                 )
             last_result = results.last()
             if last_result.status in (JobAssessmentResult.Status.COMPLETED, JobAssessmentResult.Status.TIMEOUT):
                 if last_result.updated_at + self.retry_interval >= timezone.now():
-                    raise ValidationError(
+                    return False, ValidationError(
                         {JobAssessmentResult.job_assessment.field.name: "You can't start a new assessment yet."}
                     )
             else:
-                raise ValidationError(
+                return False, ValidationError(
                     {JobAssessmentResult.job_assessment.field.name: "There is an incomplete assessment."}
                 )
+        return True, None
 
     def is_required(self, jobs):
         return JobAssessment.objects.filter_by_required(True, jobs).filter(pk=self.pk).exists()

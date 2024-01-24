@@ -99,11 +99,7 @@ class JobAssessmentType(DjangoObjectType):
 
     def resolve_can_retry(self, info):
         user = info.context.user
-        try:
-            self.can_start(user)
-            return True
-        except ValidationError:
-            return False
+        return self.can_start(user)[0]
 
     def resolve_required(self, info):
         user = info.context.user

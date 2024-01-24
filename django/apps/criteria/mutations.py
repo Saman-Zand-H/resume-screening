@@ -32,7 +32,9 @@ class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
             raise ValidationError("Not related to the user.")
 
         job_assessment = JobAssessment.objects.get(id=job_assessment_id)
-        job_assessment.can_start(user)
+        _, error = job_assessment.can_start(user)
+        if error:
+            raise error
 
         return super().validate(root, info, input)
 
