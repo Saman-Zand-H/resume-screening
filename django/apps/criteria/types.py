@@ -1,6 +1,7 @@
 import datetime
 
 import graphene
+from account.mixins import FilterQuerySetByUserMixin
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from django.core.exceptions import ValidationError
@@ -8,8 +9,6 @@ from django.db.models import Q
 from django.utils.timezone import make_aware
 
 from .models import JobAssessment, JobAssessmentJob, JobAssessmentResult
-
-from account.mixins import FilterQuerySetByUserMixin
 
 
 class JobAssessmentResultFilterInput(graphene.InputObjectType):
@@ -23,10 +22,9 @@ class JobAssessmentFilterInput(graphene.InputObjectType):
     required = graphene.Boolean()
 
 
-class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
+class JobAssessmentResultType(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = JobAssessmentResult
-        interfaces = (graphene.relay.Node,)
         fields = (
             JobAssessmentResult.id.field.name,
             JobAssessmentResult.status.field.name,
@@ -36,10 +34,9 @@ class JobAssessmentResultNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class JobAssessmentJobNode(DjangoObjectType):
+class JobAssessmentJobType(DjangoObjectType):
     class Meta:
         model = JobAssessmentJob
-        interfaces = (graphene.relay.Node,)
         fields = (
             JobAssessmentJob.id.field.name,
             JobAssessmentJob.job.field.name,
@@ -47,17 +44,16 @@ class JobAssessmentJobNode(DjangoObjectType):
         )
 
 
-class JobAssessmentNode(DjangoObjectType):
-    jobs = graphene.List(JobAssessmentJobNode)
+class JobAssessmentType(DjangoObjectType):
+    jobs = graphene.List(JobAssessmentJobType)
     results = graphene.List(
-        JobAssessmentResultNode, filters=graphene.Argument(JobAssessmentResultFilterInput, required=False)
+        JobAssessmentResultType, filters=graphene.Argument(JobAssessmentResultFilterInput, required=False)
     )
     can_retry = graphene.Boolean()
     required = graphene.Boolean()
 
     class Meta:
         model = JobAssessment
-        interfaces = (graphene.relay.Node,)
         fields = (
             JobAssessment.id.field.name,
             JobAssessment.title.field.name,
@@ -82,7 +78,7 @@ class JobAssessmentNode(DjangoObjectType):
 
         results = JobAssessmentResult.objects.filter(job_assessment=self, user=user)
         filter_conditions = Q()
-        fix_date = JobAssessmentNode.fix_date
+        fix_date = JobAssessmentType.fix_date
         if filters:
             filter_conditions = (
                 Q(job_assessment=self, user=user)

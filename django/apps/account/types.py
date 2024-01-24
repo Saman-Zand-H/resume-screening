@@ -1,12 +1,10 @@
 import graphene
 from criteria.models import JobAssessment
-from criteria.types import JobAssessmentFilterInput, JobAssessmentNode
+from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
-
-from django.db.models import Count, Q
 
 from .mixins import FilterQuerySetByUserMixin
 from .models import (
@@ -202,7 +200,7 @@ class UserNode(BaseUserNode):
     languagecertificates = graphene.List(LanguageCertificateNode)
     certificateandlicenses = graphene.List(CertificateAndLicenseNode)
     job_assessments = graphene.List(
-        JobAssessmentNode, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
+        JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
     )
 
     class Meta:
