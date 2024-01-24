@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 import uuid
@@ -57,23 +56,17 @@ class JobAssessment(models.Model):
     def __str__(self):
         return self.title
 
-    def can_start(self, user) -> tuple[bool, ValidationError]:
+    def can_start(self, user) -> tuple[bool, str]:
         results = self.results.filter(user=user)
         if results.exists():
             if results.count() >= self.count_limit:
-                return False, ValidationError(
-                    {JobAssessmentResult.job_assessment.field.name: "You have reached the limit of assessments."}
-                )
+                return False, _("You have reached the limit of assessments.")
             last_result = results.last()
             if last_result.status in (JobAssessmentResult.Status.COMPLETED, JobAssessmentResult.Status.TIMEOUT):
                 if last_result.updated_at + self.retry_interval >= timezone.now():
-                    return False, ValidationError(
-                        {JobAssessmentResult.job_assessment.field.name: "You can't start a new assessment yet."}
-                    )
+                    return False, _("You can't start a new assessment yet.")
             else:
-                return False, ValidationError(
-                    {JobAssessmentResult.job_assessment.field.name: "There is an incomplete assessment."}
-                )
+                return False, _("There is an incomplete assessment.")
         return True, None
 
     def is_required(self, jobs):
