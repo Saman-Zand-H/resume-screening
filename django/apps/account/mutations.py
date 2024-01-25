@@ -11,6 +11,7 @@ from graphene_django_cud.mutations import (
     DjangoUpdateMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
+from graphene_django_cud.util.model import disambiguate_id
 from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
@@ -179,9 +180,9 @@ class UserUpdateMutation(DjangoCreateMutation):
     @classmethod
     def validate(cls, root, info, input):
         user = info.context.user
-        if (interested_jobs := input.get(Profile.interested_jobs.field.name)):
-            available_jobs = user.available_jobs.values_list("id", flat=True)
-            if not all(int(job) in available_jobs for job in interested_jobs):
+        if interested_jobs := input.get(Profile.interested_jobs.field.name):
+            available_jobs = set(user.available_jobs.values_list("id", flat=True))
+            if not set(map(lambda j: int(disambiguate_id(j)), interested_jobs)).issubset(available_jobs):
                 raise GraphQLErrorBadRequest("Interested jobs must be in available jobs.")
         return super().validate(root, info, input)
 
