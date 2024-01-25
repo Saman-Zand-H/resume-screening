@@ -57,10 +57,10 @@ class OpenAIService:
         return file_batch
 
     def vector_store_files_set(self, vector_store: VectorStore, files: List[BufferedReader]):
-        current_files = self.client.beta.vector_stores.files.list(vector_store_id=vector_store.id)
+        current_files = [f.id for f in self.client.beta.vector_stores.files.list(vector_store_id=vector_store.id)]
         file_batch = self.vector_store_files_add(vector_store, files)
         if file_batch.status == "completed":
-            self.files_delete([f.id for f in current_files])
+            self.files_delete(current_files)
         return file_batch
 
     def files_delete(self, files: List[str]):
@@ -72,8 +72,8 @@ class OpenAIService:
         cachable_vector_store: CachableVectorStore,
     ) -> Tuple[QuerySet, bool]:
         vector_store_qs, created = Cache.get_or_set_qs(cachable_vector_store.cache_key, cachable_vector_store.data_fn())
-        if created:
-            vs = self.vector_store_get_or_create(cachable_vector_store.id)
+        vs = self.vector_store_get_or_create(cachable_vector_store.id)
+        if created or not vs.file_counts.total:
             file = io.BytesIO(json.dumps(list(vector_store_qs), separators=(",", ":")).encode())
             file.name = f"{cachable_vector_store.id}.json"
             self.vector_store_files_set(vs, [file])

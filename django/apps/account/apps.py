@@ -8,3 +8,4 @@ class AccountConfig(AppConfig):
 
     def ready(self):
         from . import types  # noqa
+        from . import signals  # noqa

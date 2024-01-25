@@ -4,10 +4,10 @@ from collections import namedtuple
 
 from celery import shared_task
 
-from account.models import Resume
+from account.models import Resume, User
 from django.contrib.auth import get_user_model
 
-from .utils import extract_available_jobs, extract_resume_text
+from .utils import extract_available_jobs, extract_or_create_skills, extract_resume_text
 
 
 def find_available_jobs(resume_pk: int) -> bool:
@@ -17,6 +17,15 @@ def find_available_jobs(resume_pk: int) -> bool:
     jobs = extract_available_jobs(resume_text)
     if jobs:
         resume.user.available_jobs.set(jobs)
+        return True
+    return False
+
+
+def set_user_skills(user_pk: int) -> bool:
+    user = User.objects.get(pk=user_pk)
+    existing_skills = extract_or_create_skills(user.raw_skills)[0]
+    if existing_skills:
+        user.skills.set(existing_skills)
         return True
     return False
 

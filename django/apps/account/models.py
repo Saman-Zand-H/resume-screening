@@ -142,7 +142,7 @@ class User(AbstractUser):
     )
     birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
     raw_skills = ArrayField(models.CharField(max_length=64), verbose_name=_("Raw Skills"), blank=True, null=True)
-    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="users")
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="users", editable=False)
     available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), blank=True)
 
     objects = UserManager()

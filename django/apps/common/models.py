@@ -1,10 +1,9 @@
 from cities_light.models import City
 from mptt.models import MPTTModel, TreeForeignKey
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
-from django.core.exceptions import ValidationError
 
 
 class Language(models.Model):
@@ -79,7 +78,19 @@ class University(models.Model):
         return self.name
 
 
+class SkillQuerySet(models.QuerySet):
+    def system(self):
+        return self.filter(insert_type=Skill.InsertType.SYSTEM)
+
+    def ai(self):
+        return self.filter(insert_type=Skill.InsertType.AI)
+
+
 class Skill(MPTTModel):
+    class InsertType(models.TextChoices):
+        SYSTEM = "system", _("System")
+        AI = "ai", _("AI")
+
     title = models.CharField(
         max_length=255,
         unique=True,
@@ -87,6 +98,13 @@ class Skill(MPTTModel):
     )
     parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="children")
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), null=True, blank=True)
+    insert_type = models.CharField(
+        max_length=10,
+        choices=InsertType.choices,
+        default=InsertType.SYSTEM,
+        verbose_name=_("Insert Type"),
+    )
+    objects = SkillQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("Skill")

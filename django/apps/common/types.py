@@ -19,7 +19,6 @@ from .models import (
     University,
 )
 
-
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = Enum("Errors", enum_values)
 
@@ -187,3 +186,7 @@ class SkillNode(DjangoObjectType):
         filter_fields = {
             Skill.title.field.name: ["icontains"],
         }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return queryset.system()

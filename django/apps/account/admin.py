@@ -46,6 +46,7 @@ class UserAdmin(UserAdminBase):
         User.last_name.field.name,
         User.is_staff.field.name,
     )
+    readonly_fields = (User.skills.field.name,)
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
@@ -64,6 +65,7 @@ class UserAdmin(UserAdminBase):
                     User.gender.field.name,
                     User.birth_date.field.name,
                     User.raw_skills.field.name,
+                    User.skills.field.name,
                     User.available_jobs.field.name,
                 )
             },
