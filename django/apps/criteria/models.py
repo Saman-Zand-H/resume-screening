@@ -1,8 +1,5 @@
-from django.db import models
-from django.utils.translation import gettext_lazy as _
-from django.utils import timezone
-from datetime import timedelta
 import uuid
+from datetime import timedelta
 
 from account.models import User
 from common.models import Job
@@ -10,6 +7,10 @@ from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
+
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 def job_assessment_logo_path(instance, filename):
@@ -46,6 +47,7 @@ class JobAssessment(models.Model):
     resumable = models.BooleanField(default=False, verbose_name=_("Resumable"))
     retry_interval = models.DurationField(default=timedelta(weeks=1), verbose_name=_("Retry Interval"))
     count_limit = models.PositiveIntegerField(default=10, verbose_name=_("Count Limit"))
+    time_limit = models.DurationField(default=timedelta(minutes=30), verbose_name=_("Time Limit"))
 
     objects = JobAssessmentQuerySet.as_manager()
 
