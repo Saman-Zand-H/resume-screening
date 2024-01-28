@@ -1,7 +1,8 @@
 import contextlib
-from django.utils.translation import gettext as _
+
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
+from common.models import Job
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
@@ -23,6 +24,7 @@ from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve, refresh_expiration
 
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from .forms import PasswordLessRegisterForm
 from .mixins import (
@@ -47,7 +49,6 @@ from .models import (
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
-from common.models import Job
 
 
 class Register(graphql_auth_mutations.Register):
@@ -179,18 +180,28 @@ class UserUpdateMutation(DjangoCreateMutation):
         obj.full_clean(validate_unique=False)
 
     @classmethod
+    def sanetize_intersested_jobs(cls, intersested_jobs):
+        return set(map(lambda j: int(disambiguate_id(j)), intersested_jobs or []))
+
+    @classmethod
     def validate(cls, root, info, input):
         user = info.context.user
+
         if interested_jobs := input.get(Profile.interested_jobs.field.name):
             available_jobs = set(user.available_jobs.values_list("id", flat=True))
-            if not set(map(lambda j: int(disambiguate_id(j)), interested_jobs)).issubset(available_jobs):
+            interested_jobs = cls.sanetize_intersested_jobs(interested_jobs)
+            if not interested_jobs.issubset(available_jobs):
                 raise GraphQLErrorBadRequest(_("Interested jobs must be in available jobs."))
-
-            if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
-                if not (hasattr(user, "profile") and user.profile.has_appearance_related_data):
-                    if not all(input.get(item) for item in Profile.get_appearance_related_fields()):
-                        raise GraphQLErrorBadRequest(_("Appearance related data is required."))
         return super().validate(root, info, input)
+
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        interested_jobs = cls.sanetize_intersested_jobs(input.get(Profile.interested_jobs.field.name))
+        if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
+            if not obj.has_appearance_related_data:
+                if not all(input.get(item) for item in Profile.get_appearance_related_fields()):
+                    raise GraphQLErrorBadRequest(_("Appearance related data is required."))
+        return super().after_mutate(root, info, input, obj, return_data)
 
 
 class UserSkillInput(graphene.InputObjectType):
