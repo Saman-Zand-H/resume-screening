@@ -1,5 +1,5 @@
 import contextlib
-
+from django.utils.translation import gettext as _
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.generic import GenericScalar
@@ -47,6 +47,7 @@ from .models import (
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
+from common.models import Job
 
 
 class Register(graphql_auth_mutations.Register):
@@ -183,7 +184,12 @@ class UserUpdateMutation(DjangoCreateMutation):
         if interested_jobs := input.get(Profile.interested_jobs.field.name):
             available_jobs = set(user.available_jobs.values_list("id", flat=True))
             if not set(map(lambda j: int(disambiguate_id(j)), interested_jobs)).issubset(available_jobs):
-                raise GraphQLErrorBadRequest("Interested jobs must be in available jobs.")
+                raise GraphQLErrorBadRequest(_("Interested jobs must be in available jobs."))
+
+            if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
+                if not (hasattr(user, "profile") and user.profile.has_appearance_related_data):
+                    if not all(input.get(item) for item in Profile.get_appearance_related_fields()):
+                        raise GraphQLErrorBadRequest(_("Appearance related data is required."))
         return super().validate(root, info, input)
 
 

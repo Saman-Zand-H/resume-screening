@@ -58,6 +58,7 @@ class JobNode(DjangoObjectType):
             Job.title.field.name,
             Job.category.field.name,
             Job.industry.field.name,
+            Job.require_appearance_data.field.name,
         )
         filter_fields = {
             Job.title.field.name: ["icontains"],

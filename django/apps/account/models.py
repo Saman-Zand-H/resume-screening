@@ -208,6 +208,21 @@ class Profile(models.Model):
     def __str__(self):
         return self.user.email
 
+    @staticmethod
+    def get_appearance_related_fields():
+        return (
+            Profile.height.field.name,
+            Profile.weight.field.name,
+            Profile.skin_color.field.name,
+            Profile.hair_color.field.name,
+            Profile.eye_color.field.name,
+            Profile.full_body_image.field.name,
+        )
+
+    @property
+    def has_appearance_related_data(self):
+        return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
+
 
 class Contact(models.Model):
     class Type(models.TextChoices):
