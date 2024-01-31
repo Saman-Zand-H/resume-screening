@@ -1,9 +1,10 @@
+import graphene
+
 from cities_light.graphql.types import City as CityTypeBase
 from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
-from graphene import Enum, relay
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from .exceptions import Error, Errors
@@ -20,13 +21,13 @@ from .models import (
 )
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
-ErrorType = Enum("Errors", enum_values)
+ErrorType = graphene.Enum("Errors", enum_values)
 
 
 class JobIndustryNode(DjangoObjectType):
     class Meta:
         model = JobIndustry
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             JobIndustry.id.field.name,
             JobIndustry.title.field.name,
@@ -39,7 +40,7 @@ class JobIndustryNode(DjangoObjectType):
 class JobCategoryNode(DjangoObjectType):
     class Meta:
         model = JobCategory
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             JobCategory.id.field.name,
             JobCategory.title.field.name,
@@ -52,7 +53,7 @@ class JobCategoryNode(DjangoObjectType):
 class JobNode(DjangoObjectType):
     class Meta:
         model = Job
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             Job.id.field.name,
             Job.title.field.name,
@@ -70,7 +71,7 @@ class JobNode(DjangoObjectType):
 class UniversityNode(DjangoObjectType):
     class Meta:
         model = University
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             University.id.field.name,
             University.name.field.name,
@@ -85,7 +86,7 @@ class UniversityNode(DjangoObjectType):
 class FieldNode(DjangoObjectType):
     class Meta:
         model = Field
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             Field.id.field.name,
             Field.name.field.name,
@@ -98,7 +99,7 @@ class FieldNode(DjangoObjectType):
 class CountryNode(DjangoObjectType):
     class Meta:
         model = Country
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = list(CountryTypeBase._meta.fields.keys())
         filter_fields = {
             Country.name.field.name: ["icontains"],
@@ -108,7 +109,7 @@ class CountryNode(DjangoObjectType):
 class RegionNode(DjangoObjectType):
     class Meta:
         model = Region
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = list(RegionTypeBase._meta.fields.keys())
         filter_fields = {
             Region.name.field.name: ["icontains"],
@@ -119,14 +120,14 @@ class RegionNode(DjangoObjectType):
 class SubRegionNode(DjangoObjectType):
     class Meta:
         model = SubRegion
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = list(SubRegionTypeBase._meta.fields.keys())
 
 
 class CityNode(DjangoObjectType):
     class Meta:
         model = City
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = list(CityTypeBase._meta.fields.keys())
         filter_fields = {
             City.name.field.name: ["icontains"],
@@ -137,7 +138,7 @@ class CityNode(DjangoObjectType):
 class LanguageNode(DjangoObjectType):
     class Meta:
         model = Language
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             Language.id.field.name,
             Language.name.field.name,
@@ -151,7 +152,7 @@ class LanguageNode(DjangoObjectType):
 class LanguageProficiencyTestNode(DjangoObjectType):
     class Meta:
         model = LanguageProficiencyTest
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             LanguageProficiencyTest.id.field.name,
             LanguageProficiencyTest.title.field.name,
@@ -166,7 +167,7 @@ class LanguageProficiencyTestNode(DjangoObjectType):
 class PositionNode(DjangoObjectType):
     class Meta:
         model = Position
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             Position.id.field.name,
             Position.title.field.name,
@@ -179,7 +180,7 @@ class PositionNode(DjangoObjectType):
 class SkillNode(DjangoObjectType):
     class Meta:
         model = Skill
-        interfaces = (relay.Node,)
+        interfaces = (graphene.relay.Node,)
         fields = (
             Skill.id.field.name,
             Skill.title.field.name,
