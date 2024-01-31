@@ -234,14 +234,11 @@ class UserNode(BaseUserNode):
         return self.certificateandlicenses.all().order_by("-id")
 
     def resolve_job_assessments(self, info, filters=None):
-        qs = JobAssessment.objects
-        interested_jobs = self.profile.interested_jobs.all()
-
+        qs = JobAssessment.objects.related_to_user(self)
         if filters:
             if filters.required is not None:
-                qs = qs.filter_by_required(filters.required, interested_jobs)
-
-        return qs.filter(related_jobs__in=interested_jobs).distinct().order_by("-id")
+                qs = qs.filter_by_required(filters.required, self.profile.intersted_jobs.all())
+        return qs.order_by("-id")
 
 
 class UserSkillType(DjangoObjectType):

@@ -27,6 +27,12 @@ class JobAssessmentQuerySet(models.QuerySet):
             )
         ).filter(required_job_assessments=0)
 
+    def related_to_user(self, user):
+        return (
+            self.filter(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)
+            | self.filter(related_jobs__in=user.profile.interested_jobs.all())
+        ).distinct()
+
 
 class JobAssessment(models.Model):
     related_jobs = models.ManyToManyField(
