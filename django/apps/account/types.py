@@ -25,7 +25,7 @@ from .models import (
 
 
 class ProfileType(DjangoObjectType):
-    has_resume = graphene.Boolean()
+    has_resume = graphene.Boolean(source=Profile.has_resume.fget.__name__)
 
     class Meta:
         model = Profile
@@ -41,9 +41,6 @@ class ProfileType(DjangoObjectType):
             Profile.city.field.name,
             Profile.native_languages.field.name,
         )
-
-    def resolve_has_resume(self, info):
-        return self.has_resume
 
 
 class ContactType(DjangoObjectType):
@@ -243,7 +240,7 @@ class UserNode(BaseUserNode):
         qs = JobAssessment.objects.related_to_user(self)
         if filters:
             if filters.required is not None:
-                qs = qs.filter_by_required(filters.required, self.profile.intersted_jobs.all())
+                qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
 
 

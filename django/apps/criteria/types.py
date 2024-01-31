@@ -26,7 +26,6 @@ class JobAssessmentResultType(FilterQuerySetByUserMixin, DjangoObjectType):
         model = JobAssessmentResult
         fields = (
             JobAssessmentResult.id.field.name,
-            JobAssessmentResult.status.field.name,
             JobAssessmentResult.score.field.name,
             JobAssessmentResult.created_at.field.name,
             JobAssessmentResult.updated_at.field.name,
@@ -75,7 +74,11 @@ class JobAssessmentType(DjangoObjectType):
         if not user:
             return []
 
-        results = JobAssessmentResult.objects.filter(job_assessment=self, user=user)
+        results = JobAssessmentResult.objects.filter(
+            job_assessment=self,
+            user=user,
+            status=JobAssessmentResult.Status.COMPLETED,
+        )
         filter_conditions = Q()
         fix_date = JobAssessmentType.fix_date
         if filters:
@@ -94,7 +97,7 @@ class JobAssessmentType(DjangoObjectType):
                     )
                 )
             )
-        return results.filter(filter_conditions).order_by("-id")
+        return results.filter(filter_conditions).order_by(f"-{JobAssessmentResult.updated_at.field.name}")
 
     def resolve_can_retry(self, info):
         user = info.context.user
