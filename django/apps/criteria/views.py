@@ -1,31 +1,51 @@
 import logging
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
-from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.edit import FormView
 
-from .client.webhooks import WebhookHandler
-from .forms import ScoreWebhookTestForm
+from .forms import ScoreWebhookForm
+from .webhooks import Events, WebhookHandler
 
 logger = logging.getLogger(__name__)
 
 
-@method_decorator(csrf_exempt, name="dispatch")
-class ScoresUpdateWebhookView(View):
-    def post(self, *args, **kwargs):
-        form_data = ScoreWebhookTestForm(self.request.POST)
-        if not form_data.is_valid():
-            return JsonResponse({"error": "Invalid form data"}, status=400)
+class WebhookView(FormView):
+    event = None
+    form_class = None
 
-        payload = form_data.cleaned_data
+    def get_error(self, message, status=400):
+        return JsonResponse({"error": message}, status=status)
 
+    def get_response(self, data, status=200):
+        return JsonResponse(data, status=status)
+
+    def post(self, request, *args, **kwargs):
+        self.object = None
+        api_key = request.headers.get("x-criteria-api-key")
+        if api_key is None or api_key != settings.CRITERIA_SETTINGS["WEBHOOK_SECRET"]:
+            return self.get_error("Unauthorized", status=401)
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        payload = form.cleaned_data
         try:
-            payload_data = WebhookHandler().handle_event("scores_update", payload)
-            return JsonResponse(payload_data, status=200)
+            payload_data = WebhookHandler.handle_event(self.event, payload)
+            return self.get_response(payload_data)
         except ValueError as e:
             logger.error(f"Event handling error: {e}")
-            return JsonResponse({"error": str(e)}, status=400)
+            return self.get_error(str(e))
         except Exception as e:
             logger.error(f"Failed to process webhook: {e}")
-            return JsonResponse({"error": "Webhook processing failed"}, status=500)
+            return self.get_error("Failed to process webhook", status=500)
+
+    def form_invalid(self, form):
+        return self.get_error("Invalid form data")
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class ScoresWebhookView(WebhookView):
+    event = Events.SCORES_UPDATE
+    form_class = ScoreWebhookForm

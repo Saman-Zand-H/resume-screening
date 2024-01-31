@@ -1,5 +1,6 @@
-from django.conf import settings
 from httpx import Client
+
+from django.conf import settings
 
 
 class CriteriaClientConfig:

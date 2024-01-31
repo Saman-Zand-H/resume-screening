@@ -266,4 +266,5 @@ CRITERIA_SETTINGS = {
     "BASE_URL": os.environ.get("CRITERIA_BASE_URL", "https://integrations.criteriacorp.com/api/v1"),
     "AUTH_TOKEN": os.environ.get("CRITERIA_AUTH_TOKEN"),
     "AUTH_TYPE": os.environ.get("CRITERIA_AUTH_TYPE", "Bearer"),
+    "WEBHOOK_SECRET": os.environ.get("CRITERIA_WEBHOOK_SECRET"),
 }
