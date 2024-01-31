@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator, ValidationInfo
+from pydantic import BaseModel, field_validator, model_validator, ValidationInfo
 from typing import List, Optional
 from datetime import date
 from enum import Enum
@@ -7,98 +7,63 @@ from django.core.validators import URLValidator
 from phonenumber_field.validators import validate_phonenumber
 
 from .validators import LinkedInUsernameValidator, WhatsAppValidator
+from .models import User, Profile, Contact, Education
+from common.models import Job, Skill, City, Field, University, LanguageProficiencyTest
+from common.choices import LANGUAGES
 
 
-class Gender(str, Enum):
-    MALE = "male"
-    FEMALE = "female"
-    NOT_KNOWN = "not_known"
-    NOT_APPLICABLE = "not_applicable"
+def get_existing_foreign_keys(model, ids: List[int]) -> Optional[List[int]]:
+    existing_ids = set(model.objects.filter(id__in=ids).values_list("id", flat=True))
+    return existing_ids or None
 
 
-class SkinColor(str, Enum):
-    VERY_FAIR = "#FFDFC4"
-    FAIR = "#F0D5B1"
-    LIGHT = "#E5B897"
-    LIGHT_MEDIUM = "#D9A377"
-    MEDIUM = "#C68642"
-    OLIVE = "#A86B33"
-    BROWN = "#8D5524"
-    DARK_BROWN = "#60391C"
-    VERY_DARK = "#3B260B"
-    DEEP = "#100C08"
-
-
-class EyeColor(str, Enum):
-    AMBER = "#FFBF00"
-    BLUE = "#5DADEC"
-    BROWN = "#6B4226"
-    GRAY = "#BEBEBE"
-    GREEN = "#1CAC78"
-    HAZEL = "#8E7618"
-
-
-class EmploymentStatus(str, Enum):
-    EMPLOYED = "employed"
-    UNEMPLOYED = "unemployed"
-
-
-class ContactType(str, Enum):
-    WEBSITE = "website"
-    ADDRESS = "address"
-    LINKEDIN = "linkedin"
-    WHATSAPP = "whatsapp"
-    PHONE = "phone"
-
-
-class Degree(str, Enum):
-    BACHELORS = "bachelors"
-    MASTERS = "masters"
-    PHD = "phd"
-    ASSOCIATE = "associate"
-    DIPLOMA = "diploma"
-    CERTIFICATE = "certificate"
-
-
-class DocumentStatus(str, Enum):
-    DRAFTED = "drafted"
-    SUBMITTED = "submitted"
-    REJECTED = "rejected"
-    VERIFIED = "verified"
-    SELF_VERIFIED = "self_verified"
+Language = Enum("Language", {code.upper(): code for code, _ in LANGUAGES})
 
 
 class UserModel(BaseModel):
-    gender: Optional[Gender] = None
+    gender: Optional[User.Gender] = None
     birth_date: Optional[date] = None
     skills: Optional[List[int]] = None
 
+    @field_validator("skills")
+    def check_skills(cls, value):
+        if value is not None:
+            return get_existing_foreign_keys(Skill, value)
+
 
 class ProfileModel(BaseModel):
-    user_id: int
     height: Optional[int] = None
     weight: Optional[int] = None
-    skin_color: Optional[SkinColor] = None
+    skin_color: Optional[Profile.SkinColor] = None
     hair_color: Optional[str] = None
-    eye_color: Optional[EyeColor] = None
-    full_body_image: Optional[str] = None
-    employment_status: Optional[EmploymentStatus] = None
+    eye_color: Optional[Profile.EyeColor] = None
+    employment_status: Optional[Profile.EmploymentStatus] = None
     interested_jobs: Optional[List[int]] = None
     city_id: Optional[int] = None
 
+    @field_validator("interested_jobs")
+    def check_interested_jobs(cls, value):
+        if value is not None:
+            return get_existing_foreign_keys(Job, value)
+
+    @field_validator("city_id")
+    def check_city_id(cls, value):
+        if value is not None:
+            return get_existing_foreign_keys(City, [value])
+
 
 class ContactModel(BaseModel):
-    type: ContactType
+    type: Contact.Type
     value: str
 
     @field_validator("value")
     def validate_value(cls, value, info: ValidationInfo):
         contact_type = info.data.get("type")
         validators = {
-            ContactType.PHONE: validate_phonenumber,
-            ContactType.WEBSITE: URLValidator(),
-            ContactType.LINKEDIN: LinkedInUsernameValidator(),
-            ContactType.WHATSAPP: WhatsAppValidator(),
+            Contact.Type.PHONE: validate_phonenumber,
+            Contact.Type.WEBSITE: URLValidator(),
+            Contact.Type.LINKEDIN: LinkedInUsernameValidator(),
+            Contact.Type.WHATSAPP: WhatsAppValidator(),
         }
         validator = validators.get(contact_type)
         if validator:
@@ -107,29 +72,57 @@ class ContactModel(BaseModel):
 
 
 class EducationModel(BaseModel):
-    user_id: int
-    status: Optional[DocumentStatus] = None
     field_id: int
-    degree: Degree
+    degree: Education.Degree
     university_id: int
     start: date
     end: Optional[date] = None
 
+    @field_validator("field_id")
+    def check_field_id(cls, value):
+        return get_existing_foreign_keys(Field, [value])
+
+    @field_validator("university_id")
+    def check_university_id(cls, value):
+        return get_existing_foreign_keys(University, [value])
+
+    @model_validator(mode="before")
+    def validate_dates(cls, values):
+        start = values.get("start")
+        end = values.get("end")
+        if start and end and start > end:
+            raise ValueError("End date must be after the start date.")
+
+        return values
+
 
 class WorkExperienceModel(BaseModel):
-    user_id: int
-    status: Optional[DocumentStatus] = None
     job_id: int
     start: date
     end: Optional[date] = None
     organization: str
     city_id: int
 
+    @field_validator("job_id")
+    def check_job_id(cls, value):
+        return get_existing_foreign_keys(Job, [value])
+
+    @field_validator("city_id")
+    def check_city_id(cls, value):
+        return get_existing_foreign_keys(City, [value])
+
+    @model_validator(mode="before")
+    def validate_dates(cls, values):
+        start = values.get("start")
+        end = values.get("end")
+        if start and end and start > end:
+            raise ValueError("End date must be after the start date.")
+
+        return values
+
 
 class LanguageCertificateModel(BaseModel):
-    user_id: int
-    status: Optional[DocumentStatus] = None
-    language_id: int
+    language: Language
     test_id: int
     issued_at: date
     expired_at: date
@@ -139,14 +132,50 @@ class LanguageCertificateModel(BaseModel):
     speaking_score: float
     band_score: float
 
+    @field_validator("test_id")
+    def check_test_id(cls, value):
+        return get_existing_foreign_keys(LanguageProficiencyTest, [value])
+
+    @model_validator(mode="before")
+    def validate_scores_and_dates(cls, values):
+        try:
+            test = LanguageProficiencyTest.objects.get(pk=values["test_id"])
+        except LanguageProficiencyTest.DoesNotExist:
+            raise ValueError("Invalid test_id: Test does not exist.")
+
+        for score_key in ["listening_score", "reading_score", "writing_score", "speaking_score"]:
+            score = values.get(score_key)
+            if score is not None and not (test.min_score <= score <= test.max_score):
+                raise ValueError(
+                    f"{score_key.replace('_', ' ').title()} must be between {test.min_score} and {test.max_score}."
+                )
+
+        band_score = values.get("band_score")
+        if band_score is not None and not (test.overall_min_score <= band_score <= test.overall_max_score):
+            raise ValueError(f"Band score must be between {test.overall_min_score} and {test.overall_max_score}.")
+
+        issued_at = values.get("issued_at")
+        expired_at = values.get("expired_at")
+        if issued_at and expired_at and issued_at > expired_at:
+            raise ValueError("Expired date must be after the issued date.")
+
+        return values
+
 
 class CertificateAndLicenseModel(BaseModel):
-    user_id: int
-    status: Optional[DocumentStatus] = None
     title: str
     certifier: str
     issued_at: date
     expired_at: Optional[date] = None
+
+    @model_validator(mode="before")
+    def validate_dates(cls, values):
+        issued_at = values.get("issued_at")
+        expired_at = values.get("expired_at")
+        if issued_at and expired_at and issued_at > expired_at:
+            raise ValueError("Expired date must be after the issued date.")
+
+        return values
 
 
 class ResumeModel(BaseModel):
