@@ -1,9 +1,13 @@
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
 app_name = "criteria"
 
+webhooks_patterns = [
+    path("scores/", views.ScoresWebhookView.as_view(), name="score"),
+]
+
 urlpatterns = [
-    path("webhooks/scores/", views.ScoresUpdateWebhookView.as_view(), name="webhook_score"),
+    path("webhooks/", include((webhooks_patterns, "webhooks"))),
 ]

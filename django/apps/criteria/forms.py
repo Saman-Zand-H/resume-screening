@@ -1,32 +1,30 @@
 from datetime import datetime
 from typing import Literal, Optional, Union, get_args, get_origin
 
-from django import forms
 from pydantic import BaseModel, HttpUrl
 
-from .client.types import CombinedScore, GetScoresResponse
+from django import forms
+
+from .client.types import GetScoresResponse
 
 
-class ScoreWebhookTestForm(forms.Form):
+class WebhookForm(forms.Form):
+    model = BaseModel
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.add_fields_from_model(GetScoresResponse)
+        self.add_fields_from_model(self.model)
+
+    def add_field(self, field_name, field_type):
+        field = self.create_form_field(field_type)
+        if field:
+            self.fields[field_name] = field
 
     def add_fields_from_model(self, model: BaseModel):
         for field_name, field_type in model.__annotations__.items():
-            if field_name == "scores":
-                self.add_fields_from_combined_score_model()
-            else:
-                field = self.create_form_field(field_type)
-                if field:
-                    self.fields[field_name] = field
-
-    def add_fields_from_combined_score_model(self):
-        for score_field, score_type in CombinedScore.__annotations__.items():
-            field_key = f"scores_{score_field}"
-            field = self.create_form_field(score_type)
+            field = self.create_form_field(field_type)
             if field:
-                self.fields[field_key] = field
+                self.fields[field_name] = field
 
     def create_form_field(self, field_type):
         is_optional = get_origin(field_type) is Optional or get_origin(field_type) is Union
@@ -49,3 +47,7 @@ class ScoreWebhookTestForm(forms.Form):
             return forms.ChoiceField(choices=choices, required=not is_optional)
 
         return forms.JSONField(required=not is_optional)
+
+
+class ScoreWebhookForm(WebhookForm):
+    model = GetScoresResponse

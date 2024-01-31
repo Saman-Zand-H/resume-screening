@@ -339,7 +339,7 @@ class GetScoresResponse(BaseModel):
     scores: Optional[CombinedScore] = None
     reportUrl: HttpUrl
     candidateReportUrl: Optional[str] = None
-    metAlllScoreRanges: Literal["Yes", "No", "N/A"] = "N/A"
+    metAllScoreRanges: Literal["Yes", "No", "N/A"] = "N/A"
 
 
 def get_grouped_fields_by_parent[T: BaseModel](combined_score: CombinedScore) -> List[T]:
