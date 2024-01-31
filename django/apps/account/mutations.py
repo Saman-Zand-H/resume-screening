@@ -46,9 +46,11 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
+    Resume,
 )
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
+from .tasks import find_available_jobs, set_user_skills
 
 
 class Register(graphql_auth_mutations.Register):
@@ -492,10 +494,32 @@ class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         cls.full_clean(obj)
 
 
+class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
+    class Meta:
+        model = Resume
+        exclude = (
+            Resume.user.field.name,
+            Resume.text.field.name,
+        )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+        cls.full_clean(obj)
+
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        is_successful = find_available_jobs(obj.pk)
+        if not is_successful:
+            raise GraphQLErrorBadRequest(_("No jobs found in resume."))
+        return super().after_mutate(root, info, input, obj, return_data)
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
+    add_resume = ResumeCreateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):

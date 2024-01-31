@@ -21,6 +21,7 @@ from .models import (
     ReferenceCheckEmployer,
     User,
     WorkExperience,
+    Resume,
 )
 
 
@@ -194,6 +195,17 @@ class CanadaVisaNode(FilterQuerySetByUserMixin, DjangoObjectType):
             CanadaVisa.nationality.field.name,
             CanadaVisa.status.field.name,
             CanadaVisa.citizenship_document.field.name,
+        )
+
+
+class ResumeType(DjangoObjectType):
+    class Meta:
+        model = Resume
+        fields = (
+            Resume.id.field.name,
+            Resume.user.field.name,
+            Resume.file.field.name,
+            Resume.text.field.name,
         )
 
 

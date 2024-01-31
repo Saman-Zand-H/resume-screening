@@ -12,8 +12,7 @@ from .utils import extract_available_jobs, extract_or_create_skills, extract_res
 
 def find_available_jobs(resume_pk: int) -> bool:
     resume = Resume.objects.get(pk=resume_pk)
-    with contextlib.closing(resume.file) as file:
-        resume_text = extract_resume_text(file.read())
+    resume_text = resume.get_or_set_resume_text()
     jobs = extract_available_jobs(resume_text)
     if jobs:
         resume.user.available_jobs.set(jobs)
