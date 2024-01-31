@@ -25,6 +25,8 @@ from .models import (
 
 
 class ProfileType(DjangoObjectType):
+    has_resume = graphene.Boolean()
+
     class Meta:
         model = Profile
         fields = (
@@ -38,6 +40,9 @@ class ProfileType(DjangoObjectType):
             Profile.interested_jobs.field.name,
             Profile.city.field.name,
         )
+
+    def resolve_has_resume(self, info):
+        return self.has_resume
 
 
 class ContactType(DjangoObjectType):
