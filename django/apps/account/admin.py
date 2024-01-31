@@ -188,13 +188,12 @@ class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
 
 @register(LanguageCertificate)
 class LanguageCertificateAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "language__code", "test__title", "status", "issued_at", "expired_at", "band_score")
+    list_display = ("id", "user", "test__title", "status", "issued_at", "expired_at", "band_score")
     search_fields = (
         "user__email",
-        "language__code",
     )
-    list_filter = ("language__code", "test__title", "issued_at", "expired_at")
-    raw_id_fields = ("user", "language", "test")
+    list_filter = ("test__title", "issued_at", "expired_at")
+    raw_id_fields = ("user", "test")
 
 
 @register(CertificateAndLicense)

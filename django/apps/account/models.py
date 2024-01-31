@@ -5,7 +5,6 @@ from colorfield.fields import ColorField
 from common.models import (
     Field,
     Job,
-    Language,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -17,6 +16,7 @@ from common.validators import (
     DOCUMENT_FILE_SIZE_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
+from common.choices import LANGUAGES
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -200,6 +200,9 @@ class Profile(models.Model):
     )
     interested_jobs = models.ManyToManyField(Job, verbose_name=_("Interested Jobs"), blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
+    native_languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Native Language"), null=True, blank=True
+    )
 
     class Meta:
         verbose_name = _("User Profile")
@@ -530,9 +533,7 @@ class ReferenceCheckEmployer(models.Model):
 
 
 class LanguageCertificate(DocumentAbstract):
-    language = models.ForeignKey(
-        Language, on_delete=models.CASCADE, verbose_name=_("Language"), related_name="certificates"
-    )
+    language = models.CharField(choices=LANGUAGES, max_length=32, verbose_name=_("Language"))
     test = models.ForeignKey(
         LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="certificates"
     )
@@ -549,7 +550,7 @@ class LanguageCertificate(DocumentAbstract):
         verbose_name_plural = _("Language Certificates")
 
     def __str__(self):
-        return f"{self.user.email} - {self.language.name} - {self.test.title}"
+        return f"{self.user.email} - {self.language} - {self.test.title}"
 
     @classmethod
     def get_verification_abstract_model(cls):
@@ -587,7 +588,7 @@ class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAb
         abstract = True
 
     def __str__(self):
-        return f"{self.language_certificate.test.title} ({self.language_certificate.language.name}) Verification"
+        return f"{self.language_certificate.test.title} ({self.language_certificate.language}) Verification"
 
 
 class OfflineMethod(LanguageCertificateVerificationMethodAbstract):

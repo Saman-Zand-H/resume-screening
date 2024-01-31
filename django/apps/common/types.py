@@ -13,7 +13,6 @@ from .models import (
     Job,
     JobCategory,
     JobIndustry,
-    Language,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -135,18 +134,9 @@ class CityNode(DjangoObjectType):
         }
 
 
-class LanguageNode(DjangoObjectType):
-    class Meta:
-        model = Language
-        interfaces = (graphene.relay.Node,)
-        fields = (
-            Language.id.field.name,
-            Language.name.field.name,
-            Language.code.field.name,
-        )
-        filter_fields = {
-            Language.name.field.name: ["icontains"],
-        }
+class LanguageType(graphene.ObjectType):
+    code = graphene.String()
+    name = graphene.String()
 
 
 class LanguageProficiencyTestNode(DjangoObjectType):

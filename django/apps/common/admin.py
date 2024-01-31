@@ -7,7 +7,6 @@ from .models import (
     Job,
     JobCategory,
     JobIndustry,
-    Language,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -59,12 +58,6 @@ class SkillAdmin(MPTTModelAdmin):
     )
     search_fields = (Skill.title.field.name,)
     list_filter = (Skill.insert_type.field.name,)
-
-
-@admin.register(Language)
-class LanguageAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "code")
-    search_fields = ("name", "code")
 
 
 @admin.register(LanguageProficiencyTest)
