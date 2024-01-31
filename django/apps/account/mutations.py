@@ -222,6 +222,10 @@ class UserSetSkillsMutation(graphene.Mutation):
         skills = input.get("skills")
         user.raw_skills = skills
         user.save(update_fields=[User.raw_skills.field.name])
+        
+        is_successful = set_user_skills(user.pk)
+        if not is_successful:
+            raise GraphQLErrorBadRequest(_("No skills found."))
         return UserSetSkillsMutation(user=user)
 
 
