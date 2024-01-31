@@ -141,6 +141,9 @@ class JobAssessmentResult(ComputedFieldsModel):
                 return self.UserScore.GREAT
             return self.UserScore.EXCEPTIONAL
 
+    def is_completed(self):
+        return self.status == self.Status.COMPLETED
+
     class Meta:
         verbose_name = _("Job Assessment Result")
         verbose_name_plural = _("Job Assessment Results")
