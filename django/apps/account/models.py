@@ -225,7 +225,9 @@ class Profile(models.Model):
 
     @property
     def has_resume(self):
-        return hasattr(self.user, "resume")
+        with contextlib.suppress(Resume.DoesNotExist):
+            return self.user.resume is not None
+        return False
 
 
 class Contact(models.Model):
