@@ -194,16 +194,16 @@ class UserUpdateMutation(DjangoCreateMutation):
             interested_jobs = cls.sanetize_intersested_jobs(interested_jobs)
             if not interested_jobs.issubset(available_jobs):
                 raise GraphQLErrorBadRequest(_("Interested jobs must be in available jobs."))
-        return super().validate(root, info, input)
 
-    @classmethod
-    def after_mutate(cls, root, info, input, obj, return_data):
-        interested_jobs = cls.sanetize_intersested_jobs(input.get(Profile.interested_jobs.field.name))
-        if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
-            if not obj.has_appearance_related_data:
-                if not all(input.get(item) for item in Profile.get_appearance_related_fields()):
-                    raise GraphQLErrorBadRequest(_("Appearance related data is required."))
-        return super().after_mutate(root, info, input, obj, return_data)
+            if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
+                # Check if appearance data is provided, but is Null or empty
+                if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
+                    raise GraphQLErrorBadRequest(_("Appearance related data cannot be unset."))
+                if not (hasattr(user, "profile") and user.profile.has_appearance_related_data):
+                    # Check if appearance data is not provided
+                    if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
+                        raise GraphQLErrorBadRequest(_("Appearance related data is required."))
+        return super().validate(root, info, input)
 
 
 class UserSkillInput(graphene.InputObjectType):
@@ -523,7 +523,7 @@ class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
-    add_resume = ResumeCreateMutation.Field()
+    upload_resume = ResumeCreateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
