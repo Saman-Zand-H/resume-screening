@@ -38,7 +38,7 @@ export CELERY_BASE_NAME="${PROJECT_NAME}_celery"
 export SOCKET_DIRECTORY="$USER_HOME/run"
 export SOCKET_FILE="$SOCKET_DIRECTORY/${PROJECT_NAME}_gunicorn.sock"
 
-export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-config.settings.production}"
+export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-config.settings.development}"
 
 function print_separator() {
     for ((i = 0; i < "$TERMINAL_COLUMNS"; i++)); do

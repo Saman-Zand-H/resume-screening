@@ -1,6 +1,9 @@
 import os
 
 from .base import *  # noqa
+from .constants import Environment
+
+ENVIRONMENT_NAME = Environment.PRODUCTION
 
 DEBUG = False
 

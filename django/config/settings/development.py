@@ -1,9 +1,4 @@
-from .base import *  # noqa
+from .production import *  # noqa
+from .constants import Environment
 
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
-CORS_ALLOW_ALL_ORIGINS = True
-
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
-
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+ENVIRONMENT_NAME = Environment.DEVELOPMENT
