@@ -3,6 +3,7 @@ import contextlib
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
 from common.models import Job
+from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
@@ -23,6 +24,7 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve, refresh_expiration
 
+from account.utils import is_env
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -44,13 +46,13 @@ from .models import (
     LanguageCertificate,
     Profile,
     ReferenceCheckEmployer,
+    Resume,
     User,
     WorkExperience,
-    Resume,
 )
+from .tasks import find_available_jobs, set_user_skills
 from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
-from .tasks import find_available_jobs, set_user_skills
 
 
 class Register(graphql_auth_mutations.Register):
@@ -222,7 +224,7 @@ class UserSetSkillsMutation(graphene.Mutation):
         skills = input.get("skills")
         user.raw_skills = skills
         user.save(update_fields=[User.raw_skills.field.name])
-        
+
         is_successful = set_user_skills(user.pk)
         if not is_successful:
             raise GraphQLErrorBadRequest(_("No skills found."))
@@ -519,11 +521,26 @@ class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         return super().after_mutate(root, info, input, obj, return_data)
 
 
+class UserDeleteMutation(graphene.Mutation):
+    class Arguments:
+        email = graphene.String(required=True)
+
+    deleted_objects = graphene.Int()
+
+    @staticmethod
+    def mutate(root, info, email):
+        user = User.objects.get(email=email)
+        return UserDeleteMutation(deleted_objects=user.delete()[0])
+
+
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
     set_contacts = SetContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
     upload_resume = ResumeCreateMutation.Field()
+
+    if is_env(Environment.LOCAL) or is_env(Environment.DEVELOPMENT):
+        delete = UserDeleteMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):

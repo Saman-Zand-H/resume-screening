@@ -3,7 +3,9 @@ from typing import List, Optional
 from ai.google import GoogleServices
 from ai.openai import OpenAIService
 from common.models import Job, Skill
+from config.settings.constants import Environment
 
+from django.conf import settings
 from django.db import transaction
 
 from .constants import OpenAiAssistants, VectorStores
@@ -60,3 +62,7 @@ def extract_or_create_skills(skills: List[str]) -> Optional[List[Skill]]:
                 return existing_skills, new_skills
         except ValueError:
             return None
+
+
+def is_env(env: Environment):
+    return settings.ENVIRONMENT_NAME.value == env.value

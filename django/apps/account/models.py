@@ -2,6 +2,7 @@ import contextlib
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
+from common.choices import LANGUAGES
 from common.models import (
     Field,
     Job,
@@ -16,7 +17,6 @@ from common.validators import (
     DOCUMENT_FILE_SIZE_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
-from common.choices import LANGUAGES
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -293,7 +293,7 @@ class DocumentAbstract(models.Model):
         VERIFIED = "verified", _("Verified")
         SELF_VERIFIED = "self_verified", _("Self Verified")
 
-    user = models.ForeignKey(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="%(class)ss")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="%(class)ss")
     status = models.CharField(
         max_length=50,
         choices=Status.choices,
@@ -681,7 +681,7 @@ class CanadaVisa(models.Model):
         PENDING = "pending", _("Pending")
         OTHER = "other", _("Other")
 
-    user = models.OneToOneField(User, on_delete=models.RESTRICT, verbose_name=_("User"), related_name="canada_visa")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="canada_visa")
     nationality = models.ForeignKey(
         Country, on_delete=models.CASCADE, verbose_name=_("Nationality"), related_name="canada_visas"
     )
