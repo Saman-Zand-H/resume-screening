@@ -8,7 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.edit import FormView
 
-from .forms import ScoreWebhookForm
+from .forms import ScoreWebhookForm, StatusWebhookForm
 from .webhooks import Events, WebhookHandler
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 class WebhookView(FormView):
     event = None
     form_class = None
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -52,7 +56,11 @@ class WebhookView(FormView):
         return self.get_error("Invalid form data")
 
 
-@method_decorator(csrf_exempt, name="dispatch")
 class ScoresWebhookView(WebhookView):
     event = Events.SCORES_UPDATE
     form_class = ScoreWebhookForm
+
+
+class StatusWebhookView(WebhookView):
+    event = Events.STATUS_UPDATE
+    form_class = StatusWebhookForm

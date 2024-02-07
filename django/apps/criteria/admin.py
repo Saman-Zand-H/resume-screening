@@ -36,13 +36,14 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
     search_fields = (
         "user__email",
         "job_assessment__title",
+        JobAssessmentResult.order_id.field.name,
     )
     list_filter = (
         "status",
         "created_at",
         "updated_at",
     )
-    readonly_fields = ("score", "order_id")
+    readonly_fields = ("score", JobAssessmentResult.order_id.field.name)
     raw_id_fields = (
         "user",
         "job_assessment",

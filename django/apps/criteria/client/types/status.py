@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 
-from pydantic import BaseModel, HttpUrl, RootModel, field_validator
+from pydantic import BaseModel, RootModel, field_validator
 
 
 class GetStatusRequest(RootModel):
@@ -14,8 +14,6 @@ class GetStatusResponse(BaseModel):
     status: Literal["In Progress", "Scheduled", "Complete", "Evaluation in Progress - X of Y Completed"]
     expiryDate: Optional[str] = None
     statusDate: str
-    evaluationUrl: Optional[HttpUrl] = None
-    reportUrl: Optional[HttpUrl] = None
 
     @field_validator("status")
     def validate_dynamic_status(cls, v):

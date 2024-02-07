@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl
 
 from django import forms
 
-from .client.types import GetScoresResponse
+from .client.types import GetScoresResponse, GetStatusResponse
 
 
 class WebhookForm(forms.Form):
@@ -51,3 +51,7 @@ class WebhookForm(forms.Form):
 
 class ScoreWebhookForm(WebhookForm):
     model = GetScoresResponse
+
+
+class StatusWebhookForm(WebhookForm):
+    model = GetStatusResponse
