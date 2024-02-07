@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import timedelta
 
@@ -11,6 +12,9 @@ from markdownfield.validators import VALIDATOR_STANDARD
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from .client.types import CombinedScore
+from .client.types import Status as CriteriaStatus
 
 
 def job_assessment_logo_path(instance, filename):
@@ -116,13 +120,12 @@ class JobAssessmentResult(ComputedFieldsModel):
     job_assessment = models.ForeignKey(
         JobAssessment, on_delete=models.CASCADE, verbose_name=_("Job Assessment"), related_name="results"
     )
-    status = models.CharField(
-        max_length=64, choices=Status.choices, verbose_name=_("Status"), default=Status.NOT_STARTED
-    )
+    raw_status = models.CharField(max_length=64, verbose_name=_("Status"))
     raw_score = models.JSONField(verbose_name=_("Raw Score"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
     order_id = models.UUIDField(editable=False, default=uuid.uuid4, verbose_name=_("Order ID"))
+    report_url = models.URLField(verbose_name=_("Report URL"), null=True, blank=True, editable=False)
 
     @computed(
         models.CharField(max_length=32, choices=UserScore.choices, null=True, blank=True),
@@ -131,7 +134,7 @@ class JobAssessmentResult(ComputedFieldsModel):
     def score(self):
         if self.raw_score is None:
             return
-        score = self.raw_score.get("score")
+        score = CombinedScore.model_validate(self.raw_score).RankingScore
         if score:
             if score < 65:
                 return self.UserScore.AVARAGE
@@ -140,6 +143,25 @@ class JobAssessmentResult(ComputedFieldsModel):
             elif score < 85:
                 return self.UserScore.GREAT
             return self.UserScore.EXCEPTIONAL
+
+    @computed(
+        models.CharField(max_length=32, choices=Status.choices, null=True, blank=True, default=Status.NOT_STARTED),
+        depends=[("self", ["raw_status"])],
+    )
+    def status(self):
+        if self.is_timeout():
+            return self.Status.TIMEOUT
+
+        match = re.match(CriteriaStatus.EVALUATION_IN_PROGRESS.value, self.raw_status)
+        if match or self.raw_status == CriteriaStatus.IN_PROGRESS.value:
+            return self.Status.IN_PROGRESS
+        elif self.raw_status == CriteriaStatus.SCHEDULED.value:
+            return self.Status.NOT_STARTED
+        elif self.raw_status == CriteriaStatus.COMPLETE.value:
+            return self.Status.COMPLETED
+
+    def is_timeout(self):
+        return self.created_at + self.job_assessment.time_limit < timezone.now()
 
     class Meta:
         verbose_name = _("Job Assessment Result")

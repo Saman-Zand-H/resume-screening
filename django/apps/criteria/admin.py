@@ -29,7 +29,8 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         "user",
         "job_assessment",
         "score",
-        "status",
+        JobAssessmentResult.raw_status.field.name,
+        JobAssessmentResult.status.field.name,
         "created_at",
         "updated_at",
     )
@@ -43,7 +44,12 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
-    readonly_fields = ("score", JobAssessmentResult.order_id.field.name)
+    readonly_fields = (
+        "score",
+        JobAssessmentResult.status.field.name,
+        JobAssessmentResult.order_id.field.name,
+        JobAssessmentResult.report_url.field.name,
+    )
     raw_id_fields = (
         "user",
         "job_assessment",
