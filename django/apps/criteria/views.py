@@ -1,3 +1,5 @@
+import contextlib
+import json
 import logging
 
 from django.conf import settings
@@ -16,6 +18,12 @@ class WebhookView(FormView):
     event = None
     form_class = None
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        with contextlib.suppress(json.JSONDecodeError):
+            kwargs["data"] = json.loads(self.request.body.decode("utf-8"))
+        return kwargs
+
     def get_error(self, message, status=400):
         return JsonResponse({"error": message}, status=status)
 
@@ -23,7 +31,6 @@ class WebhookView(FormView):
         return JsonResponse(data, status=status)
 
     def post(self, request, *args, **kwargs):
-        self.object = None
         api_key = request.headers.get("x-criteria-api-key")
         if api_key is None or api_key != settings.CRITERIA_SETTINGS["WEBHOOK_SECRET"]:
             return self.get_error("Unauthorized", status=401)

@@ -10,7 +10,7 @@ class Identifier(BaseModel):
 class Candidate(BaseModel):
     first: str
     last: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
 
 
 class ReturnURL(BaseModel):
