@@ -21,7 +21,7 @@ from common.choices import LANGUAGES
 
 
 class CommonQuery(graphene.ObjectType):
-    languages = graphene.List(LanguageType, name=graphene.String())
+    languages = graphene.List(LanguageType, name=graphene.String(), code=graphene.String())
     universities = DjangoFilterConnectionField(UniversityNode)
     fields = DjangoFilterConnectionField(FieldNode)
     countries = DjangoFilterConnectionField(CountryNode)
@@ -34,10 +34,12 @@ class CommonQuery(graphene.ObjectType):
     positions = DjangoFilterConnectionField(PositionNode)
     jobs = DjangoFilterConnectionField(JobNode)
 
-    def resolve_languages(self, info, name=None):
+    def resolve_languages(self, info, name=None, code=None):
         filtered_languages = LANGUAGES
         if name:
             filtered_languages = [lang for lang in filtered_languages if name.lower() in lang[1].lower()]
+        if code:
+            filtered_languages = [lang for lang in filtered_languages if code.lower() in lang[0].lower()]
         return [LanguageType(code=lang[0], name=lang[1]) for lang in filtered_languages]
 
 

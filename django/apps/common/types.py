@@ -32,6 +32,7 @@ class JobIndustryNode(DjangoObjectType):
             JobIndustry.title.field.name,
         )
         filter_fields = {
+            JobIndustry.id.field.name: ["exact"],
             JobIndustry.title.field.name: ["icontains"],
         }
 
@@ -45,6 +46,7 @@ class JobCategoryNode(DjangoObjectType):
             JobCategory.title.field.name,
         )
         filter_fields = {
+            JobCategory.id.field.name: ["exact"],
             JobCategory.title.field.name: ["icontains"],
         }
 
@@ -61,6 +63,7 @@ class JobNode(DjangoObjectType):
             Job.require_appearance_data.field.name,
         )
         filter_fields = {
+            Job.id.field.name: ["exact"],
             Job.title.field.name: ["icontains"],
             Job.category.field.name: ["exact"],
             Job.industry.field.name: ["exact"],
@@ -78,6 +81,7 @@ class UniversityNode(DjangoObjectType):
             University.website.field.name,
         )
         filter_fields = {
+            University.id.field.name: ["exact"],
             University.name.field.name: ["icontains"],
         }
 
@@ -91,6 +95,7 @@ class FieldNode(DjangoObjectType):
             Field.name.field.name,
         )
         filter_fields = {
+            Field.id.field.name: ["exact"],
             Field.name.field.name: ["icontains"],
         }
 
@@ -101,6 +106,7 @@ class CountryNode(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         fields = list(CountryTypeBase._meta.fields.keys())
         filter_fields = {
+            Country.id.field.name: ["exact"],
             Country.name.field.name: ["icontains"],
         }
 
@@ -111,6 +117,7 @@ class RegionNode(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         fields = list(RegionTypeBase._meta.fields.keys())
         filter_fields = {
+            Region.id.field.name: ["exact"],
             Region.name.field.name: ["icontains"],
             Region.country.field.name: ["exact"],
         }
@@ -129,6 +136,7 @@ class CityNode(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
         fields = list(CityTypeBase._meta.fields.keys())
         filter_fields = {
+            City.id.field.name: ["exact"],
             City.name.field.name: ["icontains"],
             City.region.field.name: ["exact"],
         }
@@ -150,6 +158,7 @@ class LanguageProficiencyTestNode(DjangoObjectType):
             LanguageProficiencyTest.max_score.field.name,
         )
         filter_fields = {
+            LanguageProficiencyTest.id.field.name: ["exact"],
             LanguageProficiencyTest.title.field.name: ["icontains"],
         }
 
@@ -163,6 +172,7 @@ class PositionNode(DjangoObjectType):
             Position.title.field.name,
         )
         filter_fields = {
+            Position.id.field.name: ["exact"],
             Position.title.field.name: ["icontains"],
         }
 
@@ -176,6 +186,7 @@ class SkillNode(DjangoObjectType):
             Skill.title.field.name,
         )
         filter_fields = {
+            Skill.id.field.name: ["exact"],
             Skill.title.field.name: ["icontains"],
         }
 
