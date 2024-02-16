@@ -1,7 +1,5 @@
 from cities_light.models import City
-from mptt.models import MPTTModel, TreeForeignKey
 
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -66,6 +64,18 @@ class University(models.Model):
         return self.name
 
 
+class SkillTopic(models.Model):
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    industry = models.ForeignKey(JobIndustry, on_delete=models.CASCADE, verbose_name=_("Industry"))
+
+    class Meta:
+        verbose_name = _("Skill Topic")
+        verbose_name_plural = _("Skill Topics")
+
+    def __str__(self):
+        return self.title
+
+
 class SkillQuerySet(models.QuerySet):
     def system(self):
         return self.filter(insert_type=Skill.InsertType.SYSTEM)
@@ -74,7 +84,7 @@ class SkillQuerySet(models.QuerySet):
         return self.filter(insert_type=Skill.InsertType.AI)
 
 
-class Skill(MPTTModel):
+class Skill(models.Model):
     class InsertType(models.TextChoices):
         SYSTEM = "system", _("System")
         AI = "ai", _("AI")
@@ -84,14 +94,14 @@ class Skill(MPTTModel):
         unique=True,
         verbose_name=_("Title"),
     )
-    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="children")
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), null=True, blank=True)
     insert_type = models.CharField(
         max_length=10,
         choices=InsertType.choices,
         default=InsertType.SYSTEM,
         verbose_name=_("Insert Type"),
     )
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), null=True, blank=True)
+    topic = models.ForeignKey(SkillTopic, on_delete=models.CASCADE, verbose_name=_("Topic"))
     objects = SkillQuerySet.as_manager()
 
     class Meta:
@@ -100,10 +110,6 @@ class Skill(MPTTModel):
 
     def __str__(self):
         return self.title
-
-    def clean(self):
-        if self.job and self.parent is not None:
-            raise ValidationError({"job": _("Only level one skills can have jobs")})
 
 
 class Position(models.Model):

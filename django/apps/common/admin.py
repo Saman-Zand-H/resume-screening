@@ -1,5 +1,3 @@
-from mptt.admin import MPTTModelAdmin
-
 from django.contrib import admin
 
 from .models import (
@@ -10,6 +8,7 @@ from .models import (
     LanguageProficiencyTest,
     Position,
     Skill,
+    SkillTopic,
     University,
 )
 
@@ -48,11 +47,17 @@ class UniversityAdmin(admin.ModelAdmin):
     raw_id_fields = ("city",)
 
 
+@admin.register(SkillTopic)
+class SkillTopicAdmin(admin.ModelAdmin):
+    list_display = (SkillTopic.title.field.name, SkillTopic.industry.field.name)
+    search_fields = (SkillTopic.title.field.name,)
+    list_filter = (SkillTopic.industry.field.name,)
+
+
 @admin.register(Skill)
-class SkillAdmin(MPTTModelAdmin):
+class SkillAdmin(admin.ModelAdmin):
     list_display = (
         Skill.title.field.name,
-        Skill.parent.field.name,
         Skill.job.field.name,
         Skill.insert_type.field.name,
     )
