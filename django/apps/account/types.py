@@ -83,8 +83,7 @@ class IEEMethodType(DjangoObjectType):
         model = IEEMethod
         fields = (
             IEEMethod.id.field.name,
-            IEEMethod.ices_document.field.name,
-            IEEMethod.citizen_document.field.name,
+            IEEMethod.education_evaluation_document.field.name,
             IEEMethod.evaluator.field.name,
         )
 
@@ -94,6 +93,7 @@ class CommunicationMethodType(DjangoObjectType):
         model = CommunicationMethod
         fields = (
             CommunicationMethod.id.field.name,
+            CommunicationMethod.website.field.name,
             CommunicationMethod.email.field.name,
             CommunicationMethod.department.field.name,
             CommunicationMethod.person.field.name,
