@@ -1,23 +1,23 @@
 import graphene
 from graphene_django.filter import DjangoFilterConnectionField
 
+from common.choices import LANGUAGES
+
 from .types import (
-    ErrorType,
     CityNode,
     CountryNode,
+    ErrorType,
     FieldNode,
-    RegionNode,
-    UniversityNode,
-    LanguageType,
-    LanguageProficiencyTestNode,
-    JobIndustryNode,
+    IndustryNode,
     JobCategoryNode,
-    SkillNode,
-    PositionNode,
     JobNode,
+    LanguageProficiencyTestNode,
+    LanguageType,
+    PositionNode,
+    RegionNode,
+    SkillNode,
+    UniversityNode,
 )
-
-from common.choices import LANGUAGES
 
 
 class CommonQuery(graphene.ObjectType):
@@ -28,7 +28,7 @@ class CommonQuery(graphene.ObjectType):
     regions = DjangoFilterConnectionField(RegionNode)
     cities = DjangoFilterConnectionField(CityNode)
     languages_proficiency_tests = DjangoFilterConnectionField(LanguageProficiencyTestNode)
-    job_industries = DjangoFilterConnectionField(JobIndustryNode)
+    job_industries = DjangoFilterConnectionField(IndustryNode)
     job_categories = DjangoFilterConnectionField(JobCategoryNode)
     skills = DjangoFilterConnectionField(SkillNode)
     positions = DjangoFilterConnectionField(PositionNode)

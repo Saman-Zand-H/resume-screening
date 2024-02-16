@@ -4,8 +4,20 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class Industry(models.Model):
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+
+    class Meta:
+        verbose_name = _("Industry")
+        verbose_name_plural = _("Industries")
+
+    def __str__(self):
+        return self.title
+
+
 class JobCategory(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
+    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, verbose_name=_("Industry"))
 
     class Meta:
         verbose_name = _("Job Category")
@@ -15,21 +27,9 @@ class JobCategory(models.Model):
         return self.title
 
 
-class JobIndustry(models.Model):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
-
-    class Meta:
-        verbose_name = _("Job Industry")
-        verbose_name_plural = _("Job Industries")
-
-    def __str__(self):
-        return self.title
-
-
 class Job(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     category = models.ForeignKey(JobCategory, on_delete=models.CASCADE, verbose_name=_("Category"))
-    industry = models.ForeignKey(JobIndustry, on_delete=models.CASCADE, verbose_name=_("Industry"))
     require_appearance_data = models.BooleanField(default=False, verbose_name=_("Require Appearance Data"))
 
     class Meta:
@@ -66,7 +66,7 @@ class University(models.Model):
 
 class SkillTopic(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
-    industry = models.ForeignKey(JobIndustry, on_delete=models.CASCADE, verbose_name=_("Industry"))
+    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, verbose_name=_("Industry"))
 
     class Meta:
         verbose_name = _("Skill Topic")

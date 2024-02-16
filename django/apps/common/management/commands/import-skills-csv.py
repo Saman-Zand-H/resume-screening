@@ -1,6 +1,6 @@
 import csv
 
-from common.models import JobIndustry, Skill, SkillTopic
+from common.models import Industry, Skill, SkillTopic
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -19,7 +19,7 @@ class Command(BaseCommand):
             with open(csv_file, newline="") as file:
                 reader = csv.DictReader(file)
                 for row in reader:
-                    industry, _ = JobIndustry.objects.get_or_create(title=row["industry"])
+                    industry, _ = Industry.objects.get_or_create(title=row["industry"])
                     topic, _ = SkillTopic.objects.get_or_create(title=row["topic"], industry=industry)
                     Skill.objects.get_or_create(title=row["skill"], topic=topic)
             self.stdout.write(self.style.SUCCESS("Successfully imported skills"))
@@ -32,6 +32,6 @@ class Command(BaseCommand):
         self.import_skill(row)
 
     def import_skill(self, row):
-        industry, _ = JobIndustry.objects.get_or_create(title=row["industry"])
+        industry, _ = Industry.objects.get_or_create(title=row["industry"])
         topic, _ = SkillTopic.objects.get_or_create(title=row["topic"], industry=industry)
         Skill.objects.get_or_create(title=row["skill"], topic=topic)

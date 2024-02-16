@@ -1,5 +1,4 @@
 import graphene
-
 from cities_light.graphql.types import City as CityTypeBase
 from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
@@ -10,9 +9,9 @@ from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectT
 from .exceptions import Error, Errors
 from .models import (
     Field,
+    Industry,
     Job,
     JobCategory,
-    JobIndustry,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -23,17 +22,17 @@ enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstanc
 ErrorType = graphene.Enum("Errors", enum_values)
 
 
-class JobIndustryNode(DjangoObjectType):
+class IndustryNode(DjangoObjectType):
     class Meta:
-        model = JobIndustry
+        model = Industry
         interfaces = (graphene.relay.Node,)
         fields = (
-            JobIndustry.id.field.name,
-            JobIndustry.title.field.name,
+            Industry.id.field.name,
+            Industry.title.field.name,
         )
         filter_fields = {
-            JobIndustry.id.field.name: ["exact"],
-            JobIndustry.title.field.name: ["icontains"],
+            Industry.id.field.name: ["exact"],
+            Industry.title.field.name: ["icontains"],
         }
 
 
@@ -59,14 +58,12 @@ class JobNode(DjangoObjectType):
             Job.id.field.name,
             Job.title.field.name,
             Job.category.field.name,
-            Job.industry.field.name,
             Job.require_appearance_data.field.name,
         )
         filter_fields = {
             Job.id.field.name: ["exact"],
             Job.title.field.name: ["icontains"],
             Job.category.field.name: ["exact"],
-            Job.industry.field.name: ["exact"],
         }
 
 

@@ -2,9 +2,9 @@ from django.contrib import admin
 
 from .models import (
     Field,
+    Industry,
     Job,
     JobCategory,
-    JobIndustry,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -13,23 +13,24 @@ from .models import (
 )
 
 
+@admin.register(Industry)
+class IndustryAdmin(admin.ModelAdmin):
+    list_display = (Industry.title.field.name,)
+    search_fields = (Industry.title.field.name,)
+
+
 @admin.register(JobCategory)
 class JobCategoryAdmin(admin.ModelAdmin):
-    list_display = ("title",)
-    search_fields = ("title",)
-
-
-@admin.register(JobIndustry)
-class JobIndustryAdmin(admin.ModelAdmin):
-    list_display = ("title",)
-    search_fields = ("title",)
+    list_display = (JobCategory.title.field.name, JobCategory.industry.field.name)
+    search_fields = (JobCategory.title.field.name,)
+    list_filter = (JobCategory.industry.field.name,)
 
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ("title", "category", "industry")
-    search_fields = ("title", "category__title", "industry__title")
-    list_filter = ("category", "industry")
+    list_display = (Job.title.field.name, Job.category.field.name)
+    search_fields = (Job.title.field.name,)
+    list_filter = (Job.category.field.name,)
 
 
 @admin.register(Field)
