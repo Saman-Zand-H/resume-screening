@@ -100,8 +100,8 @@ class Migration(migrations.Migration):
             name='IEEMethod',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ices_document', models.FileField(upload_to=account.models.ices_document_path, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']), common.validators.ValidateFileSize(max=5)], verbose_name='ICES Document')),
-                ('citizen_document', models.FileField(upload_to=account.models.citizen_document_path, validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']), common.validators.ValidateFileSize(max=5)], verbose_name='Citizen Document')),
+                ('ices_document', models.FileField(upload_to="", validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']), common.validators.ValidateFileSize(max=5)], verbose_name='ICES Document')),
+                ('citizen_document', models.FileField(upload_to="", validators=[django.core.validators.FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']), common.validators.ValidateFileSize(max=5)], verbose_name='Citizen Document')),
                 ('evaluator', models.CharField(choices=[('wes', 'World Education Services'), ('iqas', 'International Qualifications Assessment Service'), ('icas', 'International Credential Assessment Service of Canada'), ('ces', 'Comparative Education Service')], max_length=50, verbose_name='Academic Credential Evaluator')),
                 ('education_verification', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to='auth_account.educationverification', verbose_name='Education Verification')),
             ],

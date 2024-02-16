@@ -117,7 +117,7 @@ class EducationAdmin(admin.ModelAdmin):
 
 @register(IEEMethod)
 class IEEMethodAdmin(admin.ModelAdmin):
-    list_display = ("education", "ices_document", "citizen_document", "evaluator")
+    list_display = ("education", "education_evaluation_document", "evaluator")
     search_fields = ("education__user__email", "evaluator")
     list_filter = ("evaluator",)
     raw_id_fields = ("education",)
@@ -125,8 +125,8 @@ class IEEMethodAdmin(admin.ModelAdmin):
 
 @register(CommunicationMethod)
 class CommunicationMethodAdmin(admin.ModelAdmin):
-    list_display = ("education", "email", "department", "person", "degree_file")
-    search_fields = ("education__user__email", "email", "department", "person")
+    list_display = ("education", "website", "email", "department", "person", "degree_file")
+    search_fields = ("education__user__email", "website", "email", "department", "person")
     list_filter = ("department",)
     raw_id_fields = ("education",)
 
@@ -189,9 +189,7 @@ class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
 @register(LanguageCertificate)
 class LanguageCertificateAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "test__title", "status", "issued_at", "expired_at", "band_score")
-    search_fields = (
-        "user__email",
-    )
+    search_fields = ("user__email",)
     list_filter = ("test__title", "issued_at", "expired_at")
     raw_id_fields = ("user", "test")
 

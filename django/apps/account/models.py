@@ -53,12 +53,8 @@ def get_certificate_and_license_verification_path(path, instance, filename):
     return f"profile/{instance.certificate_and_license.user.id}/certificate_and_license_verification/{path}/{filename}"
 
 
-def ices_document_path(instance, filename):
-    return get_education_verification_path("ices", instance, filename)
-
-
-def citizen_document_path(instance, filename):
-    return get_education_verification_path("citizen", instance, filename)
+def education_evaluation_document_path(instance, filename):
+    return get_education_verification_path("education_evaluation", instance, filename)
 
 
 def degree_file_path(instance, filename):
@@ -419,14 +415,9 @@ class IEEMethod(EducationVerificationMethodAbstract):
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
 
-    ices_document = models.FileField(
-        upload_to=ices_document_path,
-        verbose_name=_("ICES Document"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
-    )
-    citizen_document = models.FileField(
-        upload_to=citizen_document_path,
-        verbose_name=_("Citizen Document"),
+    education_evaluation_document = models.FileField(
+        upload_to=education_evaluation_document_path,
+        verbose_name=_("Education Evaluation Document"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
     evaluator = models.CharField(
@@ -441,6 +432,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 
 class CommunicationMethod(EducationVerificationMethodAbstract):
+    website = models.URLField(verbose_name=_("Website"))
     email = models.EmailField(verbose_name=_("Email"))
     department = models.CharField(max_length=255, verbose_name=_("Department"))
     person = models.CharField(max_length=255, verbose_name=_("Person"))
