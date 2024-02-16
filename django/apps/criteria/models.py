@@ -120,7 +120,7 @@ class JobAssessmentResult(ComputedFieldsModel):
     job_assessment = models.ForeignKey(
         JobAssessment, on_delete=models.CASCADE, verbose_name=_("Job Assessment"), related_name="results"
     )
-    raw_status = models.CharField(max_length=64, verbose_name=_("Status"))
+    raw_status = models.CharField(max_length=64, verbose_name=_("Status"), default=CriteriaStatus.IN_PROGRESS.value)
     raw_score = models.JSONField(verbose_name=_("Raw Score"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
