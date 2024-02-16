@@ -161,6 +161,8 @@ class JobAssessmentResult(ComputedFieldsModel):
             return self.Status.COMPLETED
 
     def is_timeout(self):
+        if not self.created_at:
+            return False
         return self.created_at + self.job_assessment.time_limit < timezone.now()
 
     class Meta:
