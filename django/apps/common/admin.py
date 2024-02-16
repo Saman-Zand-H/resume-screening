@@ -58,7 +58,6 @@ class SkillTopicAdmin(admin.ModelAdmin):
 class SkillAdmin(admin.ModelAdmin):
     list_display = (
         Skill.title.field.name,
-        Skill.job.field.name,
         Skill.insert_type.field.name,
     )
     search_fields = (Skill.title.field.name,)

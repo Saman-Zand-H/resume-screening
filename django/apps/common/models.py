@@ -89,18 +89,13 @@ class Skill(models.Model):
         SYSTEM = "system", _("System")
         AI = "ai", _("AI")
 
-    title = models.CharField(
-        max_length=255,
-        unique=True,
-        verbose_name=_("Title"),
-    )
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
     insert_type = models.CharField(
         max_length=10,
         choices=InsertType.choices,
         default=InsertType.SYSTEM,
         verbose_name=_("Insert Type"),
     )
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), null=True, blank=True)
     topic = models.ForeignKey(SkillTopic, on_delete=models.CASCADE, verbose_name=_("Topic"))
     objects = SkillQuerySet.as_manager()
 
