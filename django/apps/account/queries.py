@@ -1,8 +1,6 @@
 import graphene
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
-from graphene_django_cud.util.model import disambiguate_id
-
 
 from .types import (
     CertificateAndLicenseNode,
@@ -18,7 +16,7 @@ class EducationQuery(graphene.ObjectType):
 
     @login_required
     def resolve_get(self, info, id):
-        return EducationNode.get_node(info, disambiguate_id(id))
+        return EducationNode.get_node(info, id)
 
 
 class WorkExperienceQuery(graphene.ObjectType):
@@ -26,7 +24,7 @@ class WorkExperienceQuery(graphene.ObjectType):
 
     @login_required
     def resolve_get(self, info, id):
-        return WorkExperienceNode.get_node(info, disambiguate_id(id))
+        return WorkExperienceNode.get_node(info, id)
 
 
 class LanguageCertificateQuery(graphene.ObjectType):
@@ -34,7 +32,7 @@ class LanguageCertificateQuery(graphene.ObjectType):
 
     @login_required
     def resolve_get(self, info, id):
-        return LanguageCertificateNode.get_node(info, disambiguate_id(id))
+        return LanguageCertificateNode.get_node(info, id)
 
 
 class CertificateAndLicenseQuery(graphene.ObjectType):
@@ -42,7 +40,7 @@ class CertificateAndLicenseQuery(graphene.ObjectType):
 
     @login_required
     def resolve_get(self, info, id):
-        return CertificateAndLicenseNode.get_node(info, disambiguate_id(id))
+        return CertificateAndLicenseNode.get_node(info, id)
 
 
 class Query(MeQuery, graphene.ObjectType):

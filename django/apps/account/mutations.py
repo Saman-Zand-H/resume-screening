@@ -13,7 +13,6 @@ from graphene_django_cud.mutations import (
     DjangoUpdateMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
-from graphene_django_cud.util.model import disambiguate_id
 from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
@@ -184,25 +183,18 @@ class UserUpdateMutation(DjangoCreateMutation):
         obj.full_clean(validate_unique=False)
 
     @classmethod
-    def sanetize_intersested_jobs(cls, intersested_jobs):
-        return set(map(lambda j: int(disambiguate_id(j)), intersested_jobs or []))
-
-    @classmethod
     def validate(cls, root, info, input):
         user = info.context.user
 
-        if interested_jobs := input.get(Profile.interested_jobs.field.name):
-            available_jobs = set(user.available_jobs.values_list("id", flat=True))
-            interested_jobs = cls.sanetize_intersested_jobs(interested_jobs)
+        if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
+            available_jobs = map(str, set(user.available_jobs.values_list("id", flat=True)))
             if not interested_jobs.issubset(available_jobs):
                 raise GraphQLErrorBadRequest(_("Interested jobs must be in available jobs."))
 
             if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
-                # Check if appearance data is provided, but is Null or empty
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
                     raise GraphQLErrorBadRequest(_("Appearance related data cannot be unset."))
                 if not (hasattr(user, "profile") and user.profile.has_appearance_related_data):
-                    # Check if appearance data is not provided
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
         return super().validate(root, info, input)
