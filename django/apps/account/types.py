@@ -19,9 +19,9 @@ from .models import (
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
+    Resume,
     User,
     WorkExperience,
-    Resume,
 )
 
 
@@ -62,7 +62,7 @@ class EducationMethodFieldTypes(graphene.ObjectType):
 class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = Education
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             Education.id.field.name,
             Education.field.field.name,
@@ -104,7 +104,7 @@ class CommunicationMethodType(DjangoObjectType):
 class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = WorkExperience
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             WorkExperience.id.field.name,
             WorkExperience.job.field.name,
@@ -154,7 +154,7 @@ class ReferenceCheckEmployerType(DjangoObjectType):
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = LanguageCertificate
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
@@ -174,7 +174,7 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
 class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = CertificateAndLicense
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             CertificateAndLicense.id.field.name,
             CertificateAndLicense.title.field.name,
@@ -189,7 +189,7 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
 class CanadaVisaNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = CanadaVisa
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             CanadaVisa.id.field.name,
             CanadaVisa.nationality.field.name,
@@ -221,7 +221,7 @@ class UserNode(BaseUserNode):
     class Meta:
         model = User
         filter_fields = graphql_auth_settings.USER_NODE_FILTER_FIELDS
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         connection_class = CountableConnection
         fields = (
             User.first_name.field.name,

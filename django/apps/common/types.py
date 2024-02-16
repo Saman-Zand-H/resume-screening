@@ -25,7 +25,7 @@ ErrorType = graphene.Enum("Errors", enum_values)
 class IndustryNode(DjangoObjectType):
     class Meta:
         model = Industry
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             Industry.id.field.name,
             Industry.title.field.name,
@@ -39,7 +39,7 @@ class IndustryNode(DjangoObjectType):
 class JobCategoryNode(DjangoObjectType):
     class Meta:
         model = JobCategory
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             JobCategory.id.field.name,
             JobCategory.title.field.name,
@@ -53,7 +53,7 @@ class JobCategoryNode(DjangoObjectType):
 class JobNode(DjangoObjectType):
     class Meta:
         model = Job
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             Job.id.field.name,
             Job.title.field.name,
@@ -70,7 +70,7 @@ class JobNode(DjangoObjectType):
 class UniversityNode(DjangoObjectType):
     class Meta:
         model = University
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             University.id.field.name,
             University.name.field.name,
@@ -86,7 +86,7 @@ class UniversityNode(DjangoObjectType):
 class FieldNode(DjangoObjectType):
     class Meta:
         model = Field
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             Field.id.field.name,
             Field.name.field.name,
@@ -100,8 +100,8 @@ class FieldNode(DjangoObjectType):
 class CountryNode(DjangoObjectType):
     class Meta:
         model = Country
-        interfaces = (graphene.relay.Node,)
-        fields = list(CountryTypeBase._meta.fields.keys())
+        use_connection = True
+        fields = [Country.id.field.name] + list(CountryTypeBase._meta.fields.keys())
         filter_fields = {
             Country.id.field.name: ["exact"],
             Country.name.field.name: ["icontains"],
@@ -111,8 +111,8 @@ class CountryNode(DjangoObjectType):
 class RegionNode(DjangoObjectType):
     class Meta:
         model = Region
-        interfaces = (graphene.relay.Node,)
-        fields = list(RegionTypeBase._meta.fields.keys())
+        use_connection = True
+        fields = [Region.id.field.name] + list(RegionTypeBase._meta.fields.keys())
         filter_fields = {
             Region.id.field.name: ["exact"],
             Region.name.field.name: ["icontains"],
@@ -123,15 +123,15 @@ class RegionNode(DjangoObjectType):
 class SubRegionNode(DjangoObjectType):
     class Meta:
         model = SubRegion
-        interfaces = (graphene.relay.Node,)
-        fields = list(SubRegionTypeBase._meta.fields.keys())
+        use_connection = True
+        fields = [SubRegion.id.field.name] + list(SubRegionTypeBase._meta.fields.keys())
 
 
 class CityNode(DjangoObjectType):
     class Meta:
         model = City
-        interfaces = (graphene.relay.Node,)
-        fields = list(CityTypeBase._meta.fields.keys())
+        use_connection = True
+        fields = [City.id.field.name] + list(CityTypeBase._meta.fields.keys())
         filter_fields = {
             City.id.field.name: ["exact"],
             City.name.field.name: ["icontains"],
@@ -147,7 +147,7 @@ class LanguageType(graphene.ObjectType):
 class LanguageProficiencyTestNode(DjangoObjectType):
     class Meta:
         model = LanguageProficiencyTest
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             LanguageProficiencyTest.id.field.name,
             LanguageProficiencyTest.title.field.name,
@@ -163,7 +163,7 @@ class LanguageProficiencyTestNode(DjangoObjectType):
 class PositionNode(DjangoObjectType):
     class Meta:
         model = Position
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             Position.id.field.name,
             Position.title.field.name,
@@ -177,7 +177,7 @@ class PositionNode(DjangoObjectType):
 class SkillNode(DjangoObjectType):
     class Meta:
         model = Skill
-        interfaces = (graphene.relay.Node,)
+        use_connection = True
         fields = (
             Skill.id.field.name,
             Skill.title.field.name,
