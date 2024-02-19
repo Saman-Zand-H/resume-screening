@@ -45,6 +45,7 @@ from .models import (
     LanguageCertificate,
     Profile,
     ReferenceCheckEmployer,
+    Referral,
     Resume,
     User,
     WorkExperience,
@@ -56,6 +57,9 @@ from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
+    _args = graphql_auth_mutations.Register._args + [
+        "referral_code",
+    ]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
@@ -71,7 +75,15 @@ class Register(graphql_auth_mutations.Register):
             ):
                 user.delete()
 
-        return super().mutate(*args, **kwargs)
+        result = super().mutate(*args, **kwargs)
+        if not result.success:
+            return result
+
+        referral = Referral.objects.filter(code=kwargs.pop("referral_code", None)).first()
+        if referral:
+            referral.referred_users.add(User.objects.get(**{User.EMAIL_FIELD: email}))
+
+        return result
 
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):

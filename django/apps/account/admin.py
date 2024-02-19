@@ -22,6 +22,8 @@ from .models import (
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
+    Referral,
+    ReferralUser,
     Resume,
     User,
     WorkExperience,
@@ -257,3 +259,21 @@ class ResumeAdmin(admin.ModelAdmin):
     )
     search_fields = ("user__email", "file")
     raw_id_fields = ("user",)
+
+
+class ReferralUserInline(admin.TabularInline):
+    model = ReferralUser
+    extra = 1
+    readonly_fields = (ReferralUser.referred_at.field.name,)
+    raw_id_fields = (ReferralUser.user.field.name,)
+
+
+@register(Referral)
+class ReferralAdmin(admin.ModelAdmin):
+    list_display = (
+        Referral.user.field.name,
+        Referral.code.field.name,
+    )
+    search_fields = ("user__email", Referral.code.field.name)
+    raw_id_fields = (Referral.user.field.name,)
+    inlines = (ReferralUserInline,)
