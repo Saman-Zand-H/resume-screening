@@ -118,7 +118,8 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
         user = auth.get("user")
         user.status.verified = True
-        user.status.save(update_fields=["verified"])
+        user.username = user.email
+        user.status.save(update_fields=["verified", "username"])
         on_token_auth_resolve((info.context, user, cls))
         cls.success = True
         cls.errors = None
