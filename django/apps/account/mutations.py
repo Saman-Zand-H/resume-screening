@@ -79,7 +79,7 @@ class Register(graphql_auth_mutations.Register):
         if not result.success:
             return result
 
-        referral = Referral.objects.filter(code=kwargs.pop("referral_code", None)).first()
+        referral = Referral.objects.filter(code__iexact=kwargs.pop("referral_code", None)).first()
         if referral:
             referral.referred_users.add(User.objects.get(**{User.EMAIL_FIELD: email}))
 
