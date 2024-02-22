@@ -40,7 +40,7 @@ class CommonQuery(graphene.ObjectType):
             filtered_languages = [lang for lang in filtered_languages if name.lower() in lang[1].lower()]
         if code:
             filtered_languages = [lang for lang in filtered_languages if code.lower() in lang[0].lower()]
-        return [LanguageType(code=lang[0], name=lang[1]) for lang in filtered_languages]
+        return [LanguageType(code=lang[0].upper(), name=lang[1]) for lang in filtered_languages]
 
 
 class MetaDataQuery(graphene.ObjectType):
