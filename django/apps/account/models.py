@@ -1,4 +1,6 @@
+import base64
 import contextlib
+import uuid
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
@@ -89,6 +91,10 @@ def fix_whatsapp_value(value):
     with contextlib.suppress(NumberParseException):
         return PhoneNumber.from_string(value).as_e164
     return value
+
+
+def generate_unique_referral_code():
+    return base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:8]
 
 
 class UserManager(BaseUserManager):
@@ -714,3 +720,25 @@ class Resume(models.Model):
         if not self.text:
             return self.set_resume_text()
         return self.text
+
+
+class Referral(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="referral")
+    code = models.CharField(max_length=20, unique=True, default=generate_unique_referral_code)
+    referred_users = models.ManyToManyField(User, through="ReferralUser", related_name="referred_by", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.code
+
+
+class ReferralUser(models.Model):
+    referral = models.ForeignKey(Referral, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    referred_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("referral", "user")
+
+    def __str__(self):
+        return f"{self.referral.code} - {self.user.email}"

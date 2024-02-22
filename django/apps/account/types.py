@@ -19,6 +19,7 @@ from .models import (
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
+    Referral,
     Resume,
     User,
     WorkExperience,
@@ -209,6 +210,12 @@ class ResumeType(DjangoObjectType):
         )
 
 
+class ReferralType(DjangoObjectType):
+    class Meta:
+        model = Referral
+        fields = (Referral.code.field.name,)
+
+
 class UserNode(BaseUserNode):
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
@@ -234,6 +241,7 @@ class UserNode(BaseUserNode):
             Profile.user.field.related_query_name(),
             Contact.user.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
+            Referral.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):

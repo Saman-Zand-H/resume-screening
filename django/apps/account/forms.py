@@ -15,3 +15,10 @@ class PasswordLessRegisterForm(PasswordLessRegisterFormBase):
     def clean(self):
         self.cleaned_data["password1"] = self.cleaned_data["password2"] = make_password(None)
         return super().clean()
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.username = user.email
+        if commit:
+            user.save()
+        return user

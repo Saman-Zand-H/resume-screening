@@ -45,6 +45,7 @@ from .models import (
     LanguageCertificate,
     Profile,
     ReferenceCheckEmployer,
+    Referral,
     Resume,
     User,
     WorkExperience,
@@ -56,6 +57,9 @@ from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
+    _args = graphql_auth_mutations.Register._args + [
+        "referral_code",
+    ]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
@@ -71,7 +75,15 @@ class Register(graphql_auth_mutations.Register):
             ):
                 user.delete()
 
-        return super().mutate(*args, **kwargs)
+        result = super().mutate(*args, **kwargs)
+        if not result.success:
+            return result
+
+        referral = Referral.objects.filter(code__iexact=kwargs.pop("referral_code", None)).first()
+        if referral:
+            referral.referred_users.add(User.objects.get(**{User.EMAIL_FIELD: email}))
+
+        return result
 
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
@@ -118,7 +130,8 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
         user = auth.get("user")
         user.status.verified = True
-        user.status.save(update_fields=["verified"])
+        user.username = user.email
+        user.status.save(update_fields=["verified", "username"])
         on_token_auth_resolve((info.context, user, cls))
         cls.success = True
         cls.errors = None
