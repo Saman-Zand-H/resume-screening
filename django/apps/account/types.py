@@ -38,6 +38,7 @@ class ProfileType(DjangoObjectType):
             Profile.skin_color.field.name,
             Profile.hair_color.field.name,
             Profile.eye_color.field.name,
+            Profile.avatar.field.name,
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
             Profile.interested_jobs.field.name,

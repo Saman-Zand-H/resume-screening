@@ -35,6 +35,10 @@ from .utils import extract_resume_text
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
+def avatar_path(instance, filename):
+    return f"profile/{instance.user.id}/avatar/{filename}"
+
+
 def full_body_image_path(instance, filename):
     return f"profile/{instance.user.id}/full_body_image/{filename}"
 
@@ -186,6 +190,13 @@ class Profile(models.Model):
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
+    avatar = models.ImageField(
+        upload_to=avatar_path,
+        validators=[IMAGE_FILE_SIZE_VALIDATOR],
+        null=True,
+        blank=True,
+        verbose_name=_("Avatar"),
+    )
     full_body_image = models.ImageField(
         upload_to=full_body_image_path,
         validators=[IMAGE_FILE_SIZE_VALIDATOR],
