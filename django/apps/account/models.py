@@ -202,8 +202,11 @@ class Profile(models.Model):
     )
     interested_jobs = models.ManyToManyField(Job, verbose_name=_("Interested Jobs"), blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
-    native_languages = ArrayField(
-        models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Native Language"), null=True, blank=True
+    native_language = models.CharField(
+        choices=LANGUAGES, max_length=32, verbose_name=_("Native Language"), null=True, blank=True
+    )
+    fluent_languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Fluent Languages"), null=True, blank=True
     )
 
     class Meta:

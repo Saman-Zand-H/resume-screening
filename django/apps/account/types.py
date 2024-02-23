@@ -28,6 +28,7 @@ from .models import (
 
 class ProfileType(DjangoObjectType):
     has_resume = graphene.Boolean(source=Profile.has_resume.fget.__name__)
+    fluent_languages = graphene.List(graphene.String)
 
     class Meta:
         model = Profile
@@ -41,8 +42,11 @@ class ProfileType(DjangoObjectType):
             Profile.employment_status.field.name,
             Profile.interested_jobs.field.name,
             Profile.city.field.name,
-            Profile.native_languages.field.name,
+            Profile.native_language.field.name,
         )
+
+    def resolve_fluent_languages(self, info):
+        return [lang.upper() for lang in self.fluent_languages]
 
 
 class ContactType(DjangoObjectType):
