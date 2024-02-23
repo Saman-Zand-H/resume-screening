@@ -1,7 +1,12 @@
-from dj_rest_auth.registration.views import SocialLoginView
+from dj_rest_auth.registration.views import SocialLoginView as BaseSocialLoginView
 
 from .adapters import GoogleOAuth2Adapter, LinkedInOAuth2Adapter
 from .clients import OAuth2Client
+from .serializers import SocialLoginSerializer
+
+
+class SocialLoginView(BaseSocialLoginView):
+    serializer_class = SocialLoginSerializer
 
 
 class GoogleOAuth2View(SocialLoginView):

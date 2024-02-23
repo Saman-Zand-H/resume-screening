@@ -1,15 +1,28 @@
-from pydantic import BaseModel, field_validator, model_validator, ValidationInfo
-from typing import List, Optional
 from datetime import date
 from enum import Enum
+from typing import List, Optional
+
+from common.choices import LANGUAGES
+from common.models import City, Field, Job, LanguageProficiencyTest, Skill, University
+from dj_rest_auth.registration.serializers import (
+    SocialLoginSerializer as BaseSocialLoginSerializer,
+)
+from phonenumber_field.validators import validate_phonenumber
+from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 from django.core.validators import URLValidator
-from phonenumber_field.validators import validate_phonenumber
 
+from .models import Contact, Education, Profile, User
 from .validators import LinkedInUsernameValidator, WhatsAppValidator
-from .models import User, Profile, Contact, Education
-from common.models import Job, Skill, City, Field, University, LanguageProficiencyTest
-from common.choices import LANGUAGES
+
+
+class SocialLoginSerializer(BaseSocialLoginSerializer):
+    is_new_user = False
+
+    def get_social_login(self, *args, **kwargs):
+        sociallogin = super().get_social_login(*args, **kwargs)
+        self.is_new_user = not User.objects.filter(email=sociallogin.user.email).exists()
+        return sociallogin
 
 
 def get_existing_foreign_keys(model, ids: List[int]) -> Optional[List[int]]:

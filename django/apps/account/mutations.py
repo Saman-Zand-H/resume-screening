@@ -55,6 +55,14 @@ from .types import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
+def referral_registration(user, referral_code):
+    if not referral_code:
+        return
+    referral = Referral.objects.filter(code__iexact=referral_code).first()
+    if referral:
+        referral.referred_users.add(user)
+
+
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
@@ -79,9 +87,7 @@ class Register(graphql_auth_mutations.Register):
         if not result.success:
             return result
 
-        referral = Referral.objects.filter(code__iexact=kwargs.pop("referral_code", None)).first()
-        if referral:
-            referral.referred_users.add(User.objects.get(**{User.EMAIL_FIELD: email}))
+        referral_registration(User.objects.get(**{User.EMAIL_FIELD: email}), kwargs.pop("referral_code", None))
 
         return result
 
@@ -110,6 +116,7 @@ class RefreshToken(graphql_auth_mutations.RefreshToken):
 class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
+        referral_code = graphene.String()
 
     token = graphene.String()
     refresh_token = graphene.String()
@@ -127,12 +134,18 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         data = payload.get("data")
         view = payload.get("view")
 
-        auth = view.serializer_class(data=data, context={"view": view, "request": info.context}).validate(data)
+        serializer = view.serializer_class(data=data, context={"view": view, "request": info.context})
+        auth = serializer.validate(data)
         user = auth.get("user")
         user.status.verified = True
         user.username = user.email
-        user.status.save(update_fields=["verified", "username"])
+        user.status.save(update_fields=["verified"])
+        user.save(update_fields=["username"])
         on_token_auth_resolve((info.context, user, cls))
+
+        if serializer.is_new_user:
+            referral_registration(user, kwargs.get("referral_code"))
+
         cls.success = True
         cls.errors = None
         return cls
@@ -140,7 +153,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
 
 class GoogleAuth(BaseSocialAuth):
     @classmethod
-    def setup(cls, root, info, code):
+    def setup(cls, root, info, code, **kwargs):
         return {"data": {"code": code}, "view": GoogleOAuth2View}
 
 
