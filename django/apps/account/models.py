@@ -126,6 +126,7 @@ class User(AbstractUser):
             "_unique": True,
             "blank": False,
             "null": False,
+            "db_index": True,
         },
         "username": {
             "blank": True,
