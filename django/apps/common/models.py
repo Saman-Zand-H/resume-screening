@@ -1,7 +1,10 @@
 from cities_light.models import City
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from .choices import LANGUAGES
 
 
 class Industry(models.Model):
@@ -124,6 +127,7 @@ class LanguageProficiencyTest(models.Model):
     max_score = models.FloatField(verbose_name=_("Maximum Score"))
     overall_min_score = models.FloatField(verbose_name=_("Overall Minimum Score"))
     overall_max_score = models.FloatField(verbose_name=_("Overall Maximum Score"))
+    languages = ArrayField(models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Languages"))
 
     class Meta:
         verbose_name = _("Language Proficiency Test")
