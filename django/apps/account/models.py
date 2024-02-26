@@ -684,15 +684,25 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
 
 class CanadaVisa(models.Model):
     class Status(models.TextChoices):
-        STUDY_PERMIT = "study_permit", _("Study Permit")
-        WORK_PERMIT = "work_permit", _("Work Permit")
-        PERMANENT_RESIDENCY = "permanent_residency", _("Permanent Residency")
-        VISITOR_VISA = "visitor_visa", _("Visitor Visa")
-        REFUGEE_STATUS = "refugee_status", _("Refugee Status")
         CITIZENSHIP = "citizenship", _("Citizenship")
-        TEMPORARY_RESIDENCY = "temporary_residency", _("Temporary Residency")
-        PENDING = "pending", _("Pending")
-        OTHER = "other", _("Other")
+        PERMANENT_RESIDENT = "permanent_resident", _("Permanent Resident (PR)")
+        TEMPORARY_RESIDENT_OPEN_WORK_PERMIT = (
+            "temporary_resident_open_work_permit",
+            _("Temporary Resident (Open Work Permit)"),
+        )
+        TEMPORARY_RESIDENT_CLOSE_WORK_PERMIT = (
+            "temporary_resident_close_work_permit",
+            _("Temporary Resident (Close Work Permit)"),
+        )
+        TEMPORARY_RESIDENT_STUDY_PERMIT = "temporary_resident_study_permit", _("Temporary Resident (Study Permit)")
+        REFUGEE_WORK_PERMIT = "refugee_work_permit", _("Refugee (Work Permit)")
+        SEASONAL_AGRICULTURAL_WORKER_PROGRAM = (
+            "seasonal_agricultural_worker_program",
+            _("Seasonal Agricultural Worker Program (SAWP)"),
+        )
+        INTERNATIONAL_EXPERIENCE_CANADA = "international_experience_canada", _("International Experience Canada (IEC)")
+        ELECTRONIC_TRAVEL_AUTHORIZATION = "electronic_travel_authorization", _("Electronic Travel Authorization (eTA)")
+        VISITOR_VISA = "visitor_visa", _("Visitor Visa")
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="canada_visa")
     nationality = models.ForeignKey(
