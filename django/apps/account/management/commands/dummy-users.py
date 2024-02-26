@@ -5,11 +5,10 @@ from account.models import User
 from graphql_auth.models import UserStatus
 
 from django.contrib.auth.hashers import make_password
-
-DEFAULT_PREFIX = "cpj-test-user-zqML-"
-
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+
+DEFAULT_PREFIX = "cpj-test-user-zqML-"
 
 
 class Command(BaseCommand):
