@@ -28,9 +28,7 @@ class CommonQuery(graphene.ObjectType):
     regions = DjangoFilterConnectionField(RegionNode)
     cities = DjangoFilterConnectionField(CityNode)
     languages_proficiency_tests = DjangoFilterConnectionField(LanguageProficiencyTestNode)
-    job_industries = DjangoFilterConnectionField(IndustryNode)
     job_categories = DjangoFilterConnectionField(JobCategoryNode)
-    skills = DjangoFilterConnectionField(SkillNode)
     positions = DjangoFilterConnectionField(PositionNode)
     jobs = DjangoFilterConnectionField(JobNode)
 
