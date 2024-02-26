@@ -47,7 +47,9 @@ class ProfileType(DjangoObjectType):
         )
 
     def resolve_fluent_languages(self, info):
-        return [lang.upper() for lang in self.fluent_languages]
+        if self.fluent_languages:
+            return [lang.upper() for lang in self.fluent_languages]
+        return []
 
 
 class ContactType(DjangoObjectType):
