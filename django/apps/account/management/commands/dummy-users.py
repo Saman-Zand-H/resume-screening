@@ -47,7 +47,7 @@ class Command(BaseCommand):
         ]
 
         with transaction.atomic():
-            count = len(User.objects.bulk_create(users))
+            User.objects.bulk_create(users)
             User.objects.filter(email__in=existing_emails).update(password=hashed_password)
             existing_statuses = UserStatus.objects.filter(user__in=users).values_list("user", flat=True)
             user_statuses = [UserStatus(user=user, verified=True) for user in users if user.pk not in existing_statuses]
