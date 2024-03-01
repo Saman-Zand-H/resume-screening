@@ -8,14 +8,12 @@ from .types import (
     CountryNode,
     ErrorType,
     FieldNode,
-    IndustryNode,
     JobCategoryNode,
     JobNode,
     LanguageProficiencyTestNode,
     LanguageType,
     PositionNode,
     RegionNode,
-    SkillNode,
     UniversityNode,
 )
 
