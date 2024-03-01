@@ -750,16 +750,20 @@ class Resume(models.Model):
 class Referral(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="referral")
     code = models.CharField(max_length=20, unique=True, default=generate_unique_referral_code)
-    referred_users = models.ManyToManyField(User, through="ReferralUser", related_name="referred_by", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["code"]),
+        ]
 
     def __str__(self):
         return self.code
 
 
 class ReferralUser(models.Model):
-    referral = models.ForeignKey(Referral, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    referral = models.ForeignKey(Referral, on_delete=models.CASCADE, related_name="referred_users")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="referral_source")
     referred_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

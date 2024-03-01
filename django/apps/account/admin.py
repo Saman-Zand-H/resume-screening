@@ -99,6 +99,7 @@ class ProfileAdmin(admin.ModelAdmin):
         "city",
     )
     inlines = (ProfileInterestedJobsInline,)
+    readonly_fields = (Profile.credits.field.name,)
 
 
 @register(Contact)

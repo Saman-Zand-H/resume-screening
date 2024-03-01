@@ -24,6 +24,7 @@ from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import on_token_auth_resolve, refresh_expiration
 
 from account.utils import is_env
+from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -46,6 +47,7 @@ from .models import (
     Profile,
     ReferenceCheckEmployer,
     Referral,
+    ReferralUser,
     Resume,
     User,
     WorkExperience,
@@ -60,7 +62,7 @@ def referral_registration(user, referral_code):
         return
     referral = Referral.objects.filter(code__iexact=referral_code).first()
     if referral:
-        referral.referred_users.add(user)
+        ReferralUser.objects.create(user=user, referral=referral)
 
 
 class Register(graphql_auth_mutations.Register):
@@ -70,6 +72,7 @@ class Register(graphql_auth_mutations.Register):
     ]
 
     @classmethod
+    @transaction.atomic
     def mutate(cls, *args, **kwargs):
         email = kwargs.get(User.EMAIL_FIELD)
         try:
@@ -129,6 +132,7 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
 
     @classmethod
     @refresh_expiration
+    @transaction.atomic
     def mutate(cls, root, info, **kwargs):
         payload = cls.setup(root, info, **kwargs)
         data = payload.get("data")
