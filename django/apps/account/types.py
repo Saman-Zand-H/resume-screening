@@ -44,6 +44,7 @@ class ProfileType(DjangoObjectType):
             Profile.interested_jobs.field.name,
             Profile.city.field.name,
             Profile.native_language.field.name,
+            Profile.credits.field.name,
         )
 
     def resolve_fluent_languages(self, info):

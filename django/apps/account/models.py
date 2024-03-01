@@ -19,6 +19,7 @@ from common.validators import (
     DOCUMENT_FILE_SIZE_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
+from computedfields.models import ComputedFieldsModel, computed
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -160,7 +161,7 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class Profile(models.Model):
+class Profile(ComputedFieldsModel):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
         FAIR = "#F0D5B1", _("Fair")
@@ -220,6 +221,18 @@ class Profile(models.Model):
     fluent_languages = ArrayField(
         models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Fluent Languages"), null=True, blank=True
     )
+
+    @computed(
+        models.IntegerField(verbose_name=_("Credits")),
+        depends=[
+            ("user.referral.referred_users", ["id"]),
+        ],
+        prefetch_related=["user__referral__referred_users"],
+    )
+    def credits(self):
+        _credits = 0
+        _credits += self.user.referral.referred_users.count() * 100
+        return _credits
 
     class Meta:
         verbose_name = _("User Profile")
