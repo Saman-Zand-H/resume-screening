@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "cities_light",
     "phonenumber_field",
     "computedfields",
+    "cachalot",
 ]
 
 INSTALLED_APPS += [
