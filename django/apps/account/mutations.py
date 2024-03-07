@@ -192,7 +192,20 @@ class UserUpdateMutation(DjangoCreateMutation):
     class Meta:
         model = Profile
         login_required = True
-        exclude = (Profile.user.field.name,)
+        fields = (
+            Profile.height.field.name,
+            Profile.weight.field.name,
+            Profile.skin_color.field.name,
+            Profile.hair_color.field.name,
+            Profile.eye_color.field.name,
+            Profile.avatar.field.name,
+            Profile.full_body_image.field.name,
+            Profile.employment_status.field.name,
+            Profile.interested_jobs.field.name,
+            Profile.city.field.name,
+            Profile.native_language.field.name,
+            Profile.fluent_languages.field.name,
+        )
         custom_fields = USER_MUTATION_FIELDS
 
     @classmethod
