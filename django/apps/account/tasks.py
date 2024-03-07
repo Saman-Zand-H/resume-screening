@@ -22,7 +22,10 @@ def find_available_jobs(resume_pk: int) -> bool:
 
 def set_user_skills(user_pk: int) -> bool:
     user = User.objects.get(pk=user_pk)
-    existing_skills = extract_or_create_skills(user.raw_skills)[0]
+    extracted_skills = extract_or_create_skills(user.raw_skills)
+    if not extracted_skills:
+        return False
+    existing_skills = extracted_skills[0]
     if existing_skills:
         user.skills.set(existing_skills)
         return True

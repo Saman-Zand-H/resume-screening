@@ -21,7 +21,11 @@ from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
-from graphql_jwt.decorators import on_token_auth_resolve, refresh_expiration
+from graphql_jwt.decorators import (
+    login_required,
+    on_token_auth_resolve,
+    refresh_expiration,
+)
 
 from account.utils import is_env
 from django.db import transaction
@@ -257,6 +261,7 @@ class UserSetSkillsMutation(graphene.Mutation):
 
     user = graphene.Field(UserSkillType)
 
+    @login_required
     @staticmethod
     def mutate(root, info, input):
         user = info.context.user
