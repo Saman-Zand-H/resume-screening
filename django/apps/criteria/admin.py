@@ -12,14 +12,13 @@ class JobAssessmentInline(admin.TabularInline):
 @admin.register(JobAssessment)
 class JobAssessmentAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
-        "package_id",
-        "title",
-        "description",
-        "resumable",
+        JobAssessment.title.field.name,
+        JobAssessment.package_id.field.name,
+        JobAssessment.short_description.field.name,
+        JobAssessment.resumable.field.name,
     )
-    search_fields = ("package_id",)
-    list_filter = ("resumable",)
+    search_fields = (JobAssessment.title.field.name, JobAssessment.package_id.field.name)
+    list_filter = (JobAssessment.resumable.field.name,)
     inlines = (JobAssessmentInline,)
 
 
