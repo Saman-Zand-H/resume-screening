@@ -192,7 +192,17 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 )
 
 
-class UserUpdateMutation(DjangoCreateMutation):
+class UserUpdateMutationBase(DjangoUpdateMutation):
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        super().__init_subclass_with_meta__(*args, **kwargs)
+        del cls._meta.arguments["id"]
+
+
+class UserUpdateMutation(UserUpdateMutationBase):
     class Meta:
         model = Profile
         login_required = True
@@ -213,7 +223,15 @@ class UserUpdateMutation(DjangoCreateMutation):
         custom_fields = USER_MUTATION_FIELDS
 
     @classmethod
-    def before_create_obj(cls, info, input, obj):
+    def mutate(cls, *args, **kwargs):
+        info = args[1]
+        user = info.context.user
+        profile, _ = Profile.objects.get_or_create(user=user)
+
+        return super().mutate(*args, **kwargs, id=profile.pk)
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj):
         user = info.context.user
 
         user_fields = USER_MUTATION_FIELDS.keys()
@@ -223,14 +241,10 @@ class UserUpdateMutation(DjangoCreateMutation):
         user.full_clean()
         user.save()
 
-        profile, _ = Profile.objects.get_or_create(user=user)
-        obj.pk = profile.pk
-        obj.user = user
-
-        obj.full_clean(validate_unique=False)
-
     @classmethod
-    def validate(cls, root, info, input):
+    def validate(cls, *args, **kwargs):
+        info = args[1]
+        input = args[2]
         user = info.context.user
 
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
@@ -248,7 +262,7 @@ class UserUpdateMutation(DjangoCreateMutation):
         if fluent_languages := input.get(Profile.fluent_languages.field.name):
             input[Profile.fluent_languages.field.name] = [lang.lower() for lang in fluent_languages]
 
-        return super().validate(root, info, input)
+        return super().validate(*args, **kwargs)
 
 
 class UserSkillInput(graphene.InputObjectType):
