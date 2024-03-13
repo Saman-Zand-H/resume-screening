@@ -4,6 +4,7 @@ from graphene_django_cud.mutations import DjangoPatchMutation
 from .models import (
     DocumentAbstract,
 )
+from .utils import IDLikeObject
 
 
 class DocumentCUDMixin:
@@ -80,3 +81,27 @@ class UpdateStatusMixin(DjangoPatchMutation):
             }
         )
         return super().__init_subclass_with_meta__(*args, **kwargs)
+
+
+class CRUDWithoutIDMutationMixin:
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        super().__init_subclass_with_meta__(*args, **kwargs)
+        del cls._meta.arguments["id"]
+
+    @classmethod
+    def get_object_id(cls, info: IDLikeObject):
+        raise NotImplementedError
+
+    @classmethod
+    def resolve_id(cls, info: IDLikeObject):
+        info._id = cls.get_object_id(info.context)
+        return info._id
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        info = args[1]
+        return super().mutate(*args, **kwargs, id=IDLikeObject(info))

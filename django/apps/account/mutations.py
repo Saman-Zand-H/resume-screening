@@ -34,6 +34,7 @@ from django.utils.translation import gettext as _
 
 from .forms import PasswordLessRegisterForm
 from .mixins import (
+    CRUDWithoutIDMutationMixin,
     DocumentCheckPermissionsMixin,
     DocumentCUDFieldMixin,
     DocumentCUDMixin,
@@ -192,17 +193,7 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 )
 
 
-class UserUpdateMutationBase(DjangoUpdateMutation):
-    class Meta:
-        abstract = True
-
-    @classmethod
-    def __init_subclass_with_meta__(cls, *args, **kwargs):
-        super().__init_subclass_with_meta__(*args, **kwargs)
-        del cls._meta.arguments["id"]
-
-
-class UserUpdateMutation(UserUpdateMutationBase):
+class UserUpdateMutation(CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
         model = Profile
         login_required = True
@@ -223,12 +214,9 @@ class UserUpdateMutation(UserUpdateMutationBase):
         custom_fields = USER_MUTATION_FIELDS
 
     @classmethod
-    def mutate(cls, *args, **kwargs):
-        info = args[1]
-        user = info.context.user
-        profile, _ = Profile.objects.get_or_create(user=user)
-
-        return super().mutate(*args, **kwargs, id=profile.pk)
+    def get_object_id(cls, info):
+        profile = Profile.objects.get_or_create(user=info.context.user)[0]
+        return profile.pk
 
     @classmethod
     def before_save(cls, root, info, input, id, obj):
@@ -561,10 +549,7 @@ class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
 class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = Resume
-        exclude = (
-            Resume.user.field.name,
-            Resume.text.field.name,
-        )
+        fields = (Resume.file.field.name,)
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
@@ -573,10 +558,19 @@ class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
 
     @classmethod
     def after_mutate(cls, root, info, input, obj, return_data):
-        is_successful = find_available_jobs(obj.pk)
-        if not is_successful:
-            raise GraphQLErrorBadRequest(_("No jobs found in resume."))
+        find_available_jobs(obj.pk)
         return super().after_mutate(root, info, input, obj, return_data)
+
+
+class ResumeDeleteMutation(CRUDWithoutIDMutationMixin, DjangoDeleteMutation):
+    class Meta:
+        model = Resume
+        login_required = True
+
+    @classmethod
+    def get_object_id(cls, info):
+        resume = Resume.objects.filter(user=info.context.user).first()
+        return resume.pk if resume else None
 
 
 class UserDeleteMutation(graphene.Mutation):
@@ -596,6 +590,7 @@ class ProfileMutation(graphene.ObjectType):
     set_contacts = SetContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
     upload_resume = ResumeCreateMutation.Field()
+    delete_resume = ResumeDeleteMutation.Field()
 
     if is_env(Environment.LOCAL) or is_env(Environment.DEVELOPMENT):
         delete = UserDeleteMutation.Field()

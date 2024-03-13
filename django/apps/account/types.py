@@ -210,12 +210,7 @@ class CanadaVisaNode(FilterQuerySetByUserMixin, DjangoObjectType):
 class ResumeType(DjangoObjectType):
     class Meta:
         model = Resume
-        fields = (
-            Resume.id.field.name,
-            Resume.user.field.name,
-            Resume.file.field.name,
-            Resume.text.field.name,
-        )
+        fields = (Resume.file.field.name,)
 
 
 class ReferralType(DjangoObjectType):

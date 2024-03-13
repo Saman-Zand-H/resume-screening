@@ -66,3 +66,14 @@ def extract_or_create_skills(skills: List[str]) -> Optional[List[Skill]]:
 
 def is_env(env: Environment):
     return settings.ENVIRONMENT_NAME.value == env.value
+
+
+class IDLikeObject:
+    _id = None
+    context = None
+
+    def __init__(self, context):
+        self.context = context
+
+    def __repr__(self):
+        return repr(self._id)
