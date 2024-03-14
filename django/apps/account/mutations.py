@@ -562,17 +562,6 @@ class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         return super().after_mutate(root, info, input, obj, return_data)
 
 
-class ResumeDeleteMutation(CRUDWithoutIDMutationMixin, DjangoDeleteMutation):
-    class Meta:
-        model = Resume
-        login_required = True
-
-    @classmethod
-    def get_object_id(cls, info):
-        resume = Resume.objects.filter(user=info.context.user).first()
-        return resume.pk if resume else None
-
-
 class UserDeleteMutation(graphene.Mutation):
     class Arguments:
         email = graphene.String(required=True)
@@ -590,7 +579,6 @@ class ProfileMutation(graphene.ObjectType):
     set_contacts = SetContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
     upload_resume = ResumeCreateMutation.Field()
-    delete_resume = ResumeDeleteMutation.Field()
 
     if is_env(Environment.LOCAL) or is_env(Environment.DEVELOPMENT):
         delete = UserDeleteMutation.Field()
