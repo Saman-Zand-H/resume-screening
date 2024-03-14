@@ -245,6 +245,7 @@ class UserNode(BaseUserNode):
             Contact.user.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
+            Resume.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
