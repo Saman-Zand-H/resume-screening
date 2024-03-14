@@ -27,7 +27,6 @@ from .models import (
 
 
 class ProfileType(DjangoObjectType):
-    has_resume = graphene.Boolean(source=Profile.has_resume.fget.__name__)
     fluent_languages = graphene.List(graphene.String)
 
     class Meta:
@@ -227,6 +226,7 @@ class UserNode(BaseUserNode):
     job_assessments = graphene.List(
         JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
     )
+    has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
 
     class Meta:
         model = User

@@ -155,6 +155,12 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    @property
+    def has_resume(self):
+        with contextlib.suppress(Resume.DoesNotExist):
+            return self.resume is not None
+        return False
+
 
 for field, properties in User.FIELDS_PROPERTIES.items():
     for key, value in properties.items():
@@ -255,12 +261,6 @@ class Profile(ComputedFieldsModel):
     @property
     def has_appearance_related_data(self):
         return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
-
-    @property
-    def has_resume(self):
-        with contextlib.suppress(Resume.DoesNotExist):
-            return self.user.resume is not None
-        return False
 
 
 class Contact(models.Model):
