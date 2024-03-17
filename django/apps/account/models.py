@@ -157,9 +157,23 @@ class User(AbstractUser):
 
     @property
     def has_resume(self):
-        with contextlib.suppress(Resume.DoesNotExist):
-            return self.resume is not None
+        for field in self.get_resume_related_models():
+            field_name = field.field.related_query_name()
+            with contextlib.suppress(field.field.model.DoesNotExist):
+                value = getattr(self, field_name)
+                if value is not None and (isinstance(value, models.Model) or value.exists()):
+                    return True
         return False
+
+    def get_resume_related_models(self):
+        return (
+            Resume.user,
+            Profile.user,
+            Education.user,
+            WorkExperience.user,
+            LanguageCertificate.user,
+            CertificateAndLicense.user,
+        )
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
