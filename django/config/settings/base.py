@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "phonenumber_field",
     "computedfields",
     "cachalot",
+    "flex_pubsub",
 ]
 
 INSTALLED_APPS += [
@@ -268,3 +269,10 @@ CRITERIA_SETTINGS = {
     "AUTH_TYPE": os.environ.get("CRITERIA_AUTH_TYPE", "Bearer"),
     "WEBHOOK_SECRET": os.environ.get("CRITERIA_WEBHOOK_SECRET"),
 }
+
+PUBSUB_GOOGLE_CREDENTIALS = os.environ.get("PUBSUB_GOOGLE_CREDENTIALS")
+PUBSUB_GOOGLE_PROJECT_ID = os.environ.get("PUBSUB_GOOGLE_PROJECT_ID")
+PUBSUB_TOPIC_NAME = os.environ.get("PUBSUB_TOPIC_NAME")
+PUBSUB_SUBSCRIPTION_NAME = os.environ.get("PUBSUB_SUBSCRIPTION_NAME")
+PUBSUB_BACKEND_CLASS = "flex_pubsub.backends.GooglePubSubBackend"
+PUBSUB_SCHEDULER_BACKEND_CLASS = "flex_pubsub.scheduler.GoogleSchedulerBackend"
