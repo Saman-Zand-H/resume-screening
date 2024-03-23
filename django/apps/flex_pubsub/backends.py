@@ -1,5 +1,6 @@
+import http
+import http.server
 import logging
-from concurrent.futures import CancelledError, TimeoutError
 from operator import call
 from typing import Any, Callable, Dict, Type
 
@@ -45,8 +46,7 @@ class LocalPubSubBackend(BaseBackend):
         call(task, *message.args, **message.kwargs)
 
     def subscribe(self, callback: Callable[[str], None]) -> None:
-        logger.info("Subscribing to local pub/sub")
-        ...
+        logger.info("Subscribing to local pub/sub (Doing nothing)")
 
 
 class GooglePubSubBackend(BaseBackend):
@@ -62,50 +62,54 @@ class GooglePubSubBackend(BaseBackend):
         self.topic_path = self.publisher.topic_path(project_id, app_settings.TOPIC_NAME)
         logger.info("Initialized GooglePubSubBackend")
 
+    def run_server(
+        self,
+        server_class=http.server.HTTPServer,
+        handler_class=http.server.BaseHTTPRequestHandler,
+        port=8001,
+    ):
+        server_address = ("", port)
+        httpd = server_class(server_address, handler_class)
+        httpd.serve_forever()
+
     def publish(self, message: RequestMessage) -> None:
         logger.info(f"Publishing message: {message}")
 
         request_message = RequestMessage.model_validate_json(message)
+        self._ensure_topic_exists()
+
+        logger.info(f"Publishing message to topic {self.topic_path}")
+        self.publisher.publish(self.topic_path, request_message.model_dump_json().encode("utf-8"))
+
+    def subscribe(self, callback: Callable[[str], None]) -> None:
+        self._ensure_subscription_exists()
+
+        logger.info(f"Subscribing to {self.subscription_path}")
+        self.subscriber.subscribe(
+            self.subscription_path,
+            callback=self._wrap_callback(callback),
+        )
+        self.run_server()
+
+    def _wrap_callback(self, callback: Callable[[str], None]) -> Callable[..., None]:
+        from google.cloud.pubsub_v1.subscriber.message import Message
+
+        def _callback(message: Message) -> None:
+            callback(message.data.decode("utf-8"))
+            message.ack()
+
+        return _callback
+
+    def _ensure_topic_exists(self) -> None:
         try:
             self.publisher.get_topic(request={"topic": self.topic_path})
         except NotFound:
             logger.warning(f"Topic not found: {self.topic_path}. Creating topic.")
             self.publisher.create_topic(request={"name": self.topic_path})
 
-        logger.info(f"Publishing message to topic {self.topic_path}")
-        self.publisher.publish(self.topic_path, request_message.model_dump_json().encode("utf-8"))
-
-    def subscribe(self, callback: Callable[[str], None]) -> None:
+    def _ensure_subscription_exists(self) -> None:
         try:
             self.subscriber.get_subscription(request={"subscription": self.subscription_path})
         except NotFound:
             logger.warning(f"Subscription not found: {self.subscription_path}. Creating subscription.")
             self.subscriber.create_subscription(request={"name": self.subscription_path, "topic": self.topic_path})
-
-        logger.info(f"Subscribing to {self.subscription_path}")
-        streaming_pull_future = self.subscriber.subscribe(
-            self.subscription_path,
-            callback=self._wrap_callback(callback),
-        )
-
-        try:
-            streaming_pull_future.result()
-        except (CancelledError, TimeoutError):
-            logger.error("Subscription was cancelled or timed out")
-            streaming_pull_future.cancel()
-            raise
-
-    def _wrap_callback(self, callback: Callable[[str], None]) -> Callable[..., None]:
-        """
-        Wrap the callback function to handle message acknowledgment.
-
-            :param callback: The callback function to be wrapped.
-
-            :return: The wrapped callback function.
-        """
-
-        def _callback(message: "pubsub_v1.subscriber.message.Message") -> None:  # type: ignore
-            callback(message.data.decode("utf-8"))
-            message.ack()
-
-        return _callback

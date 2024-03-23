@@ -11,15 +11,15 @@ def import_attribute(path):
 
 
 def get_setting(name, default):
-    return getattr(settings, name, default)
+    return settings.PUBSUB_SETTINGS.get(name, default)
 
 
 class AppSettings:
-    def __init__(self, prefix="PUBSUB_"):
-        self.prefix = prefix
+    def __init__(self):
+        pass
 
     def _setting(self, name, default):
-        return get_setting(self.prefix + name, default)
+        return get_setting(name, default)
 
     @property
     def BACKEND_CLASS(self):

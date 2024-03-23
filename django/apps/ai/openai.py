@@ -11,7 +11,6 @@ from openai.types.beta.vector_store import VectorStore
 
 from django.conf import settings
 from django.db.models import QuerySet
-from django.http import HttpResponse
 
 from .types import CachableVectorStore
 from .utils import parse_json_markdown
@@ -113,4 +112,3 @@ class OpenAIService:
 
     def message_to_json(self, message: Message) -> dict:
         return parse_json_markdown(self.get_message_value(message))
-
