@@ -1,4 +1,3 @@
-import contextlib
 import json
 from collections import namedtuple
 
@@ -7,7 +6,7 @@ from celery import shared_task
 from account.models import Resume, User
 from django.contrib.auth import get_user_model
 
-from .utils import extract_available_jobs, extract_or_create_skills, extract_resume_text
+from .utils import extract_available_jobs, extract_or_create_skills
 
 
 def find_available_jobs(resume_pk: int) -> bool:

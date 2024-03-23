@@ -270,13 +270,10 @@ CRITERIA_SETTINGS = {
     "WEBHOOK_SECRET": os.environ.get("CRITERIA_WEBHOOK_SECRET"),
 }
 
-PUBSUB_SETTINGS = {
-    "GOOGLE_CREDENTIALS": os.environ.get("PUBSUB_GOOGLE_CREDENTIALS"),
-    "GOOGLE_PROJECT_ID": os.environ.get("PUBSUB_GOOGLE_PROJECT_ID"),
-    "TOPIC_NAME": os.environ.get("PUBSUB_TOPIC_NAME"),
-    "SUBSCRIPTION_NAME": os.environ.get("PUBSUB_SUBSCRIPTION_NAME"),
-    "BACKEND_CLASS": "flex_pubsub.backends.LocalPubSubBackend",
-    "SCHEDULER_BACKEND_CLASS": "flex_pubsub.scheduler.LocalSchedulerBackend",
-    "SCHEDULER_LOCATION": "us-central1",
-    "CLOUD_RUN_SERVICE_URL": os.environ.get("CLOUD_RUN_SERVICE_URL"),
-}
+PUBSUB_GOOGLE_CREDENTIALS = os.environ.get("PUBSUB_GOOGLE_CREDENTIALS")
+PUBSUB_GOOGLE_PROJECT_ID = os.environ.get("PUBSUB_GOOGLE_PROJECT_ID")
+PUBSUB_TOPIC_NAME = os.environ.get("PUBSUB_TOPIC_NAME")
+PUBSUB_SUBSCRIPTION_NAME = os.environ.get("PUBSUB_SUBSCRIPTION_NAME")
+PUBSUB_BACKEND_CLASS = "flex_pubsub.backends.LocalPubSubBackend"
+PUBSUB_SCHEDULER_BACKEND_CLASS = "flex_pubsub.scheduler.LocalSchedulerBackend"
+PUBSUB_LISTEN_PORT = 8080

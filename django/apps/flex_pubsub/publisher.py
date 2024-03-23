@@ -4,7 +4,7 @@ from .app_settings import app_settings
 from .types import RequestMessage
 
 
-def send_task(task_name: str, args: Optional[List[Any]] = None, kwargs: Optional[Dict[str, Any]] = None) -> None:
+def send_task(*args: Optional[List[Any]], task_name: str, **kwargs: Optional[Dict[str, Any]]) -> None:
     args = args or []
     kwargs = kwargs or {}
     raw_message = {
