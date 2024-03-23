@@ -66,10 +66,11 @@ class GooglePubSubBackend(BaseBackend):
         self,
         server_class=http.server.HTTPServer,
         handler_class=http.server.BaseHTTPRequestHandler,
-        port=8001,
+        port=app_settings.LISTENER_PORT,
     ):
         server_address = ("", port)
         httpd = server_class(server_address, handler_class)
+        logger.info(f"Starting server on port {port}")
         httpd.serve_forever()
 
     def publish(self, message: RequestMessage) -> None:

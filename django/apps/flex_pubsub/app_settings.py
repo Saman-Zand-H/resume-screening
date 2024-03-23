@@ -69,5 +69,9 @@ class AppSettings:
     def CLOUD_RUN_SERVICE_URL(self):
         return self._setting("CLOUD_RUN_SERVICE_URL", None)
 
+    @property
+    def LISTENER_PORT(self):
+        return self._setting("LISTENER_PORT", 8001)
+
 
 app_settings = AppSettings()
