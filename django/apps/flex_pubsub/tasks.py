@@ -6,7 +6,7 @@ from google.cloud.scheduler_v1.types.job import Job
 from .app_settings import app_settings
 from .scheduler import BaseSchedulerBackend
 from .types import SchedulerJob
-from .utils import are_categories_valid
+from .utils import are_subscriptions_valid
 
 
 class TaskRegistry:
@@ -58,7 +58,7 @@ task_registry = TaskRegistry()
 
 
 def register_task(
-    categories: List[str],
+    subscriptions: List[str],
     name: Optional[str] = None,
     schedule: Optional[SchedulerJob] = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -79,7 +79,7 @@ def register_task(
             return f(*args, **kwargs)
 
         wrapper.delay = partial(send_task, task_name=task_name)
-        if are_categories_valid(categories):
+        if are_subscriptions_valid(subscriptions):
             task_registry.register(wrapper, name=task_name, raw_schedule=schedule)
         return wrapper
 

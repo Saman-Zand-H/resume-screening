@@ -3,8 +3,8 @@ from typing import List
 from .app_settings import app_settings
 
 
-def are_categories_valid(categories: List[str]):
-    return set(categories).intersection(app_settings.CATEGORIES)
+def are_subscriptions_valid(subscriptions: List[str]):
+    return set(subscriptions).intersection(app_settings.SUBSCRIPTIONS)
 
 
 def get_all_subclasses(klass):
