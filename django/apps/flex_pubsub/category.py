@@ -1,11 +1,10 @@
-from enum import Enum
 from typing import List, Type
 
 from .app_settings import app_settings
 from .utils import get_all_subclasses
 
 
-class CategoryBase(Enum):
+class CategoryBase:
     @classmethod
     def get_all_categories(cls) -> List[Type["CategoryBase"]]:
         categories = get_all_subclasses(cls)
@@ -25,5 +24,5 @@ class CategoryBase(Enum):
         all_categories = cls.get_all_categories()
         invalid_categories = filter(lambda category: category not in all_categories, chosen_categories)
 
-        if invalid_categories:
+        if invalid_categories and chosen_categories:
             raise ValueError(f"Invalid categories: {', '.join(map(str, invalid_categories))}")

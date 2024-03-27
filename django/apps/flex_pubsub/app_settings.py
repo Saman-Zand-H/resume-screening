@@ -75,7 +75,7 @@ class AppSettings:
     
     @property
     def CATEGORIES(self):
-        return self._setting("CATEGORIES", "").strip().split(", ")
+        return list(filter(bool, self._setting("CATEGORIES", "").strip().split(", ")))
 
 
 app_settings = AppSettings()
