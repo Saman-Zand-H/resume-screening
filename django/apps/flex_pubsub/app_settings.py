@@ -69,5 +69,9 @@ class AppSettings:
     def CLOUD_RUN_SERVICE_URL(self):
         return self._setting("CLOUD_RUN_SERVICE_URL", None)
 
+    @property
+    def CATEGORIES(self):
+        return self._setting("CATEGORIES", "").strip().split(", ")
+
 
 app_settings = AppSettings()

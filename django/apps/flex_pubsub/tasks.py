@@ -1,11 +1,12 @@
 from functools import partial, wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from google.cloud.scheduler_v1.types.job import Job
 
 from .app_settings import app_settings
 from .scheduler import BaseSchedulerBackend
 from .types import SchedulerJob
+from .utils import are_categories_valid
 
 
 class TaskRegistry:
@@ -57,6 +58,7 @@ task_registry = TaskRegistry()
 
 
 def register_task(
+    categories: List[str],
     name: Optional[str] = None,
     schedule: Optional[SchedulerJob] = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -77,7 +79,8 @@ def register_task(
             return f(*args, **kwargs)
 
         wrapper.delay = partial(send_task, task_name=task_name)
-        task_registry.register(wrapper, name=task_name, raw_schedule=schedule)
+        if are_categories_valid(categories):
+            task_registry.register(wrapper, name=task_name, raw_schedule=schedule)
         return wrapper
 
     return decorator
