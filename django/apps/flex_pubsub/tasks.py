@@ -79,6 +79,7 @@ def register_task(
             return f(*args, **kwargs)
 
         wrapper.delay = partial(send_task, task_name=task_name)
+        wrapper.subscriptions = [subscription.value for subscription in subscriptions]
         if are_subscriptions_valid(subscriptions):
             task_registry.register(wrapper, name=task_name, raw_schedule=schedule)
         return wrapper

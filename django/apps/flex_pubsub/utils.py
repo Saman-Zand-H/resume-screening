@@ -1,10 +1,11 @@
+from enum import StrEnum
 from typing import List
 
 from .app_settings import app_settings
 
 
-def are_subscriptions_valid(subscriptions: List[str]):
-    return set(subscriptions).intersection(app_settings.SUBSCRIPTIONS)
+def are_subscriptions_valid(subscriptions: List[StrEnum]):
+    return any(i.value in app_settings.SUBSCRIPTIONS for i in subscriptions)
 
 
 def get_all_subclasses(klass):

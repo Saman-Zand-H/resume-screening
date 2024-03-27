@@ -58,10 +58,10 @@ class GooglePubSubBackend(BaseBackend):
 
         self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
-        self.subscription_paths = [
-            self.subscriber.subscription_path(project_id, subscription_name)
+        self.subscriptions = {
+            subscription_name: self.subscriber.subscription_path(project_id, subscription_name)
             for subscription_name in app_settings.SUBSCRIPTIONS
-        ]
+        }
         self.topic_path = self.publisher.topic_path(project_id, app_settings.TOPIC_NAME)
         logger.info("Initialized GooglePubSubBackend")
 
@@ -86,22 +86,21 @@ class GooglePubSubBackend(BaseBackend):
         self.publisher.publish(self.topic_path, request_message.model_dump_json().encode("utf-8"))
 
     def subscribe(self, callback: Callable[[str], None]) -> None:
-        for subscription_path in self.subscription_paths:
+        for subscription_name, subscription_path in self.subscriptions.items():
             self._ensure_subscription_exists(subscription_path)
             logger.info(f"Subscribing to {subscription_path}")
             self.subscriber.subscribe(
                 subscription_path,
-                callback=self._wrap_callback(callback),
+                callback=self._wrap_callback(callback, subscription_name=subscription_name),
             )
 
         self.run_server()
 
-    def _wrap_callback(self, callback: Callable[[str], None]) -> Callable[..., None]:
+    def _wrap_callback(self, callback: Callable[[str], None], subscription_name) -> Callable[..., None]:
         from google.cloud.pubsub_v1.subscriber.message import Message
 
         def _callback(message: Message) -> None:
-            callback(message.data.decode("utf-8"))
-            message.ack()
+            callback(message.data.decode("utf-8"), subscription_name=subscription_name, ack=message.ack)
 
         return _callback
 
