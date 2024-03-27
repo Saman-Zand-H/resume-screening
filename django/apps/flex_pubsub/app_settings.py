@@ -70,6 +70,10 @@ class AppSettings:
         return self._setting("CLOUD_RUN_SERVICE_URL", None)
 
     @property
+    def LISTENER_PORT(self):
+        return self._setting("LISTENER_PORT", 8001)
+    
+    @property
     def CATEGORIES(self):
         return self._setting("CATEGORIES", "").strip().split(", ")
 

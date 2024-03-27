@@ -98,8 +98,10 @@ class CRUDWithoutIDMutationMixin:
 
     @classmethod
     def resolve_id(cls, info: IDLikeObject):
-        info._id = cls.get_object_id(info.context)
-        return info._id
+        if isinstance(info, IDLikeObject):
+            info._id = cls.get_object_id(info.context)
+            return info._id
+        return info
 
     @classmethod
     def mutate(cls, *args, **kwargs):
