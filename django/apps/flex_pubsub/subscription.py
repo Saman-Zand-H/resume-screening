@@ -1,30 +1,30 @@
+from enum import Enum
+from itertools import chain
+from operator import attrgetter
 from typing import List, Type
 
 from .app_settings import app_settings
 from .utils import get_all_subclasses
 
 
-class SubscriptionBase:
+class SubscriptionBase(Enum):
     @classmethod
-    def get_all_subscription(cls) -> List[Type["SubscriptionBase"]]:
+    def get_all_subscriptions(cls) -> List[Type["SubscriptionBase"]]:
         subscriptions = get_all_subclasses(cls)
-        members = set()
 
-        for subscription in subscriptions:
-            for member in subscription:
-                if member in members:
-                    raise ValueError(f"Member {member} is already in a subscription")
-                members.add(member)
+        # if len(subscriptions) != len(set(subscription for subscription in subscriptions)):
+        #     raise ValueError("Subscriptions should have unique values.")
 
-        return subscriptions
+        return list(subscriptions)
 
     @classmethod
     def validate_chosen_subscriptions(cls):
         selected_subscriptions = app_settings.SUBSCRIPTIONS
-        all_subscriptions = cls.get_all_subscription()
+        all_subscriptions = map(attrgetter("value"), chain.from_iterable(cls.get_all_subscriptions()))
         invalid_subscriptions = filter(
-            lambda subscription: subscription not in all_subscriptions, selected_subscriptions
+            lambda subscription: subscription not in all_subscriptions,
+            selected_subscriptions,
         )
 
-        if invalid_subscriptions and selected_subscriptions:
+        if list(invalid_subscriptions) and selected_subscriptions:
             raise ValueError(f"Invalid subscriptions: {', '.join(map(str, invalid_subscriptions))}")

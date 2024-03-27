@@ -11,7 +11,7 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = "Starts the subscriber to listen for messages and execute tasks."
 
-    def message_callback(self, raw_message: str) -> None:
+    def message_callback(self, raw_message: str, subscription_name: str, ack) -> None:
         try:
             data = RequestMessage.model_validate_json(raw_message)
             task_name: str = data.task_name
@@ -19,10 +19,14 @@ class Command(BaseCommand):
             kwargs = data.kwargs
             task = task_registry.get_task(task_name)
 
-            if task:
-                task(*args, **kwargs)
-            else:
-                self.stderr.write(f"No task found with name '{task_name}'")
+            if not task:
+                return
+
+            if subscription_name not in task.subscriptions:
+                return
+
+            ack()
+            task(*args, **kwargs)
         except Exception as e:
             self.stderr.write(f"Error processing message: {str(e)}")
 
