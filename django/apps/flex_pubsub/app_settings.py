@@ -50,10 +50,6 @@ class AppSettings:
         return self._setting("GOOGLE_PROJECT_ID", None)
 
     @property
-    def SUBSCRIPTION_NAME(self):
-        return self._setting("SUBSCRIPTION_NAME", "default-subscription")
-
-    @property
     def TOPIC_NAME(self):
         return self._setting("TOPIC_NAME", "default-topic")
 
@@ -72,10 +68,10 @@ class AppSettings:
     @property
     def LISTENER_PORT(self):
         return self._setting("LISTENER_PORT", 8001)
-    
+
     @property
-    def CATEGORIES(self):
-        return list(filter(bool, self._setting("CATEGORIES", "").strip().split(", ")))
+    def SUBSCRIPTIONS(self):
+        return list(filter(bool, self._setting("SUBSCRIPTIONS", "").strip().split(", ")))
 
 
 app_settings = AppSettings()

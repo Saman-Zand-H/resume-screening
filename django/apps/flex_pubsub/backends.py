@@ -58,7 +58,10 @@ class GooglePubSubBackend(BaseBackend):
 
         self.subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
-        self.subscription_path = self.subscriber.subscription_path(project_id, app_settings.SUBSCRIPTION_NAME)
+        self.subscription_paths = [
+            self.subscriber.subscription_path(project_id, subscription_name)
+            for subscription_name in app_settings.SUBSCRIPTIONS
+        ]
         self.topic_path = self.publisher.topic_path(project_id, app_settings.TOPIC_NAME)
         logger.info("Initialized GooglePubSubBackend")
 
@@ -83,13 +86,14 @@ class GooglePubSubBackend(BaseBackend):
         self.publisher.publish(self.topic_path, request_message.model_dump_json().encode("utf-8"))
 
     def subscribe(self, callback: Callable[[str], None]) -> None:
-        self._ensure_subscription_exists()
+        for subscription_path in self.subscription_paths:
+            self._ensure_subscription_exists(subscription_path)
+            logger.info(f"Subscribing to {subscription_path}")
+            self.subscriber.subscribe(
+                subscription_path,
+                callback=self._wrap_callback(callback),
+            )
 
-        logger.info(f"Subscribing to {self.subscription_path}")
-        self.subscriber.subscribe(
-            self.subscription_path,
-            callback=self._wrap_callback(callback),
-        )
         self.run_server()
 
     def _wrap_callback(self, callback: Callable[[str], None]) -> Callable[..., None]:
@@ -108,9 +112,9 @@ class GooglePubSubBackend(BaseBackend):
             logger.warning(f"Topic not found: {self.topic_path}. Creating topic.")
             self.publisher.create_topic(request={"name": self.topic_path})
 
-    def _ensure_subscription_exists(self) -> None:
+    def _ensure_subscription_exists(self, subscription_path: str) -> None:
         try:
-            self.subscriber.get_subscription(request={"subscription": self.subscription_path})
+            self.subscriber.get_subscription(request={"subscription": subscription_path})
         except NotFound:
-            logger.warning(f"Subscription not found: {self.subscription_path}. Creating subscription.")
-            self.subscriber.create_subscription(request={"name": self.subscription_path, "topic": self.topic_path})
+            logger.warning(f"Subscription not found: {subscription_path}. Creating subscription.")
+            self.subscriber.create_subscription(request={"name": subscription_path, "topic": self.topic_path})
