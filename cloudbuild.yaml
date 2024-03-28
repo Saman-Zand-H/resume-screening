@@ -1,0 +1,112 @@
+steps:
+  # Build frontend service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    waitFor: ['-']  # No dependencies, allowing parallel execution
+    args: [
+      'build', '-t', 'gcr.io/$PROJECT_ID/airodo-frontend', 
+      '-f', 'next/Dockerfile', './next'
+    ]
+
+  # Build backend base image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend-base'
+    waitFor: ['-']  # No dependencies, allowing parallel execution
+    args: [
+      'build', '-t', 'gcr.io/$PROJECT_ID/airodo-backend-base', 
+      '-f', 'django/Dockerfile', './django'
+    ]
+
+  # Push frontend image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    waitFor: ['build-frontend']  # Dependent on build-frontend
+    args: ['push', 'gcr.io/$PROJECT_ID/airodo-frontend']
+
+  # Push backend base image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend-base'
+    waitFor: ['build-backend-base']  # Dependent on build-backend-base
+    args: ['push', 'gcr.io/$PROJECT_ID/airodo-backend-base']
+
+  # Build backend service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    waitFor: ['push-backend-base']  # Dependent on push-backend-base
+    args: [
+      'build', '-t', 'gcr.io/$PROJECT_ID/airodo-backend', 
+      '-f', 'django/Dockerfile.backend', './django', 
+      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/airodo-backend-base'
+    ]
+
+  # Build backend pubsub service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend-pubsub'
+    waitFor: ['push-backend-base']  # Dependent on push-backend-base
+    args: [
+      'build', '-t', 'gcr.io/$PROJECT_ID/airodo-backend-pubsub', 
+      '-f', 'django/Dockerfile.pubsub', './django',
+      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/airodo-backend-base'
+    ]
+
+  # Push backend image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    waitFor: ['build-backend']  # Dependent on build-backend
+    args: ['push', 'gcr.io/$PROJECT_ID/airodo-backend']
+
+  # Push backend pubsub image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend-pubsub'
+    waitFor: ['build-backend-pubsub']  # Dependent on build-backend-pubsub
+    args: ['push', 'gcr.io/$PROJECT_ID/airodo-backend-pubsub']
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-frontend'
+    waitFor: ['push-frontend']
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'airodo-frontend',
+      '--image', 'gcr.io/$PROJECT_ID/airodo-frontend',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--min-instances', '1'
+    ]
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend'
+    waitFor: ['push-backend']
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'airodo-backend',
+      '--image', 'gcr.io/$PROJECT_ID/airodo-backend',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--min-instances', '1'
+    ]
+
+  # Deploy backend pubsub to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend-pubsub'
+    waitFor: ['push-backend-pubsub']
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'airodo-backend-pubsub',
+      '--image', 'gcr.io/$PROJECT_ID/airodo-backend-pubsub',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--min-instances', '1'
+    ]
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - "DOCKER_BUILDKIT=1"
+
+# Specify the default Cloud Build service account
+serviceAccount: "$PROJECT_NUMBER@cloudbuild.gserviceaccount.com"
