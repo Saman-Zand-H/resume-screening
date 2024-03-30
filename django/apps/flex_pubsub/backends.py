@@ -11,15 +11,16 @@ except ImportError:
     pubsub_v1 = None
 
 from .app_settings import app_settings
-from .types import RequestMessage
+from .tasks import task_registry
+from .types import CallbackContext, RequestMessage, SubscriptionCallback
 
-logger = logging.getLogger("pubsub")
+logger = logging.getLogger("flex_pubsub")
 
 
 class Singleton(type):
     _instances: Dict[Type, Any] = {}
 
-    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+    def __call__(cls, *args, **kwargs) -> Any:
         if cls not in cls._instances or kwargs.get("force_new_instance", False):
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
@@ -29,8 +30,12 @@ class BaseBackend(metaclass=Singleton):
     def publish(self, message: RequestMessage) -> None:
         raise NotImplementedError
 
-    def subscribe(self, callback: Callable[[str], None]) -> None:
+    def subscribe(self, callback: Callable[[CallbackContext], None], task: Callable) -> None:
         raise NotImplementedError
+
+    def subscribe_tasks(self, callback: Callable[[CallbackContext], None]) -> None:
+        for task in task_registry.get_all_tasks().values():
+            self.subscribe(callback, task)
 
 
 class LocalPubSubBackend(BaseBackend):
@@ -45,7 +50,7 @@ class LocalPubSubBackend(BaseBackend):
 
         call(task, *message.args, **message.kwargs)
 
-    def subscribe(self, callback: Callable[[str], None]) -> None:
+    def subscribe(self, *args, **kwargs) -> None:
         logger.info("Subscribing to local pub/sub (Doing nothing)")
 
 
@@ -85,22 +90,25 @@ class GooglePubSubBackend(BaseBackend):
         logger.info(f"Publishing message to topic {self.topic_path}")
         self.publisher.publish(self.topic_path, request_message.model_dump_json().encode("utf-8"))
 
-    def subscribe(self, callback: Callable[[str], None]) -> None:
+    def subscribe(self, callback: SubscriptionCallback, task: Callable) -> None:
         for subscription_name, subscription_path in self.subscriptions.items():
+            if subscription_name not in task.subscriptions:
+                continue
             self._ensure_subscription_exists(subscription_path)
             logger.info(f"Subscribing to {subscription_path}")
             self.subscriber.subscribe(
                 subscription_path,
-                callback=self._wrap_callback(callback, subscription_name=subscription_name),
+                callback=self._wrap_callback(callback, task),
             )
 
         self.run_server()
 
-    def _wrap_callback(self, callback: Callable[[str], None], subscription_name) -> Callable[..., None]:
+    def _wrap_callback(self, callback: SubscriptionCallback, task: Callable) -> Callable[[str], None]:
         from google.cloud.pubsub_v1.subscriber.message import Message
 
         def _callback(message: Message) -> None:
-            callback(message.data.decode("utf-8"), subscription_name=subscription_name, ack=message.ack)
+            context = CallbackContext(raw_message=message.data.decode("utf-8"), ack=message.ack, task=task)
+            callback(context)
 
         return _callback
 

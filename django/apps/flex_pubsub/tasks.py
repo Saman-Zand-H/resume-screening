@@ -11,16 +11,16 @@ from .utils import are_subscriptions_valid
 
 class TaskRegistry:
     def __init__(self) -> None:
-        self.tasks: Dict[str, Callable[..., Any]] = {}
+        self.tasks: Dict[str, Callable] = {}
         self.schedule_configs: Dict[str, Job] = {}
 
     def register(
         self,
-        func: Optional[Callable[..., Any]] = None,
+        func: Optional[Callable] = None,
         *,
         name: Optional[str] = None,
         raw_schedule: Optional[SchedulerJob] = None,
-    ) -> Callable[..., Any]:
+    ) -> Callable:
         if func is None:
             return lambda f: self.register(f, name=name, raw_schedule=raw_schedule)
         task_name = name or func.__name__
@@ -44,13 +44,13 @@ class TaskRegistry:
                 del self.schedule_configs[task_name]
             scheduler_backend.delete_job(task_name)
 
-    def get_task(self, name: str) -> Optional[Callable[..., Any]]:
+    def get_task(self, name: str) -> Optional[Callable]:
         return self.tasks.get(name)
 
     def get_schedule_config(self, name: str) -> Optional[Job]:
         return self.schedule_configs.get(name)
 
-    def get_all_tasks(self) -> Dict[str, Callable[..., Any]]:
+    def get_all_tasks(self) -> Dict[str, Callable]:
         return self.tasks
 
 
@@ -61,7 +61,7 @@ def register_task(
     subscriptions: List[str],
     name: Optional[str] = None,
     schedule: Optional[SchedulerJob] = None,
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+) -> Callable[[Callable], Callable]:
     """
     Decorator to register a task.
 
@@ -69,7 +69,7 @@ def register_task(
     :param schedule: Optional schedule configuration dict.
     """
 
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+    def decorator(f: Callable) -> Callable:
         from .publisher import send_task
 
         task_name = name or f.__name__

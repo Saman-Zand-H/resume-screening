@@ -15,11 +15,8 @@ def get_setting(name, default):
 
 
 class AppSettings:
-    def __init__(self):
-        pass
-
     def _setting(self, name, default):
-        return get_setting(name, default)
+        return get_setting(name, default) or default
 
     @property
     def BACKEND_CLASS(self):
@@ -71,7 +68,7 @@ class AppSettings:
 
     @property
     def SUBSCRIPTIONS(self):
-        return list(filter(bool, self._setting("SUBSCRIPTIONS", "").strip().split(", ")))
+        return list(map(str.strip, filter(bool, self._setting("SUBSCRIPTIONS", "").strip().split(","))))
 
 
 app_settings = AppSettings()

@@ -12,8 +12,8 @@ class SubscriptionBase(Enum):
     def get_all_subscriptions(cls) -> List[Type["SubscriptionBase"]]:
         subscriptions = get_all_subclasses(cls)
 
-        # if len(subscriptions) != len(set(subscription for subscription in subscriptions)):
-        #     raise ValueError("Subscriptions should have unique values.")
+        if len(subscriptions) != len(set(subscription for subscription in subscriptions)):
+            raise ValueError("Subscriptions should have unique values.")
 
         return list(subscriptions)
 
@@ -21,10 +21,11 @@ class SubscriptionBase(Enum):
     def validate_chosen_subscriptions(cls):
         selected_subscriptions = app_settings.SUBSCRIPTIONS
         all_subscriptions = map(attrgetter("value"), chain.from_iterable(cls.get_all_subscriptions()))
-        invalid_subscriptions = filter(
-            lambda subscription: subscription not in all_subscriptions,
-            selected_subscriptions,
+        invalid_subscriptions = list(
+            filter(
+                lambda subscription: subscription not in all_subscriptions,
+                selected_subscriptions,
+            )
         )
-
-        if list(invalid_subscriptions) and selected_subscriptions:
+        if invalid_subscriptions and selected_subscriptions:
             raise ValueError(f"Invalid subscriptions: {', '.join(map(str, invalid_subscriptions))}")

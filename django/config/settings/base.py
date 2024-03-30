@@ -274,8 +274,8 @@ PUBSUB_SETTINGS = {
     "GOOGLE_CREDENTIALS": os.environ.get("GOOGLE_CREDENTIALS"),
     "GOOGLE_PROJECT_ID": os.environ.get("GOOGLE_PROJECT_ID"),
     "TOPIC_NAME": os.environ.get("PUBSUB_TOPIC_NAME"),
-    "SUBSCRIPTIONS": os.environ.get("PUBSUB_SUBSCRIPTIONS", "common_tasks, test_tasks"),
-    "LISTENER_PORT": os.environ.get("PUBSUB_LISTENER_PORT", 8001),
-    "BACKEND_CLASS": "flex_pubsub.backends.LocalPubSubBackend",
-    "SCHEDULER_BACKEND_CLASS": "flex_pubsub.scheduler.LocalSchedulerBackend",
+    "SUBSCRIPTIONS": os.environ.get("PUBSUB_SUBSCRIPTIONS"),
+    "LISTENER_PORT": os.environ.get("PUBSUB_LISTENER_PORT"),
+    "BACKEND_CLASS": os.environ.get("PUBSUB_BACKEND_CLASS"),
+    "SCHEDULER_BACKEND_CLASS": os.environ.get("PUBSUB_SCHEDULER_BACKEND_CLASS"),
 }

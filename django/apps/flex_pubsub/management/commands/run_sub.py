@@ -3,7 +3,7 @@ from typing import Any
 from flex_pubsub.app_settings import app_settings
 from flex_pubsub.backends import BaseBackend
 from flex_pubsub.tasks import task_registry
-from flex_pubsub.types import RequestMessage
+from flex_pubsub.types import CallbackContext, RequestMessage
 
 from django.core.management.base import BaseCommand
 
@@ -11,22 +11,18 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = "Starts the subscriber to listen for messages and execute tasks."
 
-    def message_callback(self, raw_message: str, subscription_name: str, ack) -> None:
+    def message_callback(self, context: CallbackContext) -> None:
         try:
+            raw_message = context.raw_message
+            ack = context.ack
+            task = context.task
+
             data = RequestMessage.model_validate_json(raw_message)
-            task_name: str = data.task_name
-            args = data.args
-            kwargs = data.kwargs
-            task = task_registry.get_task(task_name)
-
-            if not task:
-                return
-
-            if subscription_name not in task.subscriptions:
-                return
+            t_args = data.args
+            t_kwargs = data.kwargs
 
             ack()
-            task(*args, **kwargs)
+            task(*t_args, **t_kwargs)
         except Exception as e:
             self.stderr.write(f"Error processing message: {str(e)}")
 
@@ -43,4 +39,4 @@ class Command(BaseCommand):
 
         self.display_registered_tasks()
         self.stdout.write("Starting subscriber...")
-        backend.subscribe(self.message_callback)
+        backend.subscribe_tasks(self.message_callback)

@@ -21,7 +21,7 @@ except ImportError:
 from .app_settings import app_settings
 from .types import SchedulerJob
 
-logger = logging.getLogger("pubsub")
+logger = logging.getLogger("flex_pubsub")
 
 
 class BaseSchedulerBackend:
