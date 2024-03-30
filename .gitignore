@@ -105,6 +105,4 @@ outputs/
 # project specific
 .dockerignore
 .env.docker
-Dockerfile
 docker-compose.yml
-entrypoint.sh
