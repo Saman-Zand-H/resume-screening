@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "rest_framework",
     "rest_framework.authtoken",
+    "mptt",
     "dj_rest_auth",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
@@ -67,6 +68,7 @@ INSTALLED_APPS += [
     "account",
     "ai",
     "criteria",
+    "blob",
 ]
 
 MIDDLEWARE = [
