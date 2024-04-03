@@ -28,3 +28,4 @@ pydantic[email]~=2.9
 django-cachalot~=2.7
 google-cloud-scheduler~=2.14
 google-cloud-pubsub~=2.27
+django-storages[google]~=2.14
