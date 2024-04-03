@@ -2,6 +2,7 @@ import base64
 import contextlib
 import uuid
 
+from blob.models import BaseFileModel
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -181,6 +182,16 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
+class Avatar(BaseFileModel):
+    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="uploaded_avatar")
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/avatar/{filename}"
+
+    def check_auth(self, request=None):
+        return True
+
+
 class Profile(ComputedFieldsModel):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
@@ -212,6 +223,13 @@ class Profile(ComputedFieldsModel):
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
+    avatar2 = models.ForeignKey(
+        Avatar,
+        on_delete=models.CASCADE,
+        related_name="profile",
+        null=True,
+        blank=True,
+    )
     avatar = models.ImageField(
         upload_to=avatar_path,
         validators=[IMAGE_FILE_SIZE_VALIDATOR],
