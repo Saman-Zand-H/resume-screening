@@ -11,5 +11,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True, schema=schema))),
     path("criteria/", include("criteria.urls"), name="criteria"),
-    re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+    path("media/", include("blob.urls"), name="blob"),
 ]

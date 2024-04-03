@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .forms import UserChangeForm
 from .models import (
+    Avatar,
     CanadaVisa,
     CertificateAndLicense,
     CertificateAndLicenseOfflineVerificationMethod,
@@ -278,3 +279,13 @@ class ReferralAdmin(admin.ModelAdmin):
     search_fields = ("user__email", Referral.code.field.name)
     raw_id_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
+
+
+@register(Avatar)
+class AvatarAdmin(admin.ModelAdmin):
+    list_display = (
+        "uploaded_by",
+        "file",
+    )
+    search_fields = ("uploaded_by__email", "file")
+    raw_id_fields = ("uploaded_by",)

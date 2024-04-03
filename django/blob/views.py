@@ -1,3 +1,9 @@
+import datetime
+import mimetypes
+
+from storages.backends.gcloud import GoogleCloudFile
+
+from django.core.files.base import File
 from django.http import (
     HttpRequest,
     HttpResponseBadRequest,
@@ -11,14 +17,25 @@ from django.views import View
 
 from .models import BaseFileModel
 
+FILE_RESPONSE = {
+    File: {
+        "content_type": lambda file: mimetypes.guess_type(file.name)[0],
+        "last_modified": lambda _: http_date(datetime.datetime.now().timestamp()),
+    },
+    GoogleCloudFile: {
+        "content_type": lambda file: file.mime_type,
+        "last_modified": lambda file: http_date(file.blob.updated.timestamp()),
+    },
+}
+
 
 class MediaAuthorizationView(View):
-    def get(self, request: HttpRequest, file_path: str):
-        if not file_path:
+    def get(self, request: HttpRequest, path: str):
+        if not path:
             return HttpResponseBadRequest(_("Invalid file path."))
 
         try:
-            file_record = BaseFileModel.objects.get(file=file_path)
+            file_record = BaseFileModel.objects.get(file=path)
         except BaseFileModel.DoesNotExist:
             return HttpResponseNotFound(_("File not found."))
 
@@ -33,8 +50,12 @@ class MediaAuthorizationView(View):
                 while chunk := file_obj.read(chunk_size):
                     yield chunk
 
-        response = StreamingHttpResponse(file_iterator(), content_type=file_record.file.file.content_type)
+        meta_data = FILE_RESPONSE.get(type(file_record.file.file), {})
+        response = StreamingHttpResponse(
+            file_iterator(),
+            content_type=meta_data.get("content_type")(file_record.file.file),
+        )
+        response["Last-Modified"] = meta_data.get("last_modified")(file_record.file.file)
         response["Content-Disposition"] = f'inline; filename="{file_record.file.name}"'
         response["Content-Length"] = file_record.file.size
-        response["Last-Modified"] = http_date(file_record.file.modified.timestamp())
         return response

@@ -2,9 +2,11 @@ from django.urls import re_path
 
 from . import views
 
-urlspatterns = [
+app_name = "blob"
+
+urlpatterns = [
     re_path(
-        r"^blob/(?P<path>.*)$",
+        r"^(?P<path>.*)$",
         views.MediaAuthorizationView.as_view(),
         name="media",
     )
