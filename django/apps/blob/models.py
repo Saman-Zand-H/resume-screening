@@ -1,5 +1,7 @@
 import os
+from typing import List
 
+from django.core.validators import BaseValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -29,6 +31,9 @@ class BaseFileModel(models.Model):
             if hasattr(self, related_object.name):
                 return getattr(self, related_object.name, None)
         return None
+
+    def get_validators[T: BaseValidator](self) -> List[T]:
+        return []
 
     def __str__(self):
         return self.file.name
