@@ -5,13 +5,15 @@ from django.core.validators import BaseValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from .fields import DynamicFileField
+
 
 def dynamic_upload_to(instance, filename):
     return instance.get_upload_path(filename)
 
 
 class BaseFileModel(models.Model):
-    file = models.FileField(
+    file = DynamicFileField(
         upload_to=dynamic_upload_to,
         verbose_name=_("File"),
         db_index=True,

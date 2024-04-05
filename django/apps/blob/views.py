@@ -18,9 +18,7 @@ class MediaAuthorizationView(View):
         if not path:
             return HttpResponseBadRequest(_("Invalid file path."))
 
-        try:
-            file_record = BaseFileModel.objects.get(file=path)
-        except BaseFileModel.DoesNotExist:
+        if not (file_record := BaseFileModel.objects.filter(file=path).first()):
             return serve(request, path, document_root=settings.MEDIA_ROOT)
 
         if not file_record.check_auth(request):
