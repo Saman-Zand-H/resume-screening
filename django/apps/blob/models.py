@@ -12,7 +12,7 @@ def dynamic_upload_to(instance, filename):
     return instance.get_upload_path(filename)
 
 
-class BaseFileModel(models.Model):
+class FileModel(models.Model):
     file = DynamicFileField(
         upload_to=dynamic_upload_to,
         verbose_name=_("File"),
