@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.static import serve
 
-from .factories import BlobResponseBuilder
+from .builders import BlobResponseBuilder
 from .models import BaseFileModel
 
 
