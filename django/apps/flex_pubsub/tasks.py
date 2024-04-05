@@ -58,7 +58,7 @@ task_registry = TaskRegistry()
 
 
 def register_task(
-    subscriptions: List[str],
+    subscriptions: List[str] = [],
     name: Optional[str] = None,
     schedule: Optional[SchedulerJob] = None,
 ) -> Callable[[Callable], Callable]:
