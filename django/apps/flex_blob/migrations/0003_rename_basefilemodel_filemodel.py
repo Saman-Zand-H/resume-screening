@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('auth_account', '0060_rename_basefilemodel_ptr_avatarfile_filemodel_ptr'),
-        ('blob', '0002_alter_basefilemodel_file'),
+        ("auth_account", "0060_rename_basefilemodel_ptr_avatarfile_filemodel_ptr"),
+        ("flex_blob", "0002_alter_basefilemodel_file"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='BaseFileModel',
-            new_name='FileModel',
+            old_name="BaseFileModel",
+            new_name="FileModel",
         ),
     ]

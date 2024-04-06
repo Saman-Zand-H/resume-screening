@@ -6,24 +6,46 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('auth_account', '0057_remove_referral_referred_users_and_more'),
-        ('blob', '0001_initial'),
+        ("auth_account", "0057_remove_referral_referred_users_and_more"),
+        ("flex_blob", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Avatar',
+            name="Avatar",
             fields=[
-                ('basefilemodel_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='blob.basefilemodel')),
-                ('uploaded_by', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='uploaded_avatar', to=settings.AUTH_USER_MODEL)),
+                (
+                    "basefilemodel_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="flex_blob.basefilemodel",
+                    ),
+                ),
+                (
+                    "uploaded_by",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="uploaded_avatar",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
-            bases=('blob.basefilemodel',),
+            bases=("flex_blob.basefilemodel",),
         ),
         migrations.AddField(
-            model_name='profile',
-            name='avatar2',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='profile', to='auth_account.avatar'),
+            model_name="profile",
+            name="avatar2",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="profile",
+                to="auth_account.avatar",
+            ),
         ),
     ]

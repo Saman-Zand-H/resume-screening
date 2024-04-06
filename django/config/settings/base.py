@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "computedfields",
     "cachalot",
     "flex_pubsub",
+    "flex_blob",
 ]
 
 INSTALLED_APPS += [
@@ -68,7 +69,6 @@ INSTALLED_APPS += [
     "account",
     "ai",
     "criteria",
-    "blob",
 ]
 
 MIDDLEWARE = [

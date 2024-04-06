@@ -9,5 +9,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True, schema=schema))),
     path("criteria/", include("criteria.urls"), name="criteria"),
-    path("media/", include("blob.urls"), name="blob"),
+    path("media/", include("flex_blob.urls"), name="blob"),
 ]

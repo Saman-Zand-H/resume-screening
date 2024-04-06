@@ -2,7 +2,6 @@ import base64
 import contextlib
 import uuid
 
-from blob.models import FileModel
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -21,6 +20,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
+from flex_blob.models import FileModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException

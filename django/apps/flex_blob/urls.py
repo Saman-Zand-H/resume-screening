@@ -2,7 +2,7 @@ from django.urls import re_path
 
 from . import views
 
-app_name = "blob"
+app_name = "flex_blob"
 
 urlpatterns = [
     re_path(
