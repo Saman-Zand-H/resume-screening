@@ -134,3 +134,47 @@ class LanguageProficiencyTest(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# class LanguageProficiencyTest(models.Model):
+#     class ScoreType(models.TextChoices):
+#         QUANTITATIVE = "quantitative", _("Quantitative")
+#         QUALITATIVE = "qualitative", _("Qualitative")
+
+#     title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
+#     languages = ArrayField(models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Languages"))
+#     score_type = models.CharField(
+#         max_length=16, choices=ScoreType.choices, default=ScoreType.QUANTITATIVE.value, verbose_name=_("Score Type")
+#     )
+
+#     class Meta:
+#         verbose_name = _("Language Proficiency Test")
+#         verbose_name_plural = _("Language Proficiency Tests")
+
+#     def __str__(self):
+#         return self.title
+
+
+# class QuantitativeSkill(models.Model):
+#     test = models.ForeignKey(
+#         LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="skills"
+#     )
+#     name = models.CharField(max_length=255, verbose_name=_("Name"))
+#     min_score = models.IntegerField(verbose_name=_("Minimum Score"))
+#     max_score = models.IntegerField(verbose_name=_("Maximum Score"))
+
+#     class Meta:
+#         verbose_name = _("Language Proficiency Test Numeric Value")
+#         verbose_name_plural = _("Language Proficiency Test Numeric Values")
+
+
+# class QualitativeSkill(models.Model):
+#     test = models.ForeignKey(
+#         LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="skills"
+#     )
+#     name = models.CharField(max_length=255, verbose_name=_("Name"))
+#     scores = ArrayField(models.CharField(max_length=255), verbose_name=_("Scores"))
+
+#     class Meta:
+#         verbose_name = _("Language Proficiency Test Qualitative Value")
+#         verbose_name_plural = _("Language Proficiency Test Qualitative Values")
