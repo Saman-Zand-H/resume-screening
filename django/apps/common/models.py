@@ -56,7 +56,6 @@ class Field(models.Model):
 
 class University(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"))
     website = models.URLField(verbose_name=_("Website"))
 
     class Meta:

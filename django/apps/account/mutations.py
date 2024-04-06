@@ -371,6 +371,7 @@ EDUCATION_MUTATION_FIELDS = (
     Education.field.field.name,
     Education.degree.field.name,
     Education.university.field.name,
+    Education.city.field.name,
     Education.start.field.name,
     Education.end.field.name,
 )

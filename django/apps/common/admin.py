@@ -35,17 +35,15 @@ class JobAdmin(admin.ModelAdmin):
 
 @admin.register(Field)
 class FieldAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)
-    list_filter = ("name",)
+    list_display = (Field.name.field.name,)
+    search_fields = (Field.name.field.name,)
+    list_filter = (Field.name.field.name,)
 
 
 @admin.register(University)
 class UniversityAdmin(admin.ModelAdmin):
-    list_display = ("name", "city", "website")
-    search_fields = ("name", "city__name", "website")
-    list_filter = ("name",)
-    raw_id_fields = ("city",)
+    list_display = (University.name.field.name, University.website.field.name)
+    search_fields = (University.name.field.name, University.website.field.name)
 
 
 @admin.register(SkillTopic)
@@ -67,17 +65,11 @@ class SkillAdmin(admin.ModelAdmin):
 
 @admin.register(LanguageProficiencyTest)
 class LanguageProficiencyTestAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "title",
-    )
-    search_fields = ("title",)
+    list_display = (LanguageProficiencyTest.title.field.name,)
+    search_fields = (LanguageProficiencyTest.title.field.name,)
 
 
 @admin.register(Position)
 class PositionAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "title",
-    )
-    search_fields = ("title",)
+    list_display = (Position.title.field.name,)
+    search_fields = (Position.title.field.name,)

@@ -74,7 +74,6 @@ class UniversityNode(DjangoObjectType):
         fields = (
             University.id.field.name,
             University.name.field.name,
-            University.city.field.name,
             University.website.field.name,
         )
         filter_fields = {
