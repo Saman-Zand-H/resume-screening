@@ -42,8 +42,8 @@ class FieldAdmin(admin.ModelAdmin):
 
 @admin.register(University)
 class UniversityAdmin(admin.ModelAdmin):
-    list_display = (University.name.field.name, University.website.field.name)
-    search_fields = (University.name.field.name, University.website.field.name)
+    list_display = (University.name.field.name, University.websites.field.name)
+    search_fields = (University.name.field.name, University.websites.field.name)
 
 
 @admin.register(SkillTopic)

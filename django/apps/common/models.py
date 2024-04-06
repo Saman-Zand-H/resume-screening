@@ -56,7 +56,7 @@ class Field(models.Model):
 
 class University(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
-    website = models.URLField(verbose_name=_("Website"))
+    websites = ArrayField(models.URLField(), verbose_name=_("Websites"), blank=True, null=True)
 
     class Meta:
         verbose_name = _("University")

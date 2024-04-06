@@ -74,7 +74,7 @@ class UniversityNode(DjangoObjectType):
         fields = (
             University.id.field.name,
             University.name.field.name,
-            University.website.field.name,
+            University.websites.field.name,
         )
         filter_fields = {
             University.id.field.name: ["exact"],
