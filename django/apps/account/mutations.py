@@ -406,10 +406,12 @@ class EducationUpdateStatusMutation(UpdateStatusMixin):
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
     WorkExperience.job.field.name,
+    WorkExperience.grade.field.name,
     WorkExperience.start.field.name,
     WorkExperience.end.field.name,
     WorkExperience.organization.field.name,
     WorkExperience.city.field.name,
+    WorkExperience.skills.field.name,
 )
 
 

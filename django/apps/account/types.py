@@ -117,10 +117,12 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
         fields = (
             WorkExperience.id.field.name,
             WorkExperience.job.field.name,
+            WorkExperience.grade.field.name,
             WorkExperience.start.field.name,
             WorkExperience.end.field.name,
             WorkExperience.organization.field.name,
             WorkExperience.city.field.name,
+            WorkExperience.skills.field.name,
             WorkExperience.created_at.field.name,
             WorkExperience.updated_at.field.name,
             WorkExperience.status.field.name,

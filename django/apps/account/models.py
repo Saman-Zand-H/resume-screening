@@ -515,11 +515,25 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
 
 
 class WorkExperience(DocumentAbstract):
+    class Grade(models.TextChoices):
+        INTERN = "intern", _("Intern")
+        ASSOCIATE = "associate", _("Associate")
+        JUNIOR = "junior", _("Junior")
+        MID_LEVEL = "mid_level", _("Mid-Level")
+        SENIOR = "senior", _("Senior")
+        MANAGER = "manager", _("Manager")
+        DIRECTOR = "director", _("Director")
+        CTO = "cto", _("CTO")
+        CFO = "cfo", _("CFO")
+        CEO = "ceo", _("CEO")
+
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
+    grade = models.CharField(max_length=50, choices=Grade.choices, verbose_name=_("Grade"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
+    skills = ArrayField(models.CharField(max_length=250), verbose_name=_("Skills"), blank=True, null=True)
 
     class Meta:
         verbose_name = _("Work Experience")
