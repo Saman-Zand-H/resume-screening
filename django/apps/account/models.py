@@ -442,6 +442,7 @@ class Education(DocumentAbstract):
     field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
     university = models.ForeignKey(University, on_delete=models.CASCADE, verbose_name=_("University"))
+    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
 
