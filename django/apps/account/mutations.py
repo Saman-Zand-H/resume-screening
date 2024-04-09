@@ -210,6 +210,9 @@ class UserUpdateMutation(CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
             Profile.city.field.name,
             Profile.native_language.field.name,
             Profile.fluent_languages.field.name,
+            Profile.job_city.field.name,
+            Profile.job_type.field.name,
+            Profile.job_location_type.field.name,
         )
         custom_fields = USER_MUTATION_FIELDS
 
