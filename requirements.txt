@@ -31,3 +31,4 @@ google-cloud-pubsub~=2.27
 django-storages[google]~=1.14
 django-flex-blob==0.0.7
 django-flex-pubsub==0.0.2
+weasyprint~=63.0

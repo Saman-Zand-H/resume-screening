@@ -68,6 +68,7 @@ INSTALLED_APPS += [
     "api",
     "account",
     "ai",
+    "cv",
     "criteria",
 ]
 
