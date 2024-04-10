@@ -210,6 +210,9 @@ class UserUpdateMutation(CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
             Profile.city.field.name,
             Profile.native_language.field.name,
             Profile.fluent_languages.field.name,
+            Profile.job_city.field.name,
+            Profile.job_type.field.name,
+            Profile.job_location_type.field.name,
         )
         custom_fields = USER_MUTATION_FIELDS
 
@@ -406,10 +409,12 @@ class EducationUpdateStatusMutation(UpdateStatusMixin):
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
     WorkExperience.job.field.name,
+    WorkExperience.grade.field.name,
     WorkExperience.start.field.name,
     WorkExperience.end.field.name,
     WorkExperience.organization.field.name,
     WorkExperience.city.field.name,
+    WorkExperience.skills.field.name,
 )
 
 

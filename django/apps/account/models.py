@@ -217,6 +217,25 @@ class Profile(ComputedFieldsModel):
         EMPLOYED = "employed", _("Employed")
         UNEMPLOYED = "unemployed", _("Unemployed")
 
+    class JobType(models.TextChoices):
+        FULL_TIME = "full_time", _("Full Time")
+        PART_TIME = "part_time", _("Part Time")
+        PERMANENT = "permanent", _("Permanent")
+        FIX_TERM_CONTRACT = "fix_term_contract", _("Fix Term Contract")
+        SEASONAL = "seasonal", _("Seasonal")
+        FREELANCE = "freelance", _("Freelance")
+        APPRENTICESHIP = "apprenticeship", _("Apprenticeship")
+        PRINCE_EDWARD_ISLAND = "prince_edward_island", _("Prince Edward Island")
+        INTERNSHIP_CO_OP = "internship_co_op", _("Internship/Co-op")
+
+    class JobLocationType(models.TextChoices):
+        PRECISE_LOCATION = "precise_location", _("On-site (Precise Location)")
+        LIMITED_AREA = "limited_area", _("On-site (Within a Limited Area)")
+        REMOTE = "remote", _("Remote")
+        HYBRID = "hybrid", _("Hybrid")
+        ON_THE_ROAD = "on_the_road", _("On the road")
+        GLOBAL = "global", _("Global")
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -252,12 +271,46 @@ class Profile(ComputedFieldsModel):
         blank=True,
     )
     interested_jobs = models.ManyToManyField(Job, verbose_name=_("Interested Jobs"), blank=True)
-    city = models.ForeignKey(City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True)
+    city = models.ForeignKey(
+        City,
+        on_delete=models.SET_NULL,
+        verbose_name=_("City"),
+        null=True,
+        blank=True,
+        related_name="profiles",
+    )
     native_language = models.CharField(
-        choices=LANGUAGES, max_length=32, verbose_name=_("Native Language"), null=True, blank=True
+        choices=LANGUAGES,
+        max_length=32,
+        verbose_name=_("Native Language"),
+        null=True,
+        blank=True,
     )
     fluent_languages = ArrayField(
-        models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Fluent Languages"), null=True, blank=True
+        models.CharField(choices=LANGUAGES, max_length=32),
+        verbose_name=_("Fluent Languages"),
+        null=True,
+        blank=True,
+    )
+    job_city = models.ForeignKey(
+        City,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Job City"),
+        null=True,
+        blank=True,
+        related_name="job_profiles",
+    )
+    job_type = ArrayField(
+        models.CharField(max_length=50, choices=JobType.choices),
+        verbose_name=_("Job Type"),
+        null=True,
+        blank=True,
+    )
+    job_location_type = ArrayField(
+        models.CharField(max_length=50, choices=JobLocationType.choices),
+        verbose_name=_("Job Location Type"),
+        null=True,
+        blank=True,
     )
 
     @computed(
@@ -515,11 +568,25 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
 
 
 class WorkExperience(DocumentAbstract):
+    class Grade(models.TextChoices):
+        INTERN = "intern", _("Intern")
+        ASSOCIATE = "associate", _("Associate")
+        JUNIOR = "junior", _("Junior")
+        MID_LEVEL = "mid_level", _("Mid-Level")
+        SENIOR = "senior", _("Senior")
+        MANAGER = "manager", _("Manager")
+        DIRECTOR = "director", _("Director")
+        CTO = "cto", _("CTO")
+        CFO = "cfo", _("CFO")
+        CEO = "ceo", _("CEO")
+
     job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
+    grade = models.CharField(max_length=50, choices=Grade.choices, verbose_name=_("Grade"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
+    skills = ArrayField(models.CharField(max_length=250), verbose_name=_("Skills"), blank=True, null=True)
 
     class Meta:
         verbose_name = _("Work Experience")

@@ -135,6 +135,7 @@ class CityNode(DjangoObjectType):
             City.id.field.name: ["exact"],
             City.name.field.name: ["icontains"],
             City.region.field.name: ["exact"],
+            "country__code2": ["exact"],
         }
 
 
