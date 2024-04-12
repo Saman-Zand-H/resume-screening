@@ -37,7 +37,6 @@ class JobAdmin(admin.ModelAdmin):
 class FieldAdmin(admin.ModelAdmin):
     list_display = (Field.name.field.name,)
     search_fields = (Field.name.field.name,)
-    list_filter = (Field.name.field.name,)
 
 
 @admin.register(University)
