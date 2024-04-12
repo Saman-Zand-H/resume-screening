@@ -1,3 +1,6 @@
+from cities_light.models import City
+from common.models import Field, Job, LanguageProficiencyTest
+from common.utils import fields_join
 from graphql_auth.models import UserStatus
 
 from django.contrib import admin
@@ -78,189 +81,324 @@ class UserAdmin(UserAdminBase):
 
 @register(UserStatus)
 class UserStatusAdmin(admin.ModelAdmin):
-    list_display = ("user", "verified", "archived", "secondary_email")
-    search_fields = ("user__email",)
-    list_filter = ("verified", "archived")
-    raw_id_fields = ("user",)
+    list_display = (
+        UserStatus.user.field.name,
+        UserStatus.verified.field.name,
+        UserStatus.archived.field.name,
+        UserStatus.secondary_email.field.name,
+    )
+    search_fields = (fields_join(UserStatus.user, User.email),)
+    list_filter = (
+        UserStatus.verified.field.name,
+        UserStatus.archived.field.name,
+    )
+    raw_id_fields = (UserStatus.user.field.name,)
 
 
 class ProfileInterestedJobsInline(admin.TabularInline):
     model = Profile.interested_jobs.through
     extra = 1
+    raw_id_fields = (Profile.interested_jobs.through.job.field.name,)
 
 
 @register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "height", "weight", "skin_color", "hair_color", "eye_color")
-    search_fields = ("user__email", "job__name")
-    list_filter = ("skin_color", "eye_color")
+    list_display = (
+        Profile.user.field.name,
+        Profile.height.field.name,
+        Profile.weight.field.name,
+        Profile.skin_color.field.name,
+        Profile.hair_color.field.name,
+        Profile.eye_color.field.name,
+    )
+    search_fields = (fields_join(Profile.user, User.email),)
+    list_filter = (
+        Profile.height.field.name,
+        Profile.weight.field.name,
+        Profile.skin_color.field.name,
+        Profile.hair_color.field.name,
+    )
     raw_id_fields = (
-        "user",
-        "interested_jobs",
-        "city",
+        Profile.user.field.name,
+        Profile.city.field.name,
+        Profile.job_city.field.name,
     )
     inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (Profile.credits.field.name,)
+    exclude = (Profile.interested_jobs.field.name,)
 
 
 @register(Contact)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = ("user", "type", "value")
-    search_fields = ("user__email", "type", "value")
-    list_filter = ("type",)
-    raw_id_fields = ("user",)
+    list_display = (Contact.user.field.name, Contact.type.field.name, Contact.value.field.name)
+    search_fields = (fields_join(Contact.user, User.email), Contact.type.field.name, Contact.value.field.name)
+    list_filter = (Contact.type.field.name,)
+    raw_id_fields = (Contact.user.field.name,)
 
 
 @register(Education)
 class EducationAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "field", "degree", "start", "end", "status")
-    search_fields = ("user__email", "field__name", "degree", "city__name")
-    list_filter = ("degree", "status")
-    raw_id_fields = ("user", "field")
+    list_display = (
+        Education.user.field.name,
+        Education.field.field.name,
+        Education.degree.field.name,
+        Education.start.field.name,
+        Education.end.field.name,
+        Education.status.field.name,
+    )
+    search_fields = (
+        Education.degree.field.name,
+        fields_join(Education.user, User.email),
+        fields_join(Education.field, Field.name),
+        fields_join(Education.city, City.name),
+    )
+    list_filter = (
+        Education.degree.field.name,
+        Education.status.field.name,
+    )
+    raw_id_fields = (
+        Education.user.field.name,
+        Education.field.field.name,
+        Education.university.field.name,
+        Education.city.field.name,
+    )
 
 
 @register(IEEMethod)
 class IEEMethodAdmin(admin.ModelAdmin):
-    list_display = ("education", "education_evaluation_document", "evaluator")
-    search_fields = ("education__user__email", "evaluator")
-    list_filter = ("evaluator",)
-    raw_id_fields = ("education",)
+    list_display = (
+        IEEMethod.education.field.name,
+        IEEMethod.education_evaluation_document.field.name,
+        IEEMethod.evaluator.field.name,
+    )
+    search_fields = (
+        fields_join(IEEMethod.education, Education.user, User.email),
+        IEEMethod.evaluator.field.name,
+    )
+    list_filter = (IEEMethod.evaluator.field.name,)
+    raw_id_fields = (IEEMethod.education.field.name,)
 
 
 @register(CommunicationMethod)
 class CommunicationMethodAdmin(admin.ModelAdmin):
-    list_display = ("education", "website", "email", "department", "person", "degree_file")
-    search_fields = ("education__user__email", "website", "email", "department", "person")
-    list_filter = ("department",)
-    raw_id_fields = ("education",)
+    list_display = (
+        CommunicationMethod.education.field.name,
+        CommunicationMethod.website.field.name,
+        CommunicationMethod.email.field.name,
+        CommunicationMethod.department.field.name,
+        CommunicationMethod.person.field.name,
+        CommunicationMethod.degree_file.field.name,
+    )
+    search_fields = (
+        fields_join(CommunicationMethod.education, Education.user, User.email),
+        CommunicationMethod.website.field.name,
+        CommunicationMethod.email.field.name,
+        CommunicationMethod.department.field.name,
+        CommunicationMethod.person.field.name,
+    )
+    list_filter = (CommunicationMethod.department.field.name,)
+    raw_id_fields = (CommunicationMethod.education.field.name,)
 
 
 @register(WorkExperience)
 class WorkExperienceAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "job", "organization", "status", "start", "end")
+    list_display = (
+        WorkExperience.user.field.name,
+        WorkExperience.job.field.name,
+        WorkExperience.organization.field.name,
+        WorkExperience.status.field.name,
+        WorkExperience.start.field.name,
+        WorkExperience.end.field.name,
+    )
     search_fields = (
-        "user__email",
-        "organization",
+        fields_join(WorkExperience.user, User.email),
+        WorkExperience.organization.field.name,
     )
     raw_id_fields = (
-        "user",
-        "city",
+        WorkExperience.user.field.name,
+        WorkExperience.city.field.name,
     )
 
 
 @register(EmployerLetterMethod)
 class EmployerLetterMethodAdmin(admin.ModelAdmin):
     list_display = (
-        "work_experience",
-        "employer_letter",
-        "verified_at",
-        "created_at",
+        EmployerLetterMethod.work_experience.field.name,
+        EmployerLetterMethod.employer_letter.field.name,
+        EmployerLetterMethod.verified_at.field.name,
+        EmployerLetterMethod.created_at.field.name,
     )
-    search_fields = ("work_experience__user__email",)
-    list_filter = (
-        "verified_at",
-        "created_at",
-    )
-    raw_id_fields = ("work_experience",)
+    search_fields = (fields_join(EmployerLetterMethod.work_experience, WorkExperience.user, User.email),)
+    raw_id_fields = (EmployerLetterMethod.work_experience.field.name,)
 
 
 @register(PaystubsMethod)
 class PaystubsMethodAdmin(admin.ModelAdmin):
     list_display = (
-        "work_experience",
-        "paystubs",
-        "verified_at",
-        "created_at",
+        PaystubsMethod.work_experience.field.name,
+        PaystubsMethod.paystubs.field.name,
+        PaystubsMethod.verified_at.field.name,
+        PaystubsMethod.created_at.field.name,
     )
-    search_fields = ("work_experience__user__email",)
-    list_filter = (
-        "verified_at",
-        "created_at",
-    )
-    raw_id_fields = ("work_experience",)
+    search_fields = (fields_join(PaystubsMethod.work_experience, WorkExperience.user, User.email),)
+    raw_id_fields = (PaystubsMethod.work_experience.field.name,)
 
 
 @register(ReferenceCheckEmployer)
 class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
-    list_display = ("work_experience_verification", "name", "email", "phone_number", "position")
-    search_fields = (
-        "email",
-        "phone_number",
+    list_display = (
+        ReferenceCheckEmployer.work_experience_verification.field.name,
+        ReferenceCheckEmployer.name.field.name,
+        ReferenceCheckEmployer.email.field.name,
+        ReferenceCheckEmployer.phone_number.field.name,
+        ReferenceCheckEmployer.position.field.name,
     )
-    raw_id_fields = ("work_experience_verification",)
+    search_fields = (
+        ReferenceCheckEmployer.email.field.name,
+        ReferenceCheckEmployer.phone_number.field.name,
+    )
+    raw_id_fields = (ReferenceCheckEmployer.work_experience_verification.field.name,)
 
 
 @register(LanguageCertificate)
 class LanguageCertificateAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "test__title", "status", "issued_at", "expired_at", "band_score")
-    search_fields = ("user__email",)
-    list_filter = ("test__title", "issued_at", "expired_at")
-    raw_id_fields = ("user", "test")
+    list_display = (
+        LanguageCertificate.user.field.name,
+        fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
+        LanguageCertificate.status.field.name,
+        LanguageCertificate.issued_at.field.name,
+        LanguageCertificate.expired_at.field.name,
+        LanguageCertificate.band_score.field.name,
+    )
+    search_fields = (fields_join(LanguageCertificate.user, User.email),)
+    list_filter = (
+        fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
+        LanguageCertificate.issued_at.field.name,
+        LanguageCertificate.expired_at.field.name,
+    )
+    raw_id_fields = (LanguageCertificate.user.field.name, LanguageCertificate.test.field.name)
 
 
 @register(CertificateAndLicense)
 class CertificateAndLicenseAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "title", "certifier", "status", "issued_at", "expired_at")
-    search_fields = ("user__email", "title")
-    list_filter = ("certifier", "issued_at", "expired_at")
-    raw_id_fields = ("user",)
+    list_display = (
+        CertificateAndLicense.user.field.name,
+        CertificateAndLicense.title.field.name,
+        CertificateAndLicense.certifier.field.name,
+        CertificateAndLicense.status.field.name,
+        CertificateAndLicense.issued_at.field.name,
+        CertificateAndLicense.expired_at.field.name,
+    )
+    search_fields = (
+        fields_join(CertificateAndLicense.user, User.email),
+        CertificateAndLicense.title.field.name,
+    )
+    list_filter = (
+        CertificateAndLicense.certifier.field.name,
+        CertificateAndLicense.issued_at.field.name,
+        CertificateAndLicense.expired_at.field.name,
+    )
+    raw_id_fields = (CertificateAndLicense.user.field.name,)
 
 
 @register(OfflineMethod)
 class OfflineMethodAdmin(admin.ModelAdmin):
-    list_display = ("language_certificate", "verified_at", "created_at")
-    search_fields = ("language_certificate__user__email",)
-    list_filter = ("verified_at", "created_at")
-    raw_id_fields = ("language_certificate",)
+    list_display = (
+        OfflineMethod.language_certificate.field.name,
+        OfflineMethod.verified_at.field.name,
+        OfflineMethod.created_at.field.name,
+    )
+    search_fields = (fields_join(OfflineMethod.language_certificate, LanguageCertificate.user, User.email),)
+    list_filter = (
+        OfflineMethod.verified_at.field.name,
+        OfflineMethod.created_at.field.name,
+    )
+    raw_id_fields = (OfflineMethod.language_certificate.field.name,)
 
 
 @register(OnlineMethod)
 class OnlineMethodAdmin(admin.ModelAdmin):
-    list_display = ("language_certificate", "verified_at", "created_at")
-    search_fields = ("language_certificate__user__email",)
-    list_filter = ("verified_at", "created_at")
-    raw_id_fields = ("language_certificate",)
+    list_display = (
+        OnlineMethod.language_certificate.field.name,
+        OnlineMethod.verified_at.field.name,
+        OnlineMethod.created_at.field.name,
+    )
+    search_fields = (fields_join(OnlineMethod.language_certificate, LanguageCertificate.user, User.email),)
+    list_filter = (
+        OnlineMethod.verified_at.field.name,
+        OnlineMethod.created_at.field.name,
+    )
+    raw_id_fields = (OnlineMethod.language_certificate.field.name,)
 
 
 @register(CertificateAndLicenseOfflineVerificationMethod)
 class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
-    list_display = ("certificate_and_license", "verified_at", "created_at")
-    search_fields = ("certificate_and_license__user__email",)
-    list_filter = ("verified_at", "created_at")
-    raw_id_fields = ("certificate_and_license",)
+    list_display = (
+        CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,
+        CertificateAndLicenseOfflineVerificationMethod.verified_at.field.name,
+        CertificateAndLicenseOfflineVerificationMethod.created_at.field.name,
+    )
+    search_fields = (
+        fields_join(
+            CertificateAndLicenseOfflineVerificationMethod.certificate_and_license,
+            CertificateAndLicense.user,
+            User.email,
+        ),
+    )
+    list_filter = (
+        CertificateAndLicenseOfflineVerificationMethod.verified_at.field.name,
+        CertificateAndLicenseOfflineVerificationMethod.created_at.field.name,
+    )
+    raw_id_fields = (CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,)
 
 
 @register(CertificateAndLicenseOnlineVerificationMethod)
 class CertificateAndLicenseOnlineVerificationMethodAdmin(admin.ModelAdmin):
-    list_display = ("certificate_and_license", "verified_at", "created_at")
-    search_fields = ("certificate_and_license__user__email",)
-    list_filter = ("verified_at", "created_at")
-    raw_id_fields = ("certificate_and_license",)
+    list_display = (
+        CertificateAndLicenseOnlineVerificationMethod.certificate_and_license.field.name,
+        CertificateAndLicenseOnlineVerificationMethod.verified_at.field.name,
+        CertificateAndLicenseOnlineVerificationMethod.created_at.field.name,
+    )
+    search_fields = (
+        fields_join(
+            CertificateAndLicenseOnlineVerificationMethod.certificate_and_license,
+            CertificateAndLicense.user,
+            User.email,
+        ),
+    )
+    list_filter = (
+        CertificateAndLicenseOnlineVerificationMethod.verified_at.field.name,
+        CertificateAndLicenseOnlineVerificationMethod.created_at.field.name,
+    )
+    raw_id_fields = (CertificateAndLicenseOnlineVerificationMethod.certificate_and_license.field.name,)
 
 
 @register(CanadaVisa)
 class CanadaVisaAdmin(admin.ModelAdmin):
     list_display = (
-        "user",
-        "nationality",
-        "status",
+        CanadaVisa.user.field.name,
+        CanadaVisa.nationality.field.name,
+        CanadaVisa.status.field.name,
     )
-    search_fields = ("user__email", "nationality")
-    list_filter = ("status",)
+    search_fields = (
+        fields_join(CanadaVisa.user, User.email),
+        CanadaVisa.nationality.field.name,
+    )
+    list_filter = (CanadaVisa.status.field.name,)
     raw_id_fields = (
-        "user",
-        "nationality",
+        CanadaVisa.user.field.name,
+        CanadaVisa.nationality.field.name,
     )
 
 
 @register(Resume)
 class ResumeAdmin(admin.ModelAdmin):
     list_display = (
-        "user",
-        "file",
+        Resume.user.field.name,
+        Resume.file.field.name,
     )
-    search_fields = ("user__email", "file")
-    raw_id_fields = ("user",)
+    search_fields = (fields_join(Resume.user, User.email), Resume.file.field.name)
+    raw_id_fields = (Resume.user.field.name,)
 
 
 class ReferralUserInline(admin.TabularInline):
@@ -276,7 +414,7 @@ class ReferralAdmin(admin.ModelAdmin):
         Referral.user.field.name,
         Referral.code.field.name,
     )
-    search_fields = ("user__email", Referral.code.field.name)
+    search_fields = (fields_join(Referral.user, User.email), Referral.code.field.name)
     raw_id_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
 
@@ -284,8 +422,8 @@ class ReferralAdmin(admin.ModelAdmin):
 @register(AvatarFile)
 class AvatarFileAdmin(admin.ModelAdmin):
     list_display = (
-        "uploaded_by",
-        "file",
+        AvatarFile.uploaded_by.field.name,
+        AvatarFile.file.field.name,
     )
-    search_fields = ("uploaded_by__email", "file")
-    raw_id_fields = ("uploaded_by",)
+    search_fields = (fields_join(AvatarFile.uploaded_by, User.email), AvatarFile.file.field.name)
+    raw_id_fields = (AvatarFile.uploaded_by.field.name,)
