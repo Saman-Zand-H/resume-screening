@@ -44,7 +44,8 @@ RUN apk update && \
     ttf-freefont \
     ttf-opensans \
     curl \
-    xvfb && \
+    xvfb \
+    file && \
     rm -rf /var/cache/apk/*
 
 # Copy virtual environment from builder
