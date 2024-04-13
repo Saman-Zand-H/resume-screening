@@ -1,5 +1,5 @@
 from cities_light.models import City
-from common.models import Field, Job, LanguageProficiencyTest
+from common.models import Field, LanguageProficiencyTest
 from common.utils import fields_join
 from graphql_auth.models import UserStatus
 

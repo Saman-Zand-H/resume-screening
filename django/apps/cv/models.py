@@ -8,22 +8,6 @@ from django.template.loader import TemplateDoesNotExist, get_template
 from django.utils.translation import gettext_lazy as _
 
 from .constants import TEMPLATE_VALID_EXTENSIONS
-from .managers import CVContextManager
-from .utils import get_template_variables
-
-
-class CVRequiredContext(models.Model):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
-    value = models.CharField(max_length=255, verbose_name=_("Value"))
-
-    objects = CVContextManager()
-
-    def __str__(self):
-        return f"{self.title}: {{ {self.value} }}"
-
-    class Meta:
-        verbose_name = _("CV Context")
-        verbose_name_plural = _("CV Contexts")
 
 
 class CVTemplate(models.Model):
@@ -39,17 +23,9 @@ class CVTemplate(models.Model):
             )
 
         try:
-            template_object = self.get_template_object()
+            self.get_template_object()
         except TemplateDoesNotExist:
             raise ValidationError(_("Template does not exist"))
-
-        required_contexts: models.QuerySet[CVRequiredContext] = CVRequiredContext.objects.all()
-        used_variables = get_template_variables(template_object.template)
-        if not set(required_contexts.values_list("value", flat=True)).issubset(used_variables):
-            raise ValidationError(
-                _("Template does not use all required context variables. Missing variables: %(missing_vars)s")
-                % {"missing_vars": ", ".join(set(required_contexts.values_list("value", flat=True)) - used_variables)}
-            )
 
     def get_template_object(self):
         return get_template(self.path)

@@ -1,12 +1,12 @@
 import json
 from collections import namedtuple
 
-from account.models import Resume, User
+from config.settings.subscriptions import AccountSubscription
 from flex_pubsub.tasks import register_task
 
+from account.models import Resume, User
 from django.contrib.auth import get_user_model
 
-from .subscriptions import AccountSubscription
 from .utils import extract_available_jobs, extract_or_create_skills
 
 
@@ -89,11 +89,10 @@ def async_email(func_name, user_email, context, arg):
 def graphql_auth_async_email(func, args):
     func_name = func.__name__
     user_email = func.__self__.user.email
-
     info = args[0]
     arg = args[1] if len(args) == 2 else None
 
     serializable_context = SerializableContext(info.context)
-    context = (json.dumps(serializable_context.to_dict()),)
+    context = json.dumps(serializable_context.to_dict())
 
-    async_email.delay(func_name, user_email, context[0], arg)
+    async_email.delay(func_name, user_email, context, arg)

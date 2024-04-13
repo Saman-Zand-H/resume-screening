@@ -1,10 +1,10 @@
+from config.settings.subscriptions import CVSubscription
 from flex_pubsub.tasks import register_task
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
 from .models import CVTemplate
-from .subscriptions import CVSubscription
 
 
 @register_task(subscriptions=[CVSubscription.CV])

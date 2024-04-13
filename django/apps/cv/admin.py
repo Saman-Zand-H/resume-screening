@@ -1,16 +1,13 @@
 from django.contrib import admin
 
-from .models import CVRequiredContext, CVTemplate
-
-
-@admin.register(CVRequiredContext)
-class CVContextAdmin(admin.ModelAdmin):
-    list_display = ('title', 'value')
-    search_fields = ('title', 'value')
+from .models import CVTemplate
 
 
 @admin.register(CVTemplate)
 class CVTemplateAdmin(admin.ModelAdmin):
-    list_display = ('title', 'path', 'is_active')
-    list_filter = ('is_active',)
-    search_fields = ('title', 'path')
+    list_display = (CVTemplate.title.field.name, CVTemplate.path.field.name, CVTemplate.is_active.field.name)
+    list_filter = (CVTemplate.is_active.field.name,)
+    search_fields = (
+        CVTemplate.title.field.name,
+        CVTemplate.path.field.name,
+    )
