@@ -44,7 +44,7 @@ class Job(models.Model):
 
 
 class Field(models.Model):
-    name = models.CharField(max_length=255, verbose_name=_("Field"))
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
 
     class Meta:
         verbose_name = _("Field")
