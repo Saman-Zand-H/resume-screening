@@ -1,11 +1,12 @@
 import json
 from collections import namedtuple
 
-from celery import shared_task
-
 from account.models import Resume, User
+from flex_pubsub.tasks import register_task
+
 from django.contrib.auth import get_user_model
 
+from .subscriptions import AccountSubscription
 from .utils import extract_available_jobs, extract_or_create_skills
 
 
@@ -62,7 +63,7 @@ class SerializableContext:
         return instance
 
 
-@shared_task
+@register_task(subscriptions=[AccountSubscription.EMAILING])
 def async_email(func_name, user_email, context, arg):
     """
     Task to send an e-mail for the graphql_auth package
