@@ -31,6 +31,6 @@ django-storages[google]~=1.14
 django-flex-blob==0.0.7
 django-flex-pubsub==0.0.2
 weasyprint~=63.0
-django-environ~=0.11.2
-google-auth~=2.35.0
-google-cloud-secret-manager~=2.20.2
+python-dotenv~=1.0
+google-auth~=2.35
+google-cloud-secret-manager~=2.20
