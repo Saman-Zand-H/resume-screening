@@ -46,35 +46,35 @@ steps:
     waitFor: ['build-backend-pubsub']  # Dependent on build-backend-pubsub
     args: ['push', 'gcr.io/$PROJECT_ID/job-seeker-api-backend-pubsub']
 
-  # # Deploy backend to Cloud Run
-  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  #   id: 'deploy-backend'
-  #   waitFor: ['push-backend']
-  #   entrypoint: 'gcloud'
-  #   args: [
-  #     'run', 'deploy', 'job-seeker-api-backend',
-  #     '--image', 'gcr.io/$PROJECT_ID/job-seeker-api-backend',
-  #     '--port', '8000',
-  #     '--region', 'us-central1',
-  #     '--platform', 'managed',
-  #     '--allow-unauthenticated',
-  #     '--min-instances', '1'
-  #   ]
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend'
+    waitFor: ['push-backend']
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'job-seeker-api-backend',
+      '--image', 'gcr.io/$PROJECT_ID/job-seeker-api-backend',
+      '--port', '8000',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--min-instances', '1'
+    ]
 
-  # # Deploy backend pubsub to Cloud Run
-  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  #   id: 'deploy-backend-pubsub'
-  #   waitFor: ['push-backend-pubsub']
-  #   entrypoint: 'gcloud'
-  #   args: [
-  #     'run', 'deploy', 'job-seeker-api-backend-pubsub',
-  #     '--image', 'gcr.io/$PROJECT_ID/job-seeker-api-backend-pubsub',
-  #     '--port', '8001',
-  #     '--region', 'us-central1',
-  #     '--platform', 'managed',
-  #     '--allow-unauthenticated',
-  #     '--min-instances', '1'
-  #   ]
+  # Deploy backend pubsub to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-backend-pubsub'
+    waitFor: ['push-backend-pubsub']
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'job-seeker-api-backend-pubsub',
+      '--image', 'gcr.io/$PROJECT_ID/job-seeker-api-backend-pubsub',
+      '--port', '8001',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--min-instances', '1'
+    ]
 
 options:
   logging: CLOUD_LOGGING_ONLY
