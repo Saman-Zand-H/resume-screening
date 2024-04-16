@@ -65,7 +65,7 @@ if GOOGLE_CLOUD_PROJECT:
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2")
+SECRET_KEY = os.environ.get("SECRET_KEY") or "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2"
 
 # Application definition
 
