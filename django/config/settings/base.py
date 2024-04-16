@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
 load_dotenv(override=True)
 
-if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_NAME"):
     try:
         _, os.environ["GOOGLE_CLOUD_PROJECT"] = google.auth.default()
     except google.auth.exceptions.DefaultCredentialsError:
@@ -47,7 +47,9 @@ if os.environ.get("GOOGLE_CLOUD_PROJECT"):
             value = re.sub(r'^"(.*)"$', r"\1", value.strip())
             os.environ.ENVIRON[key.strip()] = value
 
-    service_account_secret = f"projects/{project_id}/secrets/cloud_run_service_account_key/versions/latest"
+    service_account_secret = (
+        f"projects/{project_id}/secrets/{os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_NAME")}/versions/latest"
+    )
     service_account_payload = client.access_secret_version(name=service_account_secret).payload.data.decode("UTF-8")
 
     # Only service account json file path should be set in GOOGLE_APPLICATION_CREDENTIALS, so we create a temporary file
