@@ -11,23 +11,68 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import re
+import tempfile
 import sys
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
+import google.auth
+from google.cloud import secretmanager
+import environ
 
-load_dotenv(override=True)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
+
+env = environ.Env()
+env_file = os.path.join(BASE_DIR.parent, ".env")
+
+if os.path.isfile(env_file):
+    env.read_env(env_file)
+
+# Attempt to load the Project ID into the environment, safely failing on error.
+try:
+    _, os.environ["GOOGLE_CLOUD_PROJECT"] = google.auth.default()
+except google.auth.exceptions.DefaultCredentialsError:
+    pass
+
+if not os.path.isfile(env_file) and os.environ.get("GOOGLE_CLOUD_PROJECT", None):
+    # Pull secrets from Secret Manager
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+    client = secretmanager.SecretManagerServiceClient()
+    settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
+    name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
+    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
+
+    for line in payload.splitlines():
+        if line.strip() and "=" in line:
+            key, value = line.split("=", 1)
+            # Remove surrounding quotes (") if they exist
+            value = re.sub(r'^"(.*)"$', r"\1", value.strip())
+            env.ENVIRON[key.strip()] = value
+
+    service_account_secret = f"projects/{project_id}/secrets/cloud_run_service_account_key/versions/latest"
+    service_account_payload = client.access_secret_version(name=service_account_secret).payload.data.decode("UTF-8")
+
+    # Only service account json file path should be set in GOOGLE_APPLICATION_CREDENTIALS, so we create a temporary file
+    temp_credentials_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_credentials_file.write(service_account_payload.encode("UTF-8"))
+    temp_credentials_file.close()
+
+    os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", temp_credentials_file.name)
+
+elif not os.path.isfile(env_file):
+    raise Exception("No local .env or GOOGLE_CLOUD_PROJECT detected. No secrets found.")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2"
+SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # Application definition
 
@@ -44,7 +89,6 @@ INSTALLED_APPS = [
     "allauth.account",
     "rest_framework",
     "rest_framework.authtoken",
-    "mptt",
     "dj_rest_auth",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
@@ -110,16 +154,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
-        "USER": os.environ.get("DB_USER", "job_seekers_api"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
-        "PORT": os.environ.get("DB_PORT", 5432),
-    },
-}
+DATABASES = {"default": env.db()}
+
+if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
+    DATABASES["default"]["HOST"] = "127.0.0.1"
+    DATABASES["default"]["PORT"] = 5432
 
 
 # Password validation
@@ -152,7 +191,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
@@ -162,6 +200,23 @@ STATIC_ROOT = os.path.join(BASE_DIR, "assets")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
+
+if env("GS_BUCKET_NAME"):
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+            "OPTIONS": {
+                "bucket_name": env("GS_BUCKET_NAME"),
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+            "OPTIONS": {
+                "bucket_name": env("GS_BUCKET_NAME"),
+            },
+        },
+    }
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
