@@ -16,28 +16,32 @@ import sys
 import tempfile
 from datetime import timedelta
 from pathlib import Path
+from urllib import parse
 
 import google.auth
 from dotenv import load_dotenv
 from google.cloud import secretmanager
 
+load_dotenv(override=True)
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
+GOOGLE_CLOUD_ENABLE = os.environ.get("GOOGLE_CLOUD_ENABLE")
+GOOGLE_CLOUD_PROJECT = None
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 
-load_dotenv(override=True)
-
-if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_NAME"):
+if GOOGLE_CLOUD_ENABLE:
     try:
-        _, os.environ["GOOGLE_CLOUD_PROJECT"] = google.auth.default()
+        _, GOOGLE_CLOUD_PROJECT = google.auth.default()
     except google.auth.exceptions.DefaultCredentialsError:
         pass
 
-if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+if GOOGLE_CLOUD_PROJECT:
+    project_id = GOOGLE_CLOUD_PROJECT
 
     client = secretmanager.SecretManagerServiceClient()
-    settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
+    settings_name = os.environ.get("GOOGLE_CLOUD_SETTINGS_NAME", "django_settings")
     name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
     payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
 
@@ -45,25 +49,23 @@ if os.environ.get("GOOGLE_CLOUD_PROJECT"):
         if line.strip() and "=" in line:
             key, value = line.split("=", 1)
             value = re.sub(r'^"(.*)"$', r"\1", value.strip())
-            os.environ.ENVIRON[key.strip()] = value
+            os.environ[key.strip()] = value
 
-    service_account_secret = (
-        f"projects/{project_id}/secrets/{os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_NAME")}/versions/latest"
-    )
-    service_account_payload = client.access_secret_version(name=service_account_secret).payload.data.decode("UTF-8")
+    if not GOOGLE_APPLICATION_CREDENTIALS:
+        service_account_secret = f"projects/{project_id}/secrets/{os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_SECRET_NAME")}/versions/latest"
+        service_account_payload = client.access_secret_version(name=service_account_secret).payload.data.decode("UTF-8")
 
-    # Only service account json file path should be set in GOOGLE_APPLICATION_CREDENTIALS, so we create a temporary file
-    temp_credentials_file = tempfile.NamedTemporaryFile(delete=False)
-    temp_credentials_file.write(service_account_payload.encode("UTF-8"))
-    temp_credentials_file.close()
-
-    os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", temp_credentials_file.name)
+        temp_credentials_file = tempfile.NamedTemporaryFile(delete=False)
+        temp_credentials_file.write(service_account_payload.encode("UTF-8"))
+        temp_credentials_file.close()
+        GOOGLE_APPLICATION_CREDENTIALS = temp_credentials_file.name
+        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", GOOGLE_APPLICATION_CREDENTIALS)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2"
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2")
 
 # Application definition
 
@@ -144,6 +146,16 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+DB_URL = os.environ.get("DB_URL")
+if DB_URL:
+    url = parse.urlparse(DB_URL)
+    os.environ["DB_HOST"] = url.hostname or ""
+    os.environ["DB_NAME"] = url.path[1:] or ""
+    os.environ["DB_USER"] = url.username or ""
+    os.environ["DB_PASSWORD"] = url.password or ""
+    os.environ["DB_PORT"] = url.port or ""
+
 
 DATABASES = {
     "default": {
@@ -319,8 +331,6 @@ CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities50
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
 
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", os.environ.get("GOOGLE_API_KEY"))
-
 CRITERIA_SETTINGS = {
     "BASE_URL": os.environ.get("CRITERIA_BASE_URL", "https://integrations.criteriacorp.com/api/v1"),
     "AUTH_TOKEN": os.environ.get("CRITERIA_AUTH_TOKEN"),
@@ -329,8 +339,8 @@ CRITERIA_SETTINGS = {
 }
 
 PUBSUB_SETTINGS = {
-    "GOOGLE_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"),
-    "GOOGLE_PROJECT_ID": os.environ.get("GOOGLE_CLOUD_PROJECT"),
+    "GOOGLE_CREDENTIALS": GOOGLE_APPLICATION_CREDENTIALS,
+    "GOOGLE_PROJECT_ID": GOOGLE_CLOUD_PROJECT,
     "TOPIC_NAME": os.environ.get("PUBSUB_TOPIC_NAME"),
     "SUBSCRIPTIONS": os.environ.get("PUBSUB_SUBSCRIPTIONS"),
     "LISTENER_PORT": int(p) if (p := os.environ.get("PUBSUB_LISTENER_PORT")) else None,

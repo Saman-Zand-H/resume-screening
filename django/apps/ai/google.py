@@ -1,9 +1,7 @@
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import magic
 from google.cloud import vision
-
-from django.conf import settings
 
 from .constants import FILE_TYPE_MAPPING, FileType
 from .types import FileToTextResult
@@ -11,12 +9,8 @@ from .types import FileToTextResult
 
 class GoogleServices:
     @classmethod
-    def get_credentials(cls) -> Dict[str, Dict[str, str]]:
-        return {"client_options": {"api_key": settings.GOOGLE_API_KEY}}
-
-    @classmethod
     def get_vision_client(cls) -> vision.ImageAnnotatorClient:
-        return vision.ImageAnnotatorClient(**cls.get_credentials())
+        return vision.ImageAnnotatorClient()
 
     @classmethod
     def file_vision(
