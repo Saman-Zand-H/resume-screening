@@ -1,9 +1,9 @@
 from datetime import date
-from enum import Enum
 from typing import List, Optional
 
+from cities_light.models import City
 from common.choices import LANGUAGES
-from common.models import City, Field, Job, LanguageProficiencyTest, Skill, University
+from common.models import Field, Job, LanguageProficiencyTest, Skill, University
 from dj_rest_auth.registration.serializers import (
     SocialLoginSerializer as BaseSocialLoginSerializer,
 )
@@ -11,6 +11,7 @@ from phonenumber_field.validators import validate_phonenumber
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 from django.core.validators import URLValidator
+from django.utils.translation import gettext_lazy as _
 
 from .models import Contact, Education, Profile, User
 from .validators import LinkedInUsernameValidator, WhatsAppValidator
@@ -28,9 +29,6 @@ class SocialLoginSerializer(BaseSocialLoginSerializer):
 def get_existing_foreign_keys(model, ids: List[int]) -> Optional[List[int]]:
     existing_ids = set(model.objects.filter(id__in=ids).values_list("id", flat=True))
     return existing_ids or None
-
-
-Language = Enum("Language", {code.upper(): code for code, _ in LANGUAGES})
 
 
 class UserModel(BaseModel):
@@ -104,7 +102,7 @@ class EducationModel(BaseModel):
         start = values.get("start")
         end = values.get("end")
         if start and end and start > end:
-            raise ValueError("End date must be after the start date.")
+            raise ValueError(_("End date must be after the start date."))
 
         return values
 
@@ -129,13 +127,13 @@ class WorkExperienceModel(BaseModel):
         start = values.get("start")
         end = values.get("end")
         if start and end and start > end:
-            raise ValueError("End date must be after the start date.")
+            raise ValueError(_("End date must be after the start date."))
 
         return values
 
 
 class LanguageCertificateModel(BaseModel):
-    language: Language
+    language: str
     test_id: int
     issued_at: date
     expired_at: date
@@ -151,28 +149,19 @@ class LanguageCertificateModel(BaseModel):
 
     @model_validator(mode="before")
     def validate_scores_and_dates(cls, values):
-        try:
-            test = LanguageProficiencyTest.objects.get(pk=values["test_id"])
-        except LanguageProficiencyTest.DoesNotExist:
-            raise ValueError("Invalid test_id: Test does not exist.")
-
-        for score_key in ["listening_score", "reading_score", "writing_score", "speaking_score"]:
-            score = values.get(score_key)
-            if score is not None and not (test.min_score <= score <= test.max_score):
-                raise ValueError(
-                    f"{score_key.replace('_', ' ').title()} must be between {test.min_score} and {test.max_score}."
-                )
-
-        band_score = values.get("band_score")
-        if band_score is not None and not (test.overall_min_score <= band_score <= test.overall_max_score):
-            raise ValueError(f"Band score must be between {test.overall_min_score} and {test.overall_max_score}.")
-
         issued_at = values.get("issued_at")
         expired_at = values.get("expired_at")
         if issued_at and expired_at and issued_at > expired_at:
-            raise ValueError("Expired date must be after the issued date.")
+            raise ValueError(_("Expired date must be after the issued date."))
 
         return values
+
+    @field_validator("language")
+    def validate_language(cls, value):
+        if not dict(LANGUAGES).get(value):
+            raise ValueError(_("Language is not valid."))
+
+        return value
 
 
 class CertificateAndLicenseModel(BaseModel):
@@ -186,7 +175,7 @@ class CertificateAndLicenseModel(BaseModel):
         issued_at = values.get("issued_at")
         expired_at = values.get("expired_at")
         if issued_at and expired_at and issued_at > expired_at:
-            raise ValueError("Expired date must be after the issued date.")
+            raise ValueError(_("Expired date must be after the issued date."))
 
         return values
 

@@ -151,8 +151,6 @@ class LanguageProficiencyTestNode(DjangoObjectType):
         fields = (
             LanguageProficiencyTest.id.field.name,
             LanguageProficiencyTest.title.field.name,
-            LanguageProficiencyTest.min_score.field.name,
-            LanguageProficiencyTest.max_score.field.name,
         )
         filter_fields = {
             LanguageProficiencyTest.id.field.name: ["exact"],

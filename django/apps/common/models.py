@@ -1,5 +1,6 @@
-from cities_light.models import City
+from flex_eav.models import EavAttribute, EavValue
 
+from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -122,10 +123,6 @@ class Position(models.Model):
 
 class LanguageProficiencyTest(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
-    min_score = models.FloatField(verbose_name=_("Minimum Score"))
-    max_score = models.FloatField(verbose_name=_("Maximum Score"))
-    overall_min_score = models.FloatField(verbose_name=_("Overall Minimum Score"))
-    overall_max_score = models.FloatField(verbose_name=_("Overall Maximum Score"))
     languages = ArrayField(models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Languages"))
 
     class Meta:
@@ -136,45 +133,42 @@ class LanguageProficiencyTest(models.Model):
         return self.title
 
 
-# class LanguageProficiencyTest(models.Model):
-#     class ScoreType(models.TextChoices):
-#         QUANTITATIVE = "quantitative", _("Quantitative")
-#         QUALITATIVE = "qualitative", _("Qualitative")
+class LanguageProficiencySkill(EavAttribute):
+    test = models.ForeignKey(
+        LanguageProficiencyTest,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Language Proficiency Test"),
+        null=True,
+        blank=True,
+    )
+    skill_name = models.CharField(max_length=255, verbose_name=_("Skill Name"))
 
-#     title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
-#     languages = ArrayField(models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Languages"))
-#     score_type = models.CharField(
-#         max_length=16, choices=ScoreType.choices, default=ScoreType.QUANTITATIVE.value, verbose_name=_("Score Type")
-#     )
+    def __str__(self):
+        return self.skill_name
 
-#     class Meta:
-#         verbose_name = _("Language Proficiency Test")
-#         verbose_name_plural = _("Language Proficiency Tests")
-
-#     def __str__(self):
-#         return self.title
-
-
-# class QuantitativeSkill(models.Model):
-#     test = models.ForeignKey(
-#         LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="skills"
-#     )
-#     name = models.CharField(max_length=255, verbose_name=_("Name"))
-#     min_score = models.IntegerField(verbose_name=_("Minimum Score"))
-#     max_score = models.IntegerField(verbose_name=_("Maximum Score"))
-
-#     class Meta:
-#         verbose_name = _("Language Proficiency Test Numeric Value")
-#         verbose_name_plural = _("Language Proficiency Test Numeric Values")
+    class Meta:
+        verbose_name = _("Language Proficiency Skill")
+        verbose_name_plural = _("Language Proficiency Skills")
 
 
-# class QualitativeSkill(models.Model):
-#     test = models.ForeignKey(
-#         LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="skills"
-#     )
-#     name = models.CharField(max_length=255, verbose_name=_("Name"))
-#     scores = ArrayField(models.CharField(max_length=255), verbose_name=_("Scores"))
+class LanguageProficiencyResult(EavValue):
+    attribute_field_name = "skill"
+    skill = models.ForeignKey(
+        LanguageProficiencySkill,
+        on_delete=models.CASCADE,
+        related_name="results",
+        verbose_name=_("Skill"),
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="language_proficiency_results",
+        verbose_name=_("User"),
+    )
 
-#     class Meta:
-#         verbose_name = _("Language Proficiency Test Qualitative Value")
-#         verbose_name_plural = _("Language Proficiency Test Qualitative Values")
+    def __str__(self):
+        return f"{self.skill.skill_name} - {self.value}"
+
+    class Meta:
+        verbose_name = _("Language Proficiency Result")
+        verbose_name_plural = _("Language Proficiency Results")

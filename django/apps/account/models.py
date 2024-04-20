@@ -685,22 +685,6 @@ class LanguageCertificate(DocumentAbstract):
         return LanguageCertificateVerificationMethodAbstract
 
     def clean(self):
-        if not all(
-            self.test.min_score <= score <= self.test.max_score
-            for score in (
-                self.listening_score,
-                self.reading_score,
-                self.writing_score,
-                self.speaking_score,
-            )
-        ):
-            raise ValidationError(_("All scores must be between minimum and maximum score of the test"))
-
-        if not self.test.overall_min_score <= self.band_score <= self.test.overall_max_score:
-            raise ValidationError(
-                {"band_score": _("Band score must be between overall minimum and maximum score of the test")}
-            )
-
         if self.issued_at > self.expired_at:
             raise ValidationError({"expired_at": _("Expired date must be after Issued date")})
         return super().clean()

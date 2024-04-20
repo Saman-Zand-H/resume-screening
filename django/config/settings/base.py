@@ -106,6 +106,7 @@ INSTALLED_APPS += [
     "account",
     "ai",
     "cv",
+    "flex_eav",
     "criteria",
 ]
 
