@@ -131,8 +131,9 @@ DB_DEFAULT = {
     "PORT": os.environ.get("DB_PORT", 5432),
 }
 
-with contextlib.suppress(ImproperlyConfigured):
-    DB_DEFAULT = env.db("DB_URL")
+if os.environ.get("DB_URL"):
+    with contextlib.suppress(ImproperlyConfigured):
+        DB_DEFAULT = env.db("DB_URL")
 
 DATABASES = {
     "default": DB_DEFAULT,
