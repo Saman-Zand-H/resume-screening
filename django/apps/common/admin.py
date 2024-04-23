@@ -5,6 +5,8 @@ from .models import (
     Industry,
     Job,
     JobCategory,
+    LanguageProficiencyResult,
+    LanguageProficiencySkill,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -66,6 +68,22 @@ class SkillAdmin(admin.ModelAdmin):
 class LanguageProficiencyTestAdmin(admin.ModelAdmin):
     list_display = (LanguageProficiencyTest.title.field.name,)
     search_fields = (LanguageProficiencyTest.title.field.name,)
+
+
+@admin.register(LanguageProficiencySkill)
+class LanguageProficiencySkillAdmin(admin.ModelAdmin):
+    list_display = (LanguageProficiencySkill.skill_name.field.name,)
+    search_fields = (LanguageProficiencySkill.skill_name.field.name,)
+
+
+@admin.register(LanguageProficiencyResult)
+class LanguageProficiencyResultAdmin(admin.ModelAdmin):
+    list_display = (
+        LanguageProficiencyResult.skill.field.name,
+        LanguageProficiencyResult.value.field.name,
+    )
+    search_fields = (LanguageProficiencyResult.skill.field.name,)
+    list_filter = (LanguageProficiencyResult.skill.field.name,)
 
 
 @admin.register(Position)

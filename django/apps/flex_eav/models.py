@@ -49,7 +49,7 @@ class EavValue(models.Model):
         if not attribute:
             raise ValueError("Attribute is required to be implemented.")
 
-        for validator in self.attribute.get_validator_instances():
+        for validator in attribute.get_validator_instances():
             validator.validate(self.value)
 
     @classmethod

@@ -19,7 +19,7 @@ class ValidatorBase:
     @classmethod
     def initialize_from_kwargs(cls, **kwargs):
         with contextlib.suppress(KeyError, AttributeError, ValueError):
-            return cls(**kwargs)
+            return cls(**kwargs.get(cls.slug))
 
         raise ValueError(f"Invalid kwargs for {cls.__name__}. Valid kwargs are {cls.get_instance_kwargs(cls.__init__)}")
 
@@ -78,5 +78,8 @@ class RangeValidator(ValidatorBase):
         self.max_value = max_value
 
     def validate(self, value):
-        if not (self.min_value <= value <= self.max_value):
+        if not str(value).isnumeric():
+            raise ValidationError(_("Value is not numeric"))
+
+        if not (self.min_value <= int(value) <= self.max_value):
             raise ValidationError(_("Value is not in range"))
