@@ -9,7 +9,6 @@ django-redis~=5.4
 gunicorn~=23.0
 uvicorn~=0.30
 django-cors-headers~=4.4
-celery~=5.4
 graphene-django-optimizer~=0.10
 dj-rest-auth~=6.0
 django-colorfield~=0.11
