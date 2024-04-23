@@ -20,11 +20,14 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 ALLOWED_HOSTS = [SITE_DOMAIN]
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    os.environ.get("FRONTEND_URL"),
-]
-CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOWED_ORIGIN_URLS = list(
+    set(filter(bool, os.environ.get("CORS_ALLOWED_ORIGIN_URLS", "").split(",") + [os.environ.get("FRONTEND_URL")]))
+)
+if CORS_ALLOWED_ORIGIN_URLS:
+    CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGIN_URLS
+else:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # SSL Configuration
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -36,13 +39,8 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 # Redis
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{REDIS_URL}/1",  # noqa
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "PASSWORD": "",
-        },
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"{REDIS_URL}",  # noqa
     }
 }
 

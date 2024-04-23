@@ -10,56 +10,29 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import contextlib
 import os
-import re
 import sys
-import tempfile
 from datetime import timedelta
 from pathlib import Path
-from urllib import parse
 
-import google.auth
-from dotenv import load_dotenv
-from google.cloud import secretmanager
+import environ
 
-load_dotenv(override=True)
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
-GOOGLE_CLOUD_ENABLE = os.environ.get("GOOGLE_CLOUD_ENABLE")
-GOOGLE_CLOUD_PROJECT = None
-GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+env = environ.Env()
+ENV_FILE_PATH = os.environ.get("ENV_FILE_PATH", os.path.join(BASE_DIR.parent, ".env"))
 
-if GOOGLE_CLOUD_ENABLE:
-    try:
-        _, GOOGLE_CLOUD_PROJECT = google.auth.default()
-    except google.auth.exceptions.DefaultCredentialsError:
-        pass
+env.read_env(ENV_FILE_PATH, overwrite=True)
 
-if GOOGLE_CLOUD_PROJECT:
-    project_id = GOOGLE_CLOUD_PROJECT
 
-    client = secretmanager.SecretManagerServiceClient()
-    settings_name = os.environ.get("GOOGLE_CLOUD_SETTINGS_NAME", "django_settings")
-    name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
-    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
-
-    for line in payload.splitlines():
-        if line.strip() and "=" in line:
-            key, value = line.split("=", 1)
-            value = re.sub(r'^"(.*)"$', r"\1", value.strip())
-            os.environ[key.strip()] = value
-
-    if not GOOGLE_APPLICATION_CREDENTIALS:
-        service_account_secret = f"projects/{project_id}/secrets/{os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_SECRET_NAME")}/versions/latest"
-        service_account_payload = client.access_secret_version(name=service_account_secret).payload.data.decode("UTF-8")
-
-        temp_credentials_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_credentials_file.write(service_account_payload.encode("UTF-8"))
-        temp_credentials_file.close()
-        GOOGLE_APPLICATION_CREDENTIALS = temp_credentials_file.name
-        os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", GOOGLE_APPLICATION_CREDENTIALS)
+GOOGLE_APPLICATION_CREDENTIALS = os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = (
+    os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
+)
+GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -148,30 +121,21 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DB_URL = os.environ.get("DB_URL")
-if DB_URL:
-    url = parse.urlparse(DB_URL)
-    os.environ["DB_HOST"] = url.hostname or ""
-    os.environ["DB_NAME"] = url.path[1:] or ""
-    os.environ["DB_USER"] = url.username or ""
-    os.environ["DB_PASSWORD"] = url.password or ""
-    os.environ["DB_PORT"] = url.port or ""
-
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
-        "USER": os.environ.get("DB_USER", "job_seekers_api"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
-        "PORT": os.environ.get("DB_PORT", 5432),
-    },
+DB_DEFAULT = {
+    "ENGINE": "django.db.backends.postgresql",
+    "HOST": os.environ.get("DB_HOST", "localhost"),
+    "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
+    "USER": os.environ.get("DB_USER", "job_seekers_api"),
+    "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
+    "PORT": os.environ.get("DB_PORT", 5432),
 }
 
-if os.environ.get("USE_CLOUD_SQL_AUTH_PROXY"):
-    DATABASES["default"]["HOST"] = "127.0.0.1"
-    DATABASES["default"]["PORT"] = 5432
+with contextlib.suppress(ImproperlyConfigured):
+    DB_DEFAULT = env.db("DB_URL")
+
+DATABASES = {
+    "default": DB_DEFAULT,
+}
 
 
 # Password validation
@@ -214,18 +178,19 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
 
-if os.environ.get("GS_BUCKET_NAME"):
+GOOGLE_CLOUD_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_BUCKET_NAME")
+if GOOGLE_CLOUD_BUCKET_NAME:
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
             "OPTIONS": {
-                "bucket_name": os.environ.get("GS_BUCKET_NAME"),
+                "bucket_name": GOOGLE_CLOUD_BUCKET_NAME,
             },
         },
         "staticfiles": {
             "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
             "OPTIONS": {
-                "bucket_name": os.environ.get("GS_BUCKET_NAME"),
+                "bucket_name": GOOGLE_CLOUD_BUCKET_NAME,
             },
         },
     }
@@ -348,3 +313,6 @@ PUBSUB_SETTINGS = {
     "BACKEND_CLASS": os.environ.get("PUBSUB_BACKEND_CLASS"),
     "SCHEDULER_BACKEND_CLASS": os.environ.get("PUBSUB_SCHEDULER_BACKEND_CLASS"),
 }
+
+
+SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
