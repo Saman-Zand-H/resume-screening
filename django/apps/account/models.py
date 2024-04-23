@@ -586,7 +586,7 @@ class WorkExperience(DocumentAbstract):
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
-    skills = ArrayField(models.CharField(max_length=250), verbose_name=_("Skills"), blank=True, null=True)
+    skills = models.CharField(max_length=250, verbose_name=_("Skills"), blank=True, null=True)
 
     class Meta:
         verbose_name = _("Work Experience")
