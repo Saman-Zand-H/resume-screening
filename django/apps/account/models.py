@@ -294,12 +294,9 @@ class Profile(ComputedFieldsModel):
         null=True,
         blank=True,
     )
-    job_city = models.ForeignKey(
+    job_cities = models.ManyToManyField(
         City,
-        on_delete=models.SET_NULL,
         verbose_name=_("Job City"),
-        null=True,
-        blank=True,
         related_name="job_profiles",
     )
     job_type = ArrayField(

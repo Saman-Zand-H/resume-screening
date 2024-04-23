@@ -122,7 +122,7 @@ class ProfileAdmin(admin.ModelAdmin):
     raw_id_fields = (
         Profile.user.field.name,
         Profile.city.field.name,
-        Profile.job_city.field.name,
+        Profile.job_cities.field.name,
     )
     inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (Profile.credits.field.name,)
