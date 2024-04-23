@@ -16,6 +16,7 @@ from .models import (
     EmployerLetterMethod,
     IEEMethod,
     LanguageCertificate,
+    LanguageCertificateValue,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -173,15 +174,22 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
             LanguageCertificate.test.field.name,
+            LanguageCertificate.status.field.name,
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
-            LanguageCertificate.listening_score.field.name,
-            LanguageCertificate.reading_score.field.name,
-            LanguageCertificate.writing_score.field.name,
-            LanguageCertificate.speaking_score.field.name,
-            LanguageCertificate.band_score.field.name,
-            LanguageCertificate.status.field.name,
             LanguageCertificate.allow_self_verification.field.name,
+            LanguageCertificateValue.language_certificate.field.related_query_name(),
+        )
+
+
+class LanguageCertificateValueNode(DjangoObjectType):
+    class Meta:
+        model = LanguageCertificateValue
+        use_connection = True
+        fields = (
+            LanguageCertificateValue.id.field.name,
+            LanguageCertificateValue.skill.field.name,
+            LanguageCertificateValue.value.field.name,
         )
 
 

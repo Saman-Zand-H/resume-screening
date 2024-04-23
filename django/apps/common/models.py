@@ -1,6 +1,5 @@
-from flex_eav.models import EavAttribute, EavValue
+from flex_eav.models import EavAttribute
 
-from django.conf import settings
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -134,13 +133,12 @@ class LanguageProficiencyTest(models.Model):
 
 
 class LanguageProficiencySkill(EavAttribute):
-    slug = models.SlugField(max_length=255, verbose_name=_("Slug"), default="")
+    slug = models.SlugField(max_length=255, verbose_name=_("Slug"), unique=True)
     test = models.ForeignKey(
         LanguageProficiencyTest,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         verbose_name=_("Language Proficiency Test"),
-        null=True,
-        blank=True,
+        related_name="skills",
     )
     skill_name = models.CharField(max_length=255, verbose_name=_("Skill Name"))
 
@@ -150,26 +148,3 @@ class LanguageProficiencySkill(EavAttribute):
     class Meta:
         verbose_name = _("Language Proficiency Skill")
         verbose_name_plural = _("Language Proficiency Skills")
-
-
-class LanguageProficiencyResult(EavValue):
-    attribute_field_name = "skill"
-    skill = models.ForeignKey(
-        LanguageProficiencySkill,
-        on_delete=models.CASCADE,
-        related_name="results",
-        verbose_name=_("Skill"),
-    )
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="language_proficiency_results",
-        verbose_name=_("User"),
-    )
-
-    def __str__(self):
-        return f"{self.skill.skill_name} - {self.value}"
-
-    class Meta:
-        verbose_name = _("Language Proficiency Result")
-        verbose_name_plural = _("Language Proficiency Results")

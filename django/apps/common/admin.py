@@ -5,7 +5,6 @@ from .models import (
     Industry,
     Job,
     JobCategory,
-    LanguageProficiencyResult,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Position,
@@ -78,16 +77,6 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
         LanguageProficiencySkill.slug.field.name,
     )
     search_fields = list_display
-
-
-@admin.register(LanguageProficiencyResult)
-class LanguageProficiencyResultAdmin(admin.ModelAdmin):
-    list_display = (
-        LanguageProficiencyResult.skill.field.name,
-        LanguageProficiencyResult.value.field.name,
-    )
-    search_fields = (LanguageProficiencyResult.skill.field.name,)
-    list_filter = (LanguageProficiencyResult.skill.field.name,)
 
 
 @admin.register(Position)

@@ -19,7 +19,7 @@ class ValidatorBase:
     @classmethod
     def initialize_from_kwargs(cls, **kwargs):
         with contextlib.suppress(KeyError, AttributeError, ValueError):
-            cls.validate_kwargs(**(instance_kwargs := kwargs.get(cls.slug)))
+            cls.validate_kwargs(cls, **(instance_kwargs := kwargs.get(cls.slug)))
             return cls(**instance_kwargs)
 
         raise ValueError(f"Invalid kwargs for {cls.__name__}. Valid kwargs are {cls.get_instance_kwargs(cls.__init__)}")
@@ -96,8 +96,11 @@ class RangeValidator(ValidatorBase):
             raise ValidationError(_("min_value and max_value must be integers"))
 
     def validate(self, value):
-        if not (self.min_value <= int(value) <= self.max_value):
-            raise ValidationError(_("Value is not in range"))
+        try:
+            if not (self.min_value <= int(value) <= self.max_value):
+                raise ValidationError(_("Value is not in range: %s - %s") % (self.min_value, self.max_value))
+        except ValueError:
+            raise ValidationError(_("Value must be an integer"))
 
 
 @register
@@ -117,4 +120,4 @@ class ChoiceValidator(ValidatorBase):
 
     def validate(self, value: str):
         if value.lower() not in map(str.lower, self.choices):
-            raise ValidationError(_("Value is not in choices. Valid choices are: %s") % ", ".join(self.choices))
+            raise ValidationError({_("Value is not in choices. Valid choices are: %s") % ", ".join(self.choices)})

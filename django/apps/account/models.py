@@ -8,6 +8,7 @@ from common.choices import LANGUAGES
 from common.models import (
     Field,
     Job,
+    LanguageProficiencySkill,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -21,6 +22,7 @@ from common.validators import (
 )
 from computedfields.models import ComputedFieldsModel, computed
 from flex_blob.models import FileModel
+from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -663,22 +665,20 @@ class ReferenceCheckEmployer(models.Model):
 class LanguageCertificate(DocumentAbstract):
     language = models.CharField(choices=LANGUAGES, max_length=32, verbose_name=_("Language"))
     test = models.ForeignKey(
-        LanguageProficiencyTest, on_delete=models.CASCADE, verbose_name=_("Test"), related_name="certificates"
+        LanguageProficiencyTest,
+        on_delete=models.CASCADE,
+        verbose_name=_("Test"),
+        related_name="certificates",
     )
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"))
-    listening_score = models.FloatField(verbose_name=_("Listening Score"))
-    reading_score = models.FloatField(verbose_name=_("Reading Score"))
-    writing_score = models.FloatField(verbose_name=_("Writing Score"))
-    speaking_score = models.FloatField(verbose_name=_("Speaking Score"))
-    band_score = models.FloatField(verbose_name=_("Band Score"))
+
+    def __str__(self):
+        return f"{self.user.email} - {self.language}"
 
     class Meta:
         verbose_name = _("Language Certificate")
         verbose_name_plural = _("Language Certificates")
-
-    def __str__(self):
-        return f"{self.user.email} - {self.language} - {self.test.title}"
 
     @classmethod
     def get_verification_abstract_model(cls):
@@ -687,7 +687,45 @@ class LanguageCertificate(DocumentAbstract):
     def clean(self):
         if self.issued_at > self.expired_at:
             raise ValidationError({"expired_at": _("Expired date must be after Issued date")})
+
+        if self.language not in self.test.languages:
+            raise ValidationError(
+                {
+                    LanguageCertificate.language.field.name: _("Language must be one of the following: %s")
+                    % ", ".join(self.test.languages)
+                }
+            )
+
         return super().clean()
+
+
+class LanguageCertificateValue(EavValue):
+    attribute_field_name = "skill"
+    language_certificate = models.ForeignKey(
+        LanguageCertificate,
+        on_delete=models.CASCADE,
+        verbose_name=_("Language Certificate"),
+        related_name="values",
+    )
+    skill = models.ForeignKey(
+        LanguageProficiencySkill,
+        on_delete=models.CASCADE,
+        related_name="results",
+        verbose_name=_("Skill"),
+    )
+
+    class Meta:
+        verbose_name = _("Language Certificate Value")
+        verbose_name_plural = _("Language Certificate Values")
+
+    def __str__(self):
+        return f"{self.skill} - {self.value}"
+
+    def clean(self):
+        try:
+            super().clean()
+        except ValidationError as e:
+            raise ValidationError({self.skill.slug: e.error_list[0].message})
 
 
 class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAbstract):

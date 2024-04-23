@@ -12,6 +12,7 @@ from .models import (
     Industry,
     Job,
     JobCategory,
+    LanguageProficiencySkill,
     LanguageProficiencyTest,
     Position,
     Skill,
@@ -151,11 +152,26 @@ class LanguageProficiencyTestNode(DjangoObjectType):
         fields = (
             LanguageProficiencyTest.id.field.name,
             LanguageProficiencyTest.title.field.name,
+            LanguageProficiencyTest.languages.field.name,
+            LanguageProficiencySkill.test.field.related_query_name(),
         )
         filter_fields = {
             LanguageProficiencyTest.id.field.name: ["exact"],
             LanguageProficiencyTest.title.field.name: ["icontains"],
+            LanguageProficiencyTest.languages.field.name: ["contains"],
         }
+
+
+class LanguageProficiencySkillNode(DjangoObjectType):
+    class Meta:
+        model = LanguageProficiencySkill
+        use_connection = True
+        fields = (
+            LanguageProficiencySkill.id.field.name,
+            LanguageProficiencySkill.skill_name.field.name,
+            LanguageProficiencySkill.slug.field.name,
+            LanguageProficiencySkill.validator_kwargs.field.name,
+        )
 
 
 class PositionNode(DjangoObjectType):

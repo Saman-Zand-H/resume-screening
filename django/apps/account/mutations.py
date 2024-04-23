@@ -49,6 +49,7 @@ from .models import (
     Education,
     EmployerLetterMethod,
     LanguageCertificate,
+    LanguageCertificateValue,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -471,24 +472,81 @@ LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
     LanguageCertificate.test.field.name,
     LanguageCertificate.issued_at.field.name,
     LanguageCertificate.expired_at.field.name,
-    LanguageCertificate.listening_score.field.name,
-    LanguageCertificate.reading_score.field.name,
-    LanguageCertificate.writing_score.field.name,
-    LanguageCertificate.speaking_score.field.name,
-    LanguageCertificate.band_score.field.name,
 )
+
+
+def validate_language_certificate_skills(test, values):
+    test_skills = test.skills
+    skills = [value.get(LanguageCertificateValue.skill.field.name) for value in values]
+
+    if not test_skills.exists():
+        raise GraphQLErrorBadRequest(_("Test has no skills."))
+
+    if test_skills.count() != test_skills.filter(pk__in=set(skills)).count():
+        raise GraphQLErrorBadRequest(_("All skills must be provided."))
 
 
 class LanguageCertificateCreateMutation(DocumentCreateMutationBase):
     class Meta:
         model = LanguageCertificate
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
+        many_to_one_extras = {
+            LanguageCertificateValue.language_certificate.field.related_query_name(): {
+                "exact": {
+                    "type": "auto",
+                }
+            }
+        }
+
+    @classmethod
+    def validate(cls, root, info, input):
+        if not input.get(LanguageCertificateValue.language_certificate.field.related_query_name()):
+            raise GraphQLErrorBadRequest(_("Language certificate value must be provided."))
+
+        return super().validate(root, info, input)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        super().before_create_obj(info, input, obj)
+
+        if isinstance(obj, LanguageCertificate):
+            obj.user = info.context.user
+            values = input.get(LanguageCertificateValue.language_certificate.field.related_query_name())
+            validate_language_certificate_skills(obj.test, values)
 
 
 class LanguageCertificateUpdateMutation(DocumentPatchMutationBase):
     class Meta:
         model = LanguageCertificate
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
+        many_to_one_extras = {
+            LanguageCertificateValue.language_certificate.field.related_query_name(): {
+                "exact": {
+                    "type": "auto",
+                }
+            }
+        }
+
+    @classmethod
+    def validate(cls, root, info, input, id, obj):
+        if (f := LanguageCertificateValue.language_certificate.field.related_query_name()) in input and not input[f]:
+            raise GraphQLErrorBadRequest(_("Language certificate value must be provided."))
+
+        return super().validate(root, info, input, id, obj)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.full_clean()
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj):
+        values = input.get(LanguageCertificateValue.language_certificate.field.related_query_name())
+        if values is None:
+            values = [{LanguageCertificateValue.skill.field.name: value.skill.pk} for value in obj.values.all()]
+
+        validate_language_certificate_skills(obj.test, values)
+
+        return super().before_save(root, info, input, id, obj)
 
 
 class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):

@@ -1,5 +1,5 @@
 from cities_light.models import City
-from common.models import Field, LanguageProficiencyTest
+from common.models import Field
 from common.utils import fields_join
 from graphql_auth.models import UserStatus
 
@@ -21,6 +21,7 @@ from .models import (
     EmployerLetterMethod,
     IEEMethod,
     LanguageCertificate,
+    LanguageCertificateValue,
     OfflineMethod,
     OnlineMethod,
     PaystubsMethod,
@@ -262,21 +263,23 @@ class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
 
 @register(LanguageCertificate)
 class LanguageCertificateAdmin(admin.ModelAdmin):
-    list_display = (
-        LanguageCertificate.user.field.name,
-        fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
-        LanguageCertificate.status.field.name,
-        LanguageCertificate.issued_at.field.name,
-        LanguageCertificate.expired_at.field.name,
-        LanguageCertificate.band_score.field.name,
-    )
+    list_display = (LanguageCertificate.user.field.name,)
     search_fields = (fields_join(LanguageCertificate.user, User.email),)
-    list_filter = (
-        fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
-        LanguageCertificate.issued_at.field.name,
-        LanguageCertificate.expired_at.field.name,
+    raw_id_fields = (LanguageCertificate.user.field.name,)
+
+
+@register(LanguageCertificateValue)
+class LanguageCertificateValueAdmin(admin.ModelAdmin):
+    list_display = (
+        fields_join(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
+        LanguageCertificateValue.skill.field.name,
+        LanguageCertificateValue.value.field.name,
     )
-    raw_id_fields = (LanguageCertificate.user.field.name, LanguageCertificate.test.field.name)
+    search_fields = (
+        fields_join(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
+        LanguageCertificateValue.value.field.name,
+    )
+    raw_id_fields = (LanguageCertificateValue.language_certificate.field.name,)
 
 
 @register(CertificateAndLicense)
