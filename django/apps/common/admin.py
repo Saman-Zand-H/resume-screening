@@ -65,7 +65,7 @@ class SkillAdmin(admin.ModelAdmin):
 
 @admin.register(LanguageProficiencyTest)
 class LanguageProficiencyTestAdmin(admin.ModelAdmin):
-    list_display = (LanguageProficiencyTest.title.field.name,)
+    list_display = (LanguageProficiencyTest.title.field.name, LanguageProficiencyTest.languages.field.name)
     search_fields = (LanguageProficiencyTest.title.field.name,)
 
 
