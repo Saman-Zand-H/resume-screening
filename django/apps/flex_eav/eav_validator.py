@@ -2,7 +2,7 @@ import contextlib
 import re
 from abc import abstractmethod
 from inspect import signature
-from typing import Any, Callable
+from typing import Any, Callable, List
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -19,7 +19,8 @@ class ValidatorBase:
     @classmethod
     def initialize_from_kwargs(cls, **kwargs):
         with contextlib.suppress(KeyError, AttributeError, ValueError):
-            return cls(**kwargs.get(cls.slug))
+            cls.validate_kwargs(**(instance_kwargs := kwargs.get(cls.slug)))
+            return cls(**instance_kwargs)
 
         raise ValueError(f"Invalid kwargs for {cls.__name__}. Valid kwargs are {cls.get_instance_kwargs(cls.__init__)}")
 
@@ -27,6 +28,12 @@ class ValidatorBase:
     def validate(self, value) -> None:
         """
         Raises a ValidationError if the value is invalid."""
+        pass
+
+    @abstractmethod
+    def validate_kwargs(self, **kwargs):
+        """
+        Raises a ValidationError if the kwargs are invalid"""
         pass
 
     @abstractmethod
@@ -63,6 +70,10 @@ class RegexValidator(ValidatorBase):
     def __init__(self, pattern: str):
         self.pattern = pattern
 
+    def validate_kwargs(self, **kwargs):
+        if not ((pattern := kwargs.get("pattern")) and isinstance(pattern, str)):
+            raise ValidationError(_("Pattern is required"))
+
     def validate(self, value):
         if not re.match(self.pattern, value):
             raise ValidationError(_("Value does not match regex"))
@@ -77,9 +88,33 @@ class RangeValidator(ValidatorBase):
         self.min_value = min_value
         self.max_value = max_value
 
-    def validate(self, value):
-        if not str(value).isnumeric():
-            raise ValidationError(_("Value is not numeric"))
+    def validate_kwargs(self, **kwargs):
+        if not all((min_value := kwargs.get("min_value"), max_value := kwargs.get("max_value"))):
+            raise ValidationError(_("min_value and max_value are required"))
 
+        if not all(map(lambda x: str(x).isnumeric, (min_value, max_value))):
+            raise ValidationError(_("min_value and max_value must be integers"))
+
+    def validate(self, value):
         if not (self.min_value <= int(value) <= self.max_value):
             raise ValidationError(_("Value is not in range"))
+
+
+@register
+class ChoiceValidator(ValidatorBase):
+    title = _("Choice")
+    slug = "choice"
+
+    def __init__(self, choices: List[str]):
+        self.choices = choices
+
+    def validate_kwargs(self, **kwargs):
+        if not (choices := kwargs.get("choices")):
+            raise ValidationError(_("Choices are required"))
+
+        if not isinstance(choices, list):
+            raise ValidationError(_("Choices must be a list"))
+
+    def validate(self, value: str):
+        if value.lower() not in map(str.lower, self.choices):
+            raise ValidationError(_("Value is not in choices. Valid choices are: %s") % ", ".join(self.choices))
