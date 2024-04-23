@@ -29,10 +29,11 @@ ENV_FILE_PATH = os.environ.get("ENV_FILE_PATH", os.path.join(BASE_DIR.parent, ".
 env.read_env(ENV_FILE_PATH, overwrite=True)
 
 
-GOOGLE_APPLICATION_CREDENTIALS = os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = (
-    os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
-)
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+if GOOGLE_APPLICATION_CREDENTIALS:
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
