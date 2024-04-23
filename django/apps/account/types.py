@@ -178,6 +178,7 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.allow_self_verification.field.name,
+            LanguageCertificate.status.field.name,
             LanguageCertificateValue.language_certificate.field.related_query_name(),
         )
 
