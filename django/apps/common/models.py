@@ -134,6 +134,7 @@ class LanguageProficiencyTest(models.Model):
 
 
 class LanguageProficiencySkill(EavAttribute):
+    slug = models.SlugField(max_length=255, verbose_name=_("Slug"), default="")
     test = models.ForeignKey(
         LanguageProficiencyTest,
         on_delete=models.SET_NULL,
@@ -144,7 +145,7 @@ class LanguageProficiencySkill(EavAttribute):
     skill_name = models.CharField(max_length=255, verbose_name=_("Skill Name"))
 
     def __str__(self):
-        return self.skill_name
+        return self.slug
 
     class Meta:
         verbose_name = _("Language Proficiency Skill")

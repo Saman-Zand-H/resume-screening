@@ -72,8 +72,11 @@ class LanguageProficiencyTestAdmin(admin.ModelAdmin):
 
 @admin.register(LanguageProficiencySkill)
 class LanguageProficiencySkillAdmin(admin.ModelAdmin):
-    list_display = (LanguageProficiencySkill.skill_name.field.name,)
-    search_fields = (LanguageProficiencySkill.skill_name.field.name,)
+    list_display = (
+        LanguageProficiencySkill.skill_name.field.name,
+        LanguageProficiencySkill.test.field.name,
+    )
+    search_fields = list_display
 
 
 @admin.register(LanguageProficiencyResult)
