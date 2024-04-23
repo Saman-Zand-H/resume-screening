@@ -294,11 +294,7 @@ class Profile(ComputedFieldsModel):
         null=True,
         blank=True,
     )
-    job_cities = models.ManyToManyField(
-        City,
-        verbose_name=_("Job City"),
-        related_name="job_profiles",
-    )
+    job_cities = models.ManyToManyField(City, verbose_name=_("Job City"), related_name="job_profiles", blank=True)
     job_type = ArrayField(
         models.CharField(max_length=50, choices=JobType.choices),
         verbose_name=_("Job Type"),
