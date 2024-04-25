@@ -56,6 +56,7 @@ from .models import (
     Referral,
     ReferralUser,
     Resume,
+    SupportTicket,
     User,
     WorkExperience,
 )
@@ -613,6 +614,24 @@ class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         cls.full_clean(obj)
 
 
+class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
+    class Meta:
+        model = SupportTicket
+        fields = (
+            SupportTicket.title.field.name,
+            SupportTicket.description.field.name,
+            SupportTicket.priority.field.name,
+            SupportTicket.category.field.name,
+            SupportTicket.contact_method.field.name,
+            SupportTicket.contact_value.field.name,
+        )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.user = info.context.user
+        cls.full_clean(obj)
+
+
 class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = Resume
@@ -687,6 +706,10 @@ class CanadaVisaMutation(graphene.ObjectType):
     create = CanadaVisaCreateMutation.Field()
 
 
+class SupportTicketMutation(graphene.ObjectType):
+    create = SupportTicketCreateMutation.Field()
+
+
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
@@ -703,6 +726,7 @@ class AccountMutation(graphene.ObjectType):
     language_certificate = graphene.Field(LanguageCertificateMutation)
     certificate_and_license = graphene.Field(CertificateAndLicenseMutation)
     canada_visa = graphene.Field(CanadaVisaMutation)
+    support_ticket = graphene.Field(SupportTicketMutation)
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
@@ -721,6 +745,9 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_canada_visa(self, *args, **kwargs):
         return CanadaVisaMutation()
+
+    def resolve_support_ticket(self, *args, **kwargs):
+        return SupportTicketMutation()
 
 
 class Mutation(graphene.ObjectType):

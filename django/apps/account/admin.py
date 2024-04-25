@@ -30,6 +30,7 @@ from .models import (
     Referral,
     ReferralUser,
     Resume,
+    SupportTicket,
     User,
     WorkExperience,
 )
@@ -430,3 +431,15 @@ class AvatarFileAdmin(admin.ModelAdmin):
     )
     search_fields = (fields_join(AvatarFile.uploaded_by, User.email), AvatarFile.file.field.name)
     raw_id_fields = (AvatarFile.uploaded_by.field.name,)
+
+
+@register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = (
+        SupportTicket.user.field.name,
+        SupportTicket.title.field.name,
+        SupportTicket.status.field.name,
+    )
+    search_fields = (fields_join(SupportTicket.user, User.email), SupportTicket.title.field.name)
+    list_filter = (SupportTicket.status.field.name,)
+    raw_id_fields = (SupportTicket.user.field.name,)

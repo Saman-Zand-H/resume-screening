@@ -105,6 +105,10 @@ def generate_unique_referral_code():
     return base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:8]
 
 
+def generate_ticket_id():
+    return str(uuid.uuid4())[:8]
+
+
 class UserManager(BaseUserManager):
     def create_user(self, **kwargs):
         kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
@@ -899,3 +903,45 @@ class ReferralUser(models.Model):
 
     def __str__(self):
         return f"{self.referral.code} - {self.user.email}"
+
+
+class SupportTicket(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", _("Open")
+        CLOSED = "closed", _("Closed")
+
+    class Priority(models.TextChoices):
+        LOW = "low", _("Low")
+        MEDIUM = "medium", _("Medium")
+        HIGH = "high", _("High")
+        URGENT = "urgent", _("Urgent")
+
+    class Category(models.TextChoices):
+        PROFILE = "profile", _("Profile")
+        RESUME = "resume", _("Resume")
+        JOB_INTEREST = "job_interest", _("Job Interest")
+        ACADEMY = "academy", _("Academy")
+
+    class ContactMethod(models.TextChoices):
+        EMAIL = "email", _("Email")
+        PHONE = "phone", _("Phone")
+        WHATSAPP = "whatsapp", _("WhatsApp")
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="support_tickets")
+    ticket_id = models.CharField(max_length=255, unique=True, editable=False, default=generate_ticket_id)
+    title = models.CharField(max_length=255)
+    description = models.TextField(max_length=1024)
+    status = models.CharField(max_length=50, choices=Status.choices, default=Status.OPEN)
+    priority = models.CharField(max_length=50, choices=Priority.choices)
+    category = models.CharField(max_length=50, choices=Category.choices)
+    contact_method = models.CharField(max_length=50, choices=ContactMethod.choices)
+    contact_value = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Support Ticket")
+        verbose_name_plural = _("Support Tickets")
+
+    def __str__(self):
+        return self.title

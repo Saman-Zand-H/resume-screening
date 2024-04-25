@@ -22,6 +22,7 @@ from .models import (
     ReferenceCheckEmployer,
     Referral,
     Resume,
+    SupportTicket,
     User,
     WorkExperience,
 )
@@ -233,6 +234,24 @@ class ReferralType(DjangoObjectType):
         fields = (Referral.code.field.name,)
 
 
+class SupportTicketType(DjangoObjectType):
+    class Meta:
+        model = SupportTicket
+        fields = (
+            SupportTicket.id.field.name,
+            SupportTicket.ticket_id.field.name,
+            SupportTicket.title.field.name,
+            SupportTicket.description.field.name,
+            SupportTicket.status.field.name,
+            SupportTicket.priority.field.name,
+            SupportTicket.category.field.name,
+            SupportTicket.contact_method.field.name,
+            SupportTicket.contact_value.field.name,
+            SupportTicket.created_at.field.name,
+            SupportTicket.updated_at.field.name,
+        )
+
+
 class UserNode(BaseUserNode):
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
@@ -261,6 +280,7 @@ class UserNode(BaseUserNode):
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
+            SupportTicket.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
