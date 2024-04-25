@@ -109,17 +109,6 @@ class Skill(models.Model):
         return self.title
 
 
-class Position(models.Model):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
-
-    class Meta:
-        verbose_name = _("Position")
-        verbose_name_plural = _("Positions")
-
-    def __str__(self):
-        return self.title
-
-
 class LanguageProficiencyTest(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
     languages = ArrayField(models.CharField(choices=LANGUAGES, max_length=32), verbose_name=_("Languages"))

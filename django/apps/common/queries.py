@@ -12,7 +12,6 @@ from .types import (
     JobNode,
     LanguageProficiencyTestNode,
     LanguageType,
-    PositionNode,
     RegionNode,
     UniversityNode,
 )
@@ -27,7 +26,6 @@ class CommonQuery(graphene.ObjectType):
     cities = DjangoFilterConnectionField(CityNode)
     languages_proficiency_tests = DjangoFilterConnectionField(LanguageProficiencyTestNode)
     job_categories = DjangoFilterConnectionField(JobCategoryNode)
-    positions = DjangoFilterConnectionField(PositionNode)
     jobs = DjangoFilterConnectionField(JobNode)
 
     def resolve_languages(self, info, name=None, code=None):

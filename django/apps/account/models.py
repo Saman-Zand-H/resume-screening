@@ -10,7 +10,6 @@ from common.models import (
     Job,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
-    Position,
     Skill,
     University,
 )
@@ -649,7 +648,7 @@ class ReferenceCheckEmployer(models.Model):
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     email = models.EmailField(verbose_name=_("Email"))
     phone_number = PhoneNumberField(verbose_name=_("Phone Number"))
-    position = models.ForeignKey(Position, on_delete=models.CASCADE, verbose_name=_("Position"))
+    position = models.CharField(max_length=255, verbose_name=_("Position"))
 
     class Meta:
         verbose_name = _("Reference Check Employer")

@@ -7,7 +7,6 @@ from .models import (
     JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
-    Position,
     Skill,
     SkillTopic,
     University,
@@ -77,9 +76,3 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
         LanguageProficiencySkill.slug.field.name,
     )
     search_fields = list_display
-
-
-@admin.register(Position)
-class PositionAdmin(admin.ModelAdmin):
-    list_display = (Position.title.field.name,)
-    search_fields = (Position.title.field.name,)

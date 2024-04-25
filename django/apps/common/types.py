@@ -14,7 +14,6 @@ from .models import (
     JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
-    Position,
     Skill,
     University,
 )
@@ -172,20 +171,6 @@ class LanguageProficiencySkillNode(DjangoObjectType):
             LanguageProficiencySkill.slug.field.name,
             LanguageProficiencySkill.validator_kwargs.field.name,
         )
-
-
-class PositionNode(DjangoObjectType):
-    class Meta:
-        model = Position
-        use_connection = True
-        fields = (
-            Position.id.field.name,
-            Position.title.field.name,
-        )
-        filter_fields = {
-            Position.id.field.name: ["exact"],
-            Position.title.field.name: ["icontains"],
-        }
 
 
 class SkillNode(DjangoObjectType):
