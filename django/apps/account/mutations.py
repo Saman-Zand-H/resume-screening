@@ -2,6 +2,7 @@ import contextlib
 
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
+from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -194,7 +195,7 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 )
 
 
-class UserUpdateMutation(CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
+class UserUpdateMutation(ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
         model = Profile
         login_required = True
@@ -232,6 +233,8 @@ class UserUpdateMutation(CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
                 setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
         user.full_clean()
         user.save()
+
+        obj.full_clean()
 
     @classmethod
     def validate(cls, *args, **kwargs):

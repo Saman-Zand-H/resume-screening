@@ -1,5 +1,8 @@
 from functools import lru_cache
 
+import graphene
+from graphene_django.converter import convert_choice_field_to_enum
+
 from django.db.models.constants import LOOKUP_SEP
 
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
@@ -29,3 +32,11 @@ def map_exception_to_error(exception_class: type, exception_text: str = None) ->
 
 def fields_join(*fields):
     return LOOKUP_SEP.join([field.field.name for field in fields])
+
+
+def fix_array_choice_type(field):
+    return graphene.List(convert_choice_field_to_enum(field.base_field))
+
+
+def fix_array_choice_type_fields(*fields):
+    return {field.name: fix_array_choice_type(field) for field in fields}
