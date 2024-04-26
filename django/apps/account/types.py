@@ -1,4 +1,5 @@
 import graphene
+from common.mixins import ArrayChoiceTypeMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
@@ -28,8 +29,7 @@ from .models import (
 )
 
 
-class ProfileType(DjangoObjectType):
-    fluent_languages = graphene.List(graphene.String)
+class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
     score = graphene.Int(source=Profile.score.fget.__name__)
 
     class Meta:
@@ -50,12 +50,8 @@ class ProfileType(DjangoObjectType):
             Profile.job_cities.field.name,
             Profile.job_type.field.name,
             Profile.job_location_type.field.name,
+            Profile.fluent_languages.field.name,
         )
-
-    def resolve_fluent_languages(self, info):
-        if self.fluent_languages:
-            return [lang.upper() for lang in self.fluent_languages]
-        return []
 
 
 class ContactType(DjangoObjectType):

@@ -1,10 +1,14 @@
-from common.utils import fix_array_choice_type_fields
+import graphene
+import graphene_django
+
+from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
 
 
 class ArrayChoiceTypeMixin:
     @classmethod
     def __init_subclass_with_meta__(cls, *args, **kwargs):
+        class_type = cls._meta.class_type
         model = kwargs.get("model")
         fields = kwargs.get("fields")
 
@@ -14,9 +18,16 @@ class ArrayChoiceTypeMixin:
                 for field in model._meta.fields
                 if field.name in fields and isinstance(field, ArrayField) and hasattr(field.base_field, "choices")
             ]
-            kwargs.update({"field_types": fix_array_choice_type_fields(*array_choice_fields)})
-            for field in array_choice_fields:
-                setattr(cls, f"handle_{field.name}", cls.handle_array_choice_field)
+
+            match class_type:
+                case graphene_django.types.DjangoObjectType:
+                    for field in array_choice_fields:
+                        setattr(cls, field.name, fix_array_choice_type(field))
+                case graphene.Mutation:
+                    kwargs.update({"field_types": fix_array_choice_type_fields(*array_choice_fields)})
+                    for field in array_choice_fields:
+                        setattr(cls, f"handle_{field.name}", cls.handle_array_choice_field)
+
         return super().__init_subclass_with_meta__(*args, **kwargs)
 
     @classmethod
