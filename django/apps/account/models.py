@@ -312,6 +312,35 @@ class Profile(ComputedFieldsModel):
     )
 
     @computed(
+        models.JSONField(verbose_name=_("Scores")),
+        depends=[
+            ("self", ["city", "fluent_languages", "native_language"]),
+            ("user", ["first_name", "last_name", "email", "gender", "birth_date"]),
+            ("user.contacts", ["id"]),
+            ("user.resume", ["id"]),
+            ("user.educations", ["id", "status"]),
+            ("user.workexperiences", ["id", "status"]),
+            ("user.languagecertificates", ["id", "status"]),
+            ("user.certificateandlicenses", ["id", "status"]),
+            ("user.skills", ["id"]),
+            ("user.canada_visa", ["id"]),
+            ("interested_jobs", ["id"]),
+            ("user.job_assessment_results", ["status"]),
+            ("user.referral", ["id"]),
+            ("user.referral.referred_users", ["id"]),
+        ],
+    )
+    def scores(self):
+        from .scores import UserScorePack
+
+        scores = UserScorePack.calculate(self.user)
+        print("scores", self.user)
+        return {
+            "total": sum(scores.values()),
+            "scores": scores,
+        }
+
+    @computed(
         models.IntegerField(verbose_name=_("Credits")),
         depends=[
             ("user.referral.referred_users", ["id"]),
@@ -322,6 +351,10 @@ class Profile(ComputedFieldsModel):
         _credits = 0
         _credits += self.user.referral.referred_users.count() * 100
         return _credits
+
+    @property
+    def score(self):
+        return self.scores.get("total", 0)
 
     class Meta:
         verbose_name = _("User Profile")
@@ -443,6 +476,10 @@ class DocumentAbstract(models.Model):
 
     def get_verification_method(self):
         return next(self.get_verification_methods(), None)
+
+    @classmethod
+    def get_verified_statuses(cls):
+        return (cls.Status.VERIFIED,)
 
 
 class DocumentVerificationMethodAbstract(models.Model):

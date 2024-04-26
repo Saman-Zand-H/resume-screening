@@ -10,3 +10,4 @@ class AccountConfig(AppConfig):
         from . import signals  # noqa
         from . import tasks  # noqa
         from . import types  # noqa
+        from . import scores  # noqa
