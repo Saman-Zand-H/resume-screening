@@ -255,9 +255,6 @@ class UserUpdateMutation(ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, Djang
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
 
-        if fluent_languages := input.get(Profile.fluent_languages.field.name):
-            input[Profile.fluent_languages.field.name] = [lang.lower() for lang in fluent_languages]
-
         return super().validate(*args, **kwargs)
 
 
