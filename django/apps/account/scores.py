@@ -49,6 +49,20 @@ JOB_ASSESSMENT_SCORES_PERCENTAGE = {
 }
 
 
+def get_profile(user: User) -> Optional[Profile]:
+    profile = getattr(user, Profile.user.field.related_query_name(), None)
+    if profile and profile.pk:
+        return profile
+    return None
+
+
+def get_profile_interested_jobs(user: User):
+    profile = get_profile(user)
+    if not profile or not profile.interested_jobs.exists():
+        return []
+    return profile.interested_jobs.all()
+
+
 class UserFieldExistingScore(ExistingScore):
     user_field: ClassVar[str]
     score = Scores.ID_INFORMATION.value
@@ -61,9 +75,7 @@ class ProfileFieldScore(UserFieldExistingScore):
     profile_field: ClassVar[str]
 
     def get_value(self, user):
-        from .models import Profile
-
-        profile: Optional[Profile] = getattr(user, Profile.user.field.related_query_name())
+        profile = get_profile(user)
 
         if profile:
             return getattr(profile, self.profile_field)
@@ -247,8 +259,7 @@ class JobInterestScore(Score):
     slug = "job_interest"
 
     def calculate(self, user) -> int:
-        profile = getattr(user, Profile.user.field.related_query_name())  # type: Profile
-        if profile and profile.interested_jobs.exists():
+        if get_profile_interested_jobs(user):
             return Scores.JOB_INTEREST.value
         return 0
 
@@ -258,10 +269,9 @@ class AssessmentScore(Score):
     slug = "assessment"
 
     def calculate(self, user) -> int:
-        profile = getattr(user, Profile.user.field.related_query_name())  # type: Profile
-        if not profile or not profile.interested_jobs.exists():
+        if not (interested_jobs := get_profile_interested_jobs(user)):
             return 0
-        required = JobAssessment.objects.filter_by_required(True, profile.interested_jobs.all())
+        required = JobAssessment.objects.filter_by_required(True, interested_jobs)
         scores = (
             JobAssessmentResult.objects.filter(
                 user=user,
@@ -292,10 +302,9 @@ class OptionalAssessmentScore(Score):
     slug = "optional_assessment"
 
     def calculate(self, user) -> int:
-        profile = getattr(user, Profile.user.field.related_query_name())  # type: Profile
-        if not profile or not profile.interested_jobs.exists():
+        if not (interested_jobs := get_profile_interested_jobs(user)):
             return 0
-        optional = JobAssessment.objects.filter_by_optional(profile.interested_jobs.all())
+        optional = JobAssessment.objects.filter_by_optional(interested_jobs)
 
         return (
             JobAssessmentResult.objects.filter(
