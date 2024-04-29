@@ -312,7 +312,7 @@ class Profile(ComputedFieldsModel):
     )
 
     @computed(
-        models.JSONField(verbose_name=_("Scores")),
+        models.JSONField(verbose_name=_("Scores"), default=dict),
         depends=[
             ("self", ["city", "fluent_languages", "native_language"]),
             ("user", ["first_name", "last_name", "email", "gender", "birth_date"]),
@@ -356,6 +356,13 @@ class Profile(ComputedFieldsModel):
     def score(self):
         return self.scores.get("total", 0)
 
+    @property
+    def completion_percentage(self):
+        related_scores = self.get_completion_related_scores()
+        scores = self.scores.get("scores", {})
+        completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
+        return (completed_scores / len(related_scores)) * 100
+
     class Meta:
         verbose_name = _("User Profile")
         verbose_name_plural = _("User Profiles")
@@ -373,6 +380,29 @@ class Profile(ComputedFieldsModel):
             Profile.eye_color.field.name,
             Profile.full_body_image.field.name,
         )
+
+    @staticmethod
+    def get_completion_related_scores():
+        from . import scores
+
+        return [
+            scores.FirstNameScore,
+            scores.LastNameScore,
+            scores.GenderScore,
+            scores.DateOfBirthScore,
+            scores.EmailScore,
+            scores.CityScore,
+            scores.MobileScore,
+            scores.EducationNewScore,
+            scores.WorkExperienceNewScore,
+            scores.LanguageScore,
+            scores.FluentLanguageScore,
+            scores.NativeLanguageScore,
+            scores.CertificationScore,
+            scores.SkillScore,
+            scores.VisaStatusScore,
+            scores.JobInterestScore,
+        ]
 
     @property
     def has_appearance_related_data(self):
