@@ -52,6 +52,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.job_type.field.name,
             Profile.job_location_type.field.name,
             Profile.fluent_languages.field.name,
+            Profile.scores.field.name,
         )
 
 
