@@ -110,6 +110,8 @@ class ProfileInterestedJobsInline(admin.TabularInline):
     model = Profile.interested_jobs.through
     extra = 1
     raw_id_fields = (Profile.interested_jobs.through.job.field.name,)
+    verbose_name = _("Interested Job")
+    verbose_name_plural = _("Interested Jobs")
 
 
 @register(Profile)
@@ -135,7 +137,10 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.job_cities.field.name,
     )
     inlines = (ProfileInterestedJobsInline,)
-    readonly_fields = (Profile.credits.field.name,)
+    readonly_fields = (
+        Profile.scores.field.name,
+        Profile.credits.field.name,
+    )
     exclude = (Profile.interested_jobs.field.name,)
 
 

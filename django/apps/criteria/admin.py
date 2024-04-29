@@ -7,6 +7,7 @@ from .models import JobAssessment, JobAssessmentResult
 class JobAssessmentInline(admin.TabularInline):
     model = JobAssessment.related_jobs.through
     extra = 1
+    raw_id_fields = (JobAssessment.related_jobs.through.job.field.name,)
 
 
 @admin.register(JobAssessment)

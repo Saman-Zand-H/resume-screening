@@ -333,6 +333,35 @@ class Profile(ComputedFieldsModel):
     )
 
     @computed(
+        models.JSONField(verbose_name=_("Scores"), default=dict),
+        depends=[
+            ("self", ["city", "fluent_languages", "native_language"]),
+            ("user", ["first_name", "last_name", "email", "gender", "birth_date"]),
+            ("user.contacts", ["id"]),
+            ("user.resume", ["id"]),
+            ("user.educations", ["id", "status"]),
+            ("user.workexperiences", ["id", "status"]),
+            ("user.languagecertificates", ["id", "status"]),
+            ("user.certificateandlicenses", ["id", "status"]),
+            ("user.skills", ["id"]),
+            ("user.canada_visa", ["id"]),
+            ("interested_jobs", ["id"]),
+            ("user.job_assessment_results", ["status"]),
+            ("user.referral", ["id"]),
+            ("user.referral.referred_users", ["id"]),
+        ],
+    )
+    def scores(self):
+        from .scores import UserScorePack
+
+        scores = UserScorePack.calculate(self.user)
+
+        return {
+            "total": sum(scores.values()),
+            "scores": scores,
+        }
+
+    @computed(
         models.IntegerField(verbose_name=_("Credits")),
         depends=[
             ("user.referral.referred_users", ["id"]),
@@ -343,6 +372,17 @@ class Profile(ComputedFieldsModel):
         _credits = 0
         _credits += self.user.referral.referred_users.count() * 100
         return _credits
+
+    @property
+    def score(self):
+        return self.scores.get("total", 0)
+
+    @property
+    def completion_percentage(self):
+        related_scores = self.get_completion_related_scores()
+        scores = self.scores.get("scores", {})
+        completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
+        return (completed_scores / len(related_scores)) * 100
 
     class Meta:
         verbose_name = _("User Profile")
@@ -361,6 +401,31 @@ class Profile(ComputedFieldsModel):
             Profile.eye_color.field.name,
             Profile.full_body_image.field.name,
         )
+
+    @staticmethod
+    def get_completion_related_scores():
+        from . import scores
+
+        return [
+            scores.FirstNameScore,
+            scores.LastNameScore,
+            scores.GenderScore,
+            scores.DateOfBirthScore,
+            scores.EmailScore,
+            scores.CityScore,
+            scores.MobileScore,
+            scores.EducationNewScore,
+            scores.EducationVerificationScore,
+            scores.WorkExperienceNewScore,
+            scores.WorkExperienceVerificationScore,
+            scores.LanguageScore,
+            scores.FluentLanguageScore,
+            scores.NativeLanguageScore,
+            scores.CertificationScore,
+            scores.SkillScore,
+            scores.VisaStatusScore,
+            scores.JobInterestScore,
+        ]
 
     @property
     def has_appearance_related_data(self):
@@ -464,6 +529,10 @@ class DocumentAbstract(models.Model):
 
     def get_verification_method(self):
         return next(self.get_verification_methods(), None)
+
+    @classmethod
+    def get_verified_statuses(cls):
+        return (cls.Status.VERIFIED,)
 
 
 class DocumentVerificationMethodAbstract(models.Model):
