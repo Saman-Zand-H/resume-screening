@@ -187,14 +187,40 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class AvatarFile(FileModel):
-    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="uploaded_avatar")
+class UserUploadedDocumentFile(FileModel):
+    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
 
+    class Meta:
+        abstract = True
+
+    def get_validators(self):
+        return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
+
+    def check_auth(self, request=None):
+        return request.user == self.uploaded_by
+
+
+class UserUploadedImageFile(FileModel):
+    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
+
+    class Meta:
+        abstract = True
+
+    def get_validators(self):
+        return [IMAGE_FILE_SIZE_VALIDATOR]
+
+    def check_auth(self, request=None):
+        return request.user == self.uploaded_by
+
+
+class AvatarFile(UserUploadedImageFile):
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
 
-    def check_auth(self, request=None):
-        return True
+
+class FullBodyImageFile(UserUploadedImageFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/full_body_image/{filename}"
 
 
 class Profile(ComputedFieldsModel):
@@ -247,23 +273,18 @@ class Profile(ComputedFieldsModel):
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
-    avatar2 = models.ForeignKey(
+    avatar = models.OneToOneField(
         AvatarFile,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="profile",
-        null=True,
-        blank=True,
-    )
-    avatar = models.ImageField(
-        upload_to=avatar_path,
-        validators=[IMAGE_FILE_SIZE_VALIDATOR],
         null=True,
         blank=True,
         verbose_name=_("Avatar"),
     )
-    full_body_image = models.ImageField(
-        upload_to=full_body_image_path,
-        validators=[IMAGE_FILE_SIZE_VALIDATOR],
+    full_body_image = models.OneToOneField(
+        FullBodyImageFile,
+        on_delete=models.SET_NULL,
+        related_name="profile",
         null=True,
         blank=True,
         verbose_name=_("Full Body Image"),
@@ -526,6 +547,11 @@ class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
         return f"{self.education.user.email} - {self.education.degree} Verification"
 
 
+class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/education_verification/education_evaluation/{filename}"
+
+
 class IEEMethod(EducationVerificationMethodAbstract):
     class Evaluator(models.TextChoices):
         WES = "wes", _("World Education Services")
@@ -533,10 +559,13 @@ class IEEMethod(EducationVerificationMethodAbstract):
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
 
-    education_evaluation_document = models.FileField(
-        upload_to=education_evaluation_document_path,
+    education_evaluation_document = models.OneToOneField(
+        EducationEvaluationDocumentFile,
+        on_delete=models.CASCADE,
+        related_name="iee_method",
+        null=True,
+        blank=True,
         verbose_name=_("Education Evaluation Document"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
     evaluator = models.CharField(
         max_length=50,
@@ -549,15 +578,23 @@ class IEEMethod(EducationVerificationMethodAbstract):
         verbose_name_plural = _("International Education Evaluation Methods")
 
 
+class DegreeFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/education_verification/degree/{filename}"
+
+
 class CommunicationMethod(EducationVerificationMethodAbstract):
     website = models.URLField(verbose_name=_("Website"))
     email = models.EmailField(verbose_name=_("Email"))
     department = models.CharField(max_length=255, verbose_name=_("Department"))
     person = models.CharField(max_length=255, verbose_name=_("Person"))
-    degree_file = models.FileField(
-        upload_to=degree_file_path,
+    degree_file = models.OneToOneField(
+        DegreeFile,
+        on_delete=models.CASCADE,
+        related_name="communication_method",
+        null=True,
+        blank=True,
         verbose_name=_("Degree File"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
 
     class Meta:
@@ -614,11 +651,19 @@ class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstrac
         return f"{self.work_experience} Verification"
 
 
+class EmployerLetterFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/work_experience_verification/employer_letter/{filename}"
+
+
 class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
-    employer_letter = models.FileField(
-        upload_to=employer_letter_path,
+    employer_letter = models.OneToOneField(
+        EmployerLetterFile,
+        on_delete=models.CASCADE,
+        related_name="employer_letter_method",
+        null=True,
+        blank=True,
         verbose_name=_("Employer Letter"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
 
     class Meta:
@@ -626,11 +671,19 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
         verbose_name_plural = _("Employer Letter Methods")
 
 
+class PaystubsFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/work_experience_verification/paystubs/{filename}"
+
+
 class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
-    paystubs = models.FileField(
-        upload_to=paystubs_path,
+    paystubs = models.OneToOneField(
+        PaystubsFile,
+        on_delete=models.CASCADE,
+        related_name="paystubs_method",
+        null=True,
+        blank=True,
         verbose_name=_("Employer Letter"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
 
     class Meta:
@@ -737,11 +790,19 @@ class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAb
         return f"{self.language_certificate.test.title} ({self.language_certificate.language}) Verification"
 
 
+class LanguageCertificateFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/language_certificate_verification/language_certificate/{filename}"
+
+
 class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
-    certificate_file = models.FileField(
-        upload_to=language_certificate_path,
+    certificate_file = models.OneToOneField(
+        LanguageCertificateFile,
+        on_delete=models.CASCADE,
+        related_name="offline_method",
+        null=True,
+        blank=True,
         verbose_name=_("Language Certificate"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
 
     class Meta:
@@ -793,11 +854,19 @@ class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethod
         return f"{self.certificate_and_license.title} Verification"
 
 
+class CertificateFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/certificate_and_license_verification/certificate_and_license/{filename}"
+
+
 class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
-    certificate_file = models.FileField(
-        upload_to=certificate_and_license_path,
+    certificate_file = models.OneToOneField(
+        CertificateFile,
+        on_delete=models.CASCADE,
+        related_name="offline_method",
+        null=True,
+        blank=True,
         verbose_name=_("Certificate And License"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
 
     class Meta:
@@ -811,6 +880,11 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
     class Meta:
         verbose_name = _("Certificate And License Online Verification Method")
         verbose_name_plural = _("Certificate And License Online Verification Methods")
+
+
+class CitizenshipDocumentFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/citizenship_document/{filename}"
 
 
 class CanadaVisa(models.Model):
@@ -844,19 +918,31 @@ class CanadaVisa(models.Model):
         choices=Status.choices,
         verbose_name=_("Status"),
     )
-    citizenship_document = models.FileField(
-        upload_to=citizenship_document_path,
+
+    citizenship_document = models.OneToOneField(
+        CitizenshipDocumentFile,
+        on_delete=models.CASCADE,
+        related_name="canada_visa",
+        null=True,
+        blank=True,
         verbose_name=_("Citizenship Document"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
+
+
+class ResumeFile(UserUploadedDocumentFile):
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/resume/{filename}"
 
 
 class Resume(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="resume")
-    file = models.FileField(
-        upload_to=resume_path,
+    file = models.OneToOneField(
+        ResumeFile,
+        on_delete=models.CASCADE,
+        related_name="resume",
+        null=True,
+        blank=True,
         verbose_name=_("Resume"),
-        validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
     text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True, editable=False)
 

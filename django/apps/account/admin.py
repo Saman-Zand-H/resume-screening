@@ -11,16 +11,22 @@ from django.utils.translation import gettext_lazy as _
 from .forms import UserChangeForm
 from .models import (
     AvatarFile,
+    FullBodyImageFile,
     CanadaVisa,
+    CitizenshipDocumentFile,
     CertificateAndLicense,
     CertificateAndLicenseOfflineVerificationMethod,
+    CertificateFile,
     CertificateAndLicenseOnlineVerificationMethod,
     CommunicationMethod,
     Contact,
     Education,
     EmployerLetterMethod,
     IEEMethod,
+    DegreeFile,
+    EducationEvaluationDocumentFile,
     LanguageCertificate,
+    LanguageCertificateFile,
     LanguageCertificateValue,
     OfflineMethod,
     OnlineMethod,
@@ -30,9 +36,12 @@ from .models import (
     Referral,
     ReferralUser,
     Resume,
+    ResumeFile,
     SupportTicket,
     User,
     WorkExperience,
+    EmployerLetterFile,
+    PaystubsFile,
 )
 
 
@@ -433,6 +442,16 @@ class AvatarFileAdmin(admin.ModelAdmin):
     raw_id_fields = (AvatarFile.uploaded_by.field.name,)
 
 
+@register(FullBodyImageFile)
+class FullBodyImageFileAdmin(admin.ModelAdmin):
+    list_display = (
+        FullBodyImageFile.uploaded_by.field.name,
+        FullBodyImageFile.file.field.name,
+    )
+    search_fields = (fields_join(FullBodyImageFile.uploaded_by, User.email), FullBodyImageFile.file.field.name)
+    raw_id_fields = (FullBodyImageFile.uploaded_by.field.name,)
+
+
 @register(SupportTicket)
 class SupportTicketAdmin(admin.ModelAdmin):
     list_display = (
@@ -443,3 +462,92 @@ class SupportTicketAdmin(admin.ModelAdmin):
     search_fields = (fields_join(SupportTicket.user, User.email), SupportTicket.title.field.name)
     list_filter = (SupportTicket.status.field.name,)
     raw_id_fields = (SupportTicket.user.field.name,)
+
+
+@register(CertificateFile)
+class CertificateFileAdmin(admin.ModelAdmin):
+    list_display = (
+        CertificateFile.uploaded_by.field.name,
+        CertificateFile.file.field.name,
+    )
+    search_fields = (fields_join(CertificateFile.uploaded_by, User.email), CertificateFile.file.field.name)
+    raw_id_fields = (CertificateFile.uploaded_by.field.name,)
+
+
+@register(CitizenshipDocumentFile)
+class CitizenshipDocumentFileAdmin(admin.ModelAdmin):
+    list_display = (
+        CitizenshipDocumentFile.uploaded_by.field.name,
+        CitizenshipDocumentFile.file.field.name,
+    )
+    search_fields = (
+        fields_join(CitizenshipDocumentFile.uploaded_by, User.email),
+        CitizenshipDocumentFile.file.field.name,
+    )
+    raw_id_fields = (CitizenshipDocumentFile.uploaded_by.field.name,)
+
+
+@register(DegreeFile)
+class DegreeFileAdmin(admin.ModelAdmin):
+    list_display = (
+        DegreeFile.uploaded_by.field.name,
+        DegreeFile.file.field.name,
+    )
+    search_fields = (fields_join(DegreeFile.uploaded_by, User.email), DegreeFile.file.field.name)
+    raw_id_fields = (DegreeFile.uploaded_by.field.name,)
+
+
+@register(EducationEvaluationDocumentFile)
+class EducationEvaluationDocumentFileAdmin(admin.ModelAdmin):
+    list_display = (
+        EducationEvaluationDocumentFile.uploaded_by.field.name,
+        EducationEvaluationDocumentFile.file.field.name,
+    )
+    search_fields = (
+        fields_join(EducationEvaluationDocumentFile.uploaded_by, User.email),
+        EducationEvaluationDocumentFile.file.field.name,
+    )
+    raw_id_fields = (EducationEvaluationDocumentFile.uploaded_by.field.name,)
+
+
+@register(EmployerLetterFile)
+class EmployerLetterFileAdmin(admin.ModelAdmin):
+    list_display = (
+        EmployerLetterFile.uploaded_by.field.name,
+        EmployerLetterFile.file.field.name,
+    )
+    search_fields = (fields_join(EmployerLetterFile.uploaded_by, User.email), EmployerLetterFile.file.field.name)
+    raw_id_fields = (EmployerLetterFile.uploaded_by.field.name,)
+
+
+@register(PaystubsFile)
+class PaystubsFileAdmin(admin.ModelAdmin):
+    list_display = (
+        PaystubsFile.uploaded_by.field.name,
+        PaystubsFile.file.field.name,
+    )
+    search_fields = (fields_join(PaystubsFile.uploaded_by, User.email), PaystubsFile.file.field.name)
+    raw_id_fields = (PaystubsFile.uploaded_by.field.name,)
+
+
+@register(ResumeFile)
+class ResumeFileAdmin(admin.ModelAdmin):
+    list_display = (
+        ResumeFile.uploaded_by.field.name,
+        ResumeFile.file.field.name,
+    )
+    search_fields = (fields_join(ResumeFile.uploaded_by, User.email), ResumeFile.file.field.name)
+    raw_id_fields = (ResumeFile.uploaded_by.field.name,)
+
+
+@register(LanguageCertificateFile)
+class LanguageCertificateFileAdmin(admin.ModelAdmin):
+    list_display = (
+        LanguageCertificateFile.uploaded_by.field.name,
+        LanguageCertificateFile.file.field.name,
+    )
+    search_fields = (
+        fields_join(LanguageCertificateFile.uploaded_by, User.email),
+        LanguageCertificateFile.file.field.name,
+    )
+    raw_id_fields = (LanguageCertificateFile.uploaded_by.field.name,)
