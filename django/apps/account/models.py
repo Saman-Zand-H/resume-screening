@@ -206,6 +206,14 @@ class UserFile(FileModel):
         ).first()
 
     @classmethod
+    def is_used(cls, user: User) -> bool:
+        return (
+            cls.objects.filter(uploaded_by=user)
+            .exclude(**{field.field.related_query_name(): None for field in cls.get_related_fields()})
+            .exists()
+        )
+
+    @classmethod
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
         obj = cls(file=file, uploaded_by=user)
         obj.full_clean()
