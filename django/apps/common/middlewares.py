@@ -1,3 +1,5 @@
+import logging
+
 from .exceptions import GraphQLError
 from .utils import map_exception_to_error
 
@@ -17,4 +19,14 @@ class ErrorHandlingMiddleware:
                 error = map_exception_to_error(e.__class__, str(e))
                 kwargs.update({"error": error})
             kwargs.update({"exception": e})
+
+            logger.error(
+                f"GraphQL Error: {str(e)}",
+                exc_info=True,
+                extra={
+                    "path": info.path,
+                    "field_name": info.field_name,
+                    "query": info.operation.name.value if info.operation else None,
+                },
+            )
             raise base_exception(**kwargs)
