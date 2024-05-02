@@ -32,6 +32,9 @@ class JobAssessmentQuerySet(models.QuerySet):
             )
         ).filter(required_job_assessments=0)
 
+    def filter_by_optional(self, jobs):
+        return self.filter(job_assessment_jobs__required=False, job_assessment_jobs__job__in=jobs)
+
     def related_to_user(self, user):
         return (
             self.filter(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)

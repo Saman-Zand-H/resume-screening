@@ -1,12 +1,14 @@
 import base64
 import contextlib
 import uuid
+from typing import Optional
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
 from common.models import (
     Field,
+    FileModel,
     Job,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
@@ -17,10 +19,10 @@ from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
+    IMAGE_FILE_EXTENSION_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
-from flex_blob.models import FileModel
 from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
@@ -31,6 +33,7 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -187,40 +190,71 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class UserUploadedDocumentFile(FileModel):
+class UserFile(FileModel):
     uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
 
+    class Meta:
+        abstract = True
+
+    def check_auth(self, request):
+        return request.user == self.uploaded_by
+
+    @classmethod
+    def get_user_temprorary_file(cls, user: User) -> Optional["UserFile"]:
+        return cls.objects.filter(
+            uploaded_by=user, **{field.field.related_query_name(): None for field in cls.get_related_fields()}
+        ).first()
+
+    @classmethod
+    def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
+        obj = cls(file=file, uploaded_by=user)
+        obj.full_clean()
+        obj.save()
+        return obj
+
+    def update_temporary_file(self, file: InMemoryUploadedFile):
+        self.file = file
+        self.full_clean()
+        self.save()
+        return self
+
+
+class UserUploadedDocumentFile(UserFile):
     class Meta:
         abstract = True
 
     def get_validators(self):
         return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
 
-    def check_auth(self, request=None):
-        return request.user == self.uploaded_by
 
-
-class UserUploadedImageFile(FileModel):
-    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
-
+class UserUploadedImageFile(UserFile):
     class Meta:
         abstract = True
 
     def get_validators(self):
-        return [IMAGE_FILE_SIZE_VALIDATOR]
-
-    def check_auth(self, request=None):
-        return request.user == self.uploaded_by
+        return [IMAGE_FILE_EXTENSION_VALIDATOR, IMAGE_FILE_SIZE_VALIDATOR]
 
 
 class AvatarFile(UserUploadedImageFile):
+    SLUG = "avatar"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
 
+    class Meta:
+        verbose_name = _("Avatar Image")
+        verbose_name_plural = _("Avatar Images")
+
 
 class FullBodyImageFile(UserUploadedImageFile):
+    SLUG = "full_body_image"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/full_body_image/{filename}"
+
+    class Meta:
+        verbose_name = _("Full Body Image")
+        verbose_name_plural = _("Full Body Images")
 
 
 class Profile(ComputedFieldsModel):
@@ -333,6 +367,35 @@ class Profile(ComputedFieldsModel):
     )
 
     @computed(
+        models.JSONField(verbose_name=_("Scores"), default=dict),
+        depends=[
+            ("self", ["city", "fluent_languages", "native_language"]),
+            ("user", ["first_name", "last_name", "email", "gender", "birth_date"]),
+            ("user.contacts", ["id"]),
+            ("user.resume", ["id"]),
+            ("user.educations", ["id", "status"]),
+            ("user.workexperiences", ["id", "status"]),
+            ("user.languagecertificates", ["id", "status"]),
+            ("user.certificateandlicenses", ["id", "status"]),
+            ("user.skills", ["id"]),
+            ("user.canada_visa", ["id"]),
+            ("interested_jobs", ["id"]),
+            ("user.job_assessment_results", ["status"]),
+            ("user.referral", ["id"]),
+            ("user.referral.referred_users", ["id"]),
+        ],
+    )
+    def scores(self):
+        from .scores import UserScorePack
+
+        scores = UserScorePack.calculate(self.user)
+
+        return {
+            "total": sum(scores.values()),
+            "scores": scores,
+        }
+
+    @computed(
         models.IntegerField(verbose_name=_("Credits")),
         depends=[
             ("user.referral.referred_users", ["id"]),
@@ -343,6 +406,17 @@ class Profile(ComputedFieldsModel):
         _credits = 0
         _credits += self.user.referral.referred_users.count() * 100
         return _credits
+
+    @property
+    def score(self):
+        return self.scores.get("total", 0)
+
+    @property
+    def completion_percentage(self):
+        related_scores = self.get_completion_related_scores()
+        scores = self.scores.get("scores", {})
+        completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
+        return (completed_scores / len(related_scores)) * 100
 
     class Meta:
         verbose_name = _("User Profile")
@@ -361,6 +435,31 @@ class Profile(ComputedFieldsModel):
             Profile.eye_color.field.name,
             Profile.full_body_image.field.name,
         )
+
+    @staticmethod
+    def get_completion_related_scores():
+        from . import scores
+
+        return [
+            scores.FirstNameScore,
+            scores.LastNameScore,
+            scores.GenderScore,
+            scores.DateOfBirthScore,
+            scores.EmailScore,
+            scores.CityScore,
+            scores.MobileScore,
+            scores.EducationNewScore,
+            scores.EducationVerificationScore,
+            scores.WorkExperienceNewScore,
+            scores.WorkExperienceVerificationScore,
+            scores.LanguageScore,
+            scores.FluentLanguageScore,
+            scores.NativeLanguageScore,
+            scores.CertificationScore,
+            scores.SkillScore,
+            scores.VisaStatusScore,
+            scores.JobInterestScore,
+        ]
 
     @property
     def has_appearance_related_data(self):
@@ -465,6 +564,10 @@ class DocumentAbstract(models.Model):
     def get_verification_method(self):
         return next(self.get_verification_methods(), None)
 
+    @classmethod
+    def get_verified_statuses(cls):
+        return (cls.Status.VERIFIED,)
+
 
 class DocumentVerificationMethodAbstract(models.Model):
     verified_at = models.DateTimeField(verbose_name=_("Verified At"), null=True, blank=True)
@@ -548,8 +651,14 @@ class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
 
 
 class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
+    SLUG = "education_evaluation"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/education_evaluation/{filename}"
+
+    class Meta:
+        verbose_name = _("Education Evaluation Document File")
+        verbose_name_plural = _("Education Evaluation Document Files")
 
 
 class IEEMethod(EducationVerificationMethodAbstract):
@@ -563,8 +672,6 @@ class IEEMethod(EducationVerificationMethodAbstract):
         EducationEvaluationDocumentFile,
         on_delete=models.CASCADE,
         related_name="iee_method",
-        null=True,
-        blank=True,
         verbose_name=_("Education Evaluation Document"),
     )
     evaluator = models.CharField(
@@ -579,8 +686,14 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 
 class DegreeFile(UserUploadedDocumentFile):
+    SLUG = "degree"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/degree/{filename}"
+
+    class Meta:
+        verbose_name = _("Degree File")
+        verbose_name_plural = _("Degree Files")
 
 
 class CommunicationMethod(EducationVerificationMethodAbstract):
@@ -592,8 +705,6 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         DegreeFile,
         on_delete=models.CASCADE,
         related_name="communication_method",
-        null=True,
-        blank=True,
         verbose_name=_("Degree File"),
     )
 
@@ -652,8 +763,14 @@ class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstrac
 
 
 class EmployerLetterFile(UserUploadedDocumentFile):
+    SLUG = "employer_letter"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/employer_letter/{filename}"
+
+    class Meta:
+        verbose_name = _("Employer Letter File")
+        verbose_name_plural = _("Employer Letter Files")
 
 
 class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
@@ -661,8 +778,6 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
         EmployerLetterFile,
         on_delete=models.CASCADE,
         related_name="employer_letter_method",
-        null=True,
-        blank=True,
         verbose_name=_("Employer Letter"),
     )
 
@@ -672,8 +787,14 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
 
 
 class PaystubsFile(UserUploadedDocumentFile):
+    SLUG = "paystubs"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/paystubs/{filename}"
+
+    class Meta:
+        verbose_name = _("Paystubs File")
+        verbose_name_plural = _("Paystubs Files")
 
 
 class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
@@ -681,8 +802,6 @@ class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
         PaystubsFile,
         on_delete=models.CASCADE,
         related_name="paystubs_method",
-        null=True,
-        blank=True,
         verbose_name=_("Employer Letter"),
     )
 
@@ -791,8 +910,14 @@ class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAb
 
 
 class LanguageCertificateFile(UserUploadedDocumentFile):
+    SLUG = "language_certificate"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/language_certificate_verification/language_certificate/{filename}"
+
+    class Meta:
+        verbose_name = _("Language Certificate File")
+        verbose_name_plural = _("Language Certificate Files")
 
 
 class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
@@ -800,8 +925,6 @@ class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
         LanguageCertificateFile,
         on_delete=models.CASCADE,
         related_name="offline_method",
-        null=True,
-        blank=True,
         verbose_name=_("Language Certificate"),
     )
 
@@ -855,8 +978,14 @@ class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethod
 
 
 class CertificateFile(UserUploadedDocumentFile):
+    SLUG = "certificate"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/certificate_and_license_verification/certificate_and_license/{filename}"
+
+    class Meta:
+        verbose_name = _("Certificate File")
+        verbose_name_plural = _("Certificate Files")
 
 
 class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
@@ -864,8 +993,6 @@ class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerifi
         CertificateFile,
         on_delete=models.CASCADE,
         related_name="offline_method",
-        null=True,
-        blank=True,
         verbose_name=_("Certificate And License"),
     )
 
@@ -883,8 +1010,14 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
 
 
 class CitizenshipDocumentFile(UserUploadedDocumentFile):
+    SLUG = "citizenship_document"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/citizenship_document/{filename}"
+
+    class Meta:
+        verbose_name = _("Citizenship Document File")
+        verbose_name_plural = _("Citizenship Document Files")
 
 
 class CanadaVisa(models.Model):
@@ -922,16 +1055,25 @@ class CanadaVisa(models.Model):
     citizenship_document = models.OneToOneField(
         CitizenshipDocumentFile,
         on_delete=models.CASCADE,
+        default=13,
         related_name="canada_visa",
-        null=True,
-        blank=True,
         verbose_name=_("Citizenship Document"),
     )
 
+    class Meta:
+        verbose_name = _("Canada Visa")
+        verbose_name_plural = _("Canada Visas")
+
 
 class ResumeFile(UserUploadedDocumentFile):
+    SLUG = "resume"
+
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
+
+    class Meta:
+        verbose_name = _("Resume File")
+        verbose_name_plural = _("Resume Files")
 
 
 class Resume(models.Model):
@@ -940,8 +1082,6 @@ class Resume(models.Model):
         ResumeFile,
         on_delete=models.CASCADE,
         related_name="resume",
-        null=True,
-        blank=True,
         verbose_name=_("Resume"),
     )
     text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True, editable=False)

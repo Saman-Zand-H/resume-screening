@@ -1,14 +1,18 @@
+from operator import itemgetter
+
 import graphene
 from cities_light.graphql.types import City as CityTypeBase
 from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
+from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from .exceptions import Error, Errors
 from .models import (
     Field,
+    FileModel,
     Industry,
     Job,
     JobCategory,
@@ -17,6 +21,7 @@ from .models import (
     Skill,
     University,
 )
+from .utils import get_file_models
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = graphene.Enum("Errors", enum_values)
@@ -189,3 +194,22 @@ class SkillNode(DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         return queryset.system()
+
+
+UploadType = convert_choices_to_named_enum_with_descriptions(
+    "UploadType",
+    sorted(((model.SLUG, model._meta.verbose_name) for model in get_file_models()), key=itemgetter(0)),
+)
+
+
+def create_file_model_type(model):
+    class Meta:
+        model = model
+        fields = [FileModel.file.field.name]
+
+    class_name = f"{model.__name__}Type"
+    return type(class_name, (DjangoObjectType,), {"Meta": Meta})
+
+
+for model in get_file_models():
+    globals()[f"{model.__name__}Type"] = create_file_model_type(model)
