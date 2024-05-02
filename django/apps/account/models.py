@@ -658,6 +658,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
         IQAS = "iqas", _("International Qualifications Assessment Service")
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
+        OTHER = "other", _("Other")
 
     education_evaluation_document = models.FileField(
         upload_to=education_evaluation_document_path,
