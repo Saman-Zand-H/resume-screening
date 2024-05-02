@@ -10,6 +10,7 @@ from graphene_django.converter import convert_choices_to_named_enum_with_descrip
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from .exceptions import Error, Errors
+from .mixins import ArrayChoiceTypeMixin
 from .models import (
     Field,
     FileModel,
@@ -149,7 +150,7 @@ class LanguageType(graphene.ObjectType):
     name = graphene.String()
 
 
-class LanguageProficiencyTestNode(DjangoObjectType):
+class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = LanguageProficiencyTest
         use_connection = True
