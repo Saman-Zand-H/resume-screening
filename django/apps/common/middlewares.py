@@ -4,6 +4,9 @@ from .exceptions import GraphQLError
 from .utils import map_exception_to_error
 
 
+logger = logging.getLogger("graphql.error")
+
+
 class ErrorHandlingMiddleware:
     def resolve(self, next_resolver, root, info, **args):
         try:
