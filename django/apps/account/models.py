@@ -839,7 +839,7 @@ class LanguageCertificateValue(EavValue):
         try:
             super().clean()
         except ValidationError as e:
-            raise ValidationError({self.skill.slug: e.error_list[0].message})
+            raise ValidationError({LanguageCertificateValue.value.field.name: e.error_list[0].message})
 
 
 class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAbstract):
