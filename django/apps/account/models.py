@@ -1,12 +1,14 @@
 import base64
 import contextlib
 import uuid
+from typing import Optional
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
 from common.models import (
     Field,
+    FileModel,
     Job,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
@@ -17,10 +19,10 @@ from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
+    IMAGE_FILE_EXTENSION_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
-from flex_blob.models import FileModel
 from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
@@ -31,6 +33,7 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -187,14 +190,60 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class AvatarFile(FileModel):
-    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="uploaded_avatar")
+class UserFile(FileModel):
+    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
+
+    class Meta:
+        abstract = True
+
+    def check_auth(self, request):
+        return request.user == self.uploaded_by
+
+    @classmethod
+    def get_user_temprorary_file(cls, user: User) -> Optional["UserFile"]:
+        return cls.objects.filter(
+            uploaded_by=user, **{field.field.related_query_name(): None for field in cls.get_related_fields()}
+        ).first()
+
+    @classmethod
+    def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
+        obj = cls(file=file, uploaded_by=user)
+        obj.full_clean()
+        obj.save()
+        return obj
+
+    def update_temporary_file(self, file: InMemoryUploadedFile):
+        self.file = file
+        self.full_clean()
+        self.save()
+        return self
+
+
+class UserUploadedDocumentFile(UserFile):
+    class Meta:
+        abstract = True
+
+    def get_validators(self):
+        return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
+
+
+class UserUploadedImageFile(UserFile):
+    class Meta:
+        abstract = True
+
+    def get_validators(self):
+        return [IMAGE_FILE_EXTENSION_VALIDATOR, IMAGE_FILE_SIZE_VALIDATOR]
+
+
+class AvatarFile(UserUploadedImageFile):
+    SLUG = "avatar"
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
 
-    def check_auth(self, request=None):
-        return True
+    class Meta:
+        verbose_name = _("Avatar Image")
+        verbose_name_plural = _("Avatar Images")
 
 
 class Profile(ComputedFieldsModel):
@@ -918,6 +967,10 @@ class CanadaVisa(models.Model):
         verbose_name=_("Citizenship Document"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
+
+    class Meta:
+        verbose_name = _("Canada Visa")
+        verbose_name_plural = _("Canada Visas")
 
 
 class Resume(models.Model):

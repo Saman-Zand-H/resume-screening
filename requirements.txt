@@ -27,7 +27,7 @@ django-cachalot~=2.7
 google-cloud-scheduler~=2.14
 google-cloud-pubsub~=2.27
 django-storages[google]~=1.14
-django-flex-blob==0.0.9
+django-flex-blob==0.0.10
 django-flex-pubsub==0.0.2
 weasyprint~=63.0
 google-auth~=2.35

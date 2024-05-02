@@ -55,6 +55,7 @@ class UserAdmin(UserAdminBase):
         User.is_staff.field.name,
     )
     readonly_fields = (User.skills.field.name,)
+    raw_id_fields = (User.skills.field.name,)
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
@@ -126,6 +127,7 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.user.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
+        Profile.avatar2.field.name,
     )
     inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (
@@ -426,16 +428,6 @@ class ReferralAdmin(admin.ModelAdmin):
     search_fields = (fields_join(Referral.user, User.email), Referral.code.field.name)
     raw_id_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
-
-
-@register(AvatarFile)
-class AvatarFileAdmin(admin.ModelAdmin):
-    list_display = (
-        AvatarFile.uploaded_by.field.name,
-        AvatarFile.file.field.name,
-    )
-    search_fields = (fields_join(AvatarFile.uploaded_by, User.email), AvatarFile.file.field.name)
-    raw_id_fields = (AvatarFile.uploaded_by.field.name,)
 
 
 @register(SupportTicket)
