@@ -24,7 +24,7 @@ class UploadFileMutation(graphene.Mutation):
         if temprorary_obj:
             obj = temprorary_obj.update_temporary_file(file)
         else:
-            obj = model.objects.create_temporary_file(file=file, user=user)
+            obj = model.create_temporary_file(file=file, user=user)
 
         return UploadFileMutation(pk=obj.pk)
 

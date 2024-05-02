@@ -207,10 +207,14 @@ class UserFile(FileModel):
 
     @classmethod
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
-        return cls.objects.create(file=file, uploaded_by=user)
+        obj = cls(file=file, uploaded_by=user)
+        obj.full_clean()
+        obj.save()
+        return obj
 
     def update_temporary_file(self, file: InMemoryUploadedFile):
         self.file = file
+        self.full_clean()
         self.save()
         return self
 
