@@ -22,3 +22,29 @@ class ArrayChoiceTypeMixin:
     @classmethod
     def handle_array_choice_field(cls, value, *args, **kwargs):
         return [v.value for v in value]
+
+
+class FilePermissionMixin:
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        from account.models import UserUploadedImageFile, UserUploadedDocumentFile
+
+        model = kwargs.get("model")
+        fields = kwargs.get("fields")
+
+        
+        file_fields = [
+            field
+            for field in model._meta.fields
+            if (
+                field.name in fields
+                and hasattr(field, "related_model")
+                and issubclass(field.related_model, (UserUploadedImageFile, UserUploadedDocumentFile))
+            )
+        ]
+
+        for field in file_fields:
+            if field.check_auth:
+                raise PermissionError(f"Field {field.name} already has a check_auth method.")
+
+        return super().__init_subclass_with_meta__(*args, **kwargs)
