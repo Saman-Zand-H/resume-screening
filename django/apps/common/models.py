@@ -174,7 +174,7 @@ class FileModel(BaseFileModel):
         return [field for field in cls._meta.get_fields() if isinstance(field, models.ForeignObjectRel)]
 
     @classmethod
-    def get_user_temprorary_file(cls, *args, **kwargs) -> Optional["FileModel"]:
+    def get_user_temporary_file(cls, *args, **kwargs) -> Optional["FileModel"]:
         return None
 
     @classmethod

@@ -34,7 +34,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 from .utils import extract_resume_text
@@ -200,7 +200,7 @@ class UserFile(FileModel):
         return request.user == self.uploaded_by
 
     @classmethod
-    def get_user_temprorary_file(cls, user: User) -> Optional["UserFile"]:
+    def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:
         return cls.objects.filter(
             uploaded_by=user, **{field.field.related_query_name(): None for field in cls.get_related_fields()}
         ).first()
@@ -214,10 +214,15 @@ class UserFile(FileModel):
         )
 
     @classmethod
+    @transaction.atomic
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
-        obj = cls(file=file, uploaded_by=user)
-        obj.full_clean()
-        obj.save()
+        obj = cls.objects.filter(uploaded_by=user).first()
+        if obj:
+            obj.update_temporary_file(file)
+        else:
+            obj = cls(uploaded_by=user, file=file)
+            obj.full_clean()
+            obj.save()
         return obj
 
     def update_temporary_file(self, file: InMemoryUploadedFile):
@@ -304,19 +309,12 @@ class Profile(ComputedFieldsModel):
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
-    avatar2 = models.ForeignKey(
+    avatar = models.ForeignKey(
         AvatarFile,
         on_delete=models.CASCADE,
         related_name="profile",
         null=True,
         blank=True,
-    )
-    avatar = models.ImageField(
-        upload_to=avatar_path,
-        validators=[IMAGE_FILE_SIZE_VALIDATOR],
-        null=True,
-        blank=True,
-        verbose_name=_("Avatar"),
     )
     full_body_image = models.ImageField(
         upload_to=full_body_image_path,

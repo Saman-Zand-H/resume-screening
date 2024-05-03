@@ -126,7 +126,7 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.user.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
-        Profile.avatar2.field.name,
+        Profile.avatar.field.name,
     )
     inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (

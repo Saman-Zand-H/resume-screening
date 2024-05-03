@@ -82,7 +82,8 @@ class FilePermissionMixin:
     def _validate_file_permissions(cls, file_obj, field, info):
         if not file_obj.check_auth(info.context):
             raise PermissionError("You don't have permission to access this file.")
-        if file_obj.get_user_temprorary_file(info.context.user) or not file_obj.is_used(info.context.user):
+
+        if not file_obj.get_user_temporary_file(info.context.user) and not file_obj.is_used(info.context.user):
             raise ValidationError({field: "You can't use this file."})
 
     @classmethod
