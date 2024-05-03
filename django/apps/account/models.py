@@ -334,7 +334,6 @@ class Profile(ComputedFieldsModel):
         from .scores import UserScorePack
 
         scores = UserScorePack.calculate(self.user)
-        print("scores", self.user)
         return {
             "total": sum(scores.values()),
             "scores": scores,
