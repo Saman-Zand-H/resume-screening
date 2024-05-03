@@ -1,3 +1,5 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -10,18 +12,17 @@
             href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
             rel="stylesheet"
         />
-        <!-- {% static 'css/cv/main.css' %} -->
         <link
             rel="stylesheet"
             type="text/css"
-            href="../../../static/css/cv/main.css"
+            href="{% static 'css/cv/main.css' %}"
         />
     </head>
     <body>
         <div class="cpj-watermark-container">
             <div class="cpj-watermark">
                 <img
-                    src="../../../static/img/logo/cpj-watermark.svg"
+                    src="{% static 'img/logo/cpj-watermark.svg' %}"
                     alt="CPJ Watermark"
                 />
             </div>
@@ -32,7 +33,7 @@
                     <div class="profile-column">
                         <div class="profile-info">
                             <img
-                                src="../../../static/img/logo/cpj-banner.svg"
+                                src="{% static 'img/logo/cpj-banner.svg' %}"
                                 class="company-logo"
                                 alt="Canada Prime Jobs Company Logo"
                             />
@@ -43,24 +44,11 @@
                                         <div class="section-title">Skills:</div>
                                         <div class="skills-list">
                                             <div class="skill-items">
-                                                <div class="skill-item">
-                                                    Microsoft Office
-                                                </div>
-                                                <div class="skill-item">
-                                                    Excellent communication
-                                                </div>
-                                                <div class="skill-item">
-                                                    Time management
-                                                </div>
-                                                <div class="skill-item">
-                                                    Microsoft Office
-                                                </div>
-                                                <div class="skill-item">
-                                                    Microsoft Office
-                                                </div>
-                                                <div class="skill-item">
-                                                    Microsoft Office
-                                                </div>
+                                                {% for skill in skills %}
+                                                    <div class="skill-item">
+                                                        {{ skill }}
+                                                    </div>
+                                                {% endfor %}
                                             </div>
                                         </div>
                                     </div>
@@ -69,30 +57,16 @@
                                             Follow Me :
                                         </div>
                                         <div class="social-links">
-                                            <div class="social-item">
-                                                <div class="platform">
-                                                    Linkedin
+                                            {% for contact in social_contacts %}
+                                                <div class="social-item">
+                                                    <div class="platform">
+                                                        {{ contact.get_type_display }}
+                                                    </div>
+                                                    <div class="username">
+                                                        {{ contact.value }}
+                                                    </div>
                                                 </div>
-                                                <div class="username">
-                                                    emmasmith
-                                                </div>
-                                            </div>
-                                            <div class="social-item">
-                                                <div class="platform">
-                                                    instagram:
-                                                </div>
-                                                <div class="username">
-                                                    emmasmith_2002
-                                                </div>
-                                            </div>
-                                            <div class="social-item">
-                                                <div class="platform">
-                                                    Telegram:
-                                                </div>
-                                                <div class="username">
-                                                    emma_smith2002
-                                                </div>
-                                            </div>
+                                            {% endfor %}
                                         </div>
                                     </div>
                                     <div class="language-section">
@@ -100,18 +74,11 @@
                                             Language:
                                         </div>
                                         <div class="language-list">
-                                            <div class="language-item">
-                                                English
-                                            </div>
-                                            <div class="language-item">
-                                                French
-                                            </div>
-                                            <div class="language-item">
-                                                Spanish
-                                            </div>
-                                            <div class="language-item">
-                                                persian
-                                            </div>
+                                            {% for language in languages %}
+                                                <div class="language-item">
+                                                    {{ language }}
+                                                </div>
+                                            {% endfor %}
                                         </div>
                                     </div>
                                 </div>
@@ -123,47 +90,49 @@
                             <div class="header-section">
                                 <div class="name-title">
                                     <div class="name">
-                                        <span class="first-name">Emma</span>
-                                        <span class="last-name">Smith</span>
+                                        <span class="first-name">
+                                            {{ user.first_name }}
+                                        </span>
+                                        <span class="last-name">
+                                            {{ user.last_name }}
+                                        </span>
                                     </div>
-                                    <div class="job-title">
-                                        Web & grapich designer
-                                    </div>
+                                    <div class="job-title">{{ headline }}</div>
                                 </div>
                                 <div class="update-date">
-                                    Update : 12/06/2023
+                                    Update : {{ now|date:"j/n/Y" }}
                                 </div>
                             </div>
                             <div class="divider"></div>
                             <div class="contact-info">
                                 <div class="contact-item">
                                     <img
-                                        src="../../../static/img/icon/Call.svg"
+                                        src="{% static 'img/icon/Call.svg' %}"
                                         class="contact-icon"
                                         alt="Phone icon"
                                     />
                                     <div class="contact-text">
-                                        (123) 456-7890
+                                        {{ phone }}
                                     </div>
                                 </div>
                                 <div class="contact-item">
                                     <img
-                                        src="../../../static/img/icon/email.svg"
+                                        src="{% static 'img/icon/email.svg' %}"
                                         class="contact-icon"
                                         alt="Email icon"
                                     />
                                     <div class="contact-text">
-                                        emma.smith@gmail.com
+                                        {{ email }}
                                     </div>
                                 </div>
                                 <div class="contact-item">
                                     <img
-                                        src="../../../static/img/icon/Building office.svg"
+                                        src="{% static 'img/icon/Building office.svg' %}"
                                         class="contact-icon"
                                         alt="Location icon"
                                     />
                                     <div class="contact-text">
-                                        Vancouver, BC
+                                        {{ city }}
                                     </div>
                                 </div>
                             </div>
@@ -175,7 +144,7 @@
                                                 class="section-title-container"
                                             >
                                                 <img
-                                                    src="../../../static/img/icon/cv/Chat profile.svg"
+                                                    src="{% static 'img/icon/cv/Chat profile.svg' %}"
                                                     alt="About"
                                                     class="section-icon"
                                                 />
@@ -193,282 +162,249 @@
                                                 >
                                                     <div
                                                         class="section-description"
-                                                    >
-                                                        Lorem ipsum dolor sit
-                                                        amet consectetur
-                                                        adipisicing elit. Ea,
-                                                        eius atque neque
-                                                        cupiditate iste quo quae
-                                                        odit quis voluptates
-                                                        dolore possimus
-                                                        laudantium, eum
-                                                        sapiente! Quam quasi
-                                                        quia minus animi
-                                                        commodi.
-                                                    </div>
+                                                    >{{ about_me }}</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="../../../static/img/icon/cv/Work 1.svg"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Work Experience:
+                                    {% if work_experiences %}
+                                        <div class="body-section">
+                                            <div class="body-items">
+                                                <div
+                                                    class="section-title-container"
+                                                >
+                                                    <img
+                                                        src="{% static 'img/icon/cv/Work 1.svg' %}"
+                                                        alt="About"
+                                                        class="section-icon"
+                                                    />
+                                                    <div class="section-title">
+                                                        Work Experience:
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="section-items">
-                                                <div class="section-item">
-                                                    <div
-                                                        class="section-heading"
-                                                    >
-                                                        <div
-                                                            class="section-header"
-                                                        >
+                                                <div class="section-items">
+                                                    {% for experience in work_experiences %}
+                                                        <div class="section-item">
                                                             <div
-                                                                class="section-header-title"
+                                                                class="section-heading"
                                                             >
-                                                                Project
-                                                                Coordinator
+                                                                <div
+                                                                    class="section-header"
+                                                                >
+                                                                    <div
+                                                                        class="section-header-title"
+                                                                    >
+                                                                        {{ experience.title }}
+                                                                    </div>
+                                                                    <div
+                                                                        class="section-item-metadata"
+                                                                    >
+                                                                        {{ experience.duration }}
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="section-subheading"
+                                                                >
+                                                                    {{ experience.city }}
+                                                                </div>
                                                             </div>
                                                             <div
-                                                                class="section-item-metadata"
-                                                            >
-                                                                June 2018 -
-                                                                Present
-                                                            </div>
+                                                                class="section-description"
+                                                            >{{ experience.description }}</div>
                                                         </div>
-                                                        <div
-                                                            class="section-subheading"
-                                                        >
-                                                            XYZ Cooperation,
-                                                            Vancouver, BC
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        class="section-description"
-                                                    >
-                                                        Lorem ipsum dolor sit
-                                                        amet, consectetur
-                                                        adipisicing elit.
-                                                        Incidunt nostrum
-                                                        praesentium, rem eum
-                                                        optio ipsam laboriosam!
-                                                        Inventore omnis velit,
-                                                        iusto dignissimos cum
-                                                        architecto aspernatur
-                                                        possimus molestiae, quae
-                                                        totam dolor at?
-                                                    </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="../../../static/img/icon/cv/board.svg"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Certifications:
+                                    {% endif %}
+                                    {% if certifications %}
+                                        <div class="body-section">
+                                            <div class="body-items">
+                                                <div
+                                                    class="section-title-container"
+                                                >
+                                                    <img
+                                                        src="{% static 'img/icon/cv/board.svg' %}"
+                                                        alt="About"
+                                                        class="section-icon"
+                                                    />
+                                                    <div class="section-title">
+                                                        Certifications:
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="section-list">
-                                                <div class="section-list-item">
-                                                    <span class="item-title">
-                                                        2019
-                                                    </span>
-                                                    <span
-                                                        class="item-description"
-                                                    >
-                                                        Project Management
-                                                        Professionaldiv
-                                                    </span>
+                                                <div class="section-list">
+                                                    <div class="section-list-item">
+                                                        {% for certification in certifications.externals %}
+                                                            <span class="item-title">
+                                                                {{ certification.date }}
+                                                            </span>
+                                                            <span
+                                                                class="item-description"
+                                                            >
+                                                                {{ certification.title }}
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
                                                 </div>
+                                                {% if certifications.cpjs.exists %}
+                                                    <div class="cpj-label">
+                                                        by
+                                                        <span class="cpj-bold">
+                                                            CPJ
+                                                        </span>
+                                                        :
+                                                    </div>
+                                                    <div class="section-list">
+                                                        {% for certification in certifications %}
+                                                            <div class="section-list-item">
+                                                                <span class="item-title">
+                                                                    {{ certification.date }}
+                                                                </span>
+                                                                <span
+                                                                    class="item-description"
+                                                                >
+                                                                    {{ certification.title }}
+                                                                </span>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
                                             </div>
-                                            <div class="cpj-label">
-                                                by
-                                                <span class="cpj-bold">
-                                                    CPJ
-                                                </span>
-                                                :
-                                            </div>
-                                            <div class="section-list">
-                                                <div class="section-list-item">
-                                                    <span class="item-title">
-                                                        2019
-                                                    </span>
-                                                    <span
-                                                        class="item-description"
-                                                    >
-                                                        Project Management
-                                                        Professional
-                                                    </span>
+                                        </div>
+                                    {% endif %}
+                                    {% if volunteer_experiences %}
+                                        <div class="body-section">
+                                            <div class="body-items">
+                                                <div
+                                                    class="section-title-container"
+                                                >
+                                                    <img
+                                                        src="{% static 'img/icon/cv/Medal.svg' %}"
+                                                        alt="About"
+                                                        class="section-icon"
+                                                    />
+                                                    <div class="section-title">
+                                                        Volunteer Experience:
+                                                    </div>
+                                                </div>
+                                                <div class="section-items">
+                                                    {% for volunteer_experience in volunteer_experiences %}
+                                                        <div class="section-item">
+                                                            <div
+                                                                class="section-heading"
+                                                            >
+                                                                <div
+                                                                    class="section-header"
+                                                                >
+                                                                    <div
+                                                                        class="section-header-title"
+                                                                    >
+                                                                        {{ volunteer_experience.title }}
+                                                                    </div>
+                                                                    <div
+                                                                        class="section-item-metadata"
+                                                                    >
+                                                                        {{ volunteer_experience.duration }}
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="section-subheading"
+                                                                >
+                                                                    {{ volunteer_experience.city }}
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                class="section-description"
+                                                            >
+                                                                {{ volunteer_experience.description }}
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="../../../static/img/icon/cv/Medal.svg"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Volunteer Experience:
+                                    {% endif %}
+                                    {% if educations %}
+                                        <div class="body-section">
+                                            <div class="body-items">
+                                                <div
+                                                    class="section-title-container"
+                                                >
+                                                    <img
+                                                        src="{% static 'img/icon/cv/Graduated.svg' %}"
+                                                        alt="About"
+                                                        class="section-icon"
+                                                    />
+                                                    <div class="section-title">
+                                                        Educations:
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="section-items">
-                                                <div class="section-item">
-                                                    <div
-                                                        class="section-heading"
-                                                    >
-                                                        <div
-                                                            class="section-header"
-                                                        >
+                                                <div class="section-items">
+                                                    {% for education in educations %}
+                                                        <div class="section-item">
                                                             <div
-                                                                class="section-header-title"
+                                                                class="section-heading"
                                                             >
-                                                                Volunteer
-                                                                Coordinator
+                                                                <div
+                                                                    class="section-header"
+                                                                >
+                                                                    <div
+                                                                        class="section-header-title"
+                                                                    >
+                                                                        {{ education.title }}
+                                                                    </div>
+                                                                    <div
+                                                                        class="section-item-metadata"
+                                                                    >
+                                                                        {{ education.duration }}
+                                                                    </div>
+                                                                </div>
+                                                                <div
+                                                                    class="section-subheading"
+                                                                >
+                                                                    {{ education.university }}
+                                                                </div>
                                                             </div>
                                                             <div
-                                                                class="section-item-metadata"
+                                                                class="section-description"
                                                             >
-                                                                September 2015 -
-                                                                December 2017
+                                                                {{ education.description }}
                                                             </div>
                                                         </div>
-                                                        <div
-                                                            class="section-subheading"
-                                                        >
-                                                            Local Food Bank,
-                                                            Vancouver, BC
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        class="section-description"
-                                                    >
-                                                        Lorem ipsum dolor, sit
-                                                        amet consectetur
-                                                        adipisicing elit. Quam
-                                                        est earum laudantium,
-                                                        rerum ut quia
-                                                        dignissimos ducimus
-                                                        maxime labore. Iure, est
-                                                        ab? Fuga quia nam
-                                                        ducimus recusandae
-                                                        obcaecati ipsam
-                                                        reiciendis!
-                                                    </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="../../../static/img/icon/cv/Graduated.svg"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Educations:
+                                    {% endif %}
+                                    {% if additional_sections %}
+                                        <div class="body-section">
+                                            <div class="body-items">
+                                                <div
+                                                    class="section-title-container"
+                                                >
+                                                    <img
+                                                        src="{% static 'img/icon/cv/Medal.svg' %}"
+                                                        alt="About"
+                                                        class="section-icon"
+                                                    />
+                                                    <div class="section-title">
+                                                        Additional Sections:
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div class="section-items">
-                                                <div class="section-item">
-                                                    <div
-                                                        class="section-heading"
-                                                    >
-                                                        <div
-                                                            class="section-header"
-                                                        >
-                                                            <div
-                                                                class="section-header-title"
-                                                            >
-                                                                Bachelor of Arts
-                                                                in Business
-                                                                Administration
-                                                            </div>
-                                                            <div
-                                                                class="section-item-metadata"
-                                                            >
-                                                                May 2015
-                                                            </div>
+                                                <div class="section-list">
+                                                    {% for additional_section in additional_sections %}
+                                                        <div class="section-list-item">
+                                                            <span
+                                                                class="section-description"
+                                                                >
+                                                                {{ additional_section.title }}: {{ additional_section.description }}
+                                                            </span>
                                                         </div>
-                                                        <div
-                                                            class="section-subheading"
-                                                        >
-                                                            University of
-                                                            British Columbia,
-                                                            Vancouver, BC
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        class="section-description"
-                                                    >
-                                                        Lorem ipsum dolor sit
-                                                        amet consectetur,
-                                                        adipisicing elit. Fugit
-                                                        quos, inventore et eum
-                                                        itaque debitis vero qui
-                                                        iste non harum repellat,
-                                                        maiores reprehenderit
-                                                        ipsum quidem nihil
-                                                        fugiat cupiditate
-                                                        obcaecati quis.
-                                                    </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="../../../static/img/icon/cv/Medal.svg"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Additional Sections:
-                                                </div>
-                                            </div>
-                                            <div class="section-list">
-                                                <div class="section-list-item">
-                                                    <span
-                                                        class="section-description"
-                                                        >Professional
-                                                        Affiliations:
-                                                        Memberships in relevant
-                                                        organizations</span
-                                                    >
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -480,7 +416,7 @@
                     <div class="reference-text">refrenced by :</div>
                     <div class="company-reference">
                         <img
-                            src="../../../static/img/logo/cpj-logo-28x29.svg"
+                            src="{% static 'img/logo/cpj-logo-28x29.svg' %}"
                             class="reference-logo"
                             alt="CPJ company logo"
                         />
@@ -488,8 +424,10 @@
                     </div>
                 </div>
                 <div class="footer-contact">
-                    <div class="contact-label">Contact us :</div>
-                    <div class="contact-email">info@cpj.ai</div>
+                    <div class="contact-label">Contact Us:</div>
+                    <div class="contact-email">
+                        {{ contact_us_email|default:"info@cpj.ai" }}
+                    </div>
                 </div>
             </footer>
         </div>
