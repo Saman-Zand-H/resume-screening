@@ -1,5 +1,6 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.forms import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from .eav_validator import ValidatorRegistry
@@ -22,11 +23,14 @@ class EavAttribute(models.Model):
         return self.title
 
     def get_validator_instances(self):
-        validator_instances = [
-            ValidatorRegistry.get_validator(validator_slug).initialize_from_kwargs(**self.validator_kwargs)
-            for validator_slug in self.validators
-            if ValidatorRegistry.get_validator(validator_slug)
-        ]
+        try:
+            validator_instances = [
+                ValidatorRegistry.get_validator(validator_slug).initialize_from_kwargs(**self.validator_kwargs)
+                for validator_slug in self.validators
+                if ValidatorRegistry.get_validator(validator_slug)
+            ]
+        except ValidationError as e:
+            raise ValidationError({EavAttribute.validator_kwargs.field.name: next(iter(e.messages))}) from e
 
         if len(validator_instances) != len(self.validators):
             missing_validators = set(self.validators) - {v.slug for v in validator_instances}
@@ -38,6 +42,9 @@ class EavAttribute(models.Model):
         abstract = True
         verbose_name = _("Eav Attribute")
         verbose_name_plural = _("Eav Attributes")
+
+    def clean(self):
+        self.get_validator_instances()
 
 
 class EavValue(models.Model):

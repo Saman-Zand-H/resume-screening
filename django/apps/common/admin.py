@@ -11,6 +11,7 @@ from .models import (
     SkillTopic,
     University,
 )
+from .utils import get_file_models
 
 
 @admin.register(Industry)
@@ -76,3 +77,7 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
         LanguageProficiencySkill.slug.field.name,
     )
     search_fields = list_display
+
+
+for model in get_file_models():
+    admin.site.register(model)

@@ -89,15 +89,18 @@ class RangeValidator(ValidatorBase):
         self.max_value = max_value
 
     def validate_kwargs(self, **kwargs):
-        if not all((min_value := kwargs.get("min_value"), max_value := kwargs.get("max_value"))):
+        min_value = kwargs.get("min_value")
+        max_value = kwargs.get("max_value")
+
+        if not all((v is not None for v in (min_value, max_value))):
             raise ValidationError(_("min_value and max_value are required"))
 
-        if not all(map(lambda x: str(x).isnumeric, (min_value, max_value))):
+        if not all(map(lambda x: str(x).isdigit, (min_value, max_value))):
             raise ValidationError(_("min_value and max_value must be integers"))
 
     def validate(self, value):
         try:
-            if not (self.min_value <= int(value) <= self.max_value):
+            if not (self.min_value <= float(value) <= self.max_value):
                 raise ValidationError(_("Value is not in range: %s - %s") % (self.min_value, self.max_value))
         except ValueError:
             raise ValidationError(_("Value must be an integer"))

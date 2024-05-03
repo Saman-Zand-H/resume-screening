@@ -26,7 +26,7 @@ class Command(BaseCommand):
                     for job_title, required in jobs.items():
                         job = Job.objects.filter(title=job_title).first()
                         if not job:
-                            print(f"Job not found: {job_title}")
+                            self.stdout.write(self.style.WARNING(f"Job not found: {job_title}"))
                             continue
                         JobAssessmentJob.objects.update_or_create(
                             job=job,

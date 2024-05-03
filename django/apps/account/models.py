@@ -1,12 +1,14 @@
 import base64
 import contextlib
 import uuid
+from typing import Optional
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
 from common.models import (
     Field,
+    FileModel,
     Job,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
@@ -17,10 +19,10 @@ from common.utils import get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
+    IMAGE_FILE_EXTENSION_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
-from flex_blob.models import FileModel
 from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
@@ -31,7 +33,8 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 from .utils import extract_resume_text
@@ -187,14 +190,73 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class AvatarFile(FileModel):
-    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="uploaded_avatar")
+class UserFile(FileModel):
+    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
+
+    class Meta:
+        abstract = True
+
+    def check_auth(self, request):
+        return request.user == self.uploaded_by
+
+    @classmethod
+    def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:
+        return cls.objects.filter(
+            uploaded_by=user, **{field.field.related_query_name(): None for field in cls.get_related_fields()}
+        ).first()
+
+    @classmethod
+    def is_used(cls, user: User) -> bool:
+        return (
+            cls.objects.filter(uploaded_by=user)
+            .exclude(**{field.field.related_query_name(): None for field in cls.get_related_fields()})
+            .exists()
+        )
+
+    @classmethod
+    @transaction.atomic
+    def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
+        obj = cls.objects.filter(uploaded_by=user).first()
+        if obj:
+            obj.update_temporary_file(file)
+        else:
+            obj = cls(uploaded_by=user, file=file)
+            obj.full_clean()
+            obj.save()
+        return obj
+
+    def update_temporary_file(self, file: InMemoryUploadedFile):
+        self.file = file
+        self.full_clean()
+        self.save()
+        return self
+
+
+class UserUploadedDocumentFile(UserFile):
+    class Meta:
+        abstract = True
+
+    def get_validators(self):
+        return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
+
+
+class UserUploadedImageFile(UserFile):
+    class Meta:
+        abstract = True
+
+    def get_validators(self):
+        return [IMAGE_FILE_EXTENSION_VALIDATOR, IMAGE_FILE_SIZE_VALIDATOR]
+
+
+class AvatarFile(UserUploadedImageFile):
+    SLUG = "avatar"
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
 
-    def check_auth(self, request=None):
-        return True
+    class Meta:
+        verbose_name = _("Avatar Image")
+        verbose_name_plural = _("Avatar Images")
 
 
 class Profile(ComputedFieldsModel):
@@ -247,19 +309,12 @@ class Profile(ComputedFieldsModel):
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
-    avatar2 = models.ForeignKey(
+    avatar = models.ForeignKey(
         AvatarFile,
         on_delete=models.CASCADE,
         related_name="profile",
         null=True,
         blank=True,
-    )
-    avatar = models.ImageField(
-        upload_to=avatar_path,
-        validators=[IMAGE_FILE_SIZE_VALIDATOR],
-        null=True,
-        blank=True,
-        verbose_name=_("Avatar"),
     )
     full_body_image = models.ImageField(
         upload_to=full_body_image_path,
@@ -312,7 +367,7 @@ class Profile(ComputedFieldsModel):
     )
 
     @computed(
-        models.JSONField(verbose_name=_("Scores")),
+        models.JSONField(verbose_name=_("Scores"), default=dict),
         depends=[
             ("self", ["city", "fluent_languages", "native_language"]),
             ("user", ["first_name", "last_name", "email", "gender", "birth_date"]),
@@ -334,6 +389,7 @@ class Profile(ComputedFieldsModel):
         from .scores import UserScorePack
 
         scores = UserScorePack.calculate(self.user)
+
         return {
             "total": sum(scores.values()),
             "scores": scores,
@@ -355,6 +411,13 @@ class Profile(ComputedFieldsModel):
     def score(self):
         return self.scores.get("total", 0)
 
+    @property
+    def completion_percentage(self):
+        related_scores = self.get_completion_related_scores()
+        scores = self.scores.get("scores", {})
+        completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
+        return (completed_scores / len(related_scores)) * 100
+
     class Meta:
         verbose_name = _("User Profile")
         verbose_name_plural = _("User Profiles")
@@ -372,6 +435,31 @@ class Profile(ComputedFieldsModel):
             Profile.eye_color.field.name,
             Profile.full_body_image.field.name,
         )
+
+    @staticmethod
+    def get_completion_related_scores():
+        from . import scores
+
+        return [
+            scores.FirstNameScore,
+            scores.LastNameScore,
+            scores.GenderScore,
+            scores.DateOfBirthScore,
+            scores.EmailScore,
+            scores.CityScore,
+            scores.MobileScore,
+            scores.EducationNewScore,
+            scores.EducationVerificationScore,
+            scores.WorkExperienceNewScore,
+            scores.WorkExperienceVerificationScore,
+            scores.LanguageScore,
+            scores.FluentLanguageScore,
+            scores.NativeLanguageScore,
+            scores.CertificationScore,
+            scores.SkillScore,
+            scores.VisaStatusScore,
+            scores.JobInterestScore,
+        ]
 
     @property
     def has_appearance_related_data(self):
@@ -568,6 +656,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
         IQAS = "iqas", _("International Qualifications Assessment Service")
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
+        OTHER = "other", _("Other")
 
     education_evaluation_document = models.FileField(
         upload_to=education_evaluation_document_path,
@@ -757,7 +846,7 @@ class LanguageCertificateValue(EavValue):
         try:
             super().clean()
         except ValidationError as e:
-            raise ValidationError({self.skill.slug: e.error_list[0].message})
+            raise ValidationError({LanguageCertificateValue.value.field.name: e.error_list[0].message})
 
 
 class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAbstract):
@@ -885,6 +974,10 @@ class CanadaVisa(models.Model):
         verbose_name=_("Citizenship Document"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
+
+    class Meta:
+        verbose_name = _("Canada Visa")
+        verbose_name_plural = _("Canada Visas")
 
 
 class Resume(models.Model):

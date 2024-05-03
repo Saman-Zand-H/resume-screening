@@ -1,6 +1,10 @@
+from typing import Optional
+
+from flex_blob.models import FileModel as BaseFileModel
 from flex_eav.models import EavAttribute
 
 from django.contrib.postgres.fields import ArrayField
+from django.core import checks
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -137,3 +141,44 @@ class LanguageProficiencySkill(EavAttribute):
     class Meta:
         verbose_name = _("Language Proficiency Skill")
         verbose_name_plural = _("Language Proficiency Skills")
+
+
+class FileModel(BaseFileModel):
+    SLUG = None
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def check(cls, **kwargs):
+        from .utils import get_file_models
+
+        errors = super().check(**kwargs)
+        if not cls.SLUG:
+            errors.append(checks.Error("SLUG must be set", obj=cls))
+        else:
+            for model in get_file_models():
+                if cls is model:
+                    continue
+                if cls.SLUG == model.SLUG:
+                    errors.append(
+                        checks.Error(
+                            f"SLUG '{cls.SLUG}' is already used in {model._meta.label}",
+                            obj=cls,
+                        )
+                    )
+        return errors
+
+    @classmethod
+    def get_related_fields(cls):
+        return [field for field in cls._meta.get_fields() if isinstance(field, models.ForeignObjectRel)]
+
+    @classmethod
+    def get_user_temporary_file(cls, *args, **kwargs) -> Optional["FileModel"]:
+        return None
+
+    @classmethod
+    def is_used(cls, *args, **kwargs) -> bool:
+        return cls.objects.exclude(
+            **{field.field.related_query_name(): None for field in cls.get_related_fields()}
+        ).exists()

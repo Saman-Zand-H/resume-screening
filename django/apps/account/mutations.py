@@ -2,7 +2,7 @@ import contextlib
 
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
-from common.mixins import ArrayChoiceTypeMixin
+from common.mixins import ArrayChoiceTypeMixin, FilePermissionMixin
 from common.models import Job
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -196,7 +196,7 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 )
 
 
-class UserUpdateMutation(ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
+class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
         model = Profile
         login_required = True
@@ -254,9 +254,6 @@ class UserUpdateMutation(ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, Djang
                 if not (hasattr(user, "profile") and user.profile.has_appearance_related_data):
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
-
-        if fluent_languages := input.get(Profile.fluent_languages.field.name):
-            input[Profile.fluent_languages.field.name] = [lang.lower() for lang in fluent_languages]
 
         return super().validate(*args, **kwargs)
 
