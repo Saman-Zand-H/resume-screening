@@ -1,4 +1,6 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
+RUN pip install gunicorn uvicorn
+
 ENTRYPOINT ["sh", "entrypoint.sh"]
