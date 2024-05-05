@@ -1,14 +1,43 @@
+from datetime import date, datetime
+
 import graphene
 import graphene_django
+from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from graphene_django_cud.mutations.core import DjangoCudBaseOptions
 
-from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.fields.related import RelatedField
 from django.forms import ValidationError
+from django.utils.functional import cached_property
 
 from .models import FileModel
 from .utils import get_file_models
+
+
+class HasDurationMixin:
+    start_date_field: str = "start"
+    end_date_field: str = "end"
+    output_format: str = "%b %Y"
+
+    def get_start_date(self) -> datetime | date:
+        return getattr(self, self.start_date_field, None)
+
+    def get_end_date(self) -> datetime | date:
+        return getattr(self, self.end_date_field, None)
+
+    def get_output_format(self) -> str:
+        return self.output_format
+
+    @cached_property
+    def duration(self):
+        start_date = self.get_start_date()
+        end_date = self.get_end_date()
+        output_format = self.get_output_format()
+
+        start_str = start_date.strftime(output_format) if start_date else ""
+        end_str = end_date.strftime(output_format) if end_date else ""
+
+        return f"{start_str} - {end_str}" if start_str and end_str else start_str or end_str
 
 
 class ArrayChoiceTypeMixin:
@@ -95,4 +124,5 @@ class FilePermissionMixin:
 
     @classmethod
     def is_django_cud_mutation(cls):
+        return isinstance(cls._meta, DjangoCudBaseOptions)
         return isinstance(cls._meta, DjangoCudBaseOptions)

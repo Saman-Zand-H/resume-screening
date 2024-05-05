@@ -6,6 +6,7 @@ from typing import Optional
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
+from common.mixins import HasDurationMixin
 from common.models import (
     Field,
     FileModel,
@@ -29,14 +30,15 @@ from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
 
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.models import UserManager as BaseUserManager
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from .managers import CertificateAndLicenseManager, UserManager
 from .utils import extract_resume_text
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
@@ -109,16 +111,6 @@ def generate_unique_referral_code():
 
 def generate_ticket_id():
     return str(uuid.uuid4())[:8]
-
-
-class UserManager(BaseUserManager):
-    def create_user(self, **kwargs):
-        kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
-        return super().create_user(**kwargs)
-
-    def create_superuser(self, **kwargs):
-        kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
-        return super().create_superuser(**kwargs)
 
 
 class User(AbstractUser):
@@ -605,7 +597,7 @@ class DocumentVerificationMethodAbstract(models.Model):
             raise ValidationError(f"{document._meta.verbose_name} already has a verification method")
 
 
-class Education(DocumentAbstract):
+class Education(DocumentAbstract, HasDurationMixin):
     class Degree(models.TextChoices):
         BACHELORS = "bachelors", _("Bachelors")
         MASTERS = "masters", _("Masters")
@@ -624,6 +616,10 @@ class Education(DocumentAbstract):
     class Meta:
         verbose_name = _("Education")
         verbose_name_plural = _("Educations")
+
+    @cached_property
+    def title(self):
+        return f"{self.get_degree_display()} in {self.field.name}"
 
     @classmethod
     def get_verification_abstract_model(cls):
@@ -690,7 +686,7 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         verbose_name_plural = _("Communication Methods")
 
 
-class WorkExperience(DocumentAbstract):
+class WorkExperience(DocumentAbstract, HasDurationMixin):
     class Grade(models.TextChoices):
         INTERN = "intern", _("Intern")
         ASSOCIATE = "associate", _("Associate")
@@ -882,11 +878,16 @@ class OnlineMethod(LanguageCertificateVerificationMethodAbstract):
         verbose_name_plural = _("Online Methods")
 
 
-class CertificateAndLicense(DocumentAbstract):
+class CertificateAndLicense(DocumentAbstract, HasDurationMixin):
+    start_date_field = "issued_at"
+    end_date_field = "expired_at"
+
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
+
+    objects = CertificateAndLicenseManager()
 
     class Meta:
         verbose_name = _("Certificate And License")
