@@ -989,6 +989,7 @@ class Resume(models.Model):
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
     text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True, editable=False)
+    resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict, editable=False)
 
     class Meta:
         verbose_name = _("Resume")
@@ -1074,3 +1075,22 @@ class SupportTicket(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class UserTask(models.Model):
+    class TaskStatus(models.TextChoices):
+        SCHEDULED = "scheduled", _("Scheduled")
+        IN_PROGRESS = "in_progress", _("In Progress")
+        COMPLETED = "completed", _("Completed")
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
+    task_name = models.CharField(max_length=255)
+    status = models.CharField(max_length=50, choices=TaskStatus.choices, default=TaskStatus.COMPLETED)
+
+    def __str__(self):
+        return f"{self.user} - {self.task_name}"
+
+    class Meta:
+        verbose_name = _("User Task")
+        verbose_name_plural = _("User Tasks")
+        unique_together = [("user", "task_name")]

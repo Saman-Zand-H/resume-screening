@@ -1,10 +1,10 @@
 import json
 from collections import namedtuple
 
+from account.models import Resume, User
 from config.settings.subscriptions import AccountSubscription
 from flex_pubsub.tasks import register_task
 
-from account.models import Resume, User
 from django.contrib.auth import get_user_model
 
 from .utils import extract_available_jobs, extract_or_create_skills
@@ -13,7 +13,7 @@ from .utils import extract_available_jobs, extract_or_create_skills
 def find_available_jobs(resume_pk: int) -> bool:
     resume = Resume.objects.get(pk=resume_pk)
     resume_text = resume.get_or_set_resume_text()
-    jobs = extract_available_jobs(resume_text)
+    jobs = extract_available_jobs(resume_text, resume.user)
     if jobs:
         resume.user.available_jobs.set(jobs)
         return True
@@ -22,7 +22,7 @@ def find_available_jobs(resume_pk: int) -> bool:
 
 def set_user_skills(user_pk: int) -> bool:
     user = User.objects.get(pk=user_pk)
-    extracted_skills = extract_or_create_skills(user.raw_skills)
+    extracted_skills = extract_or_create_skills(user.raw_skills, user)
     if not extracted_skills:
         return False
     existing_skills = extracted_skills[0]
