@@ -124,21 +124,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DB_DEFAULT = {
-    "ENGINE": "django.db.backends.postgresql",
-    "HOST": os.environ.get("DB_HOST", "localhost"),
-    "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
-    "USER": os.environ.get("DB_USER", "job_seekers_api"),
-    "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
-    "PORT": os.environ.get("DB_PORT", 5432),
-}
-
-if os.environ.get("DB_URL"):
-    with contextlib.suppress(ImproperlyConfigured):
-        DB_DEFAULT = env.db("DB_URL")
-
 DATABASES = {
-    "default": DB_DEFAULT,
+    "default": env.db("DB_URL", "postgres://job_seekers_api:job_seekers_api@127.0.0.1:5432/job_seekers_api"),
 }
 
 
