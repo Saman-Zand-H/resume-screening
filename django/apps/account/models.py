@@ -1094,7 +1094,7 @@ class Resume(models.Model):
         return self.user.email
 
     def set_resume_text(self):
-        self.text = extract_resume_text(self.file.read())
+        self.text = extract_resume_text(self.file.file)
         self.save(update_fields=[Resume.text.field.name])
         return self.text
 
