@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CVTemplate
+from .models import CVTemplate, GeneratedCV
 
 
 @admin.register(CVTemplate)
@@ -10,4 +10,13 @@ class CVTemplateAdmin(admin.ModelAdmin):
     search_fields = (
         CVTemplate.title.field.name,
         CVTemplate.path.field.name,
+    )
+
+
+@admin.register(GeneratedCV)
+class GeneratedCVAdmin(admin.ModelAdmin):
+    list_display = (GeneratedCV.user.field.name, GeneratedCV.file.field.name)
+    search_fields = (
+        GeneratedCV.user.field.name,
+        GeneratedCV.file.field.name,
     )
