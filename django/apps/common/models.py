@@ -1,3 +1,5 @@
+from typing import Optional
+
 from flex_blob.models import FileModel as BaseFileModel
 from flex_eav.models import EavAttribute
 
@@ -170,3 +172,13 @@ class FileModel(BaseFileModel):
     @classmethod
     def get_related_fields(cls):
         return [field for field in cls._meta.get_fields() if isinstance(field, models.ForeignObjectRel)]
+
+    @classmethod
+    def get_user_temporary_file(cls, *args, **kwargs) -> Optional["FileModel"]:
+        return None
+
+    @classmethod
+    def is_used(cls, *args, **kwargs) -> bool:
+        return cls.objects.exclude(
+            **{field.field.related_query_name(): None for field in cls.get_related_fields()}
+        ).exists()

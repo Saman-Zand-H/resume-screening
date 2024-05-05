@@ -34,7 +34,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 from .utils import extract_resume_text
@@ -200,16 +200,29 @@ class UserFile(FileModel):
         return request.user == self.uploaded_by
 
     @classmethod
-    def get_user_temprorary_file(cls, user: User) -> Optional["UserFile"]:
+    def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:
         return cls.objects.filter(
             uploaded_by=user, **{field.field.related_query_name(): None for field in cls.get_related_fields()}
         ).first()
 
     @classmethod
+    def is_used(cls, user: User) -> bool:
+        return (
+            cls.objects.filter(uploaded_by=user)
+            .exclude(**{field.field.related_query_name(): None for field in cls.get_related_fields()})
+            .exists()
+        )
+
+    @classmethod
+    @transaction.atomic
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
-        obj = cls(file=file, uploaded_by=user)
-        obj.full_clean()
-        obj.save()
+        obj = cls.objects.filter(uploaded_by=user).first()
+        if obj:
+            obj.update_temporary_file(file)
+        else:
+            obj = cls(uploaded_by=user, file=file)
+            obj.full_clean()
+            obj.save()
         return obj
 
     def update_temporary_file(self, file: InMemoryUploadedFile):
@@ -667,6 +680,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
         IQAS = "iqas", _("International Qualifications Assessment Service")
         ICAS = "icas", _("International Credential Assessment Service of Canada")
         CES = "ces", _("Comparative Education Service")
+        OTHER = "other", _("Other")
 
     education_evaluation_document = models.OneToOneField(
         EducationEvaluationDocumentFile,
@@ -893,7 +907,7 @@ class LanguageCertificateValue(EavValue):
         try:
             super().clean()
         except ValidationError as e:
-            raise ValidationError({self.skill.slug: e.error_list[0].message})
+            raise ValidationError({LanguageCertificateValue.value.field.name: e.error_list[0].message})
 
 
 class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAbstract):

@@ -1,7 +1,10 @@
 import os
 
 import weasyprint
+from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
+from flex_blob.models import FileModel
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.template.loader import TemplateDoesNotExist, get_template
@@ -42,3 +45,31 @@ class CVTemplate(models.Model):
     class Meta:
         verbose_name = _("CV Template")
         verbose_name_plural = _("CV Templates")
+
+
+class CVFile(FileModel):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cv",
+        verbose_name=_("User"),
+    )
+
+    def __str__(self):
+        return f"{self.user}: {self.file.name}"
+
+    def get_upload_path(self, filename):
+        return f"{self.user.pk}/cv/{filename}"
+
+    def get_validators(self):
+        return [
+            FileExtensionValidator(["pdf"]),
+            DOCUMENT_FILE_SIZE_VALIDATOR,
+        ]
+
+    def check_auth(self, request):
+        return True
+
+    class Meta:
+        verbose_name = _("CV File")
+        verbose_name_plural = _("CV Files")

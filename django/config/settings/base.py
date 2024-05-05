@@ -95,6 +95,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "account.middlewares.AuthMiddleware",
 ]
 
 
@@ -123,21 +124,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DB_DEFAULT = {
-    "ENGINE": "django.db.backends.postgresql",
-    "HOST": os.environ.get("DB_HOST", "localhost"),
-    "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
-    "USER": os.environ.get("DB_USER", "job_seekers_api"),
-    "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
-    "PORT": os.environ.get("DB_PORT", 5432),
-}
-
-if os.environ.get("DB_URL"):
-    with contextlib.suppress(ImproperlyConfigured):
-        DB_DEFAULT = env.db("DB_URL")
-
 DATABASES = {
-    "default": DB_DEFAULT,
+    "default": env.db("DB_URL", "postgres://job_seekers_api:job_seekers_api@127.0.0.1:5432/job_seekers_api"),
 }
 
 
@@ -207,8 +195,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "auth_account.User"
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
     "graphql_auth.backends.GraphQLAuthBackend",
+    "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
@@ -306,12 +294,14 @@ CRITERIA_SETTINGS = {
 PUBSUB_SETTINGS = {
     "GOOGLE_CREDENTIALS": GOOGLE_APPLICATION_CREDENTIALS,
     "GOOGLE_PROJECT_ID": GOOGLE_CLOUD_PROJECT,
-    "TOPIC_NAME": os.environ.get("PUBSUB_TOPIC_NAME"),
-    "SUBSCRIPTIONS": os.environ.get("PUBSUB_SUBSCRIPTIONS"),
-    "LISTENER_PORT": int(p) if (p := os.environ.get("PUBSUB_LISTENER_PORT")) else None,
-    "BACKEND_CLASS": os.environ.get("PUBSUB_BACKEND_CLASS"),
-    "SCHEDULER_BACKEND_CLASS": os.environ.get("PUBSUB_SCHEDULER_BACKEND_CLASS"),
+    "TOPIC_NAME": os.environ.get("GOOGLE_PUBSUB_TOPIC_NAME"),
+    "SUBSCRIPTIONS": os.environ.get("GOOGLE_PUBSUB_SUBSCRIPTIONS"),
+    "LISTENER_PORT": int(p) if (p := os.environ.get("GOOGLE_PUBSUB_LISTENER_PORT")) else None,
+    "BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_BACKEND_CLASS"),
+    "SCHEDULER_BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_SCHEDULER_BACKEND_CLASS"),
 }
 
 
 SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None

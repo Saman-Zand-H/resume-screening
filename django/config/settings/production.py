@@ -40,7 +40,7 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": f"{os.environ.get("REDIS_URL", "redis://localhost:6379")}",
+        "LOCATION": f"{os.environ.get('REDIS_URL', 'redis://localhost:6379')}",
     }
 }
 

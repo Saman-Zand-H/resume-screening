@@ -6,4 +6,4 @@ class AccountSubscription(SubscriptionBase):
 
 
 class CVSubscription(SubscriptionBase):
-    CV = "cv"
+    CV = "resume"

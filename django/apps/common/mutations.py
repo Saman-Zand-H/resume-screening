@@ -18,15 +18,14 @@ class UploadFileMutation(graphene.Mutation):
     def mutate(cls, root, info, file, type):
         user = info.context.user
         model = get_file_model(type.value)
-        temprorary_obj = model.get_user_temprorary_file(user)
+        temporary_obj = model.get_user_temporary_file(user)
 
-        obj = None
-        if temprorary_obj:
-            obj = temprorary_obj.update_temporary_file(file)
+        if temporary_obj:
+            obj = temporary_obj.update_temporary_file(file)
         else:
             obj = model.create_temporary_file(file=file, user=user)
 
-        return UploadFileMutation(pk=obj.pk)
+        return cls(pk=obj.pk)
 
 
 class CommonMutation(graphene.ObjectType):
