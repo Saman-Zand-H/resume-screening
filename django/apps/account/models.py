@@ -191,7 +191,7 @@ for field, properties in User.FIELDS_PROPERTIES.items():
 
 
 class UserFile(FileModel):
-    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="%(class)s")
 
     class Meta:
         abstract = True
