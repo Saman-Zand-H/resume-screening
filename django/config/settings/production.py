@@ -5,7 +5,7 @@ from .constants import Environment
 
 ENVIRONMENT_NAME = Environment.PRODUCTION
 
-DEBUG = False
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")
 
