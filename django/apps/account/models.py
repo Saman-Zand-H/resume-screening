@@ -182,7 +182,7 @@ for field, properties in User.FIELDS_PROPERTIES.items():
 
 
 class UserFile(FileModel):
-    uploaded_by = models.OneToOneField(User, on_delete=models.CASCADE, related_name="%(class)s")
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="%(class)s")
 
     class Meta:
         abstract = True
@@ -250,6 +250,17 @@ class AvatarFile(UserUploadedImageFile):
         verbose_name_plural = _("Avatar Images")
 
 
+class FullBodyImageFile(UserUploadedImageFile):
+    SLUG = "full_body_image"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/full_body_image/{filename}"
+
+    class Meta:
+        verbose_name = _("Full Body Image")
+        verbose_name_plural = _("Full Body Images")
+
+
 class Profile(ComputedFieldsModel):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
@@ -300,12 +311,28 @@ class Profile(ComputedFieldsModel):
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
+    avatar_x = models.OneToOneField(
+        AvatarFile,
+        on_delete=models.SET_NULL,
+        related_name="profile_x",
+        null=True,
+        blank=True,
+        verbose_name=_("Avatar"),
+    )
     avatar = models.ForeignKey(
         AvatarFile,
         on_delete=models.CASCADE,
         related_name="profile",
         null=True,
         blank=True,
+    )
+    full_body_image_x = models.OneToOneField(
+        FullBodyImageFile,
+        on_delete=models.SET_NULL,
+        related_name="profile_x",
+        null=True,
+        blank=True,
+        verbose_name=_("Full Body Image"),
     )
     full_body_image = models.ImageField(
         upload_to=full_body_image_path,
@@ -645,6 +672,17 @@ class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
         return f"{self.education.user.email} - {self.education.degree} Verification"
 
 
+class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
+    SLUG = "education_evaluation"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/education_verification/education_evaluation/{filename}"
+
+    class Meta:
+        verbose_name = _("Education Evaluation Document File")
+        verbose_name_plural = _("Education Evaluation Document Files")
+
+
 class IEEMethod(EducationVerificationMethodAbstract):
     class Evaluator(models.TextChoices):
         WES = "wes", _("World Education Services")
@@ -653,6 +691,14 @@ class IEEMethod(EducationVerificationMethodAbstract):
         CES = "ces", _("Comparative Education Service")
         OTHER = "other", _("Other")
 
+    education_evaluation_document_x = models.OneToOneField(
+        EducationEvaluationDocumentFile,
+        on_delete=models.CASCADE,
+        related_name="iee_method_x",
+        verbose_name=_("Education Evaluation Document"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
     education_evaluation_document = models.FileField(
         upload_to=education_evaluation_document_path,
         verbose_name=_("Education Evaluation Document"),
@@ -669,11 +715,30 @@ class IEEMethod(EducationVerificationMethodAbstract):
         verbose_name_plural = _("International Education Evaluation Methods")
 
 
+class DegreeFile(UserUploadedDocumentFile):
+    SLUG = "degree"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/education_verification/degree/{filename}"
+
+    class Meta:
+        verbose_name = _("Degree File")
+        verbose_name_plural = _("Degree Files")
+
+
 class CommunicationMethod(EducationVerificationMethodAbstract):
     website = models.URLField(verbose_name=_("Website"))
     email = models.EmailField(verbose_name=_("Email"))
     department = models.CharField(max_length=255, verbose_name=_("Department"))
     person = models.CharField(max_length=255, verbose_name=_("Person"))
+    degree_file_x = models.OneToOneField(
+        DegreeFile,
+        on_delete=models.CASCADE,
+        related_name="communication_method_x",
+        verbose_name=_("Degree File"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
     degree_file = models.FileField(
         upload_to=degree_file_path,
         verbose_name=_("Degree File"),
@@ -734,7 +799,27 @@ class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstrac
         return f"{self.work_experience} Verification"
 
 
+class EmployerLetterFile(UserUploadedDocumentFile):
+    SLUG = "employer_letter"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/work_experience_verification/employer_letter/{filename}"
+
+    class Meta:
+        verbose_name = _("Employer Letter File")
+        verbose_name_plural = _("Employer Letter Files")
+
+
 class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
+    employer_letter_x = models.OneToOneField(
+        EmployerLetterFile,
+        on_delete=models.CASCADE,
+        related_name="employer_letter_method_x",
+        verbose_name=_("Employer Letter"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
+
     employer_letter = models.FileField(
         upload_to=employer_letter_path,
         verbose_name=_("Employer Letter"),
@@ -746,7 +831,27 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
         verbose_name_plural = _("Employer Letter Methods")
 
 
+class PaystubsFile(UserUploadedDocumentFile):
+    SLUG = "paystubs"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/work_experience_verification/paystubs/{filename}"
+
+    class Meta:
+        verbose_name = _("Paystubs File")
+        verbose_name_plural = _("Paystubs Files")
+
+
 class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
+    paystubs_x = models.OneToOneField(
+        PaystubsFile,
+        on_delete=models.CASCADE,
+        related_name="paystubs_method_x",
+        verbose_name=_("Paystubs"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
+
     paystubs = models.FileField(
         upload_to=paystubs_path,
         verbose_name=_("Employer Letter"),
@@ -857,7 +962,27 @@ class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAb
         return f"{self.language_certificate.test.title} ({self.language_certificate.language}) Verification"
 
 
+class LanguageCertificateFile(UserUploadedDocumentFile):
+    SLUG = "language_certificate"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/language_certificate_verification/language_certificate/{filename}"
+
+    class Meta:
+        verbose_name = _("Language Certificate File")
+        verbose_name_plural = _("Language Certificate Files")
+
+
 class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
+    certificate_file_x = models.OneToOneField(
+        LanguageCertificateFile,
+        on_delete=models.CASCADE,
+        related_name="offline_method_x",
+        verbose_name=_("Language Certificate"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
+
     certificate_file = models.FileField(
         upload_to=language_certificate_path,
         verbose_name=_("Language Certificate"),
@@ -918,7 +1043,27 @@ class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethod
         return f"{self.certificate_and_license.title} Verification"
 
 
+class CertificateFile(UserUploadedDocumentFile):
+    SLUG = "certificate"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/certificate_and_license_verification/certificate_and_license/{filename}"
+
+    class Meta:
+        verbose_name = _("Certificate File")
+        verbose_name_plural = _("Certificate Files")
+
+
 class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerificationMethodAbstract):
+    certificate_file_x = models.OneToOneField(
+        CertificateFile,
+        on_delete=models.CASCADE,
+        related_name="offline_method_x",
+        verbose_name=_("Certificate And License"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
+
     certificate_file = models.FileField(
         upload_to=certificate_and_license_path,
         verbose_name=_("Certificate And License"),
@@ -936,6 +1081,17 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
     class Meta:
         verbose_name = _("Certificate And License Online Verification Method")
         verbose_name_plural = _("Certificate And License Online Verification Methods")
+
+
+class CitizenshipDocumentFile(UserUploadedDocumentFile):
+    SLUG = "citizenship_document"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/citizenship_document/{filename}"
+
+    class Meta:
+        verbose_name = _("Citizenship Document File")
+        verbose_name_plural = _("Citizenship Document Files")
 
 
 class CanadaVisa(models.Model):
@@ -969,6 +1125,16 @@ class CanadaVisa(models.Model):
         choices=Status.choices,
         verbose_name=_("Status"),
     )
+
+    citizenship_document_x = models.OneToOneField(
+        CitizenshipDocumentFile,
+        on_delete=models.CASCADE,
+        related_name="canada_visa_x",
+        verbose_name=_("Citizenship Document"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
+
     citizenship_document = models.FileField(
         upload_to=citizenship_document_path,
         verbose_name=_("Citizenship Document"),
@@ -980,8 +1146,28 @@ class CanadaVisa(models.Model):
         verbose_name_plural = _("Canada Visas")
 
 
+class ResumeFile(UserUploadedDocumentFile):
+    SLUG = "resume"
+
+    def get_upload_path(self, filename):
+        return f"profile/{self.uploaded_by.id}/resume/{filename}"
+
+    class Meta:
+        verbose_name = _("Resume File")
+        verbose_name_plural = _("Resume Files")
+
+
 class Resume(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="resume")
+    file_x = models.OneToOneField(
+        ResumeFile,
+        on_delete=models.CASCADE,
+        related_name="resume_x",
+        verbose_name=_("Resume"),
+        null=True, # TODO: remove this
+        default=None, # TODO: remove this
+    )
+
     file = models.FileField(
         upload_to=resume_path,
         verbose_name=_("Resume"),
