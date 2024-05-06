@@ -39,7 +39,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from .managers import CertificateAndLicenseManager, UserManager
-from .utils import extract_resume_text
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
@@ -1174,8 +1173,8 @@ class Resume(models.Model):
         verbose_name=_("Resume"),
         validators=[DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR],
     )
-    text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True, editable=False)
-    resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict, editable=False)
+    text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True)
+    resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict)
 
     class Meta:
         verbose_name = _("Resume")
@@ -1183,16 +1182,6 @@ class Resume(models.Model):
 
     def __str__(self):
         return self.user.email
-
-    def set_resume_text(self):
-        self.text = extract_resume_text(self.file.file)
-        self.save(update_fields=[Resume.text.field.name])
-        return self.text
-
-    def get_or_set_resume_text(self):
-        if not self.text:
-            return self.set_resume_text()
-        return self.text
 
 
 class Referral(models.Model):
@@ -1268,10 +1257,16 @@ class UserTask(models.Model):
         SCHEDULED = "scheduled", _("Scheduled")
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Failed")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
     task_name = models.CharField(max_length=255)
-    status = models.CharField(max_length=50, choices=TaskStatus.choices, default=TaskStatus.COMPLETED)
+    status = models.CharField(max_length=50, choices=TaskStatus.choices, default=TaskStatus.SCHEDULED)
+
+    def change_status(self, status: str):
+        self.status = status
+        self.save(update_fields=[UserTask.status.field.name])
+        return
 
     def __str__(self):
         return f"{self.user} - {self.task_name}"

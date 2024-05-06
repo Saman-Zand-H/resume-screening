@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import ArrayChoiceTypeMixin, FilePermissionMixin
 from common.models import Job
@@ -28,7 +29,6 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -61,7 +61,7 @@ from .models import (
     WorkExperience,
 )
 from .tasks import find_available_jobs, set_user_skills
-from .types import UserSkillType
+from .types.account import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 

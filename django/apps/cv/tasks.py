@@ -12,3 +12,4 @@ def render_cv_template(template_id: int, context: dict, target_file_name: str):
     template = CVTemplate.objects.get(pk=template_id)
     rendered_content = template.render_pdf(context, target_file_name)
     default_storage.save(target_file_name, ContentFile(rendered_content))
+    default_storage.save(target_file_name, ContentFile(rendered_content))

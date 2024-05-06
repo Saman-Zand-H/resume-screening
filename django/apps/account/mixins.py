@@ -1,9 +1,7 @@
 from common.exceptions import GraphQLErrorBadRequest
 from graphene_django_cud.mutations import DjangoPatchMutation
 
-from .models import (
-    DocumentAbstract,
-)
+from .models import DocumentAbstract
 from .utils import IDLikeObject
 
 

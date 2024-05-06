@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-import contextlib
 import os
 import sys
 from datetime import timedelta
@@ -18,7 +17,7 @@ from pathlib import Path
 
 import environ
 
-from django.core.exceptions import ImproperlyConfigured
+from .constants import Assistants
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
@@ -306,3 +305,9 @@ PUBSUB_SETTINGS = {
 SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
+
+ASSISTANT_IDS = {
+    Assistants.JOB: os.environ.get("JOB_ASSISTANT_ID"),
+    Assistants.SKILL: os.environ.get("SKILL_ASSISTANT_ID"),
+    Assistants.RESUME: os.environ.get("RESUME_ASSISTANT_ID"),
+}

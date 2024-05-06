@@ -7,29 +7,86 @@ from flex_pubsub.tasks import register_task
 
 from django.contrib.auth import get_user_model
 
-from .utils import extract_available_jobs, extract_or_create_skills
+from .models import UserTask
+from .utils import (
+    extract_available_jobs,
+    extract_or_create_skills,
+    extract_resume_json,
+    extract_resume_text,
+)
 
 
-def find_available_jobs(resume_pk: int) -> bool:
-    resume = Resume.objects.get(pk=resume_pk)
-    resume_text = resume.get_or_set_resume_text()
-    jobs = extract_available_jobs(resume_text, resume.user)
+@register_task([AccountSubscription.ASSISTANTS])
+def find_available_jobs(user_id: int) -> bool:
+    if not (user := get_user_model().objects.filter(pk=user_id).first()):
+        return False
+
+    user_task = UserTask.objects.get_or_create(user=user, task_name=find_available_jobs.__name__)[0]
+    if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
+        return False
+
+    user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
+    resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
+    jobs = extract_available_jobs(resume_json)
     if jobs:
-        resume.user.available_jobs.set(jobs)
+        user.available_jobs.set(jobs)
+        user_task.change_status(UserTask.TaskStatus.COMPLETED)
         return True
+
+    user_task.change_status(UserTask.TaskStatus.FAILED)
     return False
 
 
+@register_task([AccountSubscription.ASSISTANTS])
 def set_user_skills(user_pk: int) -> bool:
     user = User.objects.get(pk=user_pk)
-    extracted_skills = extract_or_create_skills(user.raw_skills, user)
-    if not extracted_skills:
+    user_task = UserTask.objects.get_or_create(user=user, task_name=set_user_skills.__name__)[0]
+    if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
         return False
-    existing_skills = extracted_skills[0]
-    if existing_skills:
-        user.skills.set(existing_skills)
+
+    user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
+    resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
+    extracted_skills = extract_or_create_skills(user.raw_skills or [], resume_json)
+    if not extracted_skills:
+        user_task.change_status(UserTask.TaskStatus.FAILED)
+        return False
+    if extracted_skills:
+        user.skills.set(extracted_skills)
+        user_task.change_status(UserTask.TaskStatus.COMPLETED)
         return True
+
+    user_task.change_status(UserTask.TaskStatus.FAILED)
     return False
+
+
+@register_task([AccountSubscription.ASSISTANTS])
+def set_user_resume_json(resume_file: bytes, user_id: int) -> bool:
+    user = User.objects.get(pk=user_id)
+    user_task = UserTask.objects.get_or_create(user=user, task_name=set_user_resume_json.__name__)[0]
+    if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
+        return False
+
+    resume_text = extract_resume_text(resume_file)
+    if not resume_text:
+        user_task.change_status(UserTask.TaskStatus.FAILED)
+        return False
+
+    user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
+    try:
+        resume_json = extract_resume_json(resume_text)
+        if resume_json:
+            Resume.objects.update_or_create(
+                user=user,
+                defaults={
+                    "resume_json": resume_json.model_dump(),
+                    "text": resume_text,
+                },
+            )
+            user_task.change_status(UserTask.TaskStatus.COMPLETED)
+            return True
+    except Exception:
+        user_task.change_status(UserTask.TaskStatus.FAILED)
+        return False
 
 
 class SerializableContext:
@@ -91,6 +148,11 @@ def graphql_auth_async_email(func, args):
     user_email = func.__self__.user.email
     info = args[0]
     arg = args[1] if len(args) == 2 else None
+
+    serializable_context = SerializableContext(info.context)
+    context = json.dumps(serializable_context.to_dict())
+
+    async_email.delay(func_name, user_email, context, arg)
 
     serializable_context = SerializableContext(info.context)
     context = json.dumps(serializable_context.to_dict())
