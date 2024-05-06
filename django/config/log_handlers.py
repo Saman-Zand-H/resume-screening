@@ -12,19 +12,11 @@ class GCSHandler(logging.Handler):
         self.client = storage.Client()
 
     def emit(self, record):
-        log_entry = self.format(record)
+        log_entry = record.html_error
         bucket = self.client.get_bucket(self.bucket_name)
 
-        today = timezone.now().strftime("%Y-%m-%d")
-        timestamp = timezone.now().strftime("%H:%M:%S")
-        blob_name = f"{self.log_file_name}_{today}.log"
+        timestamp = timezone.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
+        blob_name = f"errors/{timestamp}.html"
+
         blob = bucket.blob(blob_name)
-
-        if blob.exists():
-            existing_data = blob.download_as_text()
-            divider = "=" * 100
-            log_entry = f"{existing_data}\n{divider}\n{timestamp}: {log_entry}"
-        else:
-            log_entry = f"{timestamp}: {log_entry}"
-
-        blob.upload_from_string(log_entry, content_type="text/plain")
+        blob.upload_from_string(log_entry, content_type="text/html")

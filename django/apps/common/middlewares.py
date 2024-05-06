@@ -1,4 +1,5 @@
 import logging
+from django.views.debug import ExceptionReporter
 
 from .exceptions import GraphQLError
 from .utils import map_exception_to_error
@@ -8,6 +9,11 @@ logger = logging.getLogger("graphql.error")
 
 
 class ErrorHandlingMiddleware:
+    def on_error(self, request, exc_type, exc_value, tb):
+        reporter = ExceptionReporter(request, exc_type, exc_value, tb, is_email=False)
+        html = reporter.get_traceback_html()
+        logger.error("GraphQL Execution Error", extra={"html_error": html})
+
     def resolve(self, next_resolver, root, info, **args):
         try:
             return next_resolver(root, info, **args)
@@ -23,13 +29,8 @@ class ErrorHandlingMiddleware:
                 kwargs.update({"error": error})
             kwargs.update({"exception": e})
 
-            logger.error(
-                f"GraphQL Error: {str(e)}",
-                exc_info=True,
-                extra={
-                    "path": info.path,
-                    "field_name": info.field_name,
-                    "query": info.operation.name.value if info.operation else None,
-                },
-            )
+            request = info.context
+            exc_type, exc_value, tb = type(e), e, e.__traceback__
+            self.on_error(request, exc_type, exc_value, tb)
+
             raise base_exception(**kwargs)
