@@ -43,4 +43,4 @@ CACHES = {
     }
 }
 
-GRAPHQL_AUTH["EMAIL_ASYNC_TASK"] = "apps.account.tasks.graphql_auth_async_email"  # noqa
+GRAPHQL_AUTH["EMAIL_ASYNC_TASK"] = "account.tasks.graphql_auth_async_email"  # noqa
