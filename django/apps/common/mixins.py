@@ -125,4 +125,3 @@ class FilePermissionMixin:
     @classmethod
     def is_django_cud_mutation(cls):
         return isinstance(cls._meta, DjangoCudBaseOptions)
-        return isinstance(cls._meta, DjangoCudBaseOptions)
