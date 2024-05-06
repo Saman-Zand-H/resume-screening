@@ -6,3 +6,9 @@ class Environment(Enum):
     DEVELOPMENT = "development"
     STAGE = "stage"
     PRODUCTION = "production"
+
+
+class Assistants:
+    JOB = "job"
+    SKILL = "skill"
+    RESUME = "resume"
