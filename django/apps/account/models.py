@@ -33,7 +33,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.utils.functional import cached_property
@@ -423,7 +423,8 @@ class Profile(ComputedFieldsModel):
     )
     def credits(self):
         _credits = 0
-        _credits += self.user.referral.referred_users.count() * 100
+        with contextlib.suppress(ObjectDoesNotExist):
+            _credits += self.user.referral.referred_users.count() * 100
         return _credits
 
     @property
