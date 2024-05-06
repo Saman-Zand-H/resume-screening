@@ -2,6 +2,7 @@ import os
 
 import weasyprint
 from account.models import Contact, User
+from common.choices import LANGUAGES
 from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
 from flex_blob.models import FileModel
 from model_utils.models import TimeStampedModel
@@ -38,10 +39,7 @@ class CVTemplate(TimeStampedModel):
         return render_to_string(self.path, context)
 
     def render_pdf(self, context: dict, target_file_name: str = None) -> bytes:
-        return weasyprint.HTML(
-            string=self.render(context),
-            base_url="http://localhost:8000",
-        ).write_pdf(target_file_name)
+        return weasyprint.HTML(string=self.render(context)).write_pdf(target_file_name)
 
     def __str__(self):
         return f"{self.title}: {self.path}"
@@ -88,6 +86,7 @@ class GeneratedCV(FileModel):
         work_experiences = user.workexperiences.all()
         about_me = "default"
         languages = [user.profile.native_language, *user.profile.fluent_languages]
+        languages_dict = dict(LANGUAGES)
         contacts = user.contacts.exclude(type__in=[Contact.Type.WHATSAPP, Contact.Type.LINKEDIN])
         social_contacts = user.contacts.difference(contacts)
         certifications = user.certificateandlicenses.all()
@@ -99,7 +98,7 @@ class GeneratedCV(FileModel):
             "work_experiences": work_experiences,
             "about_me": about_me,
             "certifications": certifications,
-            "languages": list(filter(bool, languages)),
+            "languages": [languages_dict.get(lang) for lang in languages],
             "contacts": contacts,
             "social_contacts": social_contacts,
             "skills": skills,

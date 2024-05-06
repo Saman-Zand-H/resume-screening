@@ -1,4 +1,4 @@
-from cv.models import GeneratedCV
+from cv.models import CVTemplate, GeneratedCV
 from dj_rest_auth.registration.views import SocialLoginView as BaseSocialLoginView
 
 from django.contrib.auth import get_user_model
@@ -29,8 +29,7 @@ class LinkedInOAuth2View(SocialLoginView):
 class TestView(View):
     def get(self, *args, **kwargs):
         user = get_user_model().objects.first()
-        pdf = GeneratedCV.from_user(user)
-        response = HttpResponse(content_type="application/pdf")
-        response["Content-Disposition"] = 'attachment; filename="cv.pdf"'
-        response.write(pdf)
+        html = CVTemplate.objects.last().render(GeneratedCV.get_user_context(user))
+        response = HttpResponse(content_type="text/html")
+        response.write(html)
         return response

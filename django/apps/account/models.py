@@ -25,6 +25,7 @@ from common.validators import (
 )
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
+from flex_pubsub.tasks import task_registry
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -696,8 +697,8 @@ class IEEMethod(EducationVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="iee_method_x",
         verbose_name=_("Education Evaluation Document"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
     education_evaluation_document = models.FileField(
         upload_to=education_evaluation_document_path,
@@ -736,8 +737,8 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="communication_method_x",
         verbose_name=_("Degree File"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
     degree_file = models.FileField(
         upload_to=degree_file_path,
@@ -816,8 +817,8 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="employer_letter_method_x",
         verbose_name=_("Employer Letter"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
 
     employer_letter = models.FileField(
@@ -848,8 +849,8 @@ class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="paystubs_method_x",
         verbose_name=_("Paystubs"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
 
     paystubs = models.FileField(
@@ -979,8 +980,8 @@ class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="offline_method_x",
         verbose_name=_("Language Certificate"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
 
     certificate_file = models.FileField(
@@ -1060,8 +1061,8 @@ class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerifi
         on_delete=models.CASCADE,
         related_name="offline_method_x",
         verbose_name=_("Certificate And License"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
 
     certificate_file = models.FileField(
@@ -1131,8 +1132,8 @@ class CanadaVisa(models.Model):
         on_delete=models.CASCADE,
         related_name="canada_visa_x",
         verbose_name=_("Citizenship Document"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        default=None,  # TODO: remove this
     )
 
     citizenship_document = models.FileField(
@@ -1164,8 +1165,9 @@ class Resume(models.Model):
         on_delete=models.CASCADE,
         related_name="resume_x",
         verbose_name=_("Resume"),
-        null=True, # TODO: remove this
-        default=None, # TODO: remove this
+        null=True,  # TODO: remove this
+        blank=True,
+        default=None,  # TODO: remove this
     )
 
     file = models.FileField(
@@ -1260,7 +1262,7 @@ class UserTask(models.Model):
         FAILED = "failed", _("Failed")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
-    task_name = models.CharField(max_length=255)
+    task_name = models.CharField(max_length=255, choices=[(i, i) for i in task_registry.get_all_tasks()])
     status = models.CharField(max_length=50, choices=TaskStatus.choices, default=TaskStatus.SCHEDULED)
 
     def change_status(self, status: str):

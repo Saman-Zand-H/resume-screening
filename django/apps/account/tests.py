@@ -1,4 +1,5 @@
 from graphene_django.utils.testing import GraphQLTestCase
+
 from django.contrib.auth import get_user_model
 
 
@@ -211,7 +212,7 @@ class AccountTestCase(GraphQLTestCase):
     def update_profile(self, variables):
         response = self.query(self.update_profile_mutation, operation_name="UpdateProfile")
         return response.json()
-    
+
     def test_update_profile(self):
         variables = {
             "weight": 70,
@@ -221,14 +222,20 @@ class AccountTestCase(GraphQLTestCase):
             "height": 180,
             "job": [1, 2],
             "skinColor": "WHITE",
-            "id": 1
+            "id": 1,
         }
 
         response = self.update_profile(variables)
 
         self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["eyeColor"], variables["eyeColor"])
-        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["hairColor"], variables["hairColor"])
+        self.assertEqual(
+            response["data"]["account"]["profile"]["update"]["profile"]["hairColor"], variables["hairColor"]
+        )
         self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["height"], variables["height"])
-        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["skinColor"], variables["skinColor"])
+        self.assertEqual(
+            response["data"]["account"]["profile"]["update"]["profile"]["skinColor"], variables["skinColor"]
+        )
         self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["weight"], variables["weight"])
-        self.assertEqual(response["data"]["account"]["profile"]["update"]["profile"]["fullBodyImage"], variables["fullBodyImage"])
+        self.assertEqual(
+            response["data"]["account"]["profile"]["update"]["profile"]["fullBodyImage"], variables["fullBodyImage"]
+        )

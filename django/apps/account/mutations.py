@@ -60,7 +60,7 @@ from .models import (
     User,
     WorkExperience,
 )
-from .tasks import find_available_jobs, set_user_skills
+from .tasks import set_user_resume_json, set_user_skills
 from .types.account import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -276,9 +276,7 @@ class UserSetSkillsMutation(graphene.Mutation):
         user.raw_skills = skills
         user.save(update_fields=[User.raw_skills.field.name])
 
-        is_successful = set_user_skills(user.pk)
-        if not is_successful:
-            raise GraphQLErrorBadRequest(_("No skills found."))
+        set_user_skills.delay(user.pk)
         return UserSetSkillsMutation(user=user)
 
 
@@ -641,7 +639,7 @@ class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
 
     @classmethod
     def after_mutate(cls, root, info, input, obj, return_data):
-        find_available_jobs(obj.pk)
+        set_user_resume_json.delay(obj.file.read(), obj.user.pk)
         return super().after_mutate(root, info, input, obj, return_data)
 
 

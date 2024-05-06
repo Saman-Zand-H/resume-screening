@@ -82,6 +82,7 @@ def set_user_resume_json(resume_file: bytes, user_id: int) -> bool:
                     "text": resume_text,
                 },
             )
+            find_available_jobs.delay(user.pk)
             user_task.change_status(UserTask.TaskStatus.COMPLETED)
             return True
     except Exception:
