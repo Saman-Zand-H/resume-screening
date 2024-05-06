@@ -126,7 +126,8 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.user.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
-        Profile.avatar.field.name,
+        Profile.avatar_x.field.name, # TODO: update this field
+        Profile.full_body_image_x.field.name, # TODO: update this field
     )
     inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (
@@ -184,7 +185,10 @@ class IEEMethodAdmin(admin.ModelAdmin):
         IEEMethod.evaluator.field.name,
     )
     list_filter = (IEEMethod.evaluator.field.name,)
-    raw_id_fields = (IEEMethod.education.field.name,)
+    raw_id_fields = (
+        IEEMethod.education.field.name,
+        IEEMethod.education_evaluation_document_x.field.name, # TODO: update this field
+    )
 
 
 @register(CommunicationMethod)
@@ -205,7 +209,10 @@ class CommunicationMethodAdmin(admin.ModelAdmin):
         CommunicationMethod.person.field.name,
     )
     list_filter = (CommunicationMethod.department.field.name,)
-    raw_id_fields = (CommunicationMethod.education.field.name,)
+    raw_id_fields = (
+        CommunicationMethod.education.field.name,
+        CommunicationMethod.degree_file_x.field.name, # TODO: update this field
+    )
 
 
 @register(WorkExperience)
@@ -237,7 +244,10 @@ class EmployerLetterMethodAdmin(admin.ModelAdmin):
         EmployerLetterMethod.created_at.field.name,
     )
     search_fields = (fields_join(EmployerLetterMethod.work_experience, WorkExperience.user, User.email),)
-    raw_id_fields = (EmployerLetterMethod.work_experience.field.name,)
+    raw_id_fields = (
+        EmployerLetterMethod.work_experience.field.name,
+        EmployerLetterMethod.employer_letter_x.field.name, # TODO: update this field
+    )
 
 
 @register(PaystubsMethod)
@@ -245,11 +255,15 @@ class PaystubsMethodAdmin(admin.ModelAdmin):
     list_display = (
         PaystubsMethod.work_experience.field.name,
         PaystubsMethod.paystubs.field.name,
+        PaystubsMethod.paystubs_x.field.name, # TODO: update this field
         PaystubsMethod.verified_at.field.name,
         PaystubsMethod.created_at.field.name,
     )
     search_fields = (fields_join(PaystubsMethod.work_experience, WorkExperience.user, User.email),)
-    raw_id_fields = (PaystubsMethod.work_experience.field.name,)
+    raw_id_fields = (
+        PaystubsMethod.work_experience.field.name,
+        PaystubsMethod.paystubs_x.field.name, # TODO: update this field
+    )
 
 
 @register(ReferenceCheckEmployer)
@@ -398,6 +412,7 @@ class CanadaVisaAdmin(admin.ModelAdmin):
     raw_id_fields = (
         CanadaVisa.user.field.name,
         CanadaVisa.nationality.field.name,
+        CanadaVisa.citizenship_document_x.field.name, # TODO: update this field
     )
 
 
@@ -408,7 +423,10 @@ class ResumeAdmin(admin.ModelAdmin):
         Resume.file.field.name,
     )
     search_fields = (fields_join(Resume.user, User.email), Resume.file.field.name)
-    raw_id_fields = (Resume.user.field.name,)
+    raw_id_fields = (
+        Resume.user.field.name,
+        Resume.file_x.field.name, # TODO: update this field
+    )
 
 
 class ReferralUserInline(admin.TabularInline):
