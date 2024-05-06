@@ -17,4 +17,10 @@ class Migration(migrations.Migration):
             name='logo',
             field=models.ImageField(blank=True, null=True, upload_to=criteria.models.job_assessment_logo_path, validators=[common.validators.ValidateFileSize(max=1)], verbose_name='Logo'),
         ),
+
+        migrations.AlterField(
+            model_name='jobassessment',
+            name='logo',
+            field=models.ImageField(blank=True, null=True, upload_to=criteria.models.job_assessment_logo_path, validators=[common.validators.ValidateFileSize(max=1)], verbose_name='Logo'),
+        ),
     ]
