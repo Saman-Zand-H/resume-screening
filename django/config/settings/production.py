@@ -2,7 +2,6 @@ import os
 
 from .base import *  # noqa
 from .constants import Environment
-from .subscriptions import AccountSubscription
 
 ENVIRONMENT_NAME = Environment.PRODUCTION
 
@@ -45,6 +44,3 @@ CACHES = {
 }
 
 GRAPHQL_AUTH["EMAIL_ASYNC_TASK"] = "apps.account.tasks.graphql_auth_async_email"  # noqa
-
-
-PUBSUB_SETTINGS["SUBSCRIPTIONS"] = ",".join([AccountSubscription.EMAILING.value])  # noqa
