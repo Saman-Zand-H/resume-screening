@@ -18,7 +18,7 @@ from .client.types import Status as CriteriaStatus
 
 
 def job_assessment_logo_path(instance, filename):
-    return f"job_assessment/logo/{instance.user.id}/{filename}"
+    return f"job_assessment/logo/{instance.id}/{filename}"
 
 
 class JobAssessmentQuerySet(models.QuerySet):
