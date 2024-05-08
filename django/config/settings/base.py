@@ -170,7 +170,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
 
 GOOGLE_CLOUD_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_BUCKET_NAME")
-if GOOGLE_CLOUD_BUCKET_NAME:
+GOOGLE_CLOUD_STATIC_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_STATIC_BUCKET_NAME")
+if GOOGLE_CLOUD_BUCKET_NAME and GOOGLE_CLOUD_STATIC_BUCKET_NAME:
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
@@ -181,7 +182,7 @@ if GOOGLE_CLOUD_BUCKET_NAME:
         "staticfiles": {
             "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
             "OPTIONS": {
-                "bucket_name": GOOGLE_CLOUD_BUCKET_NAME,
+                "bucket_name": GOOGLE_CLOUD_STATIC_BUCKET_NAME,
             },
         },
     }
