@@ -1,3 +1,4 @@
+from account.views import TestView
 from apps.api.schema import schema
 from graphene_file_upload.django import FileUploadGraphQLView as GraphQLView
 

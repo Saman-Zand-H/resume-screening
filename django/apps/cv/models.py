@@ -138,7 +138,7 @@ class GeneratedCV(FileModel):
     @classmethod
     def from_user(cls, user, template: CVTemplate = None):
         pdf = cls.generate(user, template)
-        file = ContentFile(pdf, name=f"{user.pk}_cv.pdf")
+        file = ContentFile(pdf, name=f"cpj_cv_{user.first_name}_{user.last_name}.pdf")
         return cls.objects.update_or_create(user=user, defaults={"file": file})
 
     class Meta:

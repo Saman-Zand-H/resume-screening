@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM python:3.12-alpine AS builder
+FROM python:3.12-slim AS builder
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
@@ -7,19 +7,23 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Install build dependencies
-RUN apk update && \
-    apk add --no-cache --virtual .build-deps build-base libffi-dev wkhtmltopdf && \
-    python -m venv /opt/venv
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libffi-dev \
+    wkhtmltopdf \
+    python3-venv && \
+    python -m venv /opt/venv && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install dependencies - copying only requirements.txt for better cache utilization
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    apk del .build-deps
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Runtime stage
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
@@ -28,25 +32,24 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 
 # Install runtime dependencies in a single layer
-RUN apk update && \
-    apk add --no-cache \
-    nss \
-    alsa-lib \
-    libx11 \
-    libxcomposite \
-    libxdamage \
-    libxrandr \
-    libxinerama \
-    libxshmfence \
-    libxext \
-    gtk+3.0 \
-    pango \
-    ttf-freefont \
-    ttf-opensans \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libasound2 \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libxinerama1 \
+    libxshmfence1 \
+    libxext6 \
+    libgtk-3-0 \
+    libpango1.0-0 \
+    fonts-freefont-ttf \
+    fonts-opensymbol \
     curl \
     xvfb \
     file && \
-    rm -rf /var/cache/apk/*
+    rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
