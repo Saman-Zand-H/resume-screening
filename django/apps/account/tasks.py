@@ -11,6 +11,7 @@ from .models import UserTask
 from .utils import (
     extract_available_jobs,
     extract_or_create_skills,
+    extract_resume_headlines,
     extract_resume_json,
     extract_resume_text,
 )
@@ -75,11 +76,14 @@ def set_user_resume_json(resume_file: bytes, user_id: int) -> bool:
     try:
         resume_json = extract_resume_json(resume_text)
         if resume_json:
+            resume_headlines = extract_resume_headlines(resume_json)
             Resume.objects.update_or_create(
                 user=user,
                 defaults={
                     "resume_json": resume_json.model_dump(),
                     "text": resume_text,
+                    "headline": resume_headlines.headline,
+                    "about_me": resume_headlines.about_me,
                 },
             )
             find_available_jobs.delay(user.pk)

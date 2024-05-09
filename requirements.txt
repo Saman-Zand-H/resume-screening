@@ -28,10 +28,10 @@ google-cloud-scheduler~=2.14
 google-cloud-pubsub~=2.27
 django-storages[google]~=1.14
 django-flex-blob==0.0.11
-django-flex-pubsub==0.0.4
-weasyprint~=63.0
+django-flex-pubsub==0.0.5
 google-auth~=2.35
 google-cloud-secret-manager~=2.20
 django-environ~=0.11
 google-cloud-storage~=2.18.2
 django-model-utils~=5.0.0
+pdfkit~=1.0.0
