@@ -1,3 +1,5 @@
+from account.models import Resume
+from account.tasks import set_user_resume_json
 from cv.models import CVTemplate, GeneratedCV
 from dj_rest_auth.registration.views import SocialLoginView as BaseSocialLoginView
 
@@ -28,8 +30,6 @@ class LinkedInOAuth2View(SocialLoginView):
 
 class TestView(View):
     def get(self, *args, **kwargs):
-        user = get_user_model().objects.first()
-        html = CVTemplate.objects.last().render(GeneratedCV.get_user_context(user))
-        response = HttpResponse(content_type="text/html")
-        response.write(html)
-        return response
+        resume = Resume.objects.first()
+        set_user_resume_json(resume.file.file.read(), resume.user.id)
+        return HttpResponse("OK")
