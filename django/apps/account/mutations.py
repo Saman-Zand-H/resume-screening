@@ -3,7 +3,7 @@ import contextlib
 import graphene
 from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
-from common.mixins import ArrayChoiceTypeMixin, FilePermissionMixin
+from common.mixins import ArrayChoiceTypeMixin, FilePermissionMixin, DocumentFilePermissionMixin
 from common.models import Job
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -397,7 +397,7 @@ class EducationDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutatio
         model = Education
 
 
-class EducationSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+class EducationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
     class Meta:
         model = Education
 
@@ -435,7 +435,7 @@ class WorkExperienceDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMu
         model = WorkExperience
 
 
-class WorkExperienceSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+class WorkExperienceSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
     class Meta:
         model = WorkExperience
         method_extras = {
@@ -553,7 +553,7 @@ class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDel
         model = LanguageCertificate
 
 
-class LanguageCertificateSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+class LanguageCertificateSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
     class Meta:
         model = LanguageCertificate
 
@@ -588,7 +588,7 @@ class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoD
         model = CertificateAndLicense
 
 
-class CertificateAndLicenseSetVerificationMethodMutation(DocumentSetVerificationMethodMutation):
+class CertificateAndLicenseSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
     class Meta:
         model = CertificateAndLicense
 
@@ -598,7 +598,7 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
         model = CertificateAndLicense
 
 
-class CanadaVisaCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
+class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
         exclude = ("user",)
@@ -627,7 +627,7 @@ class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         cls.full_clean(obj)
 
 
-class ResumeCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
+class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = Resume
         fields = (Resume.file.field.name,)
