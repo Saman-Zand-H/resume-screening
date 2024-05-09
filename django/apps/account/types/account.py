@@ -27,6 +27,7 @@ from ..models import (
     User,
     WorkExperience,
 )
+from academy.models import CourseResult
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -280,6 +281,7 @@ class UserNode(BaseUserNode):
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
             SupportTicket.user.field.related_query_name(),
+            CourseResult.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):

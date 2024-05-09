@@ -1,6 +1,6 @@
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from .models import Course
+from .models import Course, CourseResult
 from common.models import Industry
 
 
@@ -33,3 +33,12 @@ class CourseNode(DjangoObjectType):
         jobs = user.profile.interested_jobs.all()
         industries = Industry.objects.filter(jobcategory__job__in=jobs).distinct().values_list("id", flat=True)
         return super().get_queryset(queryset, info).filter(industries__in=industries).distinct()
+
+
+class CourseResultType(DjangoObjectType):
+    class Meta:
+        model = CourseResult
+        fields = (
+            CourseResult.course.field.name,
+            CourseResult.status.field.name,
+        )
