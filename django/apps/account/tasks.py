@@ -154,8 +154,3 @@ def graphql_auth_async_email(func, args):
     context = json.dumps(serializable_context.to_dict())
 
     async_email.delay(func_name, user_email, context, arg)
-
-    serializable_context = SerializableContext(info.context)
-    context = json.dumps(serializable_context.to_dict())
-
-    async_email.delay(func_name, user_email, context, arg)
