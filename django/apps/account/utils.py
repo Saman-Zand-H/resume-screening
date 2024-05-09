@@ -1,3 +1,4 @@
+import contextlib
 import json
 from typing import Any, List, Optional
 
@@ -9,7 +10,16 @@ from config.settings.constants import Environment
 from django.conf import settings
 
 from .constants import OpenAiAssistants, VectorStores
-from .types.resume import ResumeSchema
+from .types.resume import ResumeHeadlines, ResumeSchema
+
+
+def extract_resume_headlines(resume_json: ResumeSchema) -> ResumeHeadlines:
+    service = OpenAIService(OpenAiAssistants.HEADLINES)
+    message = service.send_text_to_assistant(resume_json.model_dump_json())
+    if message:
+        with contextlib.suppress(ValueError):
+            return ResumeHeadlines.model_validate(service.message_to_json(message))
+    return None
 
 
 def extract_job_additional_input(user):

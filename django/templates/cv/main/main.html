@@ -4,7 +4,6 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Resume</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,7 +36,6 @@
                                 class="company-logo"
                                 alt="Canada Prime Jobs Company Logo"
                             />
-                            <div class="hollow-circle"></div>
                             <div class="profile-details">
                                 <div class="details-wrapper">
                                     {% if skills %}
@@ -111,16 +109,18 @@
                             </div>
                             <div class="divider"></div>
                             <div class="contact-info">
-                                <div class="contact-item">
-                                    <img
-                                        src="{% static 'img/icon/Call.svg' %}"
-                                        class="contact-icon"
-                                        alt="Phone icon"
-                                    />
-                                    <div class="contact-text">
-                                        {{ phone }}
+                                {% if phone %}
+                                    <div class="contact-item">
+                                        <img
+                                            src="{% static 'img/icon/Call.svg' %}"
+                                            class="contact-icon"
+                                            alt="Phone icon"
+                                        />
+                                        <div class="contact-text">
+                                            {{ phone }}
+                                        </div>
                                     </div>
-                                </div>
+                                {% endif %}
                                 <div class="contact-item">
                                     <img
                                         src="{% static 'img/icon/email.svg' %}"
@@ -214,9 +214,6 @@
                                                                     {{ experience.city }}
                                                                 </div>
                                                             </div>
-                                                            <div
-                                                                class="section-description"
-                                                            >{{ experience.description|default:"default" }}</div>
                                                         </div>
                                                     {% endfor %}
                                                 </div>
@@ -370,11 +367,6 @@
                                                                 >
                                                                     {{ education.university.name }}
                                                                 </div>
-                                                            </div>
-                                                            <div
-                                                                class="section-description"
-                                                            >
-                                                                {{ education.description|default:"default" }}
                                                             </div>
                                                         </div>
                                                     {% endfor %}

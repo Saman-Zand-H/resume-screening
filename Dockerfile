@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Install build dependencies
 RUN apk update && \
-    apk add --no-cache --virtual .build-deps build-base libffi-dev weasyprint && \
+    apk add --no-cache --virtual .build-deps build-base libffi-dev wkhtmltopdf && \
     python -m venv /opt/venv
 
 ENV PATH="/opt/venv/bin:$PATH"

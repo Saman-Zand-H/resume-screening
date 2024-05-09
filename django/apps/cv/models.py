@@ -1,7 +1,7 @@
 import os
 
-import weasyprint
-from account.models import Contact, User
+import pdfkit
+from account.models import Contact, User, WorkExperience
 from common.choices import LANGUAGES
 from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
 from flex_blob.models import FileModel
@@ -39,7 +39,26 @@ class CVTemplate(TimeStampedModel):
         return render_to_string(self.path, context)
 
     def render_pdf(self, context: dict, target_file_name: str = None) -> bytes:
-        return weasyprint.HTML(string=self.render(context)).write_pdf(target_file_name)
+        template = self.render(context).replace(
+            settings.STATIC_URL,
+            f"{getattr(settings, "SITE_DOMAIN", "http://localhost:8000").strip("/")}/{settings.STATIC_URL}",
+        )
+        options = {
+            "margin-top": "0",
+            "margin-right": "0",
+            "margin-bottom": "0",
+            "margin-left": "0",
+            "zoom": 1.0,
+            "enable-local-file-access": True,
+            "encoding": "UTF-8",
+            "no-outline": True,
+        }
+        pdf_bytes: bytes = pdfkit.from_string(
+            template,
+            output_path=False,
+            options=options,
+        )
+        return pdf_bytes
 
     def __str__(self):
         return f"{self.title}: {self.path}"
@@ -83,13 +102,24 @@ class GeneratedCV(FileModel):
     @classmethod
     def get_user_context(cls, user: User):
         educations = user.educations.all()
-        work_experiences = user.workexperiences.all()
+        work_experiences = user.workexperiences.filter(
+            status__in=[
+                WorkExperience.Status.VERIFIED,
+                WorkExperience.Status.SELF_VERIFIED,
+            ]
+        )
         about_me = "default"
-        languages = [user.profile.native_language, *user.profile.fluent_languages]
+        languages = [user.profile.native_language, *(user.profile.fluent_languages or [])]
         languages_dict = dict(LANGUAGES)
-        contacts = user.contacts.exclude(type__in=[Contact.Type.WHATSAPP, Contact.Type.LINKEDIN])
-        social_contacts = user.contacts.difference(contacts)
+        social_contacts = user.contacts.filter(
+            type__in=[
+                Contact.Type.LINKEDIN,
+                Contact.Type.WHATSAPP,
+                Contact.Type.WEBSITE,
+            ],
+        )
         certifications = user.certificateandlicenses.all()
+        phone = phone_qs.first().value if (phone_qs := user.contacts.filter(type=Contact.Type.PHONE)).exists() else None
         skills = user.skills.all()
 
         return {
@@ -97,9 +127,9 @@ class GeneratedCV(FileModel):
             "educations": educations,
             "work_experiences": work_experiences,
             "about_me": about_me,
+            "phone": phone,
             "certifications": certifications,
             "languages": [languages_dict.get(lang) for lang in languages],
-            "contacts": contacts,
             "social_contacts": social_contacts,
             "skills": skills,
             "now": timezone.now(),

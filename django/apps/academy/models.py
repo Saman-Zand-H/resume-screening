@@ -28,7 +28,7 @@ class CourseResult(models.Model):
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
 
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="results")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="course_results")
     status = models.CharField(max_length=50, choices=Status.choices, default=Status.NOT_STARTED.value)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
