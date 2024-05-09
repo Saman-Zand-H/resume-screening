@@ -101,3 +101,11 @@ celerybeat-schedule.db
 
 # output_files
 outputs/
+
+# project specific
+.dockerignore
+.env.docker
+docker-compose.yml
+
+# Ignore google cloud credentials
+*.credentials.json

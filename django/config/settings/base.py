@@ -12,26 +12,38 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 import sys
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
-from dotenv import load_dotenv
+import environ
 
-load_dotenv(override=True)
+from .constants import Assistants
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
+
+env = environ.Env()
+ENV_FILE_PATH = os.environ.get("ENV_FILE_PATH", os.path.join(BASE_DIR.parent, ".env"))
+
+env.read_env(ENV_FILE_PATH, overwrite=True)
+
+
+GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
+GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+if GOOGLE_APPLICATION_CREDENTIALS:
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2"
+SECRET_KEY = os.environ.get("SECRET_KEY") or "django-insecure-xbtb+fr8279na3c!&$1ud^tfwh^7u+7#1=#@odrkhct-@!e$_2"
 
 # Application definition
 
 INSTALLED_APPS = [
+    "markdownfield",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -41,6 +53,9 @@ INSTALLED_APPS = [
     "graphene_django",
     "allauth",
     "allauth.account",
+    "rest_framework",
+    "rest_framework.authtoken",
+    "dj_rest_auth",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
     "allauth.socialaccount.providers.openid_connect",
@@ -48,38 +63,48 @@ INSTALLED_APPS = [
     "django_filters",
     "graphql_auth",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
+    "corsheaders",
+    "colorfield",
+    "cities_light",
+    "phonenumber_field",
+    "computedfields",
+    "cachalot",
+    "flex_pubsub",
+    "flex_blob",
 ]
 
 INSTALLED_APPS += [
+    "common",
     "api",
     "account",
+    "ai",
+    "cv",
+    "flex_eav",
+    "criteria",
+    "score",
+    "academy",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "account.middlewares.AuthMiddleware",
 ]
 
-
-GRAPHENE = {
-    "SCHEMA": "api.schema.schema",
-    "MIDDLEWARE": [
-        "graphql_jwt.middleware.JSONWebTokenMiddleware",
-    ],
-}
 
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -88,6 +113,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.request",
+                "common.context_processors.now",
             ],
         },
     },
@@ -100,14 +126,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "NAME": os.environ.get("DB_NAME", "job_seekers_api"),
-        "USER": os.environ.get("DB_USER", "job_seekers_api"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "job_seekers_api"),
-        "PORT": os.environ.get("DB_PORT", 5432),
-    },
+    "default": env.db("DB_URL", "postgres://job_seekers_api:job_seekers_api@127.0.0.1:5432/job_seekers_api"),
 }
 
 
@@ -141,31 +160,62 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATICFILES_DIRS = (os.path.join(BASE_DIR, "static/"),)
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "assets")
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "assets"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
+
+GOOGLE_CLOUD_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_BUCKET_NAME")
+GOOGLE_CLOUD_STATIC_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_STATIC_BUCKET_NAME")
+if GOOGLE_CLOUD_BUCKET_NAME and GOOGLE_CLOUD_STATIC_BUCKET_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+            "OPTIONS": {
+                "bucket_name": GOOGLE_CLOUD_BUCKET_NAME,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+            "OPTIONS": {
+                "bucket_name": GOOGLE_CLOUD_STATIC_BUCKET_NAME,
+            },
+        },
+    }
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = "cpj_account.User"
+AUTH_USER_MODEL = "auth_account.User"
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
     "graphql_auth.backends.GraphQLAuthBackend",
+    "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
+
+
+GRAPHENE = {
+    "SCHEMA": "api.schema.schema",
+    "MIDDLEWARE": [
+        "graphql_jwt.middleware.JSONWebTokenMiddleware",
+        "common.middlewares.ErrorHandlingMiddleware",
+    ],
+}
 
 GRAPHQL_JWT = {
     "JWT_VERIFY_EXPIRATION": True,
     "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
+    "JWT_EXPIRATION_DELTA": timedelta(minutes=5),
+    "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_GET_USER_BY_NATURAL_KEY_HANDLER": "graphql_auth.utils.get_user_by_natural_key",
     "JWT_ALLOW_ANY_CLASSES": [
         "graphql_auth.mutations.Register",
@@ -177,7 +227,6 @@ GRAPHQL_JWT = {
         "graphql_auth.mutations.VerifyToken",
         "graphql_auth.mutations.RefreshToken",
         "graphql_auth.mutations.RevokeToken",
-        "graphql_auth.mutations.VerifySecondaryEmail",
     ],
 }
 
@@ -185,9 +234,19 @@ GRAPHQL_AUTH = {
     "LOGIN_ALLOWED_FIELDS": ["email"],
     "ALLOW_LOGIN_NOT_VERIFIED": False,
     "ALLOW_LOGIN_WITH_SECONDARY_EMAIL": False,
-    "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=12),
-    "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(hours=1),
+    "ALLOW_PASSWORDLESS_REGISTRATION": True,
+    "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
+    "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=1),
+    "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
+    "EMAIL_TEMPLATE_VARIABLES": {
+        "frontend_url": os.environ.get("FRONTEND_URL", "http://localhost:5173"),
+        "frontend_url_account_verify": os.environ.get("FRONTEND_URL_ACCOUNT_VERIFY", "/auth/verify"),
+        "frontend_url_password_reset": os.environ.get(
+            "FRONTEND_URL_PASSWORD_RESET", "/auth/reset-password/set-password"
+        ),
+    },
 }
+
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
@@ -209,7 +268,7 @@ SOCIALACCOUNT_PROVIDERS = {
     "openid_connect": {
         "APPS": [
             {
-                "provider_id": "oidc_linkedin",
+                "provider_id": "linkedin",
                 "name": "LinkedIn",
                 "client_id": os.environ.get("LINKEDIN_OAUTH_CLIENT_ID"),
                 "secret": os.environ.get("LINKEDIN_OAUTH_CLIENT_SECRET"),
@@ -220,8 +279,37 @@ SOCIALACCOUNT_PROVIDERS = {
         ]
     },
 }
+SOCIALACCOUNT_ADAPTER = "account.adapters.SocialAccountAdapter"
+HEADLESS_ONLY = True
+
+CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities500.zip"]
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
+
+CRITERIA_SETTINGS = {
+    "BASE_URL": os.environ.get("CRITERIA_BASE_URL", "https://integrations.criteriacorp.com/api/v1"),
+    "AUTH_TOKEN": os.environ.get("CRITERIA_AUTH_TOKEN"),
+    "AUTH_TYPE": os.environ.get("CRITERIA_AUTH_TYPE", "Bearer"),
+    "WEBHOOK_SECRET": os.environ.get("CRITERIA_WEBHOOK_SECRET"),
+}
+
+PUBSUB_SETTINGS = {
+    "GOOGLE_CREDENTIALS": GOOGLE_APPLICATION_CREDENTIALS,
+    "GOOGLE_PROJECT_ID": GOOGLE_CLOUD_PROJECT,
+    "TOPIC_NAME": os.environ.get("GOOGLE_PUBSUB_TOPIC_NAME"),
+    "SUBSCRIPTIONS": os.environ.get("GOOGLE_PUBSUB_SUBSCRIPTIONS"),
+    "LISTENER_PORT": os.environ.get("GOOGLE_PUBSUB_LISTENER_PORT"),
+    "BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_BACKEND_CLASS"),
+    "SCHEDULER_BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_SCHEDULER_BACKEND_CLASS"),
+}
 
 
-# We need these lines below to allow the Google sign in popup to work.
-SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
-SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
+
+ASSISTANT_IDS = {
+    Assistants.JOB: os.environ.get("JOB_ASSISTANT_ID"),
+    Assistants.SKILL: os.environ.get("SKILL_ASSISTANT_ID"),
+    Assistants.RESUME: os.environ.get("RESUME_ASSISTANT_ID"),
+}

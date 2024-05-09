@@ -1,8 +1,6 @@
-from .base import *  # noqa
+from .constants import Environment
+from .production import *  # noqa
+from .subscriptions import AccountSubscription
 
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
-
-SESSION_ENGINE = "django.contrib.sessions.backends.db"
-
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+ENVIRONMENT_NAME = Environment.DEVELOPMENT
+PUBSUB_SETTINGS["SUBSCRIPTIONS"] = ",".join([AccountSubscription.EMAILING.value])  # noqa

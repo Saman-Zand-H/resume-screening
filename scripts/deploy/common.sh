@@ -10,7 +10,7 @@ export GROUP_ID="maintainers"
 export USER_HOME="/home/$USER_ID"
 export PROJECT_NAME="${PROJECT_NAME}"
 export SOURCE_DIRECTORY="$USER_HOME/$PROJECT_NAME/django"
-export DEPLOY_SCRIPTS_PATH="$PROJECT_PATH/utils/deploy"
+export DEPLOY_SCRIPTS_PATH="$PROJECT_PATH/scripts/deploy"
 export DEPLOY_SCRIPT_PATH="$DEPLOY_SCRIPTS_PATH/prod_deploy.sh"
 
 export GITLAB_URL="gitlab.com"
@@ -34,11 +34,10 @@ export WEBHOOK_URL="http://$SITE_URL:$WEBHOOK_PORT/hooks/$PROJECT_NAME"
 export SUDOERS_FILE_NAME="$PROJECT_NAME"
 
 export GUNICORN_BASE_NAME="${PROJECT_NAME}_gunicorn"
-export CELERY_BASE_NAME="${PROJECT_NAME}_celery"
 export SOCKET_DIRECTORY="$USER_HOME/run"
 export SOCKET_FILE="$SOCKET_DIRECTORY/${PROJECT_NAME}_gunicorn.sock"
 
-export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-config.settings.production}"
+export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-config.settings.development}"
 
 function print_separator() {
     for ((i = 0; i < "$TERMINAL_COLUMNS"; i++)); do

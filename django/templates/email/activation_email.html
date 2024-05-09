@@ -1,0 +1,6 @@
+{% extends 'email/base.html' %}
+
+{% block content %}
+Activation Email: token = <a
+    href="{{ frontend_url }}{{frontend_url_account_verify}}?token={{ token }}">{{ frontend_url }}{{frontend_url_account_verify}}?token={{ token }}</a>
+{% endblock content %}
