@@ -34,7 +34,6 @@ WORKDIR /app
 # Install runtime dependencies in a single layer
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    nss \
     libasound2 \
     libx11-6 \
     libxcomposite1 \
