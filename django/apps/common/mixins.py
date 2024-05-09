@@ -76,21 +76,30 @@ class FilePermissionMixin:
     @classmethod
     def __init_subclass_with_meta__(cls, *args, **kwargs):
         model = kwargs.get("model")
-        fields = kwargs.get("fields")
+        fields = cls.get_fields(model)
 
         if model:
             file_models = set(get_file_models())
             cls._file_fields = {
                 field.name: field.related_model
-                for field in model._meta.fields
+                for field in fields
                 if isinstance(field, RelatedField)
-                and field.name in fields
                 and any(issubclass(field.related_model, file_model) for file_model in file_models)
             }
         return super().__init_subclass_with_meta__(*args, **kwargs)
 
     @classmethod
+    def get_fields(cls, model):
+        return list(model._meta.fields)
+
+    @classmethod
     def validate(cls, root, info, input, *args, **kwargs):
+        cls._validate_file_permissions(info, input)
+        if cls.is_django_cud_mutation():
+            super().validate(root, info, input, *args, **kwargs)
+
+    @classmethod
+    def _validate_file_permissions(cls, info, input):
         for field, value in input.items():
             if field not in cls._file_fields:
                 continue
@@ -102,18 +111,12 @@ class FilePermissionMixin:
             if not file_obj:
                 continue
 
-            cls._validate_file_permissions(file_obj, field, info)
-
-        if cls.is_django_cud_mutation():
-            super().validate(root, info, input, *args, **kwargs)
+            cls._check_file_permissions(file_obj, field, info)
 
     @classmethod
-    def _validate_file_permissions(cls, file_obj, field, info):
+    def _check_file_permissions(cls, file_obj, field, info):
         if not file_obj.check_auth(info.context):
             raise PermissionError("You don't have permission to access this file.")
-
-        if not file_obj.get_user_temporary_file(info.context.user) and not file_obj.is_used(info.context.user):
-            raise ValidationError({field: "You can't use this file."})
 
     @classmethod
     def mutate(cls, root, info, **kwargs):
@@ -125,3 +128,33 @@ class FilePermissionMixin:
     @classmethod
     def is_django_cud_mutation(cls):
         return isinstance(cls._meta, DjangoCudBaseOptions)
+
+
+class DocumentFilePermissionMixin(FilePermissionMixin):
+    @classmethod
+    def get_fields(cls, model):
+        fields = super().get_fields(model)
+        if hasattr(model, "get_method_models"):
+            fields.extend([field for m in model.get_method_models() for field in m._meta.fields])
+        return fields
+
+    @classmethod
+    def _validate_file_permissions(cls, info, input):
+        if not hasattr(input, "items"):
+            return
+
+        for field, value in input.items():
+            if hasattr(value, "__dict__"):
+                cls._validate_file_permissions(info, value)
+                continue
+            if field not in cls._file_fields:
+                continue
+            field_model = cls._file_fields.get(field)
+            if not field_model:
+                continue
+
+            file_obj: FileModel = field_model.objects.filter(pk=value).first()
+            if not file_obj:
+                continue
+
+            cls._check_file_permissions(file_obj, field, info)
