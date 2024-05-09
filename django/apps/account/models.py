@@ -684,8 +684,6 @@ class IEEMethod(EducationVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="iee_method",
         verbose_name=_("Education Evaluation Document"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
     evaluator = models.CharField(
         max_length=50,
@@ -719,8 +717,6 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="communication_method",
         verbose_name=_("Degree File"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
 
     class Meta:
@@ -794,8 +790,6 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="employer_letter_method",
         verbose_name=_("Employer Letter"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
 
     class Meta:
@@ -820,8 +814,6 @@ class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="paystubs_method",
         verbose_name=_("Paystubs"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
 
     class Meta:
@@ -945,8 +937,6 @@ class OfflineMethod(LanguageCertificateVerificationMethodAbstract):
         on_delete=models.CASCADE,
         related_name="offline_method",
         verbose_name=_("Language Certificate"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
 
     class Meta:
@@ -1020,8 +1010,6 @@ class CertificateAndLicenseOfflineVerificationMethod(CertificateAndLicenseVerifi
         on_delete=models.CASCADE,
         related_name="offline_method",
         verbose_name=_("Certificate And License"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
 
     class Meta:
@@ -1085,8 +1073,6 @@ class CanadaVisa(models.Model):
         on_delete=models.CASCADE,
         related_name="canada_visa",
         verbose_name=_("Citizenship Document"),
-        null=True,  # TODO: remove this
-        default=None,  # TODO: remove this
     )
 
     class Meta:
@@ -1112,9 +1098,6 @@ class Resume(models.Model):
         on_delete=models.CASCADE,
         related_name="resume",
         verbose_name=_("Resume"),
-        null=True,  # TODO: remove this
-        blank=True,
-        default=None,  # TODO: remove this
     )
     text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True)
     resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict)
