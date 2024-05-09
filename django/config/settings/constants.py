@@ -12,3 +12,4 @@ class Assistants:
     JOB = "job"
     SKILL = "skill"
     RESUME = "resume"
+    HEADLINES = "headlines"
