@@ -30,6 +30,6 @@ class CourseResult(models.Model):
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="course_results")
-    status = models.CharField(max_length=50, choices=Status.choices, default=Status.NOT_STARTED)
+    status = models.CharField(max_length=50, choices=Status.choices, default=Status.NOT_STARTED.value)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))

@@ -1,7 +1,8 @@
+from account.models import Profile
+from common.models import Industry
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from .models import Course, CourseResult
-from common.models import Industry
 
 
 class CourseNode(DjangoObjectType):
@@ -18,19 +19,16 @@ class CourseNode(DjangoObjectType):
             Course.industries.field.name,
         )
         filter_fields = {
-            Course.id.field.name: ["exact"],
-            Course.name.field.name: ["icontains"],
-            Course.external_id.field.name: ["exact"],
             Course.type.field.name: ["exact"],
         }
 
     @classmethod
     def get_queryset(cls, queryset, info):
         user = info.context.user
-        if not user:
+        if not user or not (profile := getattr(user, Profile.user.field.related_query_name(), None)):
             return queryset.none()
 
-        jobs = user.profile.interested_jobs.all()
+        jobs = profile.interested_jobs.all()
         industries = Industry.objects.filter(jobcategory__job__in=jobs).distinct().values_list("id", flat=True)
         return super().get_queryset(queryset, info).filter(industries__in=industries).distinct()
 
@@ -39,6 +37,9 @@ class CourseResultType(DjangoObjectType):
     class Meta:
         model = CourseResult
         fields = (
+            CourseResult.id.field.name,
             CourseResult.course.field.name,
             CourseResult.status.field.name,
+            CourseResult.created_at.field.name,
+            CourseResult.updated_at.field.name,
         )
