@@ -208,13 +208,9 @@ class UserFile(FileModel):
     @classmethod
     @transaction.atomic
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
-        obj = cls.objects.filter(uploaded_by=user).first()
-        if obj:
-            obj.update_temporary_file(file)
-        else:
-            obj = cls(uploaded_by=user, file=file)
-            obj.full_clean()
-            obj.save()
+        obj = cls(uploaded_by=user, file=file)
+        obj.full_clean()
+        obj.save()
         return obj
 
     def update_temporary_file(self, file: InMemoryUploadedFile):
