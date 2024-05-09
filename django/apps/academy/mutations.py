@@ -19,7 +19,7 @@ class CourseResultCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
 
     @classmethod
     def after_mutate(cls, root, info, input, obj, return_data):
-        return_data["start_url"] = "https://example.com"
+        return_data["start_url"] = obj.course.url
         return super().after_mutate(root, info, input, obj, return_data)
 
 
