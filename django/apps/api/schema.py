@@ -12,7 +12,7 @@ class Query(AccountQuery, CommonQuery, AcademyQuery, graphene.ObjectType):
     pass
 
 
-class Mutation(AccountMutation, CriteriaMutation,AcademyMutation, CommonMutation, graphene.ObjectType):
+class Mutation(AccountMutation, CriteriaMutation, AcademyMutation, CommonMutation, graphene.ObjectType):
     pass
 
 
