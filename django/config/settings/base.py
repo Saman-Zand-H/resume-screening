@@ -82,6 +82,7 @@ INSTALLED_APPS += [
     "flex_eav",
     "criteria",
     "score",
+    "academy",
 ]
 
 MIDDLEWARE = [
