@@ -17,6 +17,7 @@ class CourseNode(DjangoObjectType):
             Course.external_id.field.name,
             Course.type.field.name,
             Course.industries.field.name,
+            CourseResult.course.field.related_query_name(),
         )
         filter_fields = {
             Course.type.field.name: ["exact"],
@@ -36,10 +37,23 @@ class CourseNode(DjangoObjectType):
 class CourseResultType(DjangoObjectType):
     class Meta:
         model = CourseResult
+        use_connection = True
         fields = (
             CourseResult.id.field.name,
+            CourseResult.user.field.name,
             CourseResult.course.field.name,
             CourseResult.status.field.name,
             CourseResult.created_at.field.name,
             CourseResult.updated_at.field.name,
         )
+
+        filter_fields = {
+            f"{CourseResult.course.field.name}__{Course.type.field.name}": ["exact"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        if not user:
+            return queryset.none()
+        return super().get_queryset(queryset, info).filter(user=user)
