@@ -49,7 +49,7 @@ class CVTemplate(TimeStampedModel):
             "margin-bottom": "0",
             "margin-left": "0",
             "zoom": 1.0,
-            "enable-local-file-access": True,
+            "enable-local-file-access": "",
             "encoding": "UTF-8",
         }
         pdf_bytes: bytes = pdfkit.from_string(
