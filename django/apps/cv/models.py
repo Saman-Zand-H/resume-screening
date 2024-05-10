@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlparse
 
 import pdfkit
 from account.models import Contact, User, WorkExperience
@@ -37,10 +38,10 @@ class CVTemplate(TimeStampedModel):
 
     def render(self, context: dict) -> str:
         template = render_to_string(self.path, context)
-        static_base_url = (settings.SITE_DOMAIN or "http://localhost:8000").rstrip("/")
+        static_base_url = urlparse(settings.SITE_DOMAIN or "http://localhost:8000")
         return template.replace(
             settings.STATIC_URL,
-            f"{static_base_url}{settings.STATIC_URL}",
+            f"{settings.SITE_DOMAIN and "https://" or  "http://"}{static_base_url.netloc}{settings.STATIC_URL}",
         )
 
     def render_pdf(self, context: dict) -> bytes:
