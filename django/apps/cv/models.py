@@ -40,7 +40,7 @@ class CVTemplate(TimeStampedModel):
     def render(self, context: dict) -> str:
         template = render_to_string(self.path, context)
         static_base_url = "http://localhost:8000"
-        if not (settings.ENVIRONMENT_NAME and settings.ENVIRONMENT_NAME != Environment.DEVELOPMENT):
+        if not (settings.SITE_DOMAIN and "localhost" not in settings.SITE_DOMAIN):
             static_base_url = f"https://{urlparse(settings.SITE_DOMAIN).netloc}"
         return template.replace(
             settings.STATIC_URL,
