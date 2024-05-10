@@ -1138,7 +1138,7 @@ class UserTask(models.Model):
     def change_status(self, status: str, description: str = None):
         self.status = status
         self.status_description = description
-        self.save(update_fields=[UserTask.status.field.name])
+        self.save(update_fields=[UserTask.status.field.name, UserTask.status_description.field.name])
         return
 
     def __str__(self):
