@@ -43,62 +43,6 @@ from .managers import CertificateAndLicenseManager, UserManager
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
-def avatar_path(instance, filename):
-    return f"profile/{instance.user.id}/avatar/{filename}"
-
-
-def full_body_image_path(instance, filename):
-    return f"profile/{instance.user.id}/full_body_image/{filename}"
-
-
-def get_education_verification_path(path, instance, filename):
-    return f"profile/{instance.education.user.id}/education_verification/{path}/{filename}"
-
-
-def get_work_experience_verification_path(path, instance, filename):
-    return f"profile/{instance.work_experience.user.id}/work_experience_verification/{path}/{filename}"
-
-
-def get_language_certificate_verification_path(path, instance, filename):
-    return f"profile/{instance.language_certificate.user.id}/language_certificate_verification/{path}/{filename}"
-
-
-def get_certificate_and_license_verification_path(path, instance, filename):
-    return f"profile/{instance.certificate_and_license.user.id}/certificate_and_license_verification/{path}/{filename}"
-
-
-def education_evaluation_document_path(instance, filename):
-    return get_education_verification_path("education_evaluation", instance, filename)
-
-
-def degree_file_path(instance, filename):
-    return get_education_verification_path("degree", instance, filename)
-
-
-def employer_letter_path(instance, filename):
-    return get_work_experience_verification_path("employer_letter", instance, filename)
-
-
-def paystubs_path(instance, filename):
-    return get_work_experience_verification_path("paystubs", instance, filename)
-
-
-def language_certificate_path(instance, filename):
-    return get_language_certificate_verification_path("language_certificate", instance, filename)
-
-
-def certificate_and_license_path(instance, filename):
-    return get_certificate_and_license_verification_path("certificate_and_license", instance, filename)
-
-
-def citizenship_document_path(instance, filename):
-    return f"profile/{instance.user.id}/citizenship_document/{filename}"
-
-
-def resume_path(instance, filename):
-    return f"profile/{instance.user.id}/resume/{filename}"
-
-
 def fix_whatsapp_value(value):
     with contextlib.suppress(NumberParseException):
         return PhoneNumber.from_string(value).as_e164
