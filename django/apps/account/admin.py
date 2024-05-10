@@ -31,6 +31,7 @@ from .models import (
     Resume,
     SupportTicket,
     User,
+    UserTask,
     WorkExperience,
 )
 
@@ -456,3 +457,15 @@ class SupportTicketAdmin(admin.ModelAdmin):
     search_fields = (fields_join(SupportTicket.user, User.email), SupportTicket.title.field.name)
     list_filter = (SupportTicket.status.field.name,)
     raw_id_fields = (SupportTicket.user.field.name,)
+
+
+@register(UserTask)
+class UserTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        UserTask.user.field.name,
+        UserTask.task_name.field.name,
+        UserTask.status.field.name,
+    )
+    search_fields = (fields_join(UserTask.user, User.email), UserTask.task_name.field.name)
+    list_filter = (UserTask.status.field.name,)
+    raw_id_fields = (UserTask.user.field.name,)

@@ -658,7 +658,7 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
 
     @classmethod
     def after_mutate(cls, root, info, id, input, obj, return_data):
-        set_user_resume_json.delay(obj.file.file.read(), obj.user.pk)
+        set_user_resume_json.delay(obj.pk)
         return super().after_mutate(root, info, id, input, obj, return_data)
 
 

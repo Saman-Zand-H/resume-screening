@@ -1,10 +1,10 @@
 import json
 from collections import namedtuple
 
-from account.models import Resume, User
 from config.settings.subscriptions import AccountSubscription
 from flex_pubsub.tasks import register_task
 
+from account.models import Resume, User
 from django.contrib.auth import get_user_model
 
 from .models import UserTask
@@ -61,13 +61,14 @@ def set_user_skills(user_pk: int) -> bool:
 
 
 @register_task([AccountSubscription.ASSISTANTS])
-def set_user_resume_json(resume_file: bytes, user_id: int) -> bool:
-    user = User.objects.get(pk=user_id)
+def set_user_resume_json(resume_id: str) -> bool:
+    resume = Resume.objects.get(pk=resume_id)
+    user = resume.user
     user_task = UserTask.objects.get_or_create(user=user, task_name=set_user_resume_json.__name__)[0]
     if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
         return False
 
-    resume_text = extract_resume_text(resume_file)
+    resume_text = extract_resume_text(resume.file.file.read())
     if not resume_text:
         user_task.change_status(UserTask.TaskStatus.FAILED)
         return False
