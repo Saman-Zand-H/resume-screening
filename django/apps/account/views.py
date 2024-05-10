@@ -31,5 +31,7 @@ class LinkedInOAuth2View(SocialLoginView):
 class TestView(View):
     def get(self, *args, **kwargs):
         resume = Resume.objects.first()
-        set_user_resume_json(resume.file.file.read(), resume.user.id)
-        return HttpResponse("OK")
+        pdf = CVTemplate.objects.last().render_pdf(GeneratedCV.get_user_context(resume.user))
+        response = HttpResponse(content_type="application/pdf")
+        response.write(pdf)
+        return response

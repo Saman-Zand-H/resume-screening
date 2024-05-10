@@ -167,7 +167,6 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, "static/"),)
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "assets"
 MEDIA_URL = "/media/"
-STATIC_BASE_URL = os.environ.get("STATIC_BASE_URL", f"http://localhost:8000{STATIC_URL}")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 FAVICON_ROOT = os.path.join(BASE_DIR, "assets", "favicons")
 
