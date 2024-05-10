@@ -6,13 +6,15 @@ from common.queries import Query as CommonQuery
 from criteria.mutations import Mutation as CriteriaMutation
 from academy.queries import Query as AcademyQuery
 from academy.mutations import Mutation as AcademyMutation
+from cv.mutations import Mutation as CVMutation
+from cv.queries import Query as CVQuery
 
 
-class Query(AccountQuery, CommonQuery, AcademyQuery, graphene.ObjectType):
+class Query(AccountQuery, CommonQuery, AcademyQuery, CVQuery, graphene.ObjectType):
     pass
 
 
-class Mutation(AccountMutation, CriteriaMutation, AcademyMutation, CommonMutation, graphene.ObjectType):
+class Mutation(AccountMutation, CriteriaMutation, AcademyMutation, CVMutation, CommonMutation, graphene.ObjectType):
     pass
 
 

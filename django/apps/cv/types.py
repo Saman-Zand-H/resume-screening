@@ -1,6 +1,10 @@
+from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
+
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
+from .models import CVTemplate
 
 
 class ContactInformation(BaseModel):
@@ -61,3 +65,20 @@ class ResumeSchema(BaseModel):
     additional_information: Optional[List[AdditionalInformationItem]] = Field(
         None, description="Any additional information that the individual wants to include."
     )
+
+
+class CVTemplateNode(DjangoObjectType):
+    class Meta:
+        model = CVTemplate
+        use_connection = True
+        fields = (
+            CVTemplate.id.field.name,
+            CVTemplate.title.field.name,
+        )
+        filter_fields = {
+            CVTemplate.title.field.name: ["icontains"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return super().get_queryset(queryset, info).filter(is_active=True)
