@@ -25,6 +25,7 @@ from ..models import (
     Resume,
     SupportTicket,
     User,
+    UserTask,
     WorkExperience,
 )
 
@@ -251,6 +252,16 @@ class SupportTicketType(DjangoObjectType):
         )
 
 
+class UserTaskType(DjangoObjectType):
+    class Meta:
+        model = UserTask
+        fields = (
+            UserTask.id.field.name,
+            UserTask.task_name.field.name,
+            UserTask.status.field.name,
+        )
+
+
 class UserNode(BaseUserNode):
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
@@ -280,6 +291,7 @@ class UserNode(BaseUserNode):
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
             SupportTicket.user.field.related_query_name(),
+            UserTask.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
