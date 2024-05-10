@@ -1,11 +1,9 @@
 import os
-from urllib.parse import urlparse
 
 import pdfkit
 from account.models import Contact, User, WorkExperience
 from common.choices import LANGUAGES
 from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
-from config.settings.constants import Environment
 from flex_blob.models import FileModel
 from model_utils.models import TimeStampedModel
 
@@ -41,7 +39,7 @@ class CVTemplate(TimeStampedModel):
         template = render_to_string(self.path, context)
         static_base_url = "http://localhost:8000"
         if settings.SITE_DOMAIN or "localhost" not in settings.SITE_DOMAIN:
-            static_base_url = f"https://{urlparse(settings.SITE_DOMAIN).netloc}"
+            static_base_url = f"https://{settings.SITE_DOMAIN}"
         return template.replace(
             settings.STATIC_URL,
             f"{static_base_url}{settings.STATIC_URL}",
