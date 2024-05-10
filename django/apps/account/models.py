@@ -133,7 +133,7 @@ class UserFile(FileModel):
         abstract = True
 
     def check_auth(self, request):
-        return request.user == self.uploaded_by
+        return request.user == self.uploaded_by or request.user.is_superuser
 
     @classmethod
     def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:

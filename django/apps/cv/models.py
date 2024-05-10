@@ -92,7 +92,7 @@ class GeneratedCV(FileModel):
         ]
 
     def check_auth(self, request):
-        return request.user == self.user
+        return request.user == self.user or request.user.is_superuser
 
     @classmethod
     def generate(cls, user: User, template: CVTemplate = None):
