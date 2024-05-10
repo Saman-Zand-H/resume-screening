@@ -6,13 +6,13 @@ from .tasks import render_cv_template
 
 class GenerateResumeMutation(graphene.Mutation):
     class Arguments:
-        template_id = graphene.ID()
+        template_id = graphene.ID(required=False)
 
     success = graphene.Boolean()
 
     @login_required
     @staticmethod
-    def mutate(root, info, template_id):
+    def mutate(root, info, template_id=None):
         user = info.context.user
         render_cv_template.delay(user.pk, template_id)
 
