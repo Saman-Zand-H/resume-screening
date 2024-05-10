@@ -29,7 +29,7 @@ class CourseNode(DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         user = info.context.user
-        if not user or not (profile := getattr(user, Profile.user.field.related_query_name(), None)):
+        if not user or not (profile := user.get_profile()):
             return queryset.none()
 
         jobs = profile.interested_jobs.all()

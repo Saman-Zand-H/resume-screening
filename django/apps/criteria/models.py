@@ -43,7 +43,7 @@ class JobAssessmentQuerySet(models.QuerySet):
             models.Q(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)
             | (
                 models.Q(related_jobs__in=profile.interested_jobs.all())
-                if (profile := getattr(user, Profile.user.field.related_query_name(), None))
+                if (profile := user.get_profile())
                 else models.Q()
             )
             | models.Q(required=True)

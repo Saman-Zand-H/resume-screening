@@ -1,6 +1,6 @@
 import datetime
 import math
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from criteria.models import JobAssessment, JobAssessmentResult
 from pydantic import BaseModel
@@ -9,10 +9,7 @@ from score.utils import register_pack, register_score
 
 from django.db.models import Count, DurationField, ExpressionWrapper, F, Sum
 
-from .models import (
-    Profile,
-    User,
-)
+from .models import Profile, User
 
 
 class ScoreValue(BaseModel):
@@ -49,15 +46,8 @@ JOB_ASSESSMENT_SCORES_PERCENTAGE = {
 }
 
 
-def get_profile(user: User) -> Optional[Profile]:
-    profile = getattr(user, Profile.user.field.related_query_name(), None)
-    if profile and profile.pk:
-        return profile
-    return None
-
-
 def get_profile_interested_jobs(user: User):
-    profile = get_profile(user)
+    profile = user.get_profile()
     if not profile or not profile.interested_jobs.exists():
         return []
     return profile.interested_jobs.all()
@@ -75,7 +65,7 @@ class ProfileFieldScore(UserFieldExistingScore):
     profile_field: ClassVar[str]
 
     def get_value(self, user):
-        profile = get_profile(user)
+        profile = user.get_profile()
 
         if profile:
             return getattr(profile, self.profile_field)

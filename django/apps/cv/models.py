@@ -112,7 +112,7 @@ class GeneratedCV(FileModel):
             ]
         )
         about_me = "default"
-        languages = [user.profile.native_language, *(user.profile.fluent_languages or [])]
+        languages = [user.get_profile().native_language, *(user.get_profile().fluent_languages or [])]
         languages_dict = dict(LANGUAGES)
         social_contacts = user.contacts.filter(
             type__in=[

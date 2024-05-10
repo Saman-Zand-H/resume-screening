@@ -63,7 +63,7 @@ class JobAssessmentType(DjangoObjectType):
 
     def resolve_jobs(self, info):
         user = info.context.user
-        return self.job_assessment_jobs.filter(job__in=user.profile.interested_jobs.values_list("pk", flat=True))
+        return self.job_assessment_jobs.filter(job__in=user.get_profile().interested_jobs.values_list("pk", flat=True))
 
     @classmethod
     def fix_date(cls, date, time):
@@ -105,4 +105,4 @@ class JobAssessmentType(DjangoObjectType):
 
     def resolve_required(self, info):
         user = info.context.user
-        return self.is_required(user.profile.interested_jobs.all())
+        return self.is_required(user.get_profile().interested_jobs.all())

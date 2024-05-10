@@ -100,6 +100,9 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    def get_profile(self):
+        return getattr(self, Profile.user.field.related_query_name(), None)
+
     @property
     def has_resume(self):
         for field in self.get_resume_related_models():
