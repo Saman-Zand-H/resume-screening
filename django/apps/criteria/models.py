@@ -24,7 +24,10 @@ def job_assessment_logo_path(instance, filename):
 class JobAssessmentQuerySet(models.QuerySet):
     def filter_by_required(self, required, jobs):
         if required:
-            return self.filter(job_assessment_jobs__required=True, job_assessment_jobs__job__in=jobs)
+            return self.filter(
+                models.Q(job_assessment_jobs__required=True, job_assessment_jobs__job__in=jobs)
+                | models.Q(required=True)
+            )
         return self.annotate(
             required_job_assessments=models.Count(
                 "job_assessment_jobs",
@@ -36,9 +39,10 @@ class JobAssessmentQuerySet(models.QuerySet):
         return self.filter(job_assessment_jobs__required=False, job_assessment_jobs__job__in=jobs)
 
     def related_to_user(self, user):
-        return (
-            self.filter(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)
-            | self.filter(related_jobs__in=user.profile.interested_jobs.all())
+        return self.filter(
+            models.Q(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)
+            | models.Q(related_jobs__in=user.profile.interested_jobs.all())
+            | models.Q(required=True)
         ).distinct()
 
 
@@ -61,6 +65,7 @@ class JobAssessment(models.Model):
     retry_interval = models.DurationField(default=timedelta(weeks=1), verbose_name=_("Retry Interval"))
     count_limit = models.PositiveIntegerField(default=10, verbose_name=_("Count Limit"))
     time_limit = models.DurationField(default=timedelta(minutes=30), verbose_name=_("Time Limit"))
+    required = models.BooleanField(default=False, verbose_name=_("Required"))
 
     objects = JobAssessmentQuerySet.as_manager()
 
