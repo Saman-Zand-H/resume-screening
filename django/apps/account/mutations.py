@@ -1,9 +1,12 @@
 import contextlib
 
 import graphene
-from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
-from common.mixins import ArrayChoiceTypeMixin, FilePermissionMixin, DocumentFilePermissionMixin
+from common.mixins import (
+    ArrayChoiceTypeMixin,
+    DocumentFilePermissionMixin,
+    FilePermissionMixin,
+)
 from common.models import Job
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -29,6 +32,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -220,7 +224,8 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
         custom_fields = USER_MUTATION_FIELDS
 
     @classmethod
-    def get_object_id(cls, info):
+    def get_object_id(cls, context):
+        info = context.get("info")
         profile = Profile.objects.get_or_create(user=info.context.user)[0]
         return profile.pk
 
@@ -553,7 +558,9 @@ class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDel
         model = LanguageCertificate
 
 
-class LanguageCertificateSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+class LanguageCertificateSetVerificationMethodMutation(
+    DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
+):
     class Meta:
         model = LanguageCertificate
 
@@ -588,7 +595,9 @@ class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoD
         model = CertificateAndLicense
 
 
-class CertificateAndLicenseSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+class CertificateAndLicenseSetVerificationMethodMutation(
+    DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
+):
     class Meta:
         model = CertificateAndLicense
 
@@ -627,10 +636,20 @@ class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         cls.full_clean(obj)
 
 
-class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
+class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
         model = Resume
         fields = (Resume.file.field.name,)
+
+    @classmethod
+    def get_object_id(cls, context):
+        info = context.get("info")
+        file = context.get("input").get(Resume.file.field.name)
+        resume = Resume.objects.get_or_create(
+            user=info.context.user,
+            defaults={"file": Resume.file.field.related_model.objects.get(pk=file)},
+        )[0]
+        return resume.pk
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
@@ -638,9 +657,9 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMu
         cls.full_clean(obj)
 
     @classmethod
-    def after_mutate(cls, root, info, input, obj, return_data):
-        set_user_resume_json.delay(obj.file.read(), obj.user.pk)
-        return super().after_mutate(root, info, input, obj, return_data)
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        set_user_resume_json.delay(obj.file.file.read(), obj.user.pk)
+        return super().after_mutate(root, info, id, input, obj, return_data)
 
 
 class UserDeleteMutation(graphene.Mutation):

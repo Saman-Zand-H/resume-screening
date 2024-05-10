@@ -91,7 +91,7 @@ class CRUDWithoutIDMutationMixin:
         del cls._meta.arguments["id"]
 
     @classmethod
-    def get_object_id(cls, info: IDLikeObject):
+    def get_object_id(cls, context: IDLikeObject):
         raise NotImplementedError
 
     @classmethod
@@ -104,4 +104,4 @@ class CRUDWithoutIDMutationMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
         info = args[1]
-        return super().mutate(*args, **kwargs, id=IDLikeObject(info))
+        return super().mutate(*args, **kwargs, id=IDLikeObject({"info": info, "input": kwargs.get("input")}))

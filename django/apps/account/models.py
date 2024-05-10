@@ -1098,7 +1098,7 @@ class Resume(models.Model):
     headline = models.CharField(max_length=255, verbose_name=_("Headline"), blank=True, null=True)
     about_me = models.TextField(verbose_name=_("About Me"), blank=True, null=True)
     text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True)
-    resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict)
+    resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict, blank=True, null=True)
 
     class Meta:
         verbose_name = _("Resume")

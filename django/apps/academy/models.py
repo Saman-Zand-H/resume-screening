@@ -20,6 +20,7 @@ class Course(models.Model):
     external_id = models.CharField(max_length=100, blank=True, null=True)
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.GENERAL)
     industries = models.ManyToManyField(Industry)
+    url = models.URLField(blank=True, null=True)
 
 
 class CourseResult(models.Model):
