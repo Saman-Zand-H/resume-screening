@@ -41,7 +41,7 @@ class CVTemplate(TimeStampedModel):
     def render_pdf(self, context: dict, target_file_name: str = None) -> bytes:
         template = self.render(context).replace(
             settings.STATIC_URL,
-            f"{getattr(settings, "SITE_DOMAIN", "http://localhost:8000").strip("/")}/{settings.STATIC_URL}",
+            f"{getattr(settings, "STATIC_BASE_URL").strip("/")}/{settings.STATIC_URL}",
         )
         options = {
             "margin-top": "0",
