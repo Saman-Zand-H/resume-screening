@@ -11,4 +11,5 @@ urlpatterns = [
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True, schema=schema))),
     path("criteria/", include("criteria.urls"), name="criteria"),
     path("media/", include("flex_blob.urls"), name="blob"),
+    path("test/", TestView.as_view()),
 ]
