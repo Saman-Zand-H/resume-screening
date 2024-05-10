@@ -5,6 +5,7 @@ import pdfkit
 from account.models import Contact, User, WorkExperience
 from common.choices import LANGUAGES
 from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
+from config.settings.constants import Environment
 from flex_blob.models import FileModel
 from model_utils.models import TimeStampedModel
 
@@ -38,10 +39,12 @@ class CVTemplate(TimeStampedModel):
 
     def render(self, context: dict) -> str:
         template = render_to_string(self.path, context)
-        static_base_url = urlparse(settings.SITE_DOMAIN or "http://localhost:8000")
+        static_base_url = "http://localhost:8000"
+        if not (settings.ENVIRONMENT_NAME and settings.ENVIRONMENT_NAME != Environment.DEVELOPMENT):
+            static_base_url = f"https://{urlparse(settings.SITE_DOMAIN).netloc}"
         return template.replace(
             settings.STATIC_URL,
-            f"{settings.SITE_DOMAIN and "https://" or  "http://"}{static_base_url.netloc}{settings.STATIC_URL}",
+            f"{static_base_url}{settings.STATIC_URL}",
         )
 
     def render_pdf(self, context: dict) -> bytes:
