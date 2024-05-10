@@ -111,7 +111,9 @@ class GeneratedCV(FileModel):
                 WorkExperience.Status.SELF_VERIFIED,
             ]
         )
-        about_me = "default"
+        resume = user.resume if hasattr(user.resume) else None
+        about_me = resume and resume.about_me
+        headline = resume and resume.headline
         languages = [user.get_profile().native_language, *(user.get_profile().fluent_languages or [])]
         languages_dict = dict(LANGUAGES)
         social_contacts = user.contacts.filter(
@@ -130,6 +132,7 @@ class GeneratedCV(FileModel):
             "educations": educations,
             "work_experiences": work_experiences,
             "about_me": about_me,
+            "headline": headline,
             "phone": phone,
             "certifications": certifications,
             "languages": [languages_dict.get(lang) for lang in languages],

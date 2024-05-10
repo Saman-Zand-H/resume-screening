@@ -144,35 +144,37 @@
                             </div>
                             <div class="resume-body">
                                 <div class="content-sections">
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/Chat profile.svg' %}"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    About Me:
-                                                </div>
-                                            </div>
-                                            <div
-                                                class="section-items"
-                                                style="margin-top: 0"
-                                            >
+                                    {% if about_me %}
+                                        <div class="body-section">
+                                            <div class="body-items">
                                                 <div
-                                                    class="section-item"
+                                                    class="section-title-container"
+                                                >
+                                                    <img
+                                                        src="{% static 'img/icon/cv/Chat profile.svg' %}"
+                                                        alt="About"
+                                                        class="section-icon"
+                                                    />
+                                                    <div class="section-title">
+                                                        About Me:
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="section-items"
                                                     style="margin-top: 0"
                                                 >
                                                     <div
-                                                        class="section-description"
-                                                    >{{ about_me }}</div>
+                                                        class="section-item"
+                                                        style="margin-top: 0"
+                                                    >
+                                                        <div
+                                                            class="section-description"
+                                                        >{{ about_me }}</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    {% endif %}
                                     {% if work_experiences %}
                                         <div class="body-section">
                                             <div class="body-items">
