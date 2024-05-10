@@ -101,7 +101,7 @@ class User(AbstractUser):
     objects = UserManager()
 
     def get_profile(self):
-        return getattr(self, Profile.user.field.related_query_name(), None)
+        return (profile := getattr(self, Profile.user.field.related_query_name(), None)).pk and profile
 
     @property
     def has_resume(self):
