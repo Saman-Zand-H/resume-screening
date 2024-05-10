@@ -1,14 +1,12 @@
 import graphene
+from account.mixins import DocumentCUDMixin
 from graphene_django_cud.mutations import DjangoCreateMutation
 
 from criteria.client.client import criteria_client
 from criteria.client.types import CreateOrderRequest, Identifier
-
 from django.core.exceptions import ValidationError
 
-from .models import JobAssessmentResult, JobAssessment
-
-from account.mixins import DocumentCUDMixin
+from .models import JobAssessment, JobAssessmentResult
 
 
 class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
@@ -28,7 +26,7 @@ class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         user = info.context.user
         job_assessment_id = input.get(JobAssessmentResult.job_assessment.field.name)
 
-        if not user.profile.interested_jobs.filter(assessments=job_assessment_id).exists():
+        if not JobAssessment.objects.related_to_user(user).filter(pk=job_assessment_id).exists():
             raise ValidationError("Not related to the user.")
 
         job_assessment = JobAssessment.objects.get(id=job_assessment_id)
