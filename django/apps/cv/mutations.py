@@ -15,7 +15,7 @@ class GenerateResumeMutation(graphene.Mutation):
     def mutate(root, info, template_id):
         user = info.context.user
         render_cv_template.delay(user.pk, template_id)
-        
+
         return GenerateResumeMutation(success=True)
 
 

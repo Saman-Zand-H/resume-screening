@@ -51,7 +51,6 @@ class CVTemplate(TimeStampedModel):
             "zoom": 1.0,
             "enable-local-file-access": True,
             "encoding": "UTF-8",
-            "no-outline": True,
         }
         pdf_bytes: bytes = pdfkit.from_string(
             template,
