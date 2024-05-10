@@ -1,6 +1,24 @@
-{% extends 'email/base.html' %}
+{% extends "email/base.html" %}
+
+{% block title %}Welcome to CPJ{% endblock %}
 
 {% block content %}
-Activation Email: token = <a
-    href="{{ frontend_url }}{{frontend_url_account_verify}}?token={{ token }}">{{ frontend_url }}{{frontend_url_account_verify}}?token={{ token }}</a>
-{% endblock content %}
+<h2 style="color: #333; text-align: center;">Dear {{ user.first_name }},</h2>
+<p style="color: #555; font-size: 16px;">
+    Welcome to <strong>Canada Prime Jobs (CPJ)</strong>, the leading recruitment company in Canada!
+</p>
+<p style="color: #555; font-size: 16px;">
+    To activate your account and explore tailored job opportunities, please verify your email by clicking the link
+    below:
+</p>
+<p style="text-align: center;">
+    <a href="{{ frontend_url }}{{frontend_url_account_verify}}?token={{ token }}" class="button">Verify Email</a>
+</p>
+<p style="color: #555; font-size: 16px;">
+    Thank you for joining us. Our support team is here 24/7 to assist you with any questions.
+</p>
+<p style="color: #333; font-size: 16px; text-align: center;">
+    Best regards,<br>
+    <strong>The CPJ Team</strong>
+</p>
+{% endblock %}
