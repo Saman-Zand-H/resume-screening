@@ -36,14 +36,15 @@ class CVTemplate(TimeStampedModel):
             raise ValidationError(_("Template does not exist"))
 
     def render(self, context: dict) -> str:
-        return render_to_string(self.path, context)
-
-    def render_pdf(self, context: dict) -> bytes:
+        template = render_to_string(self.path, context)
         static_base_url = (settings.SITE_DOMAIN or "http://localhost:8000").rstrip("/")
-        template = self.render(context).replace(
+        return template.replace(
             settings.STATIC_URL,
             f"{static_base_url}{settings.STATIC_URL}",
         )
+
+    def render_pdf(self, context: dict) -> bytes:
+        template = self.render(context)
         options = {
             "margin-top": "0",
             "margin-right": "0",
