@@ -60,7 +60,6 @@ class CVTemplate(TimeStampedModel):
             template,
             output_path=False,
             options=options,
-            verbose=True,
         )
         return pdf_bytes
 

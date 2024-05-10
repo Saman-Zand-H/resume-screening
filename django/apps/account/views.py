@@ -19,5 +19,3 @@ class LinkedInOAuth2View(SocialLoginView):
     adapter_class = LinkedInOAuth2Adapter
     client_class = OAuth2Client
     callback_url = None
-    callback_url = None
-    callback_url = None
