@@ -111,7 +111,7 @@ class GeneratedCV(FileModel):
                 WorkExperience.Status.SELF_VERIFIED,
             ]
         )
-        resume = user.resume if hasattr(user.resume) else None
+        resume = user.resume if hasattr(user, "resume") else None
         about_me = resume and resume.about_me
         headline = resume and resume.headline
         languages = [user.get_profile().native_language, *(user.get_profile().fluent_languages or [])]
