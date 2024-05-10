@@ -2,7 +2,7 @@ import re
 import uuid
 from datetime import timedelta
 
-from account.models import User
+from account.models import Profile, User
 from common.models import Job
 from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
@@ -41,7 +41,11 @@ class JobAssessmentQuerySet(models.QuerySet):
     def related_to_user(self, user):
         return self.filter(
             models.Q(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)
-            | models.Q(related_jobs__in=user.profile.interested_jobs.all())
+            | (
+                models.Q(related_jobs__in=profile.interested_jobs.all())
+                if (profile := getattr(user, Profile.user.field.related_query_name(), None))
+                else models.Q()
+            )
             | models.Q(required=True)
         ).distinct()
 
