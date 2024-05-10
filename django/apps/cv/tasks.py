@@ -16,7 +16,7 @@ def render_cv_template(user_id: int, template_id: int = None):
         return False
 
     if not hasattr(user, "profile"):
-        user_task.change_status(UserTask.TaskStatus.FAILED)
+        user_task.change_status(UserTask.TaskStatus.FAILED, "User has no profile")
         return False
 
     user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
@@ -24,6 +24,6 @@ def render_cv_template(user_id: int, template_id: int = None):
         GeneratedCV.from_user(user, template)
         user_task.change_status(UserTask.TaskStatus.COMPLETED)
         return True
-    except Exception:
-        user_task.change_status(UserTask.TaskStatus.FAILED)
+    except Exception as e:
+        user_task.change_status(UserTask.TaskStatus.FAILED, str(e))
         return False
