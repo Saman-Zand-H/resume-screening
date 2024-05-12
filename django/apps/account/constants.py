@@ -7,6 +7,7 @@ from config.settings.constants import Assistants
 from django.conf import settings
 
 USER_TASKS_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
+JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD = 65
 
 
 class OpenAiAssistants:

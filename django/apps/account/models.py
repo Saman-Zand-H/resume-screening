@@ -24,6 +24,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
+from config.signals import job_available_triggered
 from flex_eav.models import EavValue
 from flex_pubsub.tasks import task_registry
 from phonenumber_field.modelfields import PhoneNumberField
@@ -39,6 +40,7 @@ from django.db import models, transaction
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from .constants import JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD
 from .managers import CertificateAndLicenseManager, UserManager
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
@@ -337,9 +339,11 @@ class Profile(ComputedFieldsModel):
         from .scores import UserScorePack
 
         scores = UserScorePack.calculate(self.user)
+        if (total := sum(scores.values())) >= JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD:
+            job_available_triggered.send(sender=self.__class__, user=self.user, instance=self)
 
         return {
-            "total": sum(scores.values()),
+            "total": total,
             "scores": scores,
         }
 
