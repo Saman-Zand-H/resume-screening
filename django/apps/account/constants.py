@@ -6,6 +6,8 @@ from config.settings.constants import Assistants
 
 from django.conf import settings
 
+USER_TASKS_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
+
 
 class OpenAiAssistants:
     JOB = settings.ASSISTANT_IDS.get(Assistants.JOB) or "asst_PuExhyoUGwAomIo5eCJJQWgr"
