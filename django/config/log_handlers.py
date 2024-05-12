@@ -12,7 +12,9 @@ class GCSHandler(logging.Handler):
         self.client = storage.Client()
 
     def emit(self, record):
-        log_entry = record.html_error
+        log_entry = getattr(record, "html_error", None)
+        if not log_entry:
+            return
         bucket = self.client.get_bucket(self.bucket_name)
 
         timestamp = timezone.now().strftime("%Y-%m-%d-%H-%M-%S-%f")
