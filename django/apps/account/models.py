@@ -684,7 +684,7 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
         CFO = "cfo", _("CFO")
         CEO = "ceo", _("CEO")
 
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
+    job_title = models.CharField(max_length=255, verbose_name=_("Job Title"))
     grade = models.CharField(max_length=50, choices=Grade.choices, verbose_name=_("Grade"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
@@ -697,7 +697,7 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
         verbose_name_plural = _("Work Experiences")
 
     def __str__(self):
-        return f"{self.user.email} - {self.job.title} - {self.organization}"
+        return f"{self.user.email} - {self.job_title} - {self.organization}"
 
     @classmethod
     def get_verification_abstract_model(cls):

@@ -121,7 +121,7 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
         use_connection = True
         fields = (
             WorkExperience.id.field.name,
-            WorkExperience.job.field.name,
+            WorkExperience.job_title.field.name,
             WorkExperience.grade.field.name,
             WorkExperience.start.field.name,
             WorkExperience.end.field.name,

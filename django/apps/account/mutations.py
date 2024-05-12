@@ -34,6 +34,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -414,7 +415,7 @@ class EducationUpdateStatusMutation(UpdateStatusMixin):
 
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
-    WorkExperience.job.field.name,
+    WorkExperience.job_title.field.name,
     WorkExperience.grade.field.name,
     WorkExperience.start.field.name,
     WorkExperience.end.field.name,
