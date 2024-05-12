@@ -220,7 +220,7 @@ class CommunicationMethodAdmin(admin.ModelAdmin):
 class WorkExperienceAdmin(admin.ModelAdmin):
     list_display = (
         WorkExperience.user.field.name,
-        WorkExperience.job.field.name,
+        WorkExperience.job_title.field.name,
         WorkExperience.organization.field.name,
         WorkExperience.status.field.name,
         WorkExperience.start.field.name,

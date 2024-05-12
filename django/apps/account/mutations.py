@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from account.models import UserTask
 from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
@@ -33,6 +34,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -413,7 +415,7 @@ class EducationUpdateStatusMutation(UpdateStatusMixin):
 
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
-    WorkExperience.job.field.name,
+    WorkExperience.job_title.field.name,
     WorkExperience.grade.field.name,
     WorkExperience.start.field.name,
     WorkExperience.end.field.name,
@@ -658,7 +660,9 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
 
     @classmethod
     def after_mutate(cls, root, info, id, input, obj, return_data):
-        set_user_resume_json.delay(obj.pk)
+        task_name = (task := set_user_resume_json).__name__
+        UserTask.objects.get_or_create(user=obj.user, task_name=task_name)[0]
+        task.delay(obj.user.pk)
         return super().after_mutate(root, info, id, input, obj, return_data)
 
 

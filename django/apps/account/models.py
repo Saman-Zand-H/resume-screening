@@ -24,6 +24,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
+from config.signals import job_available_triggered
 from flex_eav.models import EavValue
 from flex_pubsub.tasks import task_registry
 from phonenumber_field.modelfields import PhoneNumberField
@@ -39,6 +40,7 @@ from django.db import models, transaction
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from .constants import JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD
 from .managers import CertificateAndLicenseManager, UserManager
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
@@ -136,7 +138,7 @@ class UserFile(FileModel):
         abstract = True
 
     def check_auth(self, request):
-        return request.user == self.uploaded_by or request.user.is_superuser
+        return request.user == self.uploaded_by
 
     @classmethod
     def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:
@@ -337,9 +339,11 @@ class Profile(ComputedFieldsModel):
         from .scores import UserScorePack
 
         scores = UserScorePack.calculate(self.user)
+        if (total := sum(scores.values())) >= JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD:
+            job_available_triggered.send(sender=self.__class__, user=self.user, instance=self)
 
         return {
-            "total": sum(scores.values()),
+            "total": total,
             "scores": scores,
         }
 
@@ -680,7 +684,7 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
         CFO = "cfo", _("CFO")
         CEO = "ceo", _("CEO")
 
-    job = models.ForeignKey(Job, on_delete=models.CASCADE, verbose_name=_("Job"), related_name="work_experiences")
+    job_title = models.CharField(max_length=255, verbose_name=_("Job Title"))
     grade = models.CharField(max_length=50, choices=Grade.choices, verbose_name=_("Grade"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
@@ -693,7 +697,7 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
         verbose_name_plural = _("Work Experiences")
 
     def __str__(self):
-        return f"{self.user.email} - {self.job.title} - {self.organization}"
+        return f"{self.user.email} - {self.job_title} - {self.organization}"
 
     @classmethod
     def get_verification_abstract_model(cls):
