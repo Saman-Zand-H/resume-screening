@@ -340,7 +340,7 @@ class Profile(ComputedFieldsModel):
 
         scores = UserScorePack.calculate(self.user)
         if (total := sum(scores.values())) >= JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD:
-            job_available_triggered.send(sender=self.__class__, user=self.user, instance=self)
+            job_available_triggered.send(sender=self.__class__, user=self.user)
 
         return {
             "total": total,

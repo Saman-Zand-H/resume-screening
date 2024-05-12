@@ -6,7 +6,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from .constants import VectorStores
-from .models import Referral, User
+from .models import Profile, Referral, User
 from .tasks import find_available_jobs
 
 
@@ -29,6 +29,6 @@ def skills_clear_cache(*args, **kwargs):
     cache.delete(VectorStores.SKILL.cache_key)
 
 
-@receiver([job_available_triggered])
+@receiver([job_available_triggered], sender=Profile)
 def trigger_job_available(user: User, *args, **kwargs):
-    find_available_jobs.delay(user.pk)
+    find_available_jobs.delay(user_id=user.pk)

@@ -34,7 +34,6 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -283,7 +282,7 @@ class UserSetSkillsMutation(graphene.Mutation):
         user.raw_skills = skills
         user.save(update_fields=[User.raw_skills.field.name])
 
-        set_user_skills.delay(user.pk)
+        set_user_skills(user_id=user.pk)
         return UserSetSkillsMutation(user=user)
 
 
@@ -659,10 +658,11 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         cls.full_clean(obj)
 
     @classmethod
+    @transaction.atomic
     def after_mutate(cls, root, info, id, input, obj, return_data):
         task_name = (task := set_user_resume_json).__name__
         UserTask.objects.get_or_create(user=obj.user, task_name=task_name)[0]
-        task.delay(obj.user.pk)
+        task(user_id=obj.user.id)
         return super().after_mutate(root, info, id, input, obj, return_data)
 
 
