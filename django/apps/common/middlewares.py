@@ -8,7 +8,7 @@ from .utils import map_exception_to_error
 logger = logging.getLogger("graphql.error")
 
 
-class ErrorHandlingMiddleware:
+class GrapheneErrorHandlingMiddleware:
     def on_error(self, request, exc_type, exc_value, tb):
         reporter = ExceptionReporter(request, exc_type, exc_value, tb, is_email=False)
         html = reporter.get_traceback_html()
