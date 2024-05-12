@@ -3,7 +3,7 @@ import json
 from collections import namedtuple
 from functools import wraps
 from logging import getLogger
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Protocol, Tuple
 
 from account.models import Resume, User
 from config.settings.subscriptions import AccountSubscription
@@ -23,16 +23,21 @@ from .utils import (
 logger = getLogger("django")
 
 
+class Task(Protocol):
+    @classmethod
+    def delay(cls, *args: Tuple[Any], **kwargs: Dict[str, Any]): ...
+
+
 def user_task_decorator(func: Callable) -> Callable:
     task_name = func.__name__
 
     @wraps(func)
     def wrapper(*args: Tuple[Any], **kwargs: Dict[str, Any]):
-        user_id = kwargs.get("user_id")
-        if not (user := get_user_model().objects.filter(pk=user_id).first()):
-            logger.info(f"Running task {task_name}: user {user_id} not found.")
+        task_user_id = kwargs.pop("task_user_id", None)
+        if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
+            logger.info(f"Running task {task_name}: user {task_user_id} not found.")
             (
-                user_task := UserTask.objects.filter(user_id=user_id, task_name=task_name).first()
+                user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
             ) and user_task.change_status(UserTask.TaskStatus.FAILED)
             return
 
@@ -49,8 +54,19 @@ def user_task_decorator(func: Callable) -> Callable:
 
         user_task.change_status(UserTask.TaskStatus.FAILED)
 
-    wrapper.__name__ = task_name
     return wrapper
+
+
+def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
+    task_name = task.name
+    user_task, *_ = UserTask.objects.get_or_create(
+        user_id=task_user_id,
+        task_name=task_name,
+    )
+
+    if user_task.status not in [UserTask.TaskStatus.IN_PROGRESS, UserTask.TaskStatus.SCHEDULED]:
+        user_task.change_status(UserTask.TaskStatus.SCHEDULED)
+        task.delay(*args, task_user_id=task_user_id, **kwargs)
 
 
 @register_task([AccountSubscription.ASSISTANTS])
@@ -70,8 +86,8 @@ def find_available_jobs(user_id: int) -> bool:
 
 @register_task([AccountSubscription.ASSISTANTS])
 @user_task_decorator
-def set_user_skills(user_pk: int) -> bool:
-    user = User.objects.get(pk=user_pk)
+def set_user_skills(user_id: int) -> bool:
+    user = User.objects.get(pk=user_id)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     extracted_skills = extract_or_create_skills(user.raw_skills or [], resume_json)
     if not extracted_skills:
@@ -108,7 +124,7 @@ def set_user_resume_json(user_id: str) -> bool:
                 },
             )
             return True
-    except Exception as e:
+    except Exception:
         return False
 
 

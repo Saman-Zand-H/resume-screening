@@ -1,7 +1,6 @@
 import contextlib
 
 import graphene
-from account.models import UserTask
 from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
@@ -65,7 +64,7 @@ from .models import (
     User,
     WorkExperience,
 )
-from .tasks import set_user_resume_json, set_user_skills
+from .tasks import set_user_resume_json, set_user_skills, user_task_runner
 from .types.account import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -282,7 +281,7 @@ class UserSetSkillsMutation(graphene.Mutation):
         user.raw_skills = skills
         user.save(update_fields=[User.raw_skills.field.name])
 
-        set_user_skills(user_id=user.pk)
+        user_task_runner(set_user_skills, task_user_id=user.pk, user_id=user.pk)
         return UserSetSkillsMutation(user=user)
 
 
@@ -658,11 +657,9 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         cls.full_clean(obj)
 
     @classmethod
-    @transaction.atomic
     def after_mutate(cls, root, info, id, input, obj, return_data):
-        task_name = (task := set_user_resume_json).__name__
-        UserTask.objects.get_or_create(user=obj.user, task_name=task_name)[0]
-        task(user_id=obj.user.id)
+        user_task_runner(set_user_resume_json, obj.user.id, user_id=obj.user_id)
+
         return super().after_mutate(root, info, id, input, obj, return_data)
 
 

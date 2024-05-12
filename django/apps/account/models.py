@@ -1136,7 +1136,7 @@ class UserTask(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
     task_name = models.CharField(max_length=255, choices=[(i, i) for i in task_registry.get_all_tasks()])
-    status = models.CharField(max_length=50, choices=TaskStatus.choices, default=TaskStatus.SCHEDULED)
+    status = models.CharField(max_length=50, choices=TaskStatus.choices, blank=True, null=True)
     status_description = models.TextField(verbose_name=_("Status Description"), blank=True, null=True)
 
     def change_status(self, status: str, description: str = None):
