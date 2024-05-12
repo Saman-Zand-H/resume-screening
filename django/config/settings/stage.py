@@ -32,5 +32,10 @@ ENVIRONMENT_NAME = Environment.STAGE
 #             "level": "ERROR",
 #             "propagate": True,
 #         },
+#         "django.error": {
+#             "handlers": ["gcs", "console"],
+#             "level": "ERROR",
+#             "propagate": True,
+#         },
 #     },
 # }

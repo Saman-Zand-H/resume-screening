@@ -207,7 +207,7 @@ GRAPHENE = {
     "SCHEMA": "api.schema.schema",
     "MIDDLEWARE": [
         "graphql_jwt.middleware.JSONWebTokenMiddleware",
-        "common.middlewares.ErrorHandlingMiddleware",
+        "common.middlewares.GrapheneErrorHandlingMiddleware",
     ],
 }
 
