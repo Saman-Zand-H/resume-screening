@@ -1101,6 +1101,9 @@ class SupportTicket(models.Model):
         RESUME = "resume", _("Resume")
         JOB_INTEREST = "job_interest", _("Job Interest")
         ACADEMY = "academy", _("Academy")
+        ASSESSMENT = "assessment", _("Assessment")
+        JOB_SUGGESTION = "job_suggestion", _("Job Suggestion")
+        AI_INTERVIEW = "ai_interview", _("AI Interview")
 
     class ContactMethod(models.TextChoices):
         EMAIL = "email", _("Email")
