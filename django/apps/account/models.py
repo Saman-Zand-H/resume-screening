@@ -797,7 +797,7 @@ class LanguageCertificate(DocumentAbstract):
         related_name="certificates",
     )
     issued_at = models.DateField(verbose_name=_("Issued At"))
-    expired_at = models.DateField(verbose_name=_("Expired At"))
+    expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.email} - {self.language}"
