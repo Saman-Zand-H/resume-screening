@@ -421,6 +421,7 @@ WORK_EXPERIENCE_MUTATION_FIELDS = (
     WorkExperience.end.field.name,
     WorkExperience.organization.field.name,
     WorkExperience.city.field.name,
+    WorkExperience.industry.field.name,
     WorkExperience.skills.field.name,
 )
 
