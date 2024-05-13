@@ -1,4 +1,5 @@
 import graphene
+from account.tasks import user_task_runner
 from graphql_jwt.decorators import login_required
 
 from .tasks import render_cv_template
@@ -14,8 +15,7 @@ class GenerateResumeMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, template_id=None):
         user = info.context.user
-        render_cv_template.delay(user.pk, template_id)
-
+        user_task_runner(render_cv_template, task_user_id=user.pk, user_id=user.pk, template_id=template_id)
         return GenerateResumeMutation(success=True)
 
 
