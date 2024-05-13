@@ -3,7 +3,7 @@ import json
 from collections import namedtuple
 from functools import wraps
 from logging import getLogger
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Protocol, Tuple
 
 from account.models import Resume, User
 from config.settings.subscriptions import AccountSubscription
@@ -23,25 +23,32 @@ from .utils import (
 logger = getLogger("django")
 
 
+class Task(Protocol):
+    @classmethod
+    def delay(cls, *args: Tuple[Any], **kwargs: Dict[str, Any]): ...
+
+
 def user_task_decorator(func: Callable) -> Callable:
     task_name = func.__name__
 
     @wraps(func)
     def wrapper(*args: Tuple[Any], **kwargs: Dict[str, Any]):
-        print("I'm here boy")
-        user_id = kwargs.get("user_id")
-        if not (user := get_user_model().objects.filter(pk=user_id).first()):
-            logger.info(f"Running task {task_name}: user {user_id} not found.")
+        task_user_id = kwargs.pop("task_user_id", None)
+        if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
+            logger.info(f"Running task {task_name}: user {task_user_id} not found.")
+            (
+                user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
+            ) and user_task.change_status(UserTask.TaskStatus.FAILED)
             return
 
         user_task = UserTask.objects.get_or_create(user=user, task_name=task_name)[0]
-        if user_task.status not in [UserTask.TaskStatus.COMPLETED, UserTask.TaskStatus.FAILED]:
+        if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
             logger.info(f"Running task {task_name}: task {user_task.pk} is already in progress.")
             return
 
         user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
         with contextlib.suppress(Exception):
-            if func.delay(*args, **kwargs):
+            if func(*args, **kwargs):
                 user_task.change_status(UserTask.TaskStatus.COMPLETED)
                 return True
 
@@ -50,66 +57,58 @@ def user_task_decorator(func: Callable) -> Callable:
     return wrapper
 
 
-@user_task_decorator
+def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
+    task_name = task.name
+    user_task, *_ = UserTask.objects.get_or_create(
+        user_id=task_user_id,
+        task_name=task_name,
+    )
+
+    if user_task.status not in [UserTask.TaskStatus.IN_PROGRESS, UserTask.TaskStatus.SCHEDULED]:
+        user_task.change_status(UserTask.TaskStatus.SCHEDULED)
+        task.delay(*args, task_user_id=task_user_id, **kwargs)
+
+
 @register_task([AccountSubscription.ASSISTANTS])
+@user_task_decorator
 def find_available_jobs(user_id: int) -> bool:
     if not (user := get_user_model().objects.filter(pk=user_id).first()):
         return False
 
-    user_task = UserTask.objects.get_or_create(user=user, task_name=find_available_jobs.__name__)[0]
-    if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
-        return False
-
-    user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     jobs = extract_available_jobs(resume_json)
     if jobs:
         user.available_jobs.set(jobs)
-        user_task.change_status(UserTask.TaskStatus.COMPLETED)
         return True
 
-    user_task.change_status(UserTask.TaskStatus.FAILED)
     return False
 
 
-@user_task_decorator
 @register_task([AccountSubscription.ASSISTANTS])
-def set_user_skills(user_pk: int) -> bool:
-    user = User.objects.get(pk=user_pk)
-    user_task = UserTask.objects.get_or_create(user=user, task_name=set_user_skills.__name__)[0]
-    if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
-        return False
-
-    user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
+def set_user_skills(user_id: int) -> bool:
+    user = User.objects.get(pk=user_id)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     extracted_skills = extract_or_create_skills(user.raw_skills or [], resume_json)
     if not extracted_skills:
-        user_task.change_status(UserTask.TaskStatus.FAILED)
         return False
+
     if extracted_skills:
         user.skills.set(extracted_skills)
-        user_task.change_status(UserTask.TaskStatus.COMPLETED)
-        return True
+        return user
 
-    user_task.change_status(UserTask.TaskStatus.FAILED)
     return False
 
 
-@user_task_decorator
 @register_task([AccountSubscription.ASSISTANTS])
+@user_task_decorator
 def set_user_resume_json(user_id: str) -> bool:
     resume = Resume.objects.get(user_id=user_id)
     user = resume.user
-    user_task = UserTask.objects.get_or_create(user=user, task_name=set_user_resume_json.__name__)[0]
-    if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
-        return False
 
     resume_text = extract_resume_text(resume.file.file.read())
     if not resume_text:
-        user_task.change_status(UserTask.TaskStatus.FAILED)
         return False
 
-    user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
     try:
         resume_json = extract_resume_json(resume_text)
         if resume_json:
@@ -123,10 +122,8 @@ def set_user_resume_json(user_id: str) -> bool:
                     "about_me": resume_headlines.about_me,
                 },
             )
-            user_task.change_status(UserTask.TaskStatus.COMPLETED)
             return True
     except Exception:
-        user_task.change_status(UserTask.TaskStatus.FAILED)
         return False
 
 
