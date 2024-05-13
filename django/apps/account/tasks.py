@@ -85,7 +85,6 @@ def find_available_jobs(user_id: int) -> bool:
 
 
 @register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator
 def set_user_skills(user_id: int) -> bool:
     user = User.objects.get(pk=user_id)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
@@ -95,7 +94,7 @@ def set_user_skills(user_id: int) -> bool:
 
     if extracted_skills:
         user.skills.set(extracted_skills)
-        return True
+        return user
 
     return False
 
