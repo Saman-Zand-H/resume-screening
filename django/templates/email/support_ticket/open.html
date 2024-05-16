@@ -1,0 +1,37 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <h2 style="color: #333;">New Support Ticket Opened</h2>
+    <p>A new support ticket has been submitted by <strong>{{ ticket.user.get_full_name }}</strong> ({{ ticket.user.email }}).</p>
+
+    <table style="border-collapse: collapse; width: 100%; margin-top: 20px;">
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Ticket ID</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.ticket_id }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Title</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.title }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Priority</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.get_priority_display }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Category</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.get_category_display }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Description</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.description }}</td>
+        </tr>
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{{ ticket.get_contact_method_display }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.contact_value }}</td>
+        </tr>
+    </table>
+
+    <p style="margin-top: 20px;">You can review this ticket in the admin panel for further actions.</p>
+</div>
+{% endblock %}

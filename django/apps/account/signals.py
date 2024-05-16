@@ -6,8 +6,13 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from .constants import VectorStores
-from .models import Profile, Referral, User
+from .models import Profile, Referral, SupportTicket, User
 from .tasks import find_available_jobs, user_task_runner
+
+
+@receiver(post_save, sender=SupportTicket)
+def support_ticket_notification(instance, **kwargs):
+    instance.notify()
 
 
 @receiver(post_save, sender=User)

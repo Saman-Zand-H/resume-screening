@@ -10,12 +10,12 @@ from common.mixins import HasDurationMixin
 from common.models import (
     Field,
     FileModel,
+    Industry,
     Job,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
     University,
-    Industry,
 )
 from common.utils import get_all_subclasses
 from common.validators import (
@@ -38,10 +38,16 @@ from django.core import checks
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
+from django.template.loader import render_to_string
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
-from .constants import JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD
+from .constants import (
+    JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD,
+    SUPPORT_EMAIL,
+    SUPPORT_RECIPIENT_LIST,
+    SUPPORT_TICKET_SUBJECT_TEMPLATE,
+)
 from .managers import CertificateAndLicenseManager, UserManager
 from .mixins import EmailVerificationMixin
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
@@ -1149,6 +1155,45 @@ class SupportTicket(models.Model):
     contact_value = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def notify_open(self):
+        from .tasks import send_email_async
+
+        template_name = "email/support_ticket/open.html"
+        context = {"ticket": self}
+        content = render_to_string(template_name, context)
+
+        send_email_async.delay(
+            recipient_list=SUPPORT_RECIPIENT_LIST,
+            from_email=None,
+            content=content,
+            subject=SUPPORT_TICKET_SUBJECT_TEMPLATE % {"ticket_id": self.ticket_id},
+        )
+
+    def notify_close(self):
+        from .tasks import send_email_async
+
+        template_name = "email/support_ticket/close.html"
+        context = {"ticket": self}
+        content = render_to_string(template_name, context)
+
+        send_email_async.delay(
+            recipient_list=[self.user.email],
+            from_email=SUPPORT_EMAIL,
+            content=content,
+            subject=SUPPORT_TICKET_SUBJECT_TEMPLATE % {"ticket_id": self.ticket_id},
+        )
+
+    def notify(self):
+        if not (
+            notify_callback := {
+                self.Status.OPEN: self.notify_open,
+                self.Status.CLOSED: self.notify_close,
+            }.get(self.status)
+        ):
+            raise NotImplementedError(f"Notify for {self.status} is not implemented")
+
+        notify_callback()
 
     class Meta:
         verbose_name = _("Support Ticket")

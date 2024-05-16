@@ -9,6 +9,11 @@ from django.conf import settings
 JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD = 80
 VERIFICATION_EMAIL_FROM = "info@cpj.ai"
 VERIFICATION_PHONE_FROM = "REPLACE WITH PHONE"
+SUPPORT_TICKET_SUBJECT_TEMPLATE = "Support Ticket Opened: %(ticket_id)s"
+SUPPORT_EMAIL = "support@cpj.ai"
+SUPPORT_RECIPIENT_LIST = [
+    SUPPORT_EMAIL,
+]
 
 
 class OpenAiAssistants:

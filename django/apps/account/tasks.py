@@ -187,7 +187,8 @@ def send_work_experience_verification(employer_letter_method_id: int):
         return False
 
     for employer in getattr(
-        employer_letter_method, ReferenceCheckEmployer.work_experience_verification.field.related_query_name()
+        employer_letter_method,
+        ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
     ).all():
         email = employer.get_verification_email()
         from_email = employer.get_verification_email_from()

@@ -1,0 +1,22 @@
+{% extends "email/base.html" %}
+
+{% block content %}
+<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+    <h2 style="color: #333;">Your Support Ticket Has Been Closed</h2>
+    <p>Dear {{ ticket.user.get_full_name }},</p>
+
+    <p>Your support ticket (ID: <strong>{{ ticket.ticket_id }}</strong>) with the title "<strong>{{ ticket.title }}</strong>" has been successfully resolved and closed. If you have further questions or concerns, feel free to reach out to us again.</p>
+
+    <p><strong>Details:</strong></p>
+    <ul>
+        <li><strong>Priority:</strong> {{ ticket.get_priority_display }}</li>
+        <li><strong>Category:</strong> {{ ticket.get_category_display }}</li>
+        <li><strong>Contact Method:</strong> {{ ticket.get_contact_method_display }}</li>
+    </ul>
+
+    <p>We appreciate your patience and understanding. Thank you for reaching out to us.</p>
+
+    <p>Best regards,<br>
+    The Support Team</p>
+</div>
+{% endblock %}
