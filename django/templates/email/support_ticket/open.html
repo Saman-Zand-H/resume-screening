@@ -24,7 +24,7 @@
         </tr>
         <tr>
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">Description</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.description }}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">{{ ticket.description|linebreaks }}</td>
         </tr>
         <tr>
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">{{ ticket.get_contact_method_display }}</td>

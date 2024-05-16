@@ -1188,10 +1188,9 @@ class SupportTicket(models.Model):
         if not (
             notify_callback := {
                 self.Status.OPEN: self.notify_open,
-                self.Status.CLOSED: self.notify_close,
             }.get(self.status)
         ):
-            raise NotImplementedError(f"Notify for {self.status} is not implemented")
+            return
 
         notify_callback()
 
