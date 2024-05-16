@@ -28,7 +28,7 @@ google-cloud-scheduler~=2.14
 google-cloud-pubsub~=2.27
 django-storages[google]~=1.14
 django-flex-blob==0.0.12
-django-flex-pubsub==0.0.7
+django-flex-pubsub==0.0.9
 google-auth~=2.35
 google-cloud-secret-manager~=2.20
 django-environ~=0.11

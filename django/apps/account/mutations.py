@@ -1,7 +1,6 @@
 import contextlib
 
 import graphene
-from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -32,6 +31,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -281,7 +281,8 @@ class UserSetSkillsMutation(graphene.Mutation):
         user.raw_skills = skills
         user.save(update_fields=[User.raw_skills.field.name])
 
-        user = set_user_skills(user_id=user.pk) or user
+        skills and user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
+
         return UserSetSkillsMutation(user=user)
 
 
