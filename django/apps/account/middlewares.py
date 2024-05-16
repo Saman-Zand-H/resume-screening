@@ -6,5 +6,4 @@ from django.utils.deprecation import MiddlewareMixin
 
 class AuthMiddleware(MiddlewareMixin):
     def process_request(self, request):
-        if _authenticate(request):
-            request.user = authenticate(request)
+        request.user = _authenticate(request) and authenticate(request) or request.user

@@ -11,8 +11,8 @@ class GenerateResumeMutation(graphene.Mutation):
 
     success = graphene.Boolean()
 
-    @login_required
     @staticmethod
+    @login_required
     def mutate(root, info, template_id=None):
         user = info.context.user
         user_task_runner(render_cv_template, task_user_id=user.pk, user_id=user.pk, template_id=template_id)
