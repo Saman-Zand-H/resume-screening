@@ -14,11 +14,7 @@ def render_cv_template(user_id: int, template_id: int = None):
     template = CVTemplate.objects.filter(pk=template_id).first()
 
     if not hasattr(user, "profile"):
-        return False
+        raise ValueError("User has no profile.")
 
-    try:
-        GeneratedCV.from_user(user, template)
-        return True
-
-    except Exception:
-        return False
+    GeneratedCV.from_user(user, template)
+    return True

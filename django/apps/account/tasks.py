@@ -91,13 +91,11 @@ def set_user_skills(user_id: int) -> bool:
     user = get_user_model().objects.get(pk=user_id)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     extracted_skills = extract_or_create_skills(user.raw_skills or [], resume_json)
-    if not extracted_skills:
-        return True
 
     if extracted_skills:
         user.skills.set(extracted_skills)
-        return True
-    return False
+
+    return True
 
 
 @register_task([AccountSubscription.ASSISTANTS])
