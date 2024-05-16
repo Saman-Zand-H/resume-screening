@@ -15,6 +15,7 @@ from common.models import (
     LanguageProficiencyTest,
     Skill,
     University,
+    Industry,
 )
 from common.utils import get_all_subclasses
 from common.validators import (
@@ -701,6 +702,7 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
     city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
+    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, verbose_name=_("Industry"))
     skills = models.CharField(max_length=250, verbose_name=_("Skills"), blank=True, null=True)
 
     class Meta:
@@ -823,7 +825,7 @@ class LanguageCertificate(DocumentAbstract):
         related_name="certificates",
     )
     issued_at = models.DateField(verbose_name=_("Issued At"))
-    expired_at = models.DateField(verbose_name=_("Expired At"))
+    expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.email} - {self.language}"
@@ -1127,6 +1129,9 @@ class SupportTicket(models.Model):
         RESUME = "resume", _("Resume")
         JOB_INTEREST = "job_interest", _("Job Interest")
         ACADEMY = "academy", _("Academy")
+        ASSESSMENT = "assessment", _("Assessment")
+        JOB_SUGGESTION = "job_suggestion", _("Job Suggestion")
+        AI_INTERVIEW = "ai_interview", _("AI Interview")
 
     class ContactMethod(models.TextChoices):
         EMAIL = "email", _("Email")

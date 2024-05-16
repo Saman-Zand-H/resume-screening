@@ -127,6 +127,7 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
             WorkExperience.end.field.name,
             WorkExperience.organization.field.name,
             WorkExperience.city.field.name,
+            WorkExperience.industry.field.name,
             WorkExperience.skills.field.name,
             WorkExperience.created_at.field.name,
             WorkExperience.updated_at.field.name,
