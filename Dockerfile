@@ -11,7 +11,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     libffi-dev \
-    wkhtmltopdf \
     python3-venv && \
     python -m venv /opt/venv && \
     rm -rf /var/lib/apt/lists/*
@@ -48,6 +47,7 @@ RUN apt-get update && \
     fonts-opensymbol \
     curl \
     xvfb \
+    wkhtmltopdf \
     file && \
     rm -rf /var/lib/apt/lists/*
 
