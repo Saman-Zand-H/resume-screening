@@ -25,8 +25,7 @@ sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 env = environ.Env()
 ENV_FILE_PATH = os.environ.get("ENV_FILE_PATH", os.path.join(BASE_DIR.parent, ".env"))
 
-env.read_env(ENV_FILE_PATH, overwrite=True)
-
+env.read_env(ENV_FILE_PATH)
 
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
