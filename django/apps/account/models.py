@@ -42,6 +42,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .constants import JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD
 from .managers import CertificateAndLicenseManager, UserManager
+from .mixins import EmailVerificationMixin
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
 
 
@@ -104,6 +105,10 @@ class User(AbstractUser):
 
     def get_profile(self):
         return (profile := getattr(self, Profile.user.field.related_query_name(), None)).pk and profile
+
+    @cached_property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
     @property
     def has_resume(self):
@@ -654,7 +659,10 @@ class DegreeFile(UserUploadedDocumentFile):
         verbose_name_plural = _("Degree Files")
 
 
-class CommunicationMethod(EducationVerificationMethodAbstract):
+class CommunicationMethod(EducationVerificationMethodAbstract, EmailVerificationMixin):
+    _verification_template_name = "email/verification/education.html"
+    _verification_subject = "Request for Educational Credential Verification"
+
     website = models.URLField(verbose_name=_("Website"))
     email = models.EmailField(verbose_name=_("Email"))
     department = models.CharField(max_length=255, verbose_name=_("Department"))
@@ -665,6 +673,9 @@ class CommunicationMethod(EducationVerificationMethodAbstract):
         related_name="communication_method",
         verbose_name=_("Degree File"),
     )
+
+    def get_verification_context_data(self, **kwargs):
+        return super().get_verification_context_data(**kwargs, education=self.education)
 
     class Meta:
         verbose_name = _("Communication Method")
@@ -731,13 +742,18 @@ class EmployerLetterFile(UserUploadedDocumentFile):
         verbose_name_plural = _("Employer Letter Files")
 
 
-class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract):
+class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract, EmailVerificationMixin):
     employer_letter = models.OneToOneField(
         EmployerLetterFile,
         on_delete=models.CASCADE,
         related_name="employer_letter_method",
         verbose_name=_("Employer Letter"),
     )
+
+    def send_verification(self, *, is_async=True):
+        from .tasks import send_work_experience_verification
+
+        send_work_experience_verification.delay(self.pk)
 
     class Meta:
         verbose_name = _("Employer Letter Method")
@@ -768,7 +784,10 @@ class PaystubsMethod(WorkExperienceVerificationMethodAbstract):
         verbose_name_plural = _("Paystubs Methods")
 
 
-class ReferenceCheckEmployer(models.Model):
+class ReferenceCheckEmployer(models.Model, EmailVerificationMixin):
+    _verification_template_name = "email/verification/work_experience.html"
+    _verification_subject = "Request for Employment Verification"
+
     work_experience_verification = models.ForeignKey(
         EmployerLetterMethod,
         on_delete=models.CASCADE,
@@ -779,6 +798,13 @@ class ReferenceCheckEmployer(models.Model):
     email = models.EmailField(verbose_name=_("Email"))
     phone_number = PhoneNumberField(verbose_name=_("Phone Number"))
     position = models.CharField(max_length=255, verbose_name=_("Position"))
+
+    def get_verification_context_data(self, **kwargs):
+        return super().get_verification_context_data(
+            **kwargs,
+            employer=self.name,
+            work_experience=self.work_experience_verification.work_experience,
+        )
 
     class Meta:
         verbose_name = _("Reference Check Employer")

@@ -19,7 +19,6 @@ from graphene_django_cud.mutations import (
     DjangoUpdateMutation,
 )
 from graphene_django_cud.mutations.create import get_input_fields_for_model
-from graphql import GraphQLError
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
 from graphql_auth.constants import TokenAction
@@ -44,6 +43,7 @@ from .mixins import (
     DocumentCUDFieldMixin,
     DocumentCUDMixin,
     DocumentUpdateMutationMixin,
+    EmailVerificationMixin,
     UpdateStatusMixin,
 )
 from .models import (
@@ -372,6 +372,10 @@ class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoU
     def after_mutate(cls, root, info, id, input, obj, return_data):
         obj.status = DocumentAbstract.Status.SUBMITTED.value
         obj.save(update_fields=[DocumentAbstract.status.field.name])
+
+        if isinstance((verification_method := obj.get_verification_method()), EmailVerificationMixin):
+            verification_method.send_verification()
+
         return super().after_mutate(root, info, id, input, obj, return_data)
 
 
@@ -403,6 +407,13 @@ class EducationDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutatio
 
 
 class EducationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        if isinstance((verification_method := obj.get_verification_method()), EmailVerificationMixin):
+            verification_method.send_verification()
+
+        return super().after_mutate(root, info, id, input, obj, return_data)
+
     class Meta:
         model = Education
 
@@ -441,6 +452,10 @@ class WorkExperienceDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMu
 
 
 class WorkExperienceSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        return super().after_mutate(root, info, id, input, obj, return_data)
+
     class Meta:
         model = WorkExperience
         method_extras = {
@@ -461,7 +476,9 @@ class WorkExperienceSetVerificationMethodMutation(DocumentFilePermissionMixin, D
         if employer_letter_method and not employer_letter_method.get(
             ReferenceCheckEmployer.work_experience_verification.field.related_query_name()
         ):
-            raise GraphQLError("Employer letter method must be associated with a work experience verification.")
+            raise GraphQLErrorBadRequest(
+                "Employer letter method must be associated with a work experience verification."
+            )
 
         return super().validate(root, info, input, id, obj)
 

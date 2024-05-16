@@ -5,13 +5,13 @@ from functools import wraps
 from logging import getLogger
 from typing import Any, Callable, Dict, Protocol, Tuple
 
-from account.models import Resume, User
 from config.settings.subscriptions import AccountSubscription
+from flex_blob.builders import BlobResponseBuilder
 from flex_pubsub.tasks import register_task
 
 from django.contrib.auth import get_user_model
+from django.core.mail import EmailMessage, send_mail
 
-from .models import UserTask
 from .utils import (
     extract_available_jobs,
     extract_or_create_skills,
@@ -33,6 +33,8 @@ def user_task_decorator(func: Callable) -> Callable:
 
     @wraps(func)
     def wrapper(*args: Tuple[Any], **kwargs: Dict[str, Any]):
+        from .models import UserTask
+
         task_user_id = kwargs.pop("task_user_id", None)
         if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
             logger.info(f"Running task {task_name}: user {task_user_id} not found.")
@@ -58,6 +60,8 @@ def user_task_decorator(func: Callable) -> Callable:
 
 
 def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
+    from .models import UserTask
+
     task_name = task.name
     user_task, *_ = UserTask.objects.get_or_create(
         user_id=task_user_id,
@@ -86,7 +90,7 @@ def find_available_jobs(user_id: int) -> bool:
 
 @register_task([AccountSubscription.ASSISTANTS])
 def set_user_skills(user_id: int) -> bool:
-    user = User.objects.get(pk=user_id)
+    user = get_user_model().objects.get(pk=user_id)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     extracted_skills = extract_or_create_skills(user.raw_skills or [], resume_json)
     if not extracted_skills:
@@ -102,6 +106,8 @@ def set_user_skills(user_id: int) -> bool:
 @register_task([AccountSubscription.ASSISTANTS])
 @user_task_decorator
 def set_user_resume_json(user_id: str) -> bool:
+    from .models import Resume
+
     resume = Resume.objects.get(user_id=user_id)
     user = resume.user
 
@@ -158,8 +164,50 @@ class SerializableContext:
         return instance
 
 
+@register_task([AccountSubscription.EMAILING])
+def send_email_async(recipient_list, from_email, subject, content):
+    return send_mail(
+        subject=subject,
+        from_email=from_email,
+        recipient_list=[recipient_list],
+        fail_silently=True,
+        message=content,
+        html_message=content,
+    )
+
+
+@register_task([AccountSubscription.EMAILING])
+def send_work_experience_verification(employer_letter_method_id: int):
+    from account.models import EmployerLetterMethod, ReferenceCheckEmployer
+
+    employer_letter_method = EmployerLetterMethod.objects.filter(pk=employer_letter_method_id).first()
+    attachment = employer_letter_method.employer_letter.file
+    blob_builder = BlobResponseBuilder.get_response_builder()
+    if not employer_letter_method:
+        return False
+
+    for employer in getattr(
+        employer_letter_method, ReferenceCheckEmployer.work_experience_verification.field.related_query_name()
+    ).all():
+        email = employer.get_verification_email()
+        from_email = employer.get_verification_email_from()
+        subject = employer.get_verification_subject()
+        content = employer.get_verification_content()
+        email = EmailMessage(
+            subject=subject,
+            from_email=from_email,
+            to=[email],
+            body=content,
+        )
+        email.content_subtype = "html"
+        email.attach(
+            blob_builder.get_file_name(attachment), attachment.read(), blob_builder.get_content_type(attachment)
+        )
+        email.send()
+
+
 @register_task(subscriptions=[AccountSubscription.EMAILING])
-def async_email(func_name, user_email, context, arg):
+def auth_async_email(func_name, user_email, context, arg):
     """
     Task to send an e-mail for the graphql_auth package
     """
@@ -190,4 +238,4 @@ def graphql_auth_async_email(func, args):
     serializable_context = SerializableContext(info.context)
     context = json.dumps(serializable_context.to_dict())
 
-    async_email.delay(func_name, user_email, context, arg)
+    auth_async_email.delay(func_name, user_email, context, arg)

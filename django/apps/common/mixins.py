@@ -7,7 +7,6 @@ from graphene_django_cud.mutations.core import DjangoCudBaseOptions
 
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.fields.related import RelatedField
-from django.forms import ValidationError
 from django.utils.functional import cached_property
 
 from .models import FileModel
@@ -35,7 +34,7 @@ class HasDurationMixin:
         output_format = self.get_output_format()
 
         start_str = start_date.strftime(output_format) if start_date else ""
-        end_str = end_date.strftime(output_format) if end_date else ""
+        end_str = end_date.strftime(output_format) if end_date else "Present"
 
         return f"{start_str} - {end_str}" if start_str and end_str else start_str or end_str
 

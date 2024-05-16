@@ -1,0 +1,74 @@
+{% extends "email/base.html" %}
+
+{% block title %}Request for Educational Credential Verification{% endblock %}
+
+{% block style %}
+<style>
+    h2 {
+        color: #333;
+        text-align: center;
+    }
+    p, ul {
+        color: #555;
+        font-size: 16px;
+    }
+    p.center {
+        color: #333;
+        font-size: 16px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2>Dear {{ education.university.name }},</h2>
+<p>I hope this message finds you well.</p>
+<p>
+    This email is sent on behalf of <strong>Canada Prime Jobs (CPJ)</strong>, a leading recruitment company in Canada.
+    We are currently verifying the educational credentials of <strong>{{ education.user.full_name }}</strong>, 
+    {% if education.end %}
+        a graduate of
+    {% else %}
+        who is presently a student at
+    {% endif %}
+    your esteemed institution.
+</p>
+<p>
+    The document in question, uploaded by the candidate on our platform, is a 
+    <strong>{{ education.get_degree_display }}</strong>
+    {% if education.end %}
+        awarded in <strong>{{ education.end.year }}</strong>
+    {% endif %}.
+    We kindly request your assistance in confirming the authenticity of this credential.
+</p>
+<p>
+    For your convenience, please find the attached copy of the document provided by the candidate. 
+    We would greatly appreciate it if you could verify the following details:
+</p>
+<ul>
+    <li><strong>Full Name of the Candidate:</strong> {{ education.user.full_name }}</li>
+    <li><strong>Degree or Certificate Awarded:</strong> {{ education.get_degree_display }}</li>
+    {% if education.end %}
+        <li><strong>Date of Graduation:</strong> {{ education.end|date:"F Y" }}</li>
+    {% endif %}
+</ul>
+<p>
+    Your prompt response to this request will greatly support our verification process 
+    and help maintain the integrity of our recruitment services.
+</p>
+<p>
+    If you require any further details or documents, please do not hesitate to contact us at 
+    <a href="mailto:{{ cpj_email }}">{{ cpj_email }}</a> or 
+    <a href="tel:{{ cpj_phone }}">{{ cpj_phone }}</a>.
+</p>
+<p class="center">
+    Thank you for your cooperation and timely assistance.
+</p>
+<p class="center">
+    Best regards,<br>
+    <strong>Verification Team</strong><br>
+    <strong>Canada Prime Jobs (CPJ)</strong><br>
+    <a href="mailto:{{ cpj_email }}">{{ cpj_email }}</a><br>
+    <a href="tel:{{ cpj_phone }}">{{ cpj_phone }}</a>
+</p>
+{% endblock %}
