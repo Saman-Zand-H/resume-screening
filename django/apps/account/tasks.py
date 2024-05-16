@@ -1,4 +1,3 @@
-import contextlib
 import json
 from collections import namedtuple
 from functools import wraps
@@ -40,7 +39,7 @@ def user_task_decorator(func: Callable) -> Callable:
             logger.info(f"Running task {task_name}: user {task_user_id} not found.")
             (
                 user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
-            ) and user_task.change_status(UserTask.TaskStatus.FAILED)
+            ) and user_task.change_status(UserTask.TaskStatus.FAILED, "User not found.")
             return
 
         user_task = UserTask.objects.get_or_create(user=user, task_name=task_name)[0]
@@ -49,12 +48,12 @@ def user_task_decorator(func: Callable) -> Callable:
             return
 
         user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
-        with contextlib.suppress(Exception):
-            if func(*args, **kwargs):
-                user_task.change_status(UserTask.TaskStatus.COMPLETED)
-                return True
-
-        user_task.change_status(UserTask.TaskStatus.FAILED)
+        try:
+            func(*args, **kwargs)
+            user_task.change_status(UserTask.TaskStatus.COMPLETED)
+            return True
+        except Exception as e:
+            user_task.change_status(UserTask.TaskStatus.FAILED, str(e))
 
     return wrapper
 
@@ -77,15 +76,13 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
 @user_task_decorator
 def find_available_jobs(user_id: int) -> bool:
     if not (user := get_user_model().objects.filter(pk=user_id).first()):
-        return False
+        raise ValueError(f"User with id {user_id} not found.")
 
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     jobs = extract_available_jobs(resume_json)
     if jobs:
         user.available_jobs.set(jobs)
         return True
-
-    return False
 
 
 @register_task([AccountSubscription.ASSISTANTS])
@@ -113,24 +110,21 @@ def set_user_resume_json(user_id: str) -> bool:
 
     resume_text = extract_resume_text(resume.file.file.read())
     if not resume_text:
-        return False
+        raise ValueError("Resume text could not be extracted.")
 
-    try:
-        resume_json = extract_resume_json(resume_text)
-        if resume_json:
-            resume_headlines = extract_resume_headlines(resume_json)
-            Resume.objects.update_or_create(
-                user=user,
-                defaults={
-                    "resume_json": resume_json.model_dump(),
-                    "text": resume_text,
-                    "headline": resume_headlines.headline,
-                    "about_me": resume_headlines.about_me,
-                },
-            )
-            return True
-    except Exception:
-        return False
+    resume_json = extract_resume_json(resume_text)
+    if resume_json:
+        resume_headlines = extract_resume_headlines(resume_json)
+        Resume.objects.update_or_create(
+            user=user,
+            defaults={
+                "resume_json": resume_json.model_dump(),
+                "text": resume_text,
+                "headline": resume_headlines.headline,
+                "about_me": resume_headlines.about_me,
+            },
+        )
+        return True
 
 
 class SerializableContext:
