@@ -7,8 +7,6 @@ ENVIRONMENT_NAME = Environment.PRODUCTION
 
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
 EMAIL_PORT = 587
@@ -18,7 +16,7 @@ EMAIL_USE_TLS = True
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-ALLOWED_HOSTS = [SITE_DOMAIN]
+ALLOWED_HOSTS = [SITE_DOMAIN]  # noqa
 
 CORS_ALLOWED_ORIGIN_URLS = list(
     set(filter(bool, os.environ.get("CORS_ALLOWED_ORIGIN_URLS", "").split(",") + [os.environ.get("FRONTEND_URL")]))

@@ -315,3 +315,9 @@ ASSISTANT_IDS = {
 }
 
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")
+
+ACADEMY_SETTINGS = {
+    "BASE_URL": os.environ.get("ACADEMY_BASE_URL"),
+    "USERNAME": os.environ.get("ACADEMY_USERNAME"),
+    "PASSWORD": os.environ.get("ACADEMY_PASSWORD"),
+}

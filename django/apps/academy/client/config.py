@@ -12,8 +12,8 @@ class AcademyClientConfig:
     @staticmethod
     def get_client() -> Client:
         base_url = (academy_settings := getattr(settings, "ACADEMY_SETTINGS", {})).get("BASE_URL")
-        password = academy_settings.get("ACADEMY_PASSWORD")
-        username = academy_settings.get("ACADEMY_USERNAME")
+        username = academy_settings.get("USERNAME")
+        password = academy_settings.get("PASSWORD")
         basic_auth = base64.b64encode(f"{username}:{password}".encode()).decode()
 
         if not academy_settings:
