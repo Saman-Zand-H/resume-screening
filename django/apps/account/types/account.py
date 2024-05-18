@@ -2,6 +2,7 @@ import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
+from cv.models import GeneratedCV
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
@@ -293,6 +294,7 @@ class UserNode(BaseUserNode):
             Resume.user.field.related_query_name(),
             SupportTicket.user.field.related_query_name(),
             UserTask.user.field.related_query_name(),
+            GeneratedCV.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):

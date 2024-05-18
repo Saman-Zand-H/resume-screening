@@ -1,10 +1,9 @@
-from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
-
 from typing import List, Optional
 
+from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from pydantic import BaseModel, Field
 
-from .models import CVTemplate
+from .models import CVTemplate, GeneratedCV
 
 
 class ContactInformation(BaseModel):
@@ -82,3 +81,10 @@ class CVTemplateNode(DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         return super().get_queryset(queryset, info).filter(is_active=True)
+
+
+class GeneratedCVNode(DjangoObjectType):
+    class Meta:
+        model = GeneratedCV
+        use_connection = True
+        fields = (GeneratedCV.file.field.name,)
