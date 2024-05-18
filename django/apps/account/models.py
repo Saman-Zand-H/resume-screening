@@ -845,7 +845,7 @@ class LanguageCertificate(DocumentAbstract):
         return LanguageCertificateVerificationMethodAbstract
 
     def clean(self):
-        if self.issued_at > self.expired_at:
+        if self.expired_at and self.issued_at > self.expired_at:
             raise ValidationError({"expired_at": _("Expired date must be after Issued date")})
 
         if self.language not in self.test.languages:
