@@ -27,7 +27,6 @@ from common.validators import (
 from computedfields.models import ComputedFieldsModel, computed
 from config.signals import job_available_triggered
 from flex_eav.models import EavValue
-from flex_pubsub.tasks import task_registry
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -42,6 +41,7 @@ from django.template.loader import render_to_string
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from .choices import get_task_names_choices
 from .constants import (
     JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD,
     SUPPORT_EMAIL,
@@ -1203,15 +1203,19 @@ class SupportTicket(models.Model):
 
 
 class UserTask(models.Model):
-    class TaskStatus(models.TextChoices):
+    class Status(models.TextChoices):
         SCHEDULED = "scheduled", _("Scheduled")
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
         FAILED = "failed", _("Failed")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
-    task_name = models.CharField(max_length=255, choices=[(i, i) for i in task_registry.get_all_tasks()])
-    status = models.CharField(max_length=50, choices=TaskStatus.choices, blank=True, null=True)
+    task_name = models.CharField(
+        max_length=255,
+        choices=get_task_names_choices,
+        verbose_name=_("Task Name"),
+    )
+    status = models.CharField(max_length=50, choices=Status.choices, blank=True, null=True, verbose_name=_("Status"))
     status_description = models.TextField(verbose_name=_("Status Description"), blank=True, null=True)
 
     def change_status(self, status: str, description: str = None):

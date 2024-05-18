@@ -258,7 +258,6 @@ class UserTaskType(DjangoObjectType):
     class Meta:
         model = UserTask
         fields = (
-            UserTask.id.field.name,
             UserTask.task_name.field.name,
             UserTask.status.field.name,
         )

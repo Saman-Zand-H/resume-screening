@@ -39,21 +39,21 @@ def user_task_decorator(func: Callable) -> Callable:
             logger.info(f"Running task {task_name}: user {task_user_id} not found.")
             (
                 user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
-            ) and user_task.change_status(UserTask.TaskStatus.FAILED, "User not found.")
+            ) and user_task.change_status(UserTask.Status.FAILED, "User not found.")
             return
 
         user_task = UserTask.objects.get_or_create(user=user, task_name=task_name)[0]
-        if user_task.status == UserTask.TaskStatus.IN_PROGRESS:
+        if user_task.status == UserTask.Status.IN_PROGRESS:
             logger.info(f"Running task {task_name}: task {user_task.pk} is already in progress.")
             return
 
-        user_task.change_status(UserTask.TaskStatus.IN_PROGRESS)
+        user_task.change_status(UserTask.Status.IN_PROGRESS)
         try:
             func(*args, **kwargs)
-            user_task.change_status(UserTask.TaskStatus.COMPLETED)
+            user_task.change_status(UserTask.Status.COMPLETED)
             return True
         except Exception as e:
-            user_task.change_status(UserTask.TaskStatus.FAILED, str(e))
+            user_task.change_status(UserTask.Status.FAILED, str(e))
 
     return wrapper
 
@@ -67,8 +67,8 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
         task_name=task_name,
     )
 
-    if user_task.status not in [UserTask.TaskStatus.IN_PROGRESS, UserTask.TaskStatus.SCHEDULED]:
-        user_task.change_status(UserTask.TaskStatus.SCHEDULED)
+    if user_task.status not in [UserTask.Status.IN_PROGRESS, UserTask.Status.SCHEDULED]:
+        user_task.change_status(UserTask.Status.SCHEDULED)
         task.delay(*args, task_user_id=task_user_id, **kwargs)
 
 
