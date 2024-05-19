@@ -161,7 +161,7 @@ def send_email_async(recipient_list, from_email, subject, content):
     return send_mail(
         subject=subject,
         from_email=from_email,
-        recipient_list=[recipient_list],
+        recipient_list=recipient_list,
         fail_silently=True,
         message=content,
         html_message=content,

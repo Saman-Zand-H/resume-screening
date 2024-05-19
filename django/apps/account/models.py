@@ -1208,20 +1208,6 @@ class SupportTicket(models.Model):
             subject=SUPPORT_TICKET_SUBJECT_TEMPLATE % {"ticket_id": self.ticket_id},
         )
 
-    def notify_close(self):
-        from .tasks import send_email_async
-
-        template_name = "email/support_ticket/close.html"
-        context = {"ticket": self}
-        content = render_to_string(template_name, context)
-
-        send_email_async.delay(
-            recipient_list=[self.user.email],
-            from_email=SUPPORT_EMAIL,
-            content=content,
-            subject=SUPPORT_TICKET_SUBJECT_TEMPLATE % {"ticket_id": self.ticket_id},
-        )
-
     def notify(self):
         if not (
             notify_callback := {
