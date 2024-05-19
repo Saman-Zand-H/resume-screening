@@ -19,6 +19,9 @@ class AcademyClientConfig:
         if not academy_settings:
             raise ValueError("Academy Settings not found in the settings")
 
+        if not base_url:
+            return
+
         return Client(
             timeout=AcademyClientConfig.timeout,
             headers={
