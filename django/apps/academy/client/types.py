@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 
 
-class CreateOrUpdateUserRequest(BaseModel):
-    user_external_id: str
+class GetOrCreateUserRequest(BaseModel):
+    external_id: str
     email: str
     first_name: str
     last_name: str
 
 
-class CreateOrUpdateUserResponse(BaseModel):
+class GetOrCreateUserResponse(BaseModel):
     user_id: int
 
 
@@ -30,12 +30,12 @@ class GenerateLoginUrlResponse(BaseModel):
     login_url: str
 
 
-class GetUsersByExternalIdRequest(BaseModel):
-    user_external_id: str
+class GetUserByExternalIdRequest(BaseModel):
+    external_id: str
 
 
-class GetUsersByExternalIdResponse(BaseModel):
-    id: int
+class GetUserByExternalIdResponse(BaseModel):
+    user_id: int
 
 
 class GetCourseUrlByIdRequest(BaseModel):

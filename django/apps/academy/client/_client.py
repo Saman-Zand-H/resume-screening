@@ -4,7 +4,7 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from .config import AcademyClientConfig
-from .exceptions import AcademyRequestException
+from .exceptions import EXCEPTIONS, AcademyRequestException
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,8 @@ class BaseAcademyClient:
                     raise AcademyRequestException(f"Request to {url} failed after {self.max_retries} retries") from e
                 logger.warning(f"Retrying request to {url} due to {e}, attempt {retries}/{self.max_retries}")
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
-                raise AcademyRequestException(f"Request to {url} failed") from e
+                exception = EXCEPTIONS.get(e.response.status_code, AcademyRequestException)
+                raise exception(e.response.text) from e
 
     def _parse_response[T: BaseModel](self, response: httpx.Response, model: T) -> T:
         try:

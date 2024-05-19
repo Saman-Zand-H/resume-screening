@@ -19,7 +19,6 @@ class CourseNode(DjangoObjectType):
             Course.external_id.field.name,
             Course.type.field.name,
             Course.industries.field.name,
-            Course.url.field.name,
             CourseResult.course.field.related_query_name(),
         )
         filter_fields = {

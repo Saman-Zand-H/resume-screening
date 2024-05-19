@@ -2,27 +2,27 @@ import logging
 
 from ._client import BaseAcademyClient
 from .types import (
-    CreateOrUpdateUserRequest,
-    CreateOrUpdateUserResponse,
     EnrollUserInCourseRequest,
     EnrollUserInCourseResponse,
     GenerateLoginUrlRequest,
     GenerateLoginUrlResponse,
     GetCourseUrlByIdRequest,
     GetCourseUrlByIdResponse,
-    GetUsersByExternalIdRequest,
-    GetUsersByExternalIdResponse,
+    GetOrCreateUserRequest,
+    GetOrCreateUserResponse,
+    GetUserByExternalIdRequest,
+    GetUserByExternalIdResponse,
 )
 
 logger = logging.getLogger(__name__)
 
 
 class AcademyClient(BaseAcademyClient):
-    def create_or_update_user(self, user_data: CreateOrUpdateUserRequest) -> CreateOrUpdateUserResponse:
+    def get_or_create_user(self, user_data: GetOrCreateUserRequest) -> GetOrCreateUserResponse:
         return self._make_request(
             "POST",
-            "createOrUpdateUser",
-            model=CreateOrUpdateUserResponse,
+            "getOrCreateUser",
+            model=GetOrCreateUserResponse,
             json=user_data.model_dump(exclude_unset=True),
         )
 
@@ -42,11 +42,11 @@ class AcademyClient(BaseAcademyClient):
             json=login_data.model_dump(exclude_unset=True),
         )
 
-    def get_users_by_external_id(self, external_id_data: GetUsersByExternalIdRequest) -> GetUsersByExternalIdResponse:
+    def get_user_by_external_id(self, external_id_data: GetUserByExternalIdRequest) -> GetUserByExternalIdResponse:
         return self._make_request(
             "GET",
-            f"users?user_external_id={external_id_data.user_external_id}",
-            model=GetUsersByExternalIdResponse,
+            f"user?external_id={external_id_data.external_id}",
+            model=GetUserByExternalIdResponse,
         )
 
     def get_coures_url_by_id(self, course_id_data: GetCourseUrlByIdRequest) -> GetCourseUrlByIdResponse:
