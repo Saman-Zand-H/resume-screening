@@ -1,7 +1,8 @@
 import base64
 import contextlib
+import re
 import uuid
-from typing import Optional
+from typing import Dict, Optional
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
@@ -469,6 +470,32 @@ class Contact(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.type}: {self.value}"
 
+    def get_display_dict(self) -> Dict[str, Optional[str]]:
+        """
+        Returns:
+            Dict[str, Optional[str]]: A dictionary with 'display' and 'link' keys
+        """
+        display_name, link = self.value, None
+
+        match self.type:
+            case Contact.Type.WEBSITE:
+                display_regex = re.compile(r"(?:https?://)?(?:www\.)?([^/]+)")
+                display_name = display_regex.match(self.value).group(1)
+                link = self.value
+
+            case Contact.Type.PHONE:
+                link = f"tel:{self.value}"
+
+            case Contact.Type.LINKEDIN:
+                display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/(in/[^/]+)"
+                display_name = re.match(display_regex, self.value).group(1)
+                link = self.value
+
+            case Contact.Type.WHATSAPP:
+                link = f"https://wa.me/{self.value}"
+
+        return {"display": display_name, "link": link}
+
     def clean(self, *args, **kwargs):
         if self.type in self.VALIDATORS:
             with contextlib.suppress(TypeError):
@@ -589,6 +616,10 @@ class Education(DocumentAbstract, HasDurationMixin):
     class Meta:
         verbose_name = _("Education")
         verbose_name_plural = _("Educations")
+        ordering = [
+            "end",
+            "start",
+        ]
 
     @cached_property
     def title(self):
@@ -714,6 +745,10 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
     class Meta:
         verbose_name = _("Work Experience")
         verbose_name_plural = _("Work Experiences")
+        ordering = [
+            "end",
+            "start",
+        ]
 
     def __str__(self):
         return f"{self.user.email} - {self.job_title} - {self.organization}"
@@ -947,6 +982,9 @@ class CertificateAndLicense(DocumentAbstract, HasDurationMixin):
     class Meta:
         verbose_name = _("Certificate And License")
         verbose_name_plural = _("Certificates And Licenses")
+        ordering = [
+            "issued_at",
+        ]
 
     def __str__(self):
         return f"{self.user.email} - {self.title}"

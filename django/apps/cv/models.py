@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .constants import TEMPLATE_VALID_EXTENSIONS
+from .utils import get_static_base_url
 
 
 class CVTemplate(TimeStampedModel):
@@ -37,12 +38,10 @@ class CVTemplate(TimeStampedModel):
 
     def render(self, context: dict) -> str:
         template = render_to_string(self.path, context)
-        static_base_url = "http://localhost:8000"
-        if settings.SITE_DOMAIN or "localhost" not in settings.SITE_DOMAIN:
-            static_base_url = f"https://{settings.SITE_DOMAIN}"
+
         return template.replace(
             settings.STATIC_URL,
-            f"{static_base_url}{settings.STATIC_URL}",
+            f"{get_static_base_url()}{settings.STATIC_URL}",
         )
 
     def render_pdf(self, context: dict) -> bytes:
@@ -144,7 +143,7 @@ class GeneratedCV(FileModel):
     @classmethod
     def from_user(cls, user, template: CVTemplate = None):
         pdf = cls.generate(user, template)
-        file = ContentFile(pdf, name=f"cpj_cv_{user.first_name}_{user.last_name}.pdf")
+        file = ContentFile(pdf, name=f"cpj_cv_{user.first_name.lower()}_{user.last_name.lower()}.pdf")
         return cls.objects.update_or_create(user=user, defaults={"file": file})
 
     class Meta:

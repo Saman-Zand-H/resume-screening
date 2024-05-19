@@ -8,7 +8,7 @@ body {
 .resume-container {
     background-color: #fff;
     display: flex;
-    min-width: 210mm;
+    min-width: 250mm;
     width: 100%;
     height: 100%;
     flex-direction: column;
@@ -23,7 +23,7 @@ body {
 
 .resume-wrapper {
     width: 100%;
-    max-width: 210mm;
+    max-width: 250mm;
 }
 
 .resume-content {
@@ -177,7 +177,13 @@ body {
     font-weight: 400;
     line-height: 18px;
     align-self: start;
-    margin-left: 8px
+    margin-left: 8px;
+}
+
+.username a {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 
 .language-section {
@@ -230,7 +236,7 @@ body {
 
 .header-section {
     display: flex;
-    gap: 40px 61px;
+    flex-direction: column;
     font-weight: 400;
 }
 
@@ -265,9 +271,7 @@ body {
 .update-date {
     color: #000;
     align-self: end;
-    margin-top: 55px;
     flex-grow: 1;
-    width: 80px;
     font: 10px/1.6 Poppins, sans-serif;
 }
 
