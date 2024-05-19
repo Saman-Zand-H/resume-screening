@@ -1,13 +1,14 @@
 import logging
+
 from google.cloud import storage
+
 from django.utils import timezone
 
 
 class GCSHandler(logging.Handler):
-    def __init__(self, bucket_name, log_file_name, settings):
+    def __init__(self, bucket_name, log_file_name):
         super().__init__()
-        environment = settings.split(".")[-1]
-        self.bucket_name = f"{environment}-{bucket_name}"
+        self.bucket_name = bucket_name
         self.log_file_name = log_file_name
         self.client = storage.Client()
 
