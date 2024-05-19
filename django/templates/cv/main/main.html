@@ -64,7 +64,13 @@
                                                             {{ contact.get_type_display }}
                                                         </div>
                                                         <div class="username">
-                                                            {{ contact.value }}
+                                                            {% if contact.get_display_dict.link %}
+                                                                <a href="{{ contact.get_display_dict.link }}">
+                                                                    {{ contact.get_display_dict.display }}
+                                                                </a>
+                                                            {% else %}
+                                                                {{ contact.value }}
+                                                            {% endif %}
                                                         </div>
                                                     </div>
                                                 {% endfor %}
@@ -117,7 +123,9 @@
                                             alt="Phone icon"
                                         />
                                         <div class="contact-text">
-                                            {{ phone }}
+                                            <a href="tel:{{ phone }}">
+                                                {{ phone }}
+                                            </a>
                                         </div>
                                     </div>
                                 {% endif %}
@@ -128,7 +136,9 @@
                                         alt="Email icon"
                                     />
                                     <div class="contact-text">
-                                        {{ user.email }}
+                                        <a href="mailto:{{user.email}}">
+                                            {{ user.email }}
+                                        </a>
                                     </div>
                                 </div>
                                 <div class="contact-item">
@@ -239,7 +249,7 @@
                                                 </div>
                                                 <div class="section-list">
                                                     <div class="section-list-item">
-                                                        {% for certification in certifications.externals %}
+                                                        {% for certification in certifications %}
                                                             <span class="item-title">
                                                                 {{ certification.date }}
                                                             </span>
@@ -413,7 +423,7 @@
             </div>
             <footer class="resume-footer">
                 <div class="footer-reference">
-                    <div class="reference-text">refrenced by :</div>
+                    <div class="reference-text">Refrenced by :</div>
                     <div class="company-reference">
                         <img
                             src="{% static 'img/logo/cpj-logo-28x29.svg' %}"
@@ -424,7 +434,7 @@
                     </div>
                 </div>
                 <div class="footer-contact">
-                    <div class="contact-label">Contact Us:</div>
+                    <div class="contact-label">Contact Us :</div>
                     <div class="contact-email">
                         {{ contact_us_email|default:"info@cpj.ai" }}
                     </div>

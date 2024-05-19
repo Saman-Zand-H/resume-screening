@@ -1,4 +1,8 @@
+from cv.models import CVTemplate, GeneratedCV
 from dj_rest_auth.registration.views import SocialLoginView as BaseSocialLoginView
+
+from django.http import HttpResponse
+from django.views import View
 
 from .adapters import GoogleOAuth2Adapter, LinkedInOAuth2Adapter
 from .clients import OAuth2Client
@@ -19,3 +23,8 @@ class LinkedInOAuth2View(SocialLoginView):
     adapter_class = LinkedInOAuth2Adapter
     client_class = OAuth2Client
     callback_url = None
+
+
+class TestView(View):
+    def get(self, *args, **kwargs):
+        return HttpResponse(CVTemplate.objects.first().render(GeneratedCV.get_user_context(self.request.user)))
