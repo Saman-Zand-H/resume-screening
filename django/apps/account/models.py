@@ -26,7 +26,6 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
 )
 from computedfields.models import ComputedFieldsModel, computed
-from config.signals import job_available_triggered
 from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
@@ -43,12 +42,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from .choices import get_task_names_choices
-from .constants import (
-    JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD,
-    SUPPORT_EMAIL,
-    SUPPORT_RECIPIENT_LIST,
-    SUPPORT_TICKET_SUBJECT_TEMPLATE,
-)
+from .constants import SUPPORT_RECIPIENT_LIST, SUPPORT_TICKET_SUBJECT_TEMPLATE
 from .managers import CertificateAndLicenseManager, UserManager
 from .mixins import EmailVerificationMixin
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
@@ -111,7 +105,7 @@ class User(AbstractUser):
 
     objects = UserManager()
 
-    def get_profile(self):
+    def get_profile(self) -> "Profile":
         return (profile := getattr(self, Profile.user.field.related_query_name(), None)).pk and profile
 
     @cached_property
@@ -328,38 +322,8 @@ class Profile(ComputedFieldsModel):
         null=True,
         blank=True,
     )
-
-    @computed(
-        models.JSONField(verbose_name=_("Scores"), default=dict),
-        depends=[
-            ("self", ["city", "fluent_languages", "native_language"]),
-            ("user", ["first_name", "last_name", "email", "gender", "birth_date"]),
-            ("user.contacts", ["id"]),
-            ("user.resume", ["id"]),
-            ("user.educations", ["id", "status"]),
-            ("user.workexperiences", ["id", "status"]),
-            ("user.languagecertificates", ["id", "status"]),
-            ("user.certificateandlicenses", ["id", "status"]),
-            ("user.skills", ["id"]),
-            ("user.canada_visa", ["id"]),
-            ("interested_jobs", ["id"]),
-            ("user.job_assessment_results", ["status"]),
-            ("user.referral", ["id"]),
-            ("user.referral.referred_users", ["id"]),
-        ],
-    )
-    def scores(self):
-        from .scores import UserScorePack
-
-        scores = UserScorePack.calculate(self.user)
-        if (total := sum(scores.values())) >= JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD:
-            # job_available_triggered.send(sender=self.__class__, user=self.user)
-            pass
-
-        return {
-            "total": total,
-            "scores": scores,
-        }
+    scores = models.JSONField(verbose_name=_("Scores"), default=dict)
+    score = models.PositiveIntegerField(verbose_name=_("Score"), default=0)
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
@@ -373,10 +337,6 @@ class Profile(ComputedFieldsModel):
         with contextlib.suppress(ObjectDoesNotExist):
             _credits += self.user.referral.referred_users.count() * 100
         return _credits
-
-    @property
-    def score(self):
-        return self.scores.get("total", 0)
 
     @property
     def completion_percentage(self):

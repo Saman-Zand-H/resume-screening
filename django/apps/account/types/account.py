@@ -32,7 +32,7 @@ from ..models import (
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
-    score = graphene.Int(source=Profile.score.fget.__name__)
+    score = graphene.Int(source=Profile.score.field.name)
     completion_percentage = graphene.Float(source=Profile.completion_percentage.fget.__name__)
 
     class Meta:

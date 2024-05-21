@@ -133,6 +133,7 @@ class ProfileAdmin(admin.ModelAdmin):
     inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (
         Profile.scores.field.name,
+        Profile.score.field.name,
         Profile.credits.field.name,
     )
     exclude = (Profile.interested_jobs.field.name,)

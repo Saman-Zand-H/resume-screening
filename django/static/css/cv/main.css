@@ -235,8 +235,6 @@ body {
 }
 
 .header-section {
-    display: flex;
-    flex-direction: column;
     font-weight: 400;
 }
 
@@ -270,9 +268,9 @@ body {
 
 .update-date {
     color: #000;
-    align-self: end;
-    flex-grow: 1;
     font: 10px/1.6 Poppins, sans-serif;
+    display: flex;
+    justify-content: end;
 }
 
 .divider {
@@ -675,25 +673,14 @@ body {
     z-index: 30;
 }
 
-.footer-reference {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    justify-content: start;
-}
-
 .reference-text {
-    align-self: stretch;
     margin: auto 0;
 }
 
 .company-reference {
     align-self: stretch;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    justify-content: center;
     margin: auto 0;
+    margin-left: 7px;
 }
 
 .reference-logo {
@@ -707,12 +694,11 @@ body {
 
 .company-name {
     font-size: .65rem;
+    margin-left: 7px;
 }
 
 .footer-contact {
-    display: flex;
     align-items: center;
-    gap: 7px;
     justify-content: start;
     margin: auto 0;
 }
@@ -726,7 +712,7 @@ body {
     align-self: stretch;
     width: 63px;
     min-height: 18px;
-    gap: 4px;
+    margin-left: 7px;
     white-space: nowrap;
     margin: auto 0;
 }

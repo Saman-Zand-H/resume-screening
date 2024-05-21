@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Set
 
 import graphene
 from graphene_django.converter import convert_choice_field_to_enum
@@ -10,7 +11,7 @@ from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
 from .models import FileModel
 
 
-def get_all_subclasses(klass):
+def get_all_subclasses[T](klass: T) -> Set[T]:
     subclasses = set()
     work = [klass]
     while work:

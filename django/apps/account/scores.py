@@ -4,12 +4,22 @@ from typing import ClassVar
 
 from criteria.models import JobAssessment, JobAssessmentResult
 from pydantic import BaseModel
-from score.types import ExistingScore, Score, ScorePack
+from score.types import ExistingScore, Score, ScoreObserver, ScorePack
 from score.utils import register_pack, register_score
 
 from django.db.models import Count, DurationField, ExpressionWrapper, F, Sum
 
-from .models import Profile, User
+from .models import (
+    CanadaVisa,
+    CertificateAndLicense,
+    Contact,
+    Education,
+    LanguageCertificate,
+    Profile,
+    Resume,
+    User,
+    WorkExperience,
+)
 
 
 class ScoreValue(BaseModel):
@@ -26,7 +36,9 @@ class Scores:
     EDUCATION_VERIFICATION = ScoreValue(name="Education Verification", slug="EDUCATION_VERIFICATION", value=5)
     WORK_EXPERIENCE_ADD = ScoreValue(name="Work Experience Add", slug="WORK_EXPERIENCE_ADD", value=1)
     WORK_EXPERIENCE_VERIFICATION = ScoreValue(
-        name="Work Experience Verification", slug="WORK_EXPERIENCE_VERIFICATION", value=5
+        name="Work Experience Verification",
+        slug="WORK_EXPERIENCE_VERIFICATION",
+        value=5,
     )
     LANGUAGE_ADD = ScoreValue(name="Language Add", slug="LANGUAGE_ADD", value=10)
     CERTIFICATION_ADD = ScoreValue(name="Certification Add", slug="CERTIFICATION_ADD", value=10)
@@ -57,12 +69,18 @@ class UserFieldExistingScore(ExistingScore):
     user_field: ClassVar[str]
     score = Scores.ID_INFORMATION.value
 
+    def get_observed_fields(self):
+        return [self.user_field]
+
     def get_value(self, user):
         return getattr(user, self.user_field)
 
 
 class ProfileFieldScore(UserFieldExistingScore):
     profile_field: ClassVar[str]
+
+    def get_observed_fields(self):
+        return [self.profile_field]
 
     def get_value(self, user):
         profile = user.get_profile()
@@ -72,12 +90,12 @@ class ProfileFieldScore(UserFieldExistingScore):
 
 
 @register_score
-class UploadResumeScore(Score):
+class UploadResumeScore(Score, ScoreObserver):
     slug = "upload_resume"
+    _model_: ClassVar[Resume] = Resume
+    observed_fields = ["pk"]
 
     def calculate(self, user) -> int:
-        from .models import Resume
-
         return Scores.UPLOAD_RESUME.value if Resume.objects.filter(user=user).exists() else 0
 
 
@@ -113,12 +131,16 @@ class EmailScore(UserFieldExistingScore):
 
 
 @register_score
-class MobileScore(Score):
+class MobileScore(Score, ScoreObserver):
+    _model_ = Contact
     slug = "mobile"
+    observed_fields = [_model_.id.field.name]
+
+    @classmethod
+    def test_func(cls, instance):
+        return instance.type == Contact.Type.PHONE
 
     def calculate(self, user) -> int:
-        from .models import Contact
-
         return (
             Scores.CONTACT_INFORMATION.value
             if Contact.objects.filter(user=user, type=Contact.Type.PHONE).exists()
@@ -148,22 +170,26 @@ class NativeLanguageScore(ProfileFieldScore):
 
 
 @register_score
-class EducationNewScore(Score):
+class EducationNewScore(Score, ScoreObserver):
+    _model_ = Education
+    observed_fields = [_model_.status.field.name, _model_.id.field.name]
     slug = "education_new"
 
     def calculate(self, user) -> int:
-        from .models import Education
-
         return Scores.EDUCATION_ADD.value if Education.objects.filter(user=user).exists() else 0
 
 
 @register_score
-class EducationVerificationScore(Score):
+class EducationVerificationScore(Score, ScoreObserver):
+    _model_ = Education
     slug = "education_verification"
+    observed_fields = [_model_.status.field.name, _model_.id.field.name]
+
+    @classmethod
+    def test_func(cls, instance: Education):
+        return instance.status in Education.get_verified_statuses()
 
     def calculate(self, user) -> int:
-        from .models import Education
-
         return (
             Scores.EDUCATION_VERIFICATION.value
             if Education.objects.filter(user=user, status=Education.get_verified_statuses()).exists()
@@ -172,12 +198,12 @@ class EducationVerificationScore(Score):
 
 
 @register_score
-class WorkExperienceNewScore(Score):
+class WorkExperienceNewScore(Score, ScoreObserver):
+    _model_ = WorkExperience
+    observed_fields = [_model_.status.field.name, _model_.id.field.name]
     slug = "work_experience_new"
 
     def calculate(self, user) -> int:
-        from .models import WorkExperience
-
         years = (
             WorkExperience.objects.filter(user=user, status__in=WorkExperience.get_verified_statuses())
             .annotate(
@@ -194,12 +220,16 @@ class WorkExperienceNewScore(Score):
 
 
 @register_score
-class WorkExperienceVerificationScore(Score):
+class WorkExperienceVerificationScore(Score, ScoreObserver):
+    _model_ = WorkExperience
     slug = "work_experience_verification"
+    observed_fields = [_model_.id.field.name, _model_.status.field.name]
+
+    @classmethod
+    def test_func(self, instance: WorkExperience):
+        return instance.status == WorkExperience.get_verified_statuses()
 
     def calculate(self, user) -> int:
-        from .models import WorkExperience
-
         return (
             WorkExperience.objects.filter(user=user, status__in=WorkExperience.get_verified_statuses()).count()
             * Scores.WORK_EXPERIENCE_VERIFICATION.value
@@ -207,27 +237,28 @@ class WorkExperienceVerificationScore(Score):
 
 
 @register_score
-class LanguageScore(Score):
+class LanguageScore(Score, ScoreObserver):
+    _model_ = LanguageCertificate
+    observed_fields = [_model_.id.field.name]
     slug = "language"
 
     def calculate(self, user) -> int:
-        from .models import LanguageCertificate
-
         return Scores.LANGUAGE_ADD.value if LanguageCertificate.objects.filter(user=user).exists() else 0
 
 
 @register_score
-class CertificationScore(Score):
+class CertificationScore(Score, ScoreObserver):
+    _model_ = CertificateAndLicense
+    observed_fields = [_model_.id.field.name]
     slug = "certification"
 
     def calculate(self, user) -> int:
-        from .models import CertificateAndLicense
-
         return Scores.CERTIFICATION_ADD.value if CertificateAndLicense.objects.filter(user=user).exists() else 0
 
 
 @register_score
 class SkillScore(Score):
+    observed_fields = [User.skills.field.name]
     slug = "skill"
 
     def calculate(self, user) -> int:
@@ -235,17 +266,18 @@ class SkillScore(Score):
 
 
 @register_score
-class VisaStatusScore(Score):
+class VisaStatusScore(Score, ScoreObserver):
+    _model_ = CanadaVisa
+    observed_fields = [_model_.id.field.name]
     slug = "visa_status"
 
     def calculate(self, user) -> int:
-        from .models import CanadaVisa
-
         return Scores.VISA_STATUS.value if CanadaVisa.objects.filter(user=user).exists() else 0
 
 
 @register_score
 class JobInterestScore(Score):
+    observed_fields = [Profile.interested_jobs.field.name]
     slug = "job_interest"
 
     def calculate(self, user) -> int:
@@ -256,6 +288,7 @@ class JobInterestScore(Score):
 
 @register_score
 class AssessmentScore(Score):
+    observed_fields = [JobAssessmentResult.id.field.name]
     slug = "assessment"
 
     def calculate(self, user) -> int:
@@ -289,6 +322,7 @@ class AssessmentScore(Score):
 
 @register_score
 class OptionalAssessmentScore(Score):
+    observed_fields = [JobAssessmentResult.id.field.name]
     slug = "optional_assessment"
 
     def calculate(self, user) -> int:
@@ -304,6 +338,36 @@ class OptionalAssessmentScore(Score):
             ).count()
             * Scores.ASSESSMENT_ADD.value
         )
+
+
+class AssessmentResultObserver(ScoreObserver):
+    _model_ = JobAssessmentResult
+    scores = [
+        OptionalAssessmentScore,
+        AssessmentScore,
+    ]
+
+
+class ProfileScoreObserver(ScoreObserver):
+    _model_ = Profile
+    scores = [
+        CityScore,
+        FluentLanguageScore,
+        NativeLanguageScore,
+        JobInterestScore,
+    ]
+
+
+class UserScoreObserver(ScoreObserver):
+    _model_ = User
+    scores = [
+        FirstNameScore,
+        LastNameScore,
+        GenderScore,
+        DateOfBirthScore,
+        EmailScore,
+        SkillScore,
+    ]
 
 
 @register_pack
