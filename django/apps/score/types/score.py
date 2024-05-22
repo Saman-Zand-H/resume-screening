@@ -118,7 +118,7 @@ class ScoreObserver[T: Model](BaseModel):
     def calculate_scores(cls, old_instance: T, new_instance: T, user: "User") -> Dict[str, int]:
         updated_scores = {}
         for score_cls in cls.get_scores():
-            score = score_cls()
+            score: Score = score_cls()
             observed_fields = score.get_observed_fields()
 
             if not cls.find_changed_fields(old_instance, new_instance, observed_fields):
@@ -133,8 +133,11 @@ class ScoreObserver[T: Model](BaseModel):
 
     @staticmethod
     def update_profile_scores(profile: Profile, updated_scores: Dict[str, int]):
-        profile.scores.update(updated_scores)
-        profile.score = sum(profile.scores.values())
+        scores = profile.scores or {}
+        scores.update(updated_scores)
+        score = sum(scores.values())
+        profile.score = score
+        Profile.objects.filter(pk=profile.pk).update(scores=scores, score=score)
 
     @classmethod
     def observe(cls, instance: T, sender: Type[T], *args, **kwargs):
