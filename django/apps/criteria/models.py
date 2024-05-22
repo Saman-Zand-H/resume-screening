@@ -2,7 +2,7 @@ import re
 import uuid
 from datetime import timedelta
 
-from account.models import Profile, User
+from account.models import User
 from common.models import Job
 from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
