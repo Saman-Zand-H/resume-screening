@@ -69,8 +69,9 @@ class UserFieldExistingScore(ExistingScore):
     user_field: ClassVar[str]
     score = Scores.ID_INFORMATION.value
 
-    def get_observed_fields(self):
-        return [self.user_field]
+    @classmethod
+    def get_observed_fields(cls):
+        return [cls.user_field]
 
     def get_value(self, user):
         return getattr(user, self.user_field)
@@ -79,8 +80,9 @@ class UserFieldExistingScore(ExistingScore):
 class ProfileFieldScore(UserFieldExistingScore):
     profile_field: ClassVar[str]
 
-    def get_observed_fields(self):
-        return [self.profile_field]
+    @classmethod
+    def get_observed_fields(cls):
+        return [cls.profile_field]
 
     def get_value(self, user):
         profile = user.get_profile()
@@ -92,8 +94,8 @@ class ProfileFieldScore(UserFieldExistingScore):
 @register_score
 class UploadResumeScore(Score, ScoreObserver):
     slug = "upload_resume"
-    _model_: ClassVar[Resume] = Resume
-    observed_fields = ["pk"]
+    _model_ = Resume
+    observed_fields = [_model_.id.field.name]
 
     def calculate(self, user) -> int:
         return Scores.UPLOAD_RESUME.value if Resume.objects.filter(user=user).exists() else 0

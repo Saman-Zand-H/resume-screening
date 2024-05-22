@@ -130,13 +130,12 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.avatar.field.name,
         Profile.full_body_image.field.name,
     )
-    inlines = (ProfileInterestedJobsInline,)
+    # inlines = (ProfileInterestedJobsInline,)
     readonly_fields = (
         Profile.scores.field.name,
         Profile.score.field.name,
         Profile.credits.field.name,
     )
-    exclude = (Profile.interested_jobs.field.name,)
 
 
 @register(Contact)

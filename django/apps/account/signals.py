@@ -4,7 +4,7 @@ from common.models import Job, Skill
 from score.types import ScoreObserver
 
 from django.core.cache import cache
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from .constants import JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD, VectorStores

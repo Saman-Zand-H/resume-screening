@@ -1,12 +1,15 @@
-from typing import ClassVar, Dict, List, Type
+from functools import partial, wraps
+from typing import Callable, ClassVar, Dict, List, Literal, Type
 
 from account.models import Profile, User
 from common.utils import get_all_subclasses
 from pydantic import BaseModel, Field, PrivateAttr
 
 from django.db.models import Model
-from django.db.models.signals import pre_save
+from django.db.models.signals import m2m_changed, pre_save
 from django.dispatch import receiver
+
+M2mChangedActions = Literal["pre_add", "post_add", "pre_remove", "post_remove", "pre_clear", "post_clear"]
 
 
 class ScoreRegistry:
@@ -33,8 +36,9 @@ class Score(BaseModel):
     slug: ClassVar[str]
     observed_fields: ClassVar[List[str]] = Field(default_factory=list)
 
-    def get_observed_fields(self) -> List[str]:
-        return self.observed_fields
+    @classmethod
+    def get_observed_fields(cls) -> List[str]:
+        return cls.observed_fields
 
     def calculate(self, user) -> int:
         raise NotImplementedError(f"Subclasses must implement 'calculate' in '{self.__class__.__name__}'")
@@ -81,47 +85,44 @@ class ScoreObserver[T: Model](BaseModel):
 
     @classmethod
     def find_changed_fields(cls, old_instance: T, new_instance: T, observed_fields: List[str]) -> List[str]:
-        def get_field_value(instance, field):
-            return getattr(instance, field, None)
+        has_field_changed = lambda field: getattr(old_instance, field) != getattr(new_instance, field)  # noqa
 
-        def is_m2m_field(value):
-            return hasattr(value, "all") and callable(value.all)
-
-        def get_m2m_set(value):
-            return set(value.all()) if value else set()
-
-        def has_field_changed(old_value, new_value):
-            if is_m2m_field(old_value):
-                return get_m2m_set(old_value) != get_m2m_set(new_value)
-            return old_value != new_value
-
-        changed_fields = [
-            field
-            for field in observed_fields
-            if has_field_changed(get_field_value(old_instance, field), get_field_value(new_instance, field))
-        ]
-        return changed_fields
+        return [field for field in observed_fields if has_field_changed(field)]
 
     @classmethod
-    def observe_handler(cls, old_instance: T, new_instance: T):
+    def observe_handler[S: Score](cls, scores: S, old_instance: T, new_instance: T):
         if not cls.test_func(new_instance):
             return
 
         profile = (user := cls.get_user(new_instance)).get_profile()
 
-        if not (updated_scores := cls.calculate_scores(old_instance, new_instance, user)):
+        if not (updated_scores := cls.calculate_scores(scores, old_instance, new_instance, user)):
             return
 
         cls.update_profile_scores(profile, updated_scores)
 
     @classmethod
-    def calculate_scores(cls, old_instance: T, new_instance: T, user: "User") -> Dict[str, int]:
+    def get_through_models(
+        cls,
+    ):
+        return [
+            field.remote_field.through
+            for score in cls.get_scores()
+            for field_name in score.get_observed_fields()
+            if (field := cls._model_._meta.get_field(field_name)).many_to_many
+        ]
+
+    @classmethod
+    def calculate_scores[S: Score](
+        cls, scores: List[S], old_instance: T, new_instance: T, user: User
+    ) -> Dict[str, int]:
         updated_scores = {}
-        for score_cls in cls.get_scores():
+        for score_cls in scores:
             score = score_cls()
+            breakpoint()
             observed_fields = score.get_observed_fields()
 
-            if not cls.find_changed_fields(old_instance, new_instance, observed_fields):
+            if not cls.find_changed_fields(old_instance, new_instance, observed_fields) and old_instance:
                 continue
 
             updated_scores[score.slug] = score.calculate(user)
@@ -135,17 +136,28 @@ class ScoreObserver[T: Model](BaseModel):
     def update_profile_scores(profile: Profile, updated_scores: Dict[str, int]):
         profile.scores.update(updated_scores)
         profile.score = sum(profile.scores.values())
+        Profile.objects.filter(pk=profile.pk).update(score=profile.score, scores=profile.scores)
 
     @classmethod
-    def observe(cls, instance: T, sender: Type[T], *args, **kwargs):
-        try:
-            if not (old_instance := sender.objects.get(pk=instance.pk)):
+    def observe[S: Score](cls, scores: List[S], instance: T, sender: Type[T], *args, **kwargs):
+        old_instance = sender.objects.filter(pk=instance.pk).first()
+        cls.observe_handler(scores, old_instance, instance)
+
+    @classmethod
+    def pre_add_observer(cls, score_observer: Callable):
+        @wraps(score_observer.observe)
+        def wrapper(action: M2mChangedActions, *args, **kwargs):
+            breakpoint()
+            if action != "pre_add":
                 return
-        except sender.DoesNotExist:
-            return
-        cls.observe_handler(old_instance, instance)
+
+            return score_observer.observe(*args, **kwargs, scores=[score_observer])
+
+        return wrapper
 
     @classmethod
     def register_signals(cls):
         for score_observer in get_all_subclasses(cls):
-            receiver(pre_save, sender=score_observer._model_)(score_observer.observe)
+            receiver(pre_save, sender=score_observer._model_)(partial(score_observer.observe, scores=cls.get_scores()))
+            for through_model in score_observer.get_through_models():
+                receiver(m2m_changed, sender=through_model)(cls.pre_add_observer(score_observer))
