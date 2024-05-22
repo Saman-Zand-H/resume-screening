@@ -322,8 +322,8 @@ class Profile(ComputedFieldsModel):
         null=True,
         blank=True,
     )
-    scores = models.JSONField(verbose_name=_("Scores"), default=dict)
-    score = models.PositiveIntegerField(verbose_name=_("Score"), default=0)
+    scores = models.JSONField(verbose_name=_("Scores"), default=dict, blank=True)
+    score = models.PositiveIntegerField(verbose_name=_("Score"), default=0, blank=True)
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
