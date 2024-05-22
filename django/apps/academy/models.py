@@ -3,6 +3,7 @@ from common.models import Industry
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from .client.client import academy_client
@@ -22,6 +23,18 @@ def get_logo_upload_path(instance, filename):
     return f"courses/{instance.id}/logo/{filename}"
 
 
+class CourseQuerySet(models.QuerySet):
+    def related_to_user(self, user):
+        q = Q(is_required=True) | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
+        if profile := user.get_profile():
+            q |= Q(
+                industries__in=Industry.objects.filter(jobcategory__job__in=profile.interested_jobs.all())
+                .distinct()
+                .values_list("id", flat=True)
+            )
+        return self.filter(q).distinct()
+
+
 class Course(models.Model):
     class Type(models.TextChoices):
         GENERAL = "general", _("General")
@@ -34,6 +47,7 @@ class Course(models.Model):
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.GENERAL)
     industries = models.ManyToManyField(Industry)
     is_required = models.BooleanField(default=False)
+    objects = CourseQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("Course")

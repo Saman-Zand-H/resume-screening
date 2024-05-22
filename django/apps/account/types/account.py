@@ -312,7 +312,8 @@ class UserNode(BaseUserNode):
         qs = JobAssessment.objects.related_to_user(self)
         if filters:
             if filters.required is not None:
-                qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
+                if profile := self.get_profile():
+                    qs = qs.filter_by_required(filters.required, profile.interested_jobs.all())
         return qs.order_by("-id")
 
 
