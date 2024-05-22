@@ -138,9 +138,11 @@ class ScoreObserver[T: Model](BaseModel):
 
     @classmethod
     def observe(cls, instance: T, sender: Type[T], *args, **kwargs):
-        if not (old_instance := sender.objects.get(pk=instance.pk)):
+        try:
+            if not (old_instance := sender.objects.get(pk=instance.pk)):
+                return
+        except sender.DoesNotExist:
             return
-
         cls.observe_handler(old_instance, instance)
 
     @classmethod
