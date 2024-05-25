@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import EnumType
 from typing import Literal, Optional, Union, get_args, get_origin
 
 from pydantic import BaseModel, HttpUrl
@@ -39,6 +40,10 @@ class WebhookForm(forms.Form):
                 HttpUrl: forms.URLField,
             }[field_type]
             return field_class(required=not is_optional)
+
+        if isinstance(field_type, EnumType):
+            choices = [(choice.value, choice.name) for choice in field_type]
+            return forms.ChoiceField(choices=choices, required=not is_optional)
 
         if get_origin(field_type) is Literal:
             choices = [(choice, choice) for choice in get_args(field_type)]
