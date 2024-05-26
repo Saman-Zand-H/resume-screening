@@ -210,6 +210,37 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
+class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
+    class Meta:
+        model = Organization
+        fields = (
+            Organization.name.field.name,
+            Organization.short_name.field.name,    
+            Organization.national_number.field.name,
+            Organization.type.field.name,
+            Organization.business_type.field.name,
+            Organization.industry.field.name,
+            Organization.established_at.field.name,
+            Organization.size.field.name,
+            Organization.about.field.name,
+        )
+
+    @classmethod
+    def check_permissions(cls, *args):
+        info, obj = args[1], args[-1]
+        org_users = {position.user: position.title for position in obj.positions.all()}
+        user = info.context.user
+        if user not in org_users or org_users[user] != Position.Title.ASSOCIATE.value:
+            raise PermissionError("Not permitted to modify this record.")
+        return super().check_permissions(*args)
+
+    @classmethod
+    def update_obj(cls, *args, **kwargs):
+        obj = super().update_obj(*args, **kwargs)
+        cls.full_clean(obj)
+        return obj
+
+
 USER_MUTATION_FIELDS = get_input_fields_for_model(
     User,
     fields=(
@@ -731,6 +762,7 @@ class ProfileMutation(graphene.ObjectType):
 
 class OrganizationMutation(graphene.ObjectType):
     register = RegisterOrganization.Field()
+    update = OrganizationUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
