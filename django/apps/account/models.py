@@ -218,6 +218,33 @@ class FullBodyImageFile(UserUploadedImageFile):
         verbose_name_plural = _("Full Body Images")
 
 
+class Organization(models.Model):
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+
+    class Meta:
+        verbose_name = _("Organization")
+        verbose_name_plural = _("Organizations")
+
+
+class Position(models.Model):
+    class Title(models.TextChoices):
+        CTO = "cto", _("CTO")
+        CFO = "cfo", _("CFO")
+        CEO = "ceo", _("CEO")
+        HR = "hr", _("HR")
+        OPERATIONS = "operations", _("Operations")
+        ASSOCIATE = "associate", _("Associate")
+        OTHER = "other", _("Other")
+
+    title = models.CharField(max_length=50, choices=Title.choices, default=Title.OTHER.value, verbose_name=_("Title"))
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="positions")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="position")
+
+    class Meta:
+        verbose_name = _("Position")
+        verbose_name_plural = _("Positions")
+
+
 class Profile(ComputedFieldsModel):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
