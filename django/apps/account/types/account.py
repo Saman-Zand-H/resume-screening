@@ -27,6 +27,7 @@ from ..models import (
     SupportTicket,
     User,
     UserTask,
+    Organization,
     WorkExperience,
 )
 
@@ -323,4 +324,13 @@ class UserSkillType(DjangoObjectType):
         fields = (
             User.id.field.name,
             User.raw_skills.field.name,
+        )
+
+
+class OrganizationType(DjangoObjectType):
+    class Meta:
+        model = Organization
+        fields = (
+            Organization.id.field.name,
+            Organization.name.field.name,
         )
