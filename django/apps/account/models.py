@@ -262,6 +262,12 @@ class Profile(ComputedFieldsModel):
         ON_THE_ROAD = "on_the_road", _("On the road")
         GLOBAL = "global", _("Global")
 
+    class Gender(models.TextChoices):
+        MALE = "male", _("Male")
+        FEMALE = "female", _("Female")
+        NOT_KNOWN = "not_known", _("Not Known")
+        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -328,6 +334,17 @@ class Profile(ComputedFieldsModel):
     )
     scores = models.JSONField(verbose_name=_("Scores"), default=dict, blank=True)
     score = models.PositiveIntegerField(verbose_name=_("Score"), default=0, blank=True)
+    gender = models.CharField(
+        max_length=50,
+        choices=Gender.choices,
+        verbose_name=_("Gender"),
+        null=True,
+        blank=True,
+    )
+    birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
+    raw_skills = ArrayField(models.CharField(max_length=64), verbose_name=_("Raw Skills"), blank=True, null=True)
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", editable=False)
+    available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
