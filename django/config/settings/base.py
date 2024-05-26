@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "cachalot",
     "flex_pubsub",
     "flex_blob",
+    "flex_eav",
+    "flex_observer",
 ]
 
 INSTALLED_APPS += [
@@ -78,7 +80,6 @@ INSTALLED_APPS += [
     "account",
     "ai",
     "cv",
-    "flex_eav",
     "criteria",
     "score",
     "academy",
@@ -320,4 +321,5 @@ ACADEMY_SETTINGS = {
     "BASE_URL": os.environ.get("ACADEMY_BASE_URL"),
     "USERNAME": os.environ.get("ACADEMY_USERNAME"),
     "PASSWORD": os.environ.get("ACADEMY_PASSWORD"),
+    "WEBHOOK_SECRET": os.environ.get("ACADEMY_WEBHOOK_SECRET"),
 }

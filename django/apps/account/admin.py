@@ -34,6 +34,7 @@ from .models import (
     UserTask,
     WorkExperience,
 )
+from .scores import UserScorePack
 
 
 @register(User)
@@ -137,6 +138,17 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.credits.field.name,
     )
     exclude = (Profile.interested_jobs.field.name,)
+    actions = ("recalculate_scores",)
+
+    @admin.action(description="Recalculate Scores")
+    def recalculate_scores(self, request, queryset):
+        updated_profiles = []
+        for profile in queryset:
+            profile.scores = UserScorePack.calculate(profile.user)
+            profile.score = sum(profile.scores.values())
+            updated_profiles.append(profile)
+
+        Profile.objects.bulk_update(updated_profiles, fields=[Profile.scores.field.name, Profile.score.field.name])
 
 
 @register(Contact)

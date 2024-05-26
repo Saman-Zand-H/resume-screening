@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel
 
 
@@ -44,3 +46,14 @@ class GetCourseUrlByIdRequest(BaseModel):
 
 class GetCourseUrlByIdResponse(BaseModel):
     url: str
+
+
+class CollegeCourseStatus(Enum):
+    PASSED = "passed"
+    FAILED = "failed"
+
+
+class CourseCompletaionResponse(BaseModel):
+    course_id: str
+    external_id: str
+    status: CollegeCourseStatus

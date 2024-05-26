@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from criteria.models import JobAssessment, JobAssessmentResult
 from pydantic import BaseModel
-from score.types import ExistingScore, Score, ScoreObserver, ScorePack
+from score.types import ExistingScore, Score, ScorePack
 from score.utils import register_pack, register_score
 
 from django.db.models import Count, DurationField, ExpressionWrapper, F, Sum
@@ -69,8 +69,9 @@ class UserFieldExistingScore(ExistingScore):
     user_field: ClassVar[str]
     score = Scores.ID_INFORMATION.value
 
-    def get_observed_fields(self):
-        return [self.user_field]
+    @classmethod
+    def get_observed_fields(cls):
+        return [cls.user_field]
 
     def get_value(self, user):
         return getattr(user, self.user_field)
@@ -79,8 +80,9 @@ class UserFieldExistingScore(ExistingScore):
 class ProfileFieldScore(UserFieldExistingScore):
     profile_field: ClassVar[str]
 
-    def get_observed_fields(self):
-        return [self.profile_field]
+    @classmethod
+    def get_observed_fields(cls):
+        return [cls.profile_field]
 
     def get_value(self, user):
         profile = user.get_profile()
@@ -90,10 +92,10 @@ class ProfileFieldScore(UserFieldExistingScore):
 
 
 @register_score
-class UploadResumeScore(Score, ScoreObserver):
+class UploadResumeScore(Score):
     slug = "upload_resume"
-    _model_: ClassVar[Resume] = Resume
-    observed_fields = ["pk"]
+
+    observed_fields = [Resume.id.field.name]
 
     def calculate(self, user) -> int:
         return Scores.UPLOAD_RESUME.value if Resume.objects.filter(user=user).exists() else 0
@@ -131,10 +133,9 @@ class EmailScore(UserFieldExistingScore):
 
 
 @register_score
-class MobileScore(Score, ScoreObserver):
-    _model_ = Contact
+class MobileScore(Score):
     slug = "mobile"
-    observed_fields = [_model_.id.field.name]
+    observed_fields = [Contact.id.field.name]
 
     @classmethod
     def test_func(cls, instance):
@@ -170,9 +171,8 @@ class NativeLanguageScore(ProfileFieldScore):
 
 
 @register_score
-class EducationNewScore(Score, ScoreObserver):
-    _model_ = Education
-    observed_fields = [_model_.status.field.name, _model_.id.field.name]
+class EducationNewScore(Score):
+    observed_fields = [Education.status.field.name, Education.id.field.name]
     slug = "education_new"
 
     def calculate(self, user) -> int:
@@ -180,10 +180,9 @@ class EducationNewScore(Score, ScoreObserver):
 
 
 @register_score
-class EducationVerificationScore(Score, ScoreObserver):
-    _model_ = Education
+class EducationVerificationScore(Score):
     slug = "education_verification"
-    observed_fields = [_model_.status.field.name, _model_.id.field.name]
+    observed_fields = [Education.status.field.name, Education.id.field.name]
 
     @classmethod
     def test_func(cls, instance: Education):
@@ -198,9 +197,13 @@ class EducationVerificationScore(Score, ScoreObserver):
 
 
 @register_score
-class WorkExperienceNewScore(Score, ScoreObserver):
-    _model_ = WorkExperience
-    observed_fields = [_model_.status.field.name, _model_.id.field.name]
+class WorkExperienceNewScore(Score):
+    observed_fields = [
+        WorkExperience.status.field.name,
+        WorkExperience.id.field.name,
+        WorkExperience.end.field.name,
+        WorkExperience.start.field.name,
+    ]
     slug = "work_experience_new"
 
     def calculate(self, user) -> int:
@@ -220,14 +223,13 @@ class WorkExperienceNewScore(Score, ScoreObserver):
 
 
 @register_score
-class WorkExperienceVerificationScore(Score, ScoreObserver):
-    _model_ = WorkExperience
+class WorkExperienceVerificationScore(Score):
     slug = "work_experience_verification"
-    observed_fields = [_model_.id.field.name, _model_.status.field.name]
+    observed_fields = [WorkExperience.id.field.name, WorkExperience.status.field.name]
 
     @classmethod
     def test_func(self, instance: WorkExperience):
-        return instance.status == WorkExperience.get_verified_statuses()
+        return instance.status in WorkExperience.get_verified_statuses()
 
     def calculate(self, user) -> int:
         return (
@@ -237,9 +239,8 @@ class WorkExperienceVerificationScore(Score, ScoreObserver):
 
 
 @register_score
-class LanguageScore(Score, ScoreObserver):
-    _model_ = LanguageCertificate
-    observed_fields = [_model_.id.field.name]
+class LanguageScore(Score):
+    observed_fields = [LanguageCertificate.id.field.name]
     slug = "language"
 
     def calculate(self, user) -> int:
@@ -247,9 +248,8 @@ class LanguageScore(Score, ScoreObserver):
 
 
 @register_score
-class CertificationScore(Score, ScoreObserver):
-    _model_ = CertificateAndLicense
-    observed_fields = [_model_.id.field.name]
+class CertificationScore(Score):
+    observed_fields = [CertificateAndLicense.id.field.name]
     slug = "certification"
 
     def calculate(self, user) -> int:
@@ -266,9 +266,8 @@ class SkillScore(Score):
 
 
 @register_score
-class VisaStatusScore(Score, ScoreObserver):
-    _model_ = CanadaVisa
-    observed_fields = [_model_.id.field.name]
+class VisaStatusScore(Score):
+    observed_fields = [CanadaVisa.id.field.name]
     slug = "visa_status"
 
     def calculate(self, user) -> int:
@@ -338,36 +337,6 @@ class OptionalAssessmentScore(Score):
             ).count()
             * Scores.ASSESSMENT_ADD.value
         )
-
-
-class AssessmentResultObserver(ScoreObserver):
-    _model_ = JobAssessmentResult
-    scores = [
-        OptionalAssessmentScore,
-        AssessmentScore,
-    ]
-
-
-class ProfileScoreObserver(ScoreObserver):
-    _model_ = Profile
-    scores = [
-        CityScore,
-        FluentLanguageScore,
-        NativeLanguageScore,
-        JobInterestScore,
-    ]
-
-
-class UserScoreObserver(ScoreObserver):
-    _model_ = User
-    scores = [
-        FirstNameScore,
-        LastNameScore,
-        GenderScore,
-        DateOfBirthScore,
-        EmailScore,
-        SkillScore,
-    ]
 
 
 @register_pack
