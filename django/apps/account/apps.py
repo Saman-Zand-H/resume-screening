@@ -7,7 +7,8 @@ class AccountConfig(AppConfig):
     label = "auth_account"
 
     def ready(self):
+        from . import observers  # noqa
+        from . import scores  # noqa
         from . import signals  # noqa
         from . import tasks  # noqa
         from . import types  # noqa
-        from . import scores  # noqa

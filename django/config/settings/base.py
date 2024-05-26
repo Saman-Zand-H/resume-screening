@@ -79,6 +79,7 @@ INSTALLED_APPS += [
     "ai",
     "cv",
     "flex_eav",
+    "flex_observer",
     "criteria",
     "score",
     "academy",
