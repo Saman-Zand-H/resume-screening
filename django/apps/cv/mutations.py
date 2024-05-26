@@ -15,8 +15,12 @@ class GenerateResumeMutation(graphene.Mutation):
     @login_required
     def mutate(root, info, template_id=None):
         user = info.context.user
-        user_task_runner(render_cv_template, task_user_id=user.pk, user_id=user.pk, template_id=template_id)
-        return GenerateResumeMutation(success=True)
+        success = False
+        if user.get_profile():
+            user_task_runner(render_cv_template, task_user_id=user.pk, user_id=user.pk, template_id=template_id)
+            success = True
+
+        return GenerateResumeMutation(success=success)
 
 
 class CVMutation(graphene.ObjectType):
