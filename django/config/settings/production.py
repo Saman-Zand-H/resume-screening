@@ -76,7 +76,7 @@ if GOOGLE_CLOUD_ERROR_BUCKET_NAME:
             "django.error": {
                 "handlers": ["gcs", "console"],
                 "level": "ERROR",
-                "propagate": True,
+                "propagate": False,
             },
         },
     }

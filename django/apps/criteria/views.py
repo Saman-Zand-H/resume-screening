@@ -1,66 +1,48 @@
-import contextlib
-import json
-import logging
+from common.views import WebhookView
+from common.webhook import WebhookEvent, WebhookHandlerResponse
 
 from django.conf import settings
-from django.http import JsonResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from django.views.generic.edit import FormView
 
+from .client.types import GetScoresResponse, GetStatusResponse
 from .forms import ScoreWebhookForm, StatusWebhookForm
-from .webhooks import Events, WebhookHandler
-
-logger = logging.getLogger(__name__)
+from .models import JobAssessmentResult
 
 
-class WebhookView(FormView):
-    event = None
-    form_class = None
+class CriteriaWebhookView(WebhookView):
+    def get_webhook_secret(self):
+        return settings.CRITERIA_SETTINGS["WEBHOOK_SECRET"]
 
-    @method_decorator(csrf_exempt)
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        with contextlib.suppress(json.JSONDecodeError):
-            kwargs["data"] = json.loads(self.request.body.decode("utf-8"))
-        return kwargs
-
-    def get_error(self, message, status=400):
-        return JsonResponse({"error": message}, status=status)
-
-    def get_response(self, data, status=200):
-        return JsonResponse(data, status=status)
-
-    def post(self, request, *args, **kwargs):
-        api_key = request.headers.get("x-criteria-api-key")
-        if api_key is None or api_key != settings.CRITERIA_SETTINGS["WEBHOOK_SECRET"]:
-            return self.get_error("Unauthorized", status=401)
-        return super().post(request, *args, **kwargs)
-
-    def form_valid(self, form):
-        payload = form.cleaned_data
-        try:
-            payload_data = WebhookHandler.handle_event(self.event, payload)
-            return self.get_response(payload_data)
-        except ValueError as e:
-            logger.error(f"Event handling error: {e}")
-            return self.get_error(str(e))
-        except Exception as e:
-            logger.error(f"Failed to process webhook: {e}")
-            return self.get_error("Failed to process webhook", status=500)
-
-    def form_invalid(self, form):
-        return self.get_error("Invalid form data")
+    def get_webhook_header_key(self):
+        return "x-criteria-api-key"
 
 
-class ScoresWebhookView(WebhookView):
-    event = Events.SCORES_UPDATE
+def handle_scores_update(payload: dict) -> WebhookHandlerResponse:
+    scores_response = GetScoresResponse.model_validate(payload)
+    result = JobAssessmentResult.objects.get(order_id=scores_response.orderId)
+    result.raw_score = {k: v for k, v in scores_response.scores.model_dump().items() if v is not None}
+    result.report_url = scores_response.reportUrl
+    result.save(
+        update_fields=[
+            JobAssessmentResult.raw_score.field.name,
+            JobAssessmentResult.report_url.field.name,
+        ]
+    )
+    return WebhookHandlerResponse(status="success")
+
+
+class ScoresWebhookView(CriteriaWebhookView):
+    event = WebhookEvent(event="scores_update", handler=handle_scores_update)
     form_class = ScoreWebhookForm
 
 
-class StatusWebhookView(WebhookView):
-    event = Events.STATUS_UPDATE
+def handle_status_update(payload: dict) -> WebhookHandlerResponse:
+    status_response = GetStatusResponse.model_validate(payload)
+    result = JobAssessmentResult.objects.get(order_id=status_response.orderId)
+    result.raw_status = status_response.status
+    result.save(update_fields=[JobAssessmentResult.raw_status.field.name])
+    return WebhookHandlerResponse(status="success")
+
+
+class StatusWebhookView(CriteriaWebhookView):
+    event = WebhookEvent(event="status_update", handler=handle_status_update)
     form_class = StatusWebhookForm

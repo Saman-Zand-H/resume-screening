@@ -321,4 +321,5 @@ ACADEMY_SETTINGS = {
     "BASE_URL": os.environ.get("ACADEMY_BASE_URL"),
     "USERNAME": os.environ.get("ACADEMY_USERNAME"),
     "PASSWORD": os.environ.get("ACADEMY_PASSWORD"),
+    "WEBHOOK_SECRET": os.environ.get("ACADEMY_WEBHOOK_SECRET"),
 }

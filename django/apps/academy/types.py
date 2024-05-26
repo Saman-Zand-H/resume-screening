@@ -1,6 +1,6 @@
-from account.models import Profile
 from common.models import Industry
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
+from graphql_jwt.decorators import login_required
 
 from django.db.models import Q
 
@@ -26,16 +26,19 @@ class CourseNode(DjangoObjectType):
         }
 
     @classmethod
+    @login_required
     def get_queryset(cls, queryset, info):
         user = info.context.user
-        if not user or not (profile := user.get_profile()):
-            return queryset.none()
 
-        jobs = profile.interested_jobs.all()
-        industries = Industry.objects.filter(jobcategory__job__in=jobs).distinct().values_list("id", flat=True)
-        return (
-            super().get_queryset(queryset, info).filter(Q(industries__in=industries) | Q(is_required=True)).distinct()
-        )
+        q = Q(is_required=True)
+        if profile := user.get_profile():
+            q |= Q(
+                industries__in=Industry.objects.filter(jobcategory__job__in=profile.interested_jobs.all())
+                .distinct()
+                .values_list("id", flat=True)
+            )
+
+        return super().get_queryset(queryset, info).related_to_user(user)
 
 
 class CourseResultType(DjangoObjectType):

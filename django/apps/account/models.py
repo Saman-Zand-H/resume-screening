@@ -106,7 +106,11 @@ class User(AbstractUser):
     objects = UserManager()
 
     def get_profile(self) -> "Profile":
-        return (profile := getattr(self, Profile.user.field.related_query_name(), None)).pk and profile
+        return (
+            (profile := getattr(self, Profile.user.field.related_query_name(), None))
+            and getattr(profile, "pk")
+            and profile
+        )
 
     @cached_property
     def full_name(self):

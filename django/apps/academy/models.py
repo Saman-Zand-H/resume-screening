@@ -3,6 +3,7 @@ from common.models import Industry
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from .client.client import academy_client
@@ -22,6 +23,18 @@ def get_logo_upload_path(instance, filename):
     return f"courses/{instance.id}/logo/{filename}"
 
 
+class CourseQuerySet(models.QuerySet):
+    def related_to_user(self, user):
+        q = Q(is_required=True) | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
+        if profile := user.get_profile():
+            q |= Q(
+                industries__in=Industry.objects.filter(jobcategory__job__in=profile.interested_jobs.all())
+                .distinct()
+                .values_list("id", flat=True)
+            )
+        return self.filter(q).distinct()
+
+
 class Course(models.Model):
     class Type(models.TextChoices):
         GENERAL = "general", _("General")
@@ -34,6 +47,7 @@ class Course(models.Model):
     type = models.CharField(max_length=20, choices=Type.choices, default=Type.GENERAL)
     industries = models.ManyToManyField(Industry)
     is_required = models.BooleanField(default=False)
+    objects = CourseQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("Course")
@@ -48,10 +62,11 @@ class CourseResult(models.Model):
         NOT_STARTED = "not_started", _("Not Started")
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
+        FAILED = "failed", _("Failed")
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="results")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="course_results")
-    status = models.CharField(max_length=50, choices=Status.choices, default=Status.NOT_STARTED.value)
+    status = models.CharField(max_length=50, choices=Status.choices, default=Status.IN_PROGRESS.value)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
 
