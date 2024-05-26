@@ -74,7 +74,7 @@ from .views import GoogleOAuth2View, LinkedInOAuth2View
 class RegisterOrganization(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _required_args = [User.EMAIL_FIELD]
-    _args = [Organization.name.field.name]
+    _args = [Organization.name.field.name, User.first_name.field.name, User.last_name.field.name]
 
     @classmethod
     @transaction.atomic
