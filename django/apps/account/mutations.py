@@ -62,11 +62,36 @@ from .models import (
     Resume,
     SupportTicket,
     User,
+    Organization,
+    Position,
     WorkExperience,
 )
 from .tasks import set_user_resume_json, set_user_skills, user_task_runner
 from .types.account import UserSkillType
 from .views import GoogleOAuth2View, LinkedInOAuth2View
+
+
+class RegisterOrganization(graphql_auth_mutations.Register):
+    form = PasswordLessRegisterForm
+    _required_args = [User.EMAIL_FIELD]
+    _args = [Organization.name.field.name]
+
+    @classmethod
+    @transaction.atomic
+    def mutate(cls, *args, **kwargs):
+        result = super().mutate(*args, **kwargs)
+        if result.success:
+            email = kwargs.get(User.EMAIL_FIELD)
+            user = User.objects.get(**{User.EMAIL_FIELD: email})
+            # TODO: Check if this user has been invited to an organization,
+            # if so, get the organization and position title from the invitation,
+            # otherwise, create a new organization and set the position title to associate.
+            organization = None
+            position_title = Position.Title.ASSOCIATE.value
+            if organization_name := kwargs.get(Organization.name.field.name):
+                organization = Organization.objects.create(name=organization_name)
+            Position.objects.create(user=user, organization=organization, title=position_title)
+        return result
 
 
 def referral_registration(user, referral_code):
@@ -704,6 +729,10 @@ class ProfileMutation(graphene.ObjectType):
         delete = UserDeleteMutation.Field()
 
 
+class OrganizationMutation(graphene.ObjectType):
+    register = RegisterOrganization.Field()
+
+
 class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
     update = EducationUpdateMutation.Field()
@@ -755,6 +784,7 @@ class AccountMutation(graphene.ObjectType):
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
     profile = graphene.Field(ProfileMutation)
+    organization = graphene.Field(OrganizationMutation)
     education = graphene.Field(EducationMutation)
     work_experience = graphene.Field(WorkExperienceMutation)
     language_certificate = graphene.Field(LanguageCertificateMutation)
@@ -764,6 +794,9 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
+
+    def resolve_organization(self, *args, **kwargs):
+        return OrganizationMutation()
 
     def resolve_education(self, *args, **kwargs):
         return EducationMutation()
