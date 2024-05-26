@@ -30,7 +30,7 @@ def reverse_copy_user_to_profile(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("auth_account", "0015_profile_available_jobs_profile_birth_date_and_more"),
+        ("auth_account", "0017_profile_available_jobs_profile_birth_date_and_more"),
     ]
 
     operations = [

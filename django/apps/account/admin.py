@@ -23,7 +23,9 @@ from .models import (
     LanguageCertificateValue,
     OfflineMethod,
     OnlineMethod,
+    Organization,
     PaystubsMethod,
+    Position,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -33,8 +35,6 @@ from .models import (
     User,
     UserTask,
     WorkExperience,
-    Organization,
-    Position,
 )
 from .scores import UserScorePack
 
@@ -151,10 +151,10 @@ class ProfileAdmin(admin.ModelAdmin):
 
 @register(Contact)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = (Contact.user.field.name, Contact.type.field.name, Contact.value.field.name)
-    search_fields = (fields_join(Contact.user, User.email), Contact.type.field.name, Contact.value.field.name)
+    list_display = (Contact.contactable.field.name, Contact.type.field.name, Contact.value.field.name)
+    search_fields = (fields_join(Contact.contactable, User.email), Contact.type.field.name, Contact.value.field.name)
     list_filter = (Contact.type.field.name,)
-    raw_id_fields = (Contact.user.field.name,)
+    raw_id_fields = (Contact.contactable.field.name,)
 
 
 @register(Education)

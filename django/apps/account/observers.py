@@ -52,7 +52,9 @@ class BaseObserver[T: Model]:
     @classmethod
     def scores_calculated(cls, instance: T, scores_dict: Dict[str, int]):
         user: User = cls.get_calculate_params(instance).get("user")
-        profile = user.get_profile()
+        if not (profile := user.get_profile()):
+            return
+
         profile.scores.update(scores_dict)
         profile.score = sum(profile.scores.values())
 

@@ -62,6 +62,16 @@ def generate_ticket_id():
     return str(uuid.uuid4())[:8]
 
 
+def contactable_default():
+    return Contactable.objects.create().pk
+
+
+class Contactable(models.Model):
+    class Meta:
+        verbose_name = _("Contactable")
+        verbose_name_plural = _("Contactables")
+
+
 class User(AbstractUser):
     class Gender(models.TextChoices):
         MALE = "male", _("Male")
@@ -159,6 +169,12 @@ class Organization(models.Model):
         _500_1000 = "_500_1000", _("500-1000")
         OVER_1000 = "over_1000", _("Over 1000")
 
+    contactable = models.OneToOneField(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        default=contactable_default,
+    )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
     national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
@@ -333,6 +349,12 @@ class Profile(ComputedFieldsModel):
         NOT_KNOWN = "not_known", _("Not Known")
         NOT_APPLICABLE = "not_applicable", _("Not Applicable")
 
+    contactable = models.OneToOneField(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        default=contactable_default,
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -500,7 +522,22 @@ class Contact(models.Model):
         Type.WHATSAPP: fix_whatsapp_value,
     }
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
+    contactable = models.ForeignKey(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        related_name="contacts",
+        blank=True,
+        null=True,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_("User"),
+        related_name="contacts",
+        null=True,
+        blank=True,
+    )
     type = models.CharField(
         max_length=50,
         choices=Type.choices,
@@ -510,12 +547,12 @@ class Contact(models.Model):
     value = models.CharField(max_length=255, verbose_name=_("Value"))
 
     class Meta:
-        unique_together = ("user", "type")
+        unique_together = ("contactable", "type")
         verbose_name = _("Contact")
         verbose_name_plural = _("Contacts")
 
     def __str__(self):
-        return f"{self.user.email} - {self.type}: {self.value}"
+        return f"{self.contactable} - {self.type}: {self.value}"
 
     def get_display_dict(self) -> Dict[str, Optional[str]]:
         """

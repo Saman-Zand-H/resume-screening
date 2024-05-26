@@ -19,6 +19,7 @@ from ..models import (
     IEEMethod,
     LanguageCertificate,
     LanguageCertificateValue,
+    Organization,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -27,7 +28,6 @@ from ..models import (
     SupportTicket,
     User,
     UserTask,
-    Organization,
     WorkExperience,
 )
 
@@ -288,7 +288,7 @@ class UserNode(BaseUserNode):
             User.last_name.field.name,
             User.email.field.name,
             Profile.user.field.related_query_name(),
-            Contact.user.field.related_query_name(),
+            Contact.contactable.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
