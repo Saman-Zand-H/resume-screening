@@ -333,4 +333,12 @@ class OrganizationType(DjangoObjectType):
         fields = (
             Organization.id.field.name,
             Organization.name.field.name,
+            Organization.short_name.field.name,
+            Organization.national_number.field.name,
+            Organization.type.field.name,
+            Organization.business_type.field.name,
+            Organization.industry.field.name,
+            Organization.established_at.field.name,
+            Organization.size.field.name,
+            Organization.about.field.name,
         )

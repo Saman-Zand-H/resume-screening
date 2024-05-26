@@ -138,7 +138,45 @@ class User(AbstractUser):
 
 
 class Organization(models.Model):
+    class Type(models.TextChoices):
+        COMPANY = "company", _("Company")
+        STOCK = "stock", _("Stock")
+        NON_PROFIT = "non_profit", _("Non-Profit")
+        GOVERNMENT = "government", _("Government")
+        EDUCATIONAL = "educational", _("Educational")
+        OTHER = "other", _("Other")
+
+    class BussinessType(models.TextChoices):
+        SOFTWARE = "software", _("Software")
+        SERVICE = "service", _("Service")
+        PRODUCT = "product", _("Product")
+
+    class Size(models.TextChoices):
+        _1_10 = "_1_10", _("1-10")
+        _10_50 = "_10_50", _("10-50")
+        _50_100 = "_50_100", _("50-100")
+        _100_500 = "_100_500", _("100-500")
+        _500_1000 = "_500_1000", _("500-1000")
+        OVER_1000 = "over_1000", _("Over 1000")
+
     name = models.CharField(max_length=255, verbose_name=_("Name"))
+    short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
+    national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
+    type = models.CharField(max_length=50, choices=Type.choices, verbose_name=_("Type"), null=True, blank=True)
+    business_type = models.CharField(
+        max_length=50, choices=BussinessType.choices, verbose_name=_("Business Type"), null=True, blank=True
+    )
+    industry = models.ForeignKey(
+        Industry,
+        on_delete=models.CASCADE,
+        verbose_name=_("Industry"),
+        null=True,
+        blank=True,
+        related_name="organizations",
+    )
+    established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
+    size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
+    about = models.TextField(verbose_name=_("About"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Organization")
