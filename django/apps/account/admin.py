@@ -55,8 +55,6 @@ class UserAdmin(UserAdminBase):
         User.last_name.field.name,
         User.is_staff.field.name,
     )
-    readonly_fields = (User.skills.field.name,)
-    raw_id_fields = (User.skills.field.name,)
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
@@ -72,11 +70,6 @@ class UserAdmin(UserAdminBase):
                     User.first_name.field.name,
                     User.last_name.field.name,
                     User.username.field.name,
-                    User.gender.field.name,
-                    User.birth_date.field.name,
-                    User.raw_skills.field.name,
-                    User.skills.field.name,
-                    User.available_jobs.field.name,
                 )
             },
         )
@@ -126,6 +119,7 @@ class ProfileAdmin(admin.ModelAdmin):
     )
     raw_id_fields = (
         Profile.user.field.name,
+        Profile.skills.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
         Profile.avatar.field.name,
@@ -135,8 +129,10 @@ class ProfileAdmin(admin.ModelAdmin):
     readonly_fields = (
         Profile.scores.field.name,
         Profile.score.field.name,
+        Profile.skills.field.name,
         Profile.credits.field.name,
     )
+
     exclude = (Profile.interested_jobs.field.name,)
     actions = ("recalculate_scores",)
 

@@ -69,7 +69,10 @@ class ProfileObserver(BaseObserver, ScoreObserver):
         CityScore,
         FluentLanguageScore,
         NativeLanguageScore,
+        GenderScore,
         JobInterestScore,
+        DateOfBirthScore,
+        SkillScore,
     ]
 
 
@@ -77,12 +80,9 @@ class ProfileObserver(BaseObserver, ScoreObserver):
 class UserObserver(BaseObserver, ScoreObserver):
     _observed_model = User
     scores = [
-        DateOfBirthScore,
         EmailScore,
         FirstNameScore,
         LastNameScore,
-        GenderScore,
-        SkillScore,
     ]
 
     @classmethod

@@ -32,7 +32,6 @@ from ..models import (
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
-    score = graphene.Int(source=Profile.score.field.name)
     completion_percentage = graphene.Float(source=Profile.completion_percentage.fget.__name__)
 
     class Meta:
@@ -44,6 +43,10 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.hair_color.field.name,
             Profile.eye_color.field.name,
             Profile.avatar.field.name,
+            Profile.gender.field.name,
+            Profile.birth_date.field.name,
+            Profile.skills.field.name,
+            Profile.available_jobs.field.name,
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
             Profile.interested_jobs.field.name,
@@ -55,6 +58,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.job_location_type.field.name,
             Profile.fluent_languages.field.name,
             Profile.scores.field.name,
+            Profile.score.field.name,
         )
 
 
@@ -281,11 +285,7 @@ class UserNode(BaseUserNode):
         fields = (
             User.first_name.field.name,
             User.last_name.field.name,
-            User.gender.field.name,
             User.email.field.name,
-            User.birth_date.field.name,
-            User.skills.field.name,
-            User.available_jobs.field.name,
             Profile.user.field.related_query_name(),
             Contact.user.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
@@ -319,8 +319,8 @@ class UserNode(BaseUserNode):
 
 class UserSkillType(DjangoObjectType):
     class Meta:
-        model = User
+        model = Profile
         fields = (
-            User.id.field.name,
-            User.raw_skills.field.name,
+            Profile.id.field.name,
+            Profile.raw_skills.field.name,
         )

@@ -33,22 +33,4 @@ def skills_clear_cache(*args, **kwargs):
     cache.delete(VectorStores.SKILL.cache_key)
 
 
-# @receiver(pre_save, sender=Profile)
-# def check_score_threshold(instance: Profile, sender: Type[Profile], *args, **kwargs):
-#     old_score = sender.objects.get(pk=instance.pk).score if instance.pk else None
-#     if not instance.scores or old_score == instance.score or instance.score < JOB_AVAILABLE_MIN_SCORE_TRIGGER_THRESHOLD:
-#         return
-
-#     user_task_runner(find_available_jobs, user_id=instance.user.pk, task_user_id=instance.user.pk)
-
-
-# @receiver(post_save, sender=Profile)
-# def initialize_scores(instance: Profile, sender: Type[Profile], created, *args, **kwargs):
-#     if not created and instance.scores:
-#         return
-
-#     instance.scores = UserScorePack.calculate(instance.user)
-#     instance.score = sum(instance.scores.values())
-#     instance.save()
-
 FieldsObserverRegistry.register_all()
