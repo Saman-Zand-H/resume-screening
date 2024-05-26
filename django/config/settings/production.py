@@ -80,3 +80,5 @@ if GOOGLE_CLOUD_ERROR_BUCKET_NAME:
             },
         },
     }
+
+CACHALOT_ENABLED = False
