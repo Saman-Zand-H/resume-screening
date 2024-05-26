@@ -33,6 +33,8 @@ from .models import (
     User,
     UserTask,
     WorkExperience,
+    Organization,
+    Position,
 )
 from .scores import UserScorePack
 
@@ -478,3 +480,36 @@ class UserTaskAdmin(admin.ModelAdmin):
     search_fields = (fields_join(UserTask.user, User.email), UserTask.task_name.field.name)
     list_filter = (UserTask.status.field.name,)
     raw_id_fields = (UserTask.user.field.name,)
+
+
+@register(Organization)
+class OrganizationAdmin(admin.ModelAdmin):
+    list_display = (
+        Organization.name.field.name,
+        Organization.type.field.name,
+        Organization.established_at.field.name,
+        Organization.size.field.name,
+    )
+    search_fields = (
+        Organization.name.field.name,
+        Organization.short_name.field.name,
+        Organization.national_number.field.name,
+    )
+    list_filter = (
+        Organization.type.field.name,
+        Organization.business_type.field.name,
+        Organization.size.field.name,
+        Organization.established_at.field.name,
+    )
+    raw_id_fields = (Organization.industry.field.name,)
+
+
+@register(Position)
+class PositionAdmin(admin.ModelAdmin):
+    list_display = (
+        Position.user.field.name,
+        Position.organization.field.name,
+        Position.title.field.name,
+    )
+    list_filter = (Position.title.field.name,)
+    raw_id_fields = (Position.organization.field.name, Position.user.field.name)
