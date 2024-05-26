@@ -34,4 +34,6 @@ google-cloud-secret-manager~=2.20
 django-environ~=0.11
 google-cloud-storage~=2.18.2
 django-model-utils~=5.0.0
+django-flex-observer==0.0.2
+django-flex-eav==0.0.2
 pdfkit~=1.0.0

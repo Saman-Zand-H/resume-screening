@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "cachalot",
     "flex_pubsub",
     "flex_blob",
+    "flex_eav",
+    "flex_observer",
 ]
 
 INSTALLED_APPS += [
@@ -78,8 +80,6 @@ INSTALLED_APPS += [
     "account",
     "ai",
     "cv",
-    "flex_eav",
-    "flex_observer",
     "criteria",
     "score",
     "academy",
