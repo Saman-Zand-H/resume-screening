@@ -1,7 +1,6 @@
 import contextlib
 
 import graphene
-from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -32,6 +31,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -67,7 +67,7 @@ from .models import (
     WorkExperience,
 )
 from .tasks import set_user_resume_json, set_user_skills, user_task_runner
-from .types.account import UserSkillType
+from .types.account import UserNode
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -332,7 +332,7 @@ class UserSetSkillsMutation(graphene.Mutation):
     class Arguments:
         input = UserSkillInput(required=True)
 
-    profile = graphene.Field(UserSkillType)
+    user = graphene.Field(UserNode)
 
     @login_required
     @staticmethod
@@ -346,7 +346,7 @@ class UserSetSkillsMutation(graphene.Mutation):
 
         skills and user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
 
-        return UserSetSkillsMutation(profile=profile)
+        return UserSetSkillsMutation(user=user)
 
 
 class SetContactsMutation(DjangoBatchCreateMutation):
@@ -365,7 +365,7 @@ class SetContactsMutation(DjangoBatchCreateMutation):
         return super().before_mutate(root, info, input)
 
     @classmethod
-    def before_create_obj(cls, info, input, obj):
+    def before_create_obj(cls, info, input, obj: Contact):
         user = info.context.user
         with contextlib.suppress(Contact.DoesNotExist):
             obj.pk = Contact.objects.get(contactable__profile__user=user, type=obj.type).pk
@@ -373,9 +373,7 @@ class SetContactsMutation(DjangoBatchCreateMutation):
         if not (profile := user.get_profile()):
             raise GraphQLErrorBadRequest("User has no profile.")
 
-        if not hasattr(profile, "contactable"):
-            profile.create_contactable()
-
+        obj.contactable = profile.get_or_create_contactable()
         obj.full_clean(validate_unique=False)
 
     @classmethod
