@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -31,7 +32,6 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -55,6 +55,8 @@ from .models import (
     EmployerLetterMethod,
     LanguageCertificate,
     LanguageCertificateValue,
+    Organization,
+    Position,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -62,8 +64,6 @@ from .models import (
     Resume,
     SupportTicket,
     User,
-    Organization,
-    Position,
     WorkExperience,
 )
 from .tasks import set_user_resume_json, set_user_skills, user_task_runner
@@ -215,7 +215,7 @@ class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
         model = Organization
         fields = (
             Organization.name.field.name,
-            Organization.short_name.field.name,    
+            Organization.short_name.field.name,
             Organization.national_number.field.name,
             Organization.type.field.name,
             Organization.business_type.field.name,
@@ -247,8 +247,6 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
         fields := (
             User.first_name.field.name,
             User.last_name.field.name,
-            User.gender.field.name,
-            User.birth_date.field.name,
         )
     ),
     optional_fields=fields,
@@ -269,6 +267,8 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
             Profile.avatar.field.name,
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
+            Profile.gender.field.name,
+            Profile.birth_date.field.name,
             Profile.interested_jobs.field.name,
             Profile.city.field.name,
             Profile.native_language.field.name,
@@ -302,17 +302,22 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
     def validate(cls, *args, **kwargs):
         info = args[1]
         input = args[2]
-        user = info.context.user
+        user: User = info.context.user
+        profile = user.get_profile()
+
+        if not profile:
+            raise GraphQLErrorBadRequest("User has no profile.")
 
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
-            available_jobs = map(str, set(user.available_jobs.values_list("id", flat=True)))
+            available_jobs = map(str, set(profile.available_jobs.values_list("id", flat=True)))
             if not interested_jobs.issubset(available_jobs):
                 raise GraphQLErrorBadRequest(_("Interested jobs must be in available jobs."))
 
             if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
                     raise GraphQLErrorBadRequest(_("Appearance related data cannot be unset."))
-                if not ((profile := user.get_profile()) and profile.has_appearance_related_data):
+
+                if not (profile.has_appearance_related_data):
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
 
@@ -327,19 +332,21 @@ class UserSetSkillsMutation(graphene.Mutation):
     class Arguments:
         input = UserSkillInput(required=True)
 
-    user = graphene.Field(UserSkillType)
+    profile = graphene.Field(UserSkillType)
 
     @login_required
     @staticmethod
     def mutate(root, info, input):
-        user = info.context.user
-        skills = input.get("skills")
-        user.raw_skills = skills
-        user.save(update_fields=[User.raw_skills.field.name])
+        user: User = info.context.user
+        if not (profile := user.get_profile()):
+            return GraphQLErrorBadRequest("User has no profile.")
+
+        profile.raw_skills = (skills := input.get("skills"))
+        profile.save(update_fields=[Profile.raw_skills.field.name])
 
         skills and user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
 
-        return UserSetSkillsMutation(user=user)
+        return UserSetSkillsMutation(profile=profile)
 
 
 class SetContactsMutation(DjangoBatchCreateMutation):
@@ -359,14 +366,23 @@ class SetContactsMutation(DjangoBatchCreateMutation):
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
-        obj.user = info.context.user
+        user = info.context.user
         with contextlib.suppress(Contact.DoesNotExist):
-            obj.pk = Contact.objects.get(user=obj.user, type=obj.type).pk
+            obj.pk = Contact.objects.get(contactable__profile__user=user, type=obj.type).pk
+
+        if not (profile := user.get_profile()):
+            raise GraphQLErrorBadRequest("User has no profile.")
+
+        if not hasattr(profile, "contactable"):
+            profile.create_contactable()
+
         obj.full_clean(validate_unique=False)
 
     @classmethod
     def after_mutate(cls, root, info, input, created_objs, return_data):
-        Contact.objects.filter(user=info.context.user).exclude(pk__in=[obj.pk for obj in created_objs]).delete()
+        Contact.objects.filter(contactable__profile__user=info.context.user).exclude(
+            pk__in=[obj.pk for obj in created_objs]
+        ).delete()
 
 
 class DocumentCreateMutationBase(DocumentCUDFieldMixin, DocumentCUDMixin, DjangoCreateMutation):

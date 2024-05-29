@@ -25,7 +25,7 @@ def extract_resume_headlines(resume_json: ResumeSchema) -> ResumeHeadlines:
 def extract_job_additional_input(user):
     profile = user.get_profile()
     data = {
-        "skills": ", ".join(user.skills.values_list("title", flat=True)),
+        "skills": ", ".join(profile.skills.values_list("title", flat=True)),
         "languages": ", ".join(filter(bool, [profile.native_language, *profile.fluent_languages])),
         "certifications": ", ".join(user.certificateandlicenses.values_list("title", flat=True)),
         "educations": ", ".join(education.title for education in user.educations.all()),
@@ -74,6 +74,7 @@ def extract_resume_json(text: str) -> Optional[ResumeSchema]:
 def extract_available_jobs(resume_json: dict[str, Any]) -> Optional[List[Job]]:
     if not resume_json:
         return None
+
     service = OpenAIService(OpenAiAssistants.JOB)
     service.assistant_vector_store_update_cache(VectorStores.JOB)
     message = service.send_text_to_assistant(f'{{ "resume_data": {json.dumps(resume_json)} }}')

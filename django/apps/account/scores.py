@@ -114,18 +114,6 @@ class LastNameScore(UserFieldExistingScore):
 
 
 @register_score
-class GenderScore(UserFieldExistingScore):
-    slug = "gender"
-    user_field = User.gender.field.name
-
-
-@register_score
-class DateOfBirthScore(UserFieldExistingScore):
-    slug = "date_of_birth"
-    user_field = User.birth_date.field.name
-
-
-@register_score
 class EmailScore(UserFieldExistingScore):
     slug = "email"
     score = Scores.CONTACT_INFORMATION.value
@@ -144,9 +132,21 @@ class MobileScore(Score):
     def calculate(self, user) -> int:
         return (
             Scores.CONTACT_INFORMATION.value
-            if Contact.objects.filter(user=user, type=Contact.Type.PHONE).exists()
+            if Contact.objects.filter(contactable__profile__user=user, type=Contact.Type.PHONE).exists()
             else 0
         )
+
+
+@register_score
+class GenderScore(ProfileFieldScore):
+    slug = "gender"
+    profile_field = Profile.gender.field.name
+
+
+@register_score
+class DateOfBirthScore(ProfileFieldScore):
+    slug = "date_of_birth"
+    profile_field = Profile.birth_date.field.name
 
 
 @register_score
@@ -258,11 +258,11 @@ class CertificationScore(Score):
 
 @register_score
 class SkillScore(Score):
-    observed_fields = [User.skills.field.name]
+    observed_fields = [Profile.skills.field.name]
     slug = "skill"
 
     def calculate(self, user) -> int:
-        return Scores.SKILL_ADD.value if user.skills.exists() else 0
+        return Scores.SKILL_ADD.value if (profile := user.get_profile()) and profile.skills.exists() else 0
 
 
 @register_score

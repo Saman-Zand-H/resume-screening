@@ -34,7 +34,7 @@ def map_exception_to_error(exception_class: type, exception_text: str = None) ->
 
 
 def fields_join(*fields):
-    return LOOKUP_SEP.join([field.field.name for field in fields])
+    return LOOKUP_SEP.join([(hasattr(field, "field") and field.field.name) or field for field in fields])
 
 
 def fix_array_choice_type(field):
