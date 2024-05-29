@@ -176,10 +176,10 @@ def send_email_async(recipient_list, from_email, subject, content, file_model_id
     if file_model_ids:
         blob_builder = BlobResponseBuilder.get_response_builder()
         for file_model_id in file_model_ids:
-            attachment = FileModel.objects.get(pk=file_model_id).file
+            attachment = FileModel.objects.get(pk=file_model_id)
             email.attach(
                 blob_builder.get_file_name(attachment),
-                attachment.read(),
+                attachment.file.read(),
                 blob_builder.get_content_type(attachment),
             )
 
