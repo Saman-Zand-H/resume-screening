@@ -139,7 +139,6 @@ class User(AbstractUser):
     def get_resume_related_models(self):
         return (
             Resume.user,
-            Profile.user,
             Education.user,
             WorkExperience.user,
             LanguageCertificate.user,
