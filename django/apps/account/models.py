@@ -379,7 +379,7 @@ class Profile(ComputedFieldsModel):
     @property
     def completion_percentage(self):
         related_scores = self.get_completion_related_scores()
-        scores = self.scores.get("scores", {})
+        scores = self.scores
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
 

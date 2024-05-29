@@ -107,7 +107,9 @@
                                             {{ user.last_name }}
                                         </span>
                                     </div>
-                                    <div class="job-title">{{ headline }}</div>
+                                    {% if headline %}
+                                        <div class="job-title">{{ headline }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="update-date">
