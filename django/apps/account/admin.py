@@ -139,11 +139,11 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
     exclude = (Profile.interested_jobs.field.name,)
-    actions = ("recalculate_scores", "connect_to_contactable")
+    actions = ("recalculate_scores", "connect_contacts")
 
     @admin.action(description="Connect to Contactable")
-    def connect_to_contactable(self, request, queryset):
-        for profile in queryset.filter(contactable__isnull=True):
+    def connect_contacts(self, request, queryset):
+        for profile in queryset.all():
             contactable = profile.contactable
             if not contactable:
                 contactable = Contactable.objects.create()
