@@ -18,6 +18,7 @@ from .utils import (
     extract_resume_headlines,
     extract_resume_json,
     extract_resume_text,
+    get_user_additional_information,
 )
 
 logger = getLogger("django")
@@ -83,10 +84,12 @@ def find_available_jobs(user_id: int) -> bool:
         raise ValueError(f"Profile for user {user_id} not found.")
 
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
-    jobs = extract_available_jobs(resume_json)
-    if jobs:
-        profile.available_jobs.set(jobs)
-        return True
+    jobs = extract_available_jobs(resume_json, **get_user_additional_information(user_id))
+    if not jobs:
+        return
+
+    profile.available_jobs.set(jobs)
+    return True
 
 
 @register_task([AccountSubscription.ASSISTANTS])
@@ -97,12 +100,14 @@ def set_user_skills(user_id: int) -> bool:
         raise ValueError(f"Profile for user {user_id} not found.")
 
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
-    extracted_skills = extract_or_create_skills(profile.raw_skills or [], resume_json)
 
-    if extracted_skills:
-        profile.skills.set(extracted_skills)
-    else:
-        profile.skills.clear()
+    extracted_skills = extract_or_create_skills(
+        profile.raw_skills or [],
+        resume_json,
+        **get_user_additional_information(user_id),
+    )
+
+    profile.skills.set(extracted_skills) if extracted_skills else profile.skills.clear()
 
     return True
 
