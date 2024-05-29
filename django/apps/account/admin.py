@@ -113,7 +113,6 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.skin_color.field.name,
         Profile.hair_color.field.name,
         Profile.eye_color.field.name,
-        Profile.contactable.field.name,
     )
     search_fields = (fields_join(Profile.user, User.email),)
     list_filter = (
@@ -139,7 +138,7 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
     exclude = (Profile.interested_jobs.field.name,)
-    actions = ("recalculate_scores", "connect_contacts")
+    actions = ("recalculate_scores",)
 
     @admin.action(description="Recalculate Scores")
     def recalculate_scores(self, request, queryset):
@@ -563,7 +562,6 @@ class ContactableAdmin(admin.ModelAdmin):
         Profile.contactable.field.related_query_name(),
         Organization.contactable.field.related_query_name(),
     )
-    actions = ("delete_reduntant_contactables",)
 
     @admin.display(description="Contacts Count")
     def contacts_count(self, obj):
