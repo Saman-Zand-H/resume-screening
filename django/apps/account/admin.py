@@ -141,15 +141,6 @@ class ProfileAdmin(admin.ModelAdmin):
     exclude = (Profile.interested_jobs.field.name,)
     actions = ("recalculate_scores", "connect_contacts")
 
-    @admin.action(description="Connect to Contactable")
-    def connect_contacts(self, request, queryset):
-        Contact.objects.all().update(contactable=None)
-
-        for profile in queryset.all():
-            user = profile.user
-            contactable = profile.contactable
-            user.contacts.update(contactable_id=contactable.pk)
-
     @admin.action(description="Recalculate Scores")
     def recalculate_scores(self, request, queryset):
         updated_profiles = []
@@ -573,10 +564,6 @@ class ContactableAdmin(admin.ModelAdmin):
         Organization.contactable.field.related_query_name(),
     )
     actions = ("delete_reduntant_contactables",)
-
-    @admin.action(description="Delete Redundant")
-    def delete_reduntant_contactables(self, request, queryset):
-        Contactable.objects.filter(profile__isnull=True, contacts__isnull=True).delete()
 
     @admin.display(description="Contacts Count")
     def contacts_count(self, obj):
