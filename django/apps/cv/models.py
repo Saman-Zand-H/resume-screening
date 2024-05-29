@@ -114,7 +114,7 @@ class GeneratedCV(FileModel):
         resume = user.resume if hasattr(user, "resume") else None
         about_me = resume and resume.about_me
         headline = resume and resume.headline
-        languages = [profile.native_language, *(profile.fluent_languages or [])]
+        languages = {profile.native_language, *(profile.fluent_languages or [])}
         languages_dict = dict(LANGUAGES)
         contacts = Contact.objects.filter(contactable__profile__user=user)
         social_contacts = contacts.filter(
