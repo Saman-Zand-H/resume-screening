@@ -147,117 +147,6 @@ class User(AbstractUser):
         )
 
 
-class Organization(models.Model):
-    class Type(models.TextChoices):
-        COMPANY = "company", _("Company")
-        STOCK = "stock", _("Stock")
-        NON_PROFIT = "non_profit", _("Non-Profit")
-        GOVERNMENT = "government", _("Government")
-        EDUCATIONAL = "educational", _("Educational")
-        OTHER = "other", _("Other")
-
-    class BussinessType(models.TextChoices):
-        SOFTWARE = "software", _("Software")
-        SERVICE = "service", _("Service")
-        PRODUCT = "product", _("Product")
-
-    class Size(models.TextChoices):
-        _1_10 = "_1_10", _("1-10")
-        _10_50 = "_10_50", _("10-50")
-        _50_100 = "_50_100", _("50-100")
-        _100_500 = "_100_500", _("100-500")
-        _500_1000 = "_500_1000", _("500-1000")
-        OVER_1000 = "over_1000", _("Over 1000")
-
-    contactable = models.OneToOneField(
-        Contactable,
-        on_delete=models.SET_NULL,
-        verbose_name=_("Contactable"),
-        null=True,
-        blank=True,
-    )
-    name = models.CharField(max_length=255, verbose_name=_("Name"))
-    logo = models.ImageField(upload_to="organization/logo", verbose_name=_("Logo"), null=True, blank=True)
-    short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
-    national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
-    type = models.CharField(max_length=50, choices=Type.choices, verbose_name=_("Type"), null=True, blank=True)
-    business_type = models.CharField(
-        max_length=50, choices=BussinessType.choices, verbose_name=_("Business Type"), null=True, blank=True
-    )
-    industry = models.ForeignKey(
-        Industry,
-        on_delete=models.CASCADE,
-        verbose_name=_("Industry"),
-        null=True,
-        blank=True,
-        related_name="organizations",
-    )
-    established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
-    size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
-    about = models.TextField(verbose_name=_("About"), null=True, blank=True)
-    created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_("Created By"), related_name="organizations"
-    )
-
-    class Meta:
-        verbose_name = _("Organization")
-        verbose_name_plural = _("Organizations")
-
-
-class OrganizationMembership(models.Model):
-    class Role(models.TextChoices):
-        CTO = "cto", _("CTO")
-        CFO = "cfo", _("CFO")
-        CEO = "ceo", _("CEO")
-        HR = "hr", _("HR")
-        OPERATIONS = "operations", _("Operations")
-        ASSOCIATE = "associate", _("Associate")
-        OTHER = "other", _("Other")
-        CREATOR = "creator", _("Creator")
-
-    role = models.CharField(max_length=50, verbose_name=_("Role"), choices=Role.choices, default=Role.OTHER.value)
-    organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name="memberships", verbose_name=_("Organization")
-    )
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="membership", verbose_name=_("User"))
-    invited_by = models.ForeignKey(
-        User,
-        verbose_name=_("Invited By"),
-        on_delete=models.RESTRICT,
-        null=True,
-        blank=True,
-        related_name="invited_memberships",
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-
-    class Meta:
-        verbose_name = _("Organization Membership")
-        verbose_name_plural = _("Organization Memberships")
-
-
-class OrganizationInvitation(models.Model):
-    email = models.EmailField(verbose_name=_("Email"))
-    organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
-    role = models.CharField(
-        max_length=50,
-        verbose_name=_("Role"),
-        choices=OrganizationMembership.Role.choices,
-        default=OrganizationMembership.Role.OTHER.value,
-    )
-    token = models.CharField(
-        max_length=15, verbose_name=_("Token"), unique=True, db_index=True, default=generate_invitation_token
-    )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
-
-    class Meta:
-        verbose_name = _("Organization Invitation")
-        verbose_name_plural = _("Organization Invitations")
-
-    def __str__(self):
-        return f"{self.email} - {self.organization.name}"
-
-
 for field, properties in User.FIELDS_PROPERTIES.items():
     for key, value in properties.items():
         setattr(User._meta.get_field(field), key, value)
@@ -1391,3 +1280,132 @@ class UserTask(models.Model):
         verbose_name = _("User Task")
         verbose_name_plural = _("User Tasks")
         unique_together = [("user", "task_name")]
+
+
+class OrganizationLogoFile(UserUploadedImageFile):
+    SLUG = "organization_logo"
+
+    def get_upload_path(self, filename):
+        return f"organization/logo/{self.uploaded_by.id}/{filename}"
+
+    class Meta:
+        verbose_name = _("Organization Logo File")
+        verbose_name_plural = _("Organization Logo Files")
+
+
+class Organization(models.Model):
+    class Type(models.TextChoices):
+        COMPANY = "company", _("Company")
+        STOCK = "stock", _("Stock")
+        NON_PROFIT = "non_profit", _("Non-Profit")
+        GOVERNMENT = "government", _("Government")
+        EDUCATIONAL = "educational", _("Educational")
+        OTHER = "other", _("Other")
+
+    class BussinessType(models.TextChoices):
+        SOFTWARE = "software", _("Software")
+        SERVICE = "service", _("Service")
+        PRODUCT = "product", _("Product")
+
+    class Size(models.TextChoices):
+        _1_10 = "_1_10", _("1-10")
+        _10_50 = "_10_50", _("10-50")
+        _50_100 = "_50_100", _("50-100")
+        _100_500 = "_100_500", _("100-500")
+        _500_1000 = "_500_1000", _("500-1000")
+        OVER_1000 = "over_1000", _("Over 1000")
+
+    contactable = models.OneToOneField(
+        Contactable,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Contactable"),
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=255, verbose_name=_("Name"))
+    logo = models.OneToOneField(
+        OrganizationLogoFile,
+        on_delete=models.SET_NULL,
+        verbose_name=_("Logo"),
+        null=True,
+        blank=True,
+        related_name="organization",
+    )
+    short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
+    national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
+    type = models.CharField(max_length=50, choices=Type.choices, verbose_name=_("Type"), null=True, blank=True)
+    business_type = models.CharField(
+        max_length=50, choices=BussinessType.choices, verbose_name=_("Business Type"), null=True, blank=True
+    )
+    industry = models.ForeignKey(
+        Industry,
+        on_delete=models.CASCADE,
+        verbose_name=_("Industry"),
+        null=True,
+        blank=True,
+        related_name="organizations",
+    )
+    established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
+    size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
+    about = models.TextField(verbose_name=_("About"), null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_("Created By"), related_name="organizations"
+    )
+
+    class Meta:
+        verbose_name = _("Organization")
+        verbose_name_plural = _("Organizations")
+
+
+class OrganizationMembership(models.Model):
+    class Role(models.TextChoices):
+        CTO = "cto", _("CTO")
+        CFO = "cfo", _("CFO")
+        CEO = "ceo", _("CEO")
+        HR = "hr", _("HR")
+        OPERATIONS = "operations", _("Operations")
+        ASSOCIATE = "associate", _("Associate")
+        OTHER = "other", _("Other")
+        CREATOR = "creator", _("Creator")
+
+    role = models.CharField(max_length=50, verbose_name=_("Role"), choices=Role.choices, default=Role.OTHER.value)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="memberships", verbose_name=_("Organization")
+    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="membership", verbose_name=_("User"))
+    invited_by = models.ForeignKey(
+        User,
+        verbose_name=_("Invited By"),
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
+        related_name="invited_memberships",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Membership")
+        verbose_name_plural = _("Organization Memberships")
+
+
+class OrganizationInvitation(models.Model):
+    email = models.EmailField(verbose_name=_("Email"))
+    organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
+    role = models.CharField(
+        max_length=50,
+        verbose_name=_("Role"),
+        choices=OrganizationMembership.Role.choices,
+        default=OrganizationMembership.Role.OTHER.value,
+    )
+    token = models.CharField(
+        max_length=15, verbose_name=_("Token"), unique=True, db_index=True, default=generate_invitation_token
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
+
+    class Meta:
+        verbose_name = _("Organization Invitation")
+        verbose_name_plural = _("Organization Invitations")
+
+    def __str__(self):
+        return f"{self.email} - {self.organization.name}"
