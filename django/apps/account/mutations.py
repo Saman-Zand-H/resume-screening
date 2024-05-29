@@ -480,13 +480,6 @@ class EducationDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutatio
 
 
 class EducationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
-    @classmethod
-    def after_mutate(cls, root, info, id, input, obj, return_data):
-        if isinstance((verification_method := obj.get_verification_method()), EmailVerificationMixin):
-            verification_method.send_verification()
-
-        return super().after_mutate(root, info, id, input, obj, return_data)
-
     class Meta:
         model = Education
 
