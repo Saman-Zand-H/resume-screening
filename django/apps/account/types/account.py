@@ -20,6 +20,7 @@ from ..models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
+    OrganizationInvitation,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -328,6 +329,7 @@ class OrganizationType(DjangoObjectType):
         fields = (
             Organization.id.field.name,
             Organization.name.field.name,
+            Organization.logo.field.name,
             Organization.short_name.field.name,
             Organization.national_number.field.name,
             Organization.type.field.name,
@@ -336,4 +338,18 @@ class OrganizationType(DjangoObjectType):
             Organization.established_at.field.name,
             Organization.size.field.name,
             Organization.about.field.name,
+            Organization.created_by.field.name,
+        )
+
+
+class OrganizationInvitationType(DjangoObjectType):
+    class Meta:
+        model = OrganizationInvitation
+        fields = (
+            OrganizationInvitation.id.field.name,
+            OrganizationInvitation.email.field.name,
+            OrganizationInvitation.organization.field.name,
+            OrganizationInvitation.role.field.name,
+            OrganizationInvitation.created_at.field.name,
+            OrganizationInvitation.created_by.field.name,
         )
