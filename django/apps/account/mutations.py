@@ -56,8 +56,8 @@ from .models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
-    OrganizationMembership,
     OrganizationInvitation,
+    OrganizationMembership,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -241,7 +241,7 @@ class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
         info, obj = args[1], args[-1]
         org_users = {position.user: position.title for position in obj.positions.all()}
         user = info.context.user
-        if user not in org_users or org_users[user] != Position.Title.ASSOCIATE.value:
+        if user not in org_users or org_users[user] != OrganizationMembership.Role.ASSOCIATE.value:
             raise PermissionError("Not permitted to modify this record.")
         return super().check_permissions(*args)
 
@@ -292,9 +292,7 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
 
     @classmethod
     def get_object_id(cls, context):
-        info = context.get("info")
-        profile = Profile.objects.get_or_create(user=info.context.user)[0]
-        return profile.pk
+        return context["info"].context.user.profile.pk
 
     @classmethod
     def before_save(cls, root, info, input, id, obj):
@@ -314,7 +312,7 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
         info = args[1]
         input = args[2]
         user: User = info.context.user
-        profile = user.get_profile()
+        profile = user.profile
 
         if not profile:
             raise GraphQLErrorBadRequest("User has no profile.")
@@ -349,9 +347,7 @@ class UserSetSkillsMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, input):
         user: User = info.context.user
-        if not (profile := user.get_profile()):
-            return GraphQLErrorBadRequest("User has no profile.")
-
+        profile = user.profile
         profile.raw_skills = (skills := input.get("skills"))
         profile.save(update_fields=[Profile.raw_skills.field.name])
 
@@ -380,11 +376,7 @@ class SetContactsMutation(DjangoBatchCreateMutation):
         user = info.context.user
         with contextlib.suppress(Contact.DoesNotExist):
             obj.pk = Contact.objects.get(contactable__profile__user=user, type=obj.type).pk
-
-        if not (profile := user.get_profile()):
-            raise GraphQLErrorBadRequest("User has no profile.")
-
-        obj.contactable = profile.get_or_create_contactable()
+        obj.contactable = user.profile.contactable
         obj.full_clean(validate_unique=False)
 
     @classmethod

@@ -139,7 +139,6 @@ class User(AbstractUser):
     def get_resume_related_models(self):
         return (
             Resume.user,
-            Profile.user,
             Education.user,
             WorkExperience.user,
             LanguageCertificate.user,
@@ -382,12 +381,6 @@ class Profile(ComputedFieldsModel):
         scores = self.scores
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
-
-    def get_or_create_contactable(self):
-        if not (self.contactable):
-            self.contactable = Contactable.objects.create()
-            self.save()
-        return self.contactable
 
     class Meta:
         verbose_name = _("User Profile")

@@ -24,7 +24,7 @@ def extract_resume_headlines(resume_json: ResumeSchema) -> ResumeHeadlines:
 
 
 def extract_job_additional_input(user):
-    profile = user.get_profile()
+    profile = user.profile
     data = {
         "skills": ", ".join(profile.skills.values_list("title", flat=True)),
         "languages": ", ".join(filter(bool, [profile.native_language, *profile.fluent_languages])),
@@ -40,7 +40,7 @@ def extract_job_additional_input(user):
 
 
 def extract_skills_additional_input(user):
-    profile = user.get_profile()
+    profile = user.profile
     data = {
         "languages": ", ".join(filter(bool, [profile.native_language, *profile.fluent_languages])),
         "certifications": ", ".join(user.certificateandlicenses.values_list("title", flat=True)),
@@ -76,9 +76,10 @@ def get_user_additional_information(user_id: int):
     from .models import Education, User, WorkExperience
 
     user = User.objects.filter(pk=user_id).first()
-    if not (user and (profile := user.get_profile())):
+    if not user:
         return {}
 
+    profile = user.profile
     work_experiences = WorkExperience.objects.filter(
         user=user,
         status__in=WorkExperience.get_verified_statuses(),

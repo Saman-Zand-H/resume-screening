@@ -25,14 +25,17 @@ def get_logo_upload_path(instance, filename):
 
 class CourseQuerySet(models.QuerySet):
     def related_to_user(self, user):
-        q = Q(is_required=True) | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
-        if profile := user.get_profile():
-            q |= Q(
-                industries__in=Industry.objects.filter(jobcategory__job__in=profile.interested_jobs.all())
-                .distinct()
-                .values_list("id", flat=True)
+        return self.filter(
+            (
+                Q(is_required=True)
+                | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
+                | Q(
+                    industries__in=Industry.objects.filter(jobcategory__job__in=user.profile.interested_jobs.all())
+                    .distinct()
+                    .values_list("id", flat=True)
+                )
             )
-        return self.filter(q).distinct()
+        ).distinct()
 
 
 class Course(models.Model):

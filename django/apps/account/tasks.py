@@ -80,15 +80,12 @@ def find_available_jobs(user_id: int) -> bool:
     if not (user := get_user_model().objects.filter(pk=user_id).first()):
         raise ValueError(f"User with id {user_id} not found.")
 
-    if not (profile := user.get_profile()):
-        raise ValueError(f"Profile for user {user_id} not found.")
-
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
     jobs = extract_available_jobs(resume_json, **get_user_additional_information(user_id))
     if not jobs:
         return
 
-    profile.available_jobs.set(jobs)
+    user.profile.available_jobs.set(jobs)
     return True
 
 
@@ -96,10 +93,8 @@ def find_available_jobs(user_id: int) -> bool:
 @user_task_decorator
 def set_user_skills(user_id: int) -> bool:
     user = get_user_model().objects.get(pk=user_id)
-    if not (profile := user.get_profile()):
-        raise ValueError(f"Profile for user {user_id} not found.")
-
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
+    profile = user.profile
 
     extracted_skills = extract_or_create_skills(
         profile.raw_skills or [],

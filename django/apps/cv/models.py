@@ -103,9 +103,7 @@ class GeneratedCV(FileModel):
 
     @classmethod
     def get_user_context(cls, user: User):
-        if not (profile := user.get_profile()):
-            raise ValueError("User has no profile")
-
+        profile = user.profile
         educations = user.educations.all()
         work_experiences = user.workexperiences.filter(
             status__in=[
@@ -116,7 +114,7 @@ class GeneratedCV(FileModel):
         resume = user.resume if hasattr(user, "resume") else None
         about_me = resume and resume.about_me
         headline = resume and resume.headline
-        languages = [user.get_profile().native_language, *(user.get_profile().fluent_languages or [])]
+        languages = [profile.native_language, *(profile.fluent_languages or [])]
         languages_dict = dict(LANGUAGES)
         contacts = Contact.objects.filter(contactable__profile__user=user)
         social_contacts = contacts.filter(

@@ -29,15 +29,6 @@ class CourseNode(DjangoObjectType):
     @login_required
     def get_queryset(cls, queryset, info):
         user = info.context.user
-
-        q = Q(is_required=True)
-        if profile := user.get_profile():
-            q |= Q(
-                industries__in=Industry.objects.filter(jobcategory__job__in=profile.interested_jobs.all())
-                .distinct()
-                .values_list("id", flat=True)
-            )
-
         return super().get_queryset(queryset, info).related_to_user(user)
 
 
