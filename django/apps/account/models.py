@@ -451,12 +451,11 @@ class Profile(ComputedFieldsModel):
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
 
-    def create_contactable(self):
-        if hasattr(self, "contactable"):
-            return
-
-        self.contactable = Contactable.objects.create()
-        self.save()
+    def get_or_create_contactable(self):
+        if not getattr(self, "contactable"):
+            self.contactable = Contactable.objects.create()
+            self.save()
+        return self.contactable
 
     class Meta:
         verbose_name = _("User Profile")

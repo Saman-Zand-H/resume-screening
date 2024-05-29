@@ -16,6 +16,7 @@ from .models import (
     CertificateAndLicenseOnlineVerificationMethod,
     CommunicationMethod,
     Contact,
+    Contactable,
     Education,
     EmployerLetterMethod,
     IEEMethod,
@@ -517,3 +518,8 @@ class PositionAdmin(admin.ModelAdmin):
     )
     list_filter = (Position.title.field.name,)
     raw_id_fields = (Position.organization.field.name, Position.user.field.name)
+
+
+@register(Contactable)
+class ContactableAdmin(admin.ModelAdmin):
+    list_display = (Contactable.id.field.name,)

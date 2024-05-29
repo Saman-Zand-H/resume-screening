@@ -32,8 +32,19 @@ from ..models import (
 )
 
 
+class ContactType(DjangoObjectType):
+    class Meta:
+        model = Contact
+        fields = (
+            Contact.id.field.name,
+            Contact.type.field.name,
+            Contact.value.field.name,
+        )
+
+
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
     completion_percentage = graphene.Float(source=Profile.completion_percentage.fget.__name__)
+    contacts = graphene.List(ContactType)
 
     class Meta:
         model = Profile
@@ -60,17 +71,11 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.fluent_languages.field.name,
             Profile.scores.field.name,
             Profile.score.field.name,
+            Profile.contactable.field.name,
         )
 
-
-class ContactType(DjangoObjectType):
-    class Meta:
-        model = Contact
-        fields = (
-            Contact.id.field.name,
-            Contact.type.field.name,
-            Contact.value.field.name,
-        )
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
 
 
 class EducationMethodFieldTypes(graphene.ObjectType):
@@ -288,7 +293,6 @@ class UserNode(BaseUserNode):
             User.last_name.field.name,
             User.email.field.name,
             Profile.user.field.related_query_name(),
-            Contact.contactable.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
@@ -316,15 +320,6 @@ class UserNode(BaseUserNode):
                 if profile := self.get_profile():
                     qs = qs.filter_by_required(filters.required, profile.interested_jobs.all())
         return qs.order_by("-id")
-
-
-class UserSkillType(DjangoObjectType):
-    class Meta:
-        model = Profile
-        fields = (
-            Profile.id.field.name,
-            Profile.raw_skills.field.name,
-        )
 
 
 class OrganizationType(DjangoObjectType):
