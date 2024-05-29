@@ -167,7 +167,7 @@ class Organization(models.Model):
 
     contactable = models.OneToOneField(
         Contactable,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name=_("Contactable"),
         null=True,
         blank=True,
@@ -348,7 +348,7 @@ class Profile(ComputedFieldsModel):
 
     contactable = models.OneToOneField(
         Contactable,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name=_("Contactable"),
         null=True,
         blank=True,
@@ -452,7 +452,7 @@ class Profile(ComputedFieldsModel):
         return (completed_scores / len(related_scores)) * 100
 
     def get_or_create_contactable(self):
-        if not getattr(self, "contactable"):
+        if not (self.contactable):
             self.contactable = Contactable.objects.create()
             self.save()
         return self.contactable

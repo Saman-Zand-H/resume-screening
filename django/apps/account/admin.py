@@ -522,4 +522,12 @@ class PositionAdmin(admin.ModelAdmin):
 
 @register(Contactable)
 class ContactableAdmin(admin.ModelAdmin):
-    list_display = (Contactable.id.field.name,)
+    list_display = (
+        Contactable.id.field.name,
+        Profile.contactable.field.related_query_name(),
+        Organization.contactable.field.related_query_name(),
+    )
+    readonly_fields = (
+        Profile.contactable.field.related_query_name(),
+        Organization.contactable.field.related_query_name(),
+    )
