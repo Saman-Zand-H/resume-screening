@@ -55,6 +55,8 @@ from .models import (
     EmployerLetterMethod,
     LanguageCertificate,
     LanguageCertificateValue,
+    Organization,
+    Position,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -62,8 +64,6 @@ from .models import (
     Resume,
     SupportTicket,
     User,
-    Organization,
-    Position,
     WorkExperience,
 )
 from .tasks import set_user_resume_json, set_user_skills, user_task_runner
@@ -215,7 +215,7 @@ class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
         model = Organization
         fields = (
             Organization.name.field.name,
-            Organization.short_name.field.name,    
+            Organization.short_name.field.name,
             Organization.national_number.field.name,
             Organization.type.field.name,
             Organization.business_type.field.name,
@@ -366,14 +366,23 @@ class SetContactsMutation(DjangoBatchCreateMutation):
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
-        obj.user = info.context.user
+        user = info.context.user
         with contextlib.suppress(Contact.DoesNotExist):
-            obj.pk = Contact.objects.get(user=obj.user, type=obj.type).pk
+            obj.pk = Contact.objects.get(contactable__profile__user=user, type=obj.type).pk
+
+        if not (profile := user.get_profile()):
+            raise GraphQLErrorBadRequest("User has no profile.")
+
+        if not hasattr(profile, "contactable"):
+            profile.create_contactable()
+
         obj.full_clean(validate_unique=False)
 
     @classmethod
     def after_mutate(cls, root, info, input, created_objs, return_data):
-        Contact.objects.filter(user=info.context.user).exclude(pk__in=[obj.pk for obj in created_objs]).delete()
+        Contact.objects.filter(contactable__profile__user=info.context.user).exclude(
+            pk__in=[obj.pk for obj in created_objs]
+        ).delete()
 
 
 class DocumentCreateMutationBase(DocumentCUDFieldMixin, DocumentCUDMixin, DjangoCreateMutation):

@@ -132,7 +132,7 @@ class MobileScore(Score):
     def calculate(self, user) -> int:
         return (
             Scores.CONTACT_INFORMATION.value
-            if Contact.objects.filter(user=user, type=Contact.Type.PHONE).exists()
+            if Contact.objects.filter(contactable__profile__user=user, type=Contact.Type.PHONE).exists()
             else 0
         )
 

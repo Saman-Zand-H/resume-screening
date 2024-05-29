@@ -5,20 +5,24 @@ from django.db import migrations
 
 def copy_to_contactables(apps, schema_editor):
     Contact = apps.get_model("auth_account", "Contact")
+    Contactable = apps.get_model("auth_account", "Contactable")
     Profile = apps.get_model("auth_account", "Profile")
 
-    for contact in Contact.objects.all():
+    for contact in Contact.objects.filter(user__isnull=False):
         user = contact.user
-        if not (profile := user.get_profile()):
+        if not (profile := getattr(user, "profile", None)):
             profile = Profile.objects.create(user=user)
 
-        contact.contactable = profile.contactable
+        if not (contactable := getattr(profile, "contactable", None)):
+            contactable = Contactable.objects.create()
+
+        contact.contactable = contactable
         contact.save()
 
 
 def reverse_copy_to_contactables(apps, schema_editor):
     Contact = apps.get_model("auth_account", "Contact")
-    for contact in Contact.objects.all():
+    for contact in Contact.objects.filter(contactable__isnull=False):
         contact.user = contact.contactable.profile.user
         contact.save()
 

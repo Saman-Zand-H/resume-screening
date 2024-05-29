@@ -62,10 +62,6 @@ def generate_ticket_id():
     return str(uuid.uuid4())[:8]
 
 
-def contactable_default():
-    return Contactable.objects.create().pk
-
-
 class Contactable(models.Model):
     class Meta:
         verbose_name = _("Contactable")
@@ -173,7 +169,8 @@ class Organization(models.Model):
         Contactable,
         on_delete=models.CASCADE,
         verbose_name=_("Contactable"),
-        default=contactable_default,
+        null=True,
+        blank=True,
     )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
@@ -353,7 +350,8 @@ class Profile(ComputedFieldsModel):
         Contactable,
         on_delete=models.CASCADE,
         verbose_name=_("Contactable"),
-        default=contactable_default,
+        null=True,
+        blank=True,
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
@@ -452,6 +450,13 @@ class Profile(ComputedFieldsModel):
         scores = self.scores.get("scores", {})
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
+
+    def create_contactable(self):
+        if hasattr(self, "contactable"):
+            return
+
+        self.contactable = Contactable.objects.create()
+        self.save()
 
     class Meta:
         verbose_name = _("User Profile")
