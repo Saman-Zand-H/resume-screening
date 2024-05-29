@@ -143,15 +143,12 @@ class ProfileAdmin(admin.ModelAdmin):
 
     @admin.action(description="Connect to Contactable")
     def connect_contacts(self, request, queryset):
-        Contact.objects.filter(user__isnull=False).update(contactable=None)
+        Contact.objects.all().update(contactable=None)
 
         for profile in queryset.all():
+            user = profile.user
             contactable = profile.contactable
-            if not contactable:
-                contactable = Contactable.objects.create()
-                Profile.objects.filter(pk=profile.pk).update(contactable=contactable)
-
-            profile.user.contacts.update(contactable=contactable)
+            user.contacts.update(contactable_id=contactable.pk)
 
     @admin.action(description="Recalculate Scores")
     def recalculate_scores(self, request, queryset):
@@ -579,9 +576,7 @@ class ContactableAdmin(admin.ModelAdmin):
 
     @admin.action(description="Delete Redundant")
     def delete_reduntant_contactables(self, request, queryset):
-        for contactable in queryset:
-            if not hasattr(contactable, "profile") and not contactable.contacts.exists():
-                contactable.delete()
+        Contactable.objects.filter(profile__isnull=True, contacts__isnull=True).delete()
 
     @admin.display(description="Contacts Count")
     def contacts_count(self, obj):
