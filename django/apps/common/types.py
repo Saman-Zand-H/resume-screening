@@ -145,11 +145,6 @@ class CityNode(DjangoObjectType):
         }
 
 
-class LanguageType(graphene.ObjectType):
-    code = graphene.String()
-    name = graphene.String()
-
-
 class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = LanguageProficiencyTest
