@@ -143,6 +143,8 @@ class ProfileAdmin(admin.ModelAdmin):
 
     @admin.action(description="Connect to Contactable")
     def connect_contacts(self, request, queryset):
+        Contact.objects.filter(user__isnull=False).update(contactable=None)
+
         for profile in queryset.all():
             contactable = profile.contactable
             if not contactable:
