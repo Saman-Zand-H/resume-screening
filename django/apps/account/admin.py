@@ -567,6 +567,7 @@ class ContactableAdmin(admin.ModelAdmin):
         Contactable.id.field.name,
         Profile.contactable.field.related_query_name(),
         Organization.contactable.field.related_query_name(),
+        "contacts_count",
     )
     readonly_fields = (
         Profile.contactable.field.related_query_name(),
@@ -574,8 +575,12 @@ class ContactableAdmin(admin.ModelAdmin):
     )
     actions = ("delete_reduntant_contactables",)
 
-    @admin.action
+    @admin.action(description="Delete Redundant")
     def delete_reduntant_contactables(self, request, queryset):
         for contactable in queryset:
             if not hasattr(contactable, "profile") and not contactable.contacts.exists():
                 contactable.delete()
+
+    @admin.display(description="Contacts Count")
+    def contacts_count(self, obj):
+        return obj.contacts.count()
