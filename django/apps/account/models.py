@@ -134,6 +134,8 @@ class User(AbstractUser):
                 value = getattr(self, field_name)
                 if value is not None and (isinstance(value, models.Model) or value.exists()):
                     return True
+        if self.profile.gender:
+            return True
         return False
 
     def get_resume_related_models(self):
