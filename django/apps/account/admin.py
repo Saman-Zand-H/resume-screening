@@ -25,8 +25,9 @@ from .models import (
     OfflineMethod,
     OnlineMethod,
     Organization,
+    OrganizationMembership,
+    OrganizationInvitation,
     PaystubsMethod,
-    Position,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -494,6 +495,7 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.type.field.name,
         Organization.established_at.field.name,
         Organization.size.field.name,
+        Organization.created_by.field.name,
     )
     search_fields = (
         Organization.name.field.name,
@@ -509,15 +511,43 @@ class OrganizationAdmin(admin.ModelAdmin):
     raw_id_fields = (Organization.industry.field.name,)
 
 
-@register(Position)
-class PositionAdmin(admin.ModelAdmin):
+@register(OrganizationMembership)
+class OrganizationMembershipAdmin(admin.ModelAdmin):
     list_display = (
-        Position.user.field.name,
-        Position.organization.field.name,
-        Position.title.field.name,
+        OrganizationMembership.user.field.name,
+        OrganizationMembership.organization.field.name,
+        OrganizationMembership.role.field.name,
+        OrganizationMembership.invited_by.field.name,
     )
-    list_filter = (Position.title.field.name,)
-    raw_id_fields = (Position.organization.field.name, Position.user.field.name)
+    list_filter = (OrganizationMembership.role.field.name, OrganizationMembership.created_at.field.name)
+    raw_id_fields = (
+        OrganizationMembership.organization.field.name,
+        OrganizationMembership.user.field.name,
+        OrganizationMembership.invited_by.field.name,
+    )
+
+
+@register(OrganizationInvitation)
+class OrganizationInvitationAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationInvitation.organization.field.name,
+        OrganizationInvitation.email.field.name,
+        OrganizationInvitation.role.field.name,
+        OrganizationInvitation.created_at.field.name,
+        OrganizationInvitation.created_by.field.name,
+    )
+    raw_id_fields = (
+        OrganizationInvitation.organization.field.name,
+        OrganizationInvitation.created_by.field.name,
+    )
+    search_fields = (
+        OrganizationInvitation.email.field.name,
+        OrganizationInvitation.organization.field.name,
+    )
+    list_filter = (
+        OrganizationInvitation.role.field.name,
+        OrganizationInvitation.created_at.field.name,
+    )
 
 
 @register(Contactable)
