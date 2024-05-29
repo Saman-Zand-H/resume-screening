@@ -58,6 +58,10 @@ def generate_unique_referral_code():
     return base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:8]
 
 
+def generate_invitation_token():
+    return base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:15]
+
+
 def generate_ticket_id():
     return str(uuid.uuid4())[:8]
 
@@ -216,6 +220,29 @@ class OrganizationMembership(models.Model):
     class Meta:
         verbose_name = _("Organization Membership")
         verbose_name_plural = _("Organization Memberships")
+
+
+class OrganizationInvitation(models.Model):
+    email = models.EmailField(verbose_name=_("Email"))
+    organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
+    role = models.CharField(
+        max_length=50,
+        verbose_name=_("Role"),
+        choices=OrganizationMembership.Role.choices,
+        default=OrganizationMembership.Role.OTHER.value,
+    )
+    token = models.CharField(
+        max_length=15, verbose_name=_("Token"), unique=True, db_index=True, default=generate_invitation_token
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
+
+    class Meta:
+        verbose_name = _("Organization Invitation")
+        verbose_name_plural = _("Organization Invitations")
+
+    def __str__(self):
+        return f"{self.email} - {self.organization.name}"
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
