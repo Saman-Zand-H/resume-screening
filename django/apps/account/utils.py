@@ -88,7 +88,7 @@ def extract_available_jobs(resume_json: dict[str, Any]) -> Optional[List[Job]]:
 
 def extract_or_create_skills(skills: List[str], resume_json) -> Optional[List[Skill]]:
     if not (skills or resume_json):
-        return None
+        return Skill.objects.none()
 
     service = OpenAIService(OpenAiAssistants.SKILL)
     service.assistant_vector_store_update_cache(VectorStores.SKILL)
@@ -98,7 +98,7 @@ def extract_or_create_skills(skills: List[str], resume_json) -> Optional[List[Sk
     if message:
         try:
             response = service.message_to_json(message)
-            existing_skills = response["similar_skills"]
+            existing_skills = response.get("similar_skills") or []
             return Skill.objects.filter(pk__in=[s["pk"] for s in existing_skills])
         except ValueError:
             return None
