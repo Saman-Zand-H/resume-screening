@@ -76,7 +76,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
     def resolve_contacts(self, info):
-        return self.get_or_create_contactable().contacts.all()
+        return self.contactable.contacts.all()
 
 
 class EducationMethodFieldTypes(graphene.ObjectType):

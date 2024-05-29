@@ -56,8 +56,8 @@ from .models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
-    OrganizationMembership,
     OrganizationInvitation,
+    OrganizationMembership,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -241,7 +241,7 @@ class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
         info, obj = args[1], args[-1]
         org_users = {position.user: position.title for position in obj.positions.all()}
         user = info.context.user
-        if user not in org_users or org_users[user] != Position.Title.ASSOCIATE.value:
+        if user not in org_users or org_users[user] != OrganizationMembership.Role.ASSOCIATE.value:
             raise PermissionError("Not permitted to modify this record.")
         return super().check_permissions(*args)
 
@@ -384,7 +384,7 @@ class SetContactsMutation(DjangoBatchCreateMutation):
         if not (profile := user.get_profile()):
             raise GraphQLErrorBadRequest("User has no profile.")
 
-        obj.contactable = profile.get_or_create_contactable()
+        obj.contactable = profile.contactable
         obj.full_clean(validate_unique=False)
 
     @classmethod
