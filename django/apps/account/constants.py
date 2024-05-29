@@ -7,8 +7,8 @@ from config.settings.constants import Assistants
 from django.conf import settings
 
 JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD = 70
-VERIFICATION_EMAIL_FROM = "info@cpj.ai"
-VERIFICATION_PHONE_FROM = "REPLACE WITH PHONE"
+VERIFICATION_EMAIL_FROM = "verify@cpj.ai"
+VERIFICATION_PHONE_FROM = "+1 (204) 650 2650"
 SUPPORT_TICKET_SUBJECT_TEMPLATE = "Support Ticket Opened: %(ticket_id)s"
 SUPPORT_EMAIL = "support@cpj.ai"
 SUPPORT_RECIPIENT_LIST = [
