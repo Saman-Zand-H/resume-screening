@@ -101,6 +101,8 @@ def set_user_skills(user_id: int) -> bool:
 
     if extracted_skills:
         profile.skills.set(extracted_skills)
+    else:
+        profile.skills.clear()
 
     return True
 
