@@ -56,7 +56,8 @@ from .models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
-    Position,
+    OrganizationMembership,
+    OrganizationInvitation,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -74,24 +75,34 @@ from .views import GoogleOAuth2View, LinkedInOAuth2View
 class RegisterOrganization(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _required_args = [User.EMAIL_FIELD]
-    _args = [Organization.name.field.name, User.first_name.field.name, User.last_name.field.name]
+    _args = [
+        OrganizationInvitation.token.field.name,
+        Organization.name.field.name,
+        User.first_name.field.name,
+        User.last_name.field.name,
+    ]
 
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        result = super().mutate(*args, **kwargs)
-        if result.success:
-            email = kwargs.get(User.EMAIL_FIELD)
-            user = User.objects.get(**{User.EMAIL_FIELD: email})
-            # TODO: Check if this user has been invited to an organization,
-            # if so, get the organization and position title from the invitation,
-            # otherwise, create a new organization and set the position title to associate.
-            organization = None
-            position_title = Position.Title.ASSOCIATE.value
-            if organization_name := kwargs.get(Organization.name.field.name):
-                organization = Organization.objects.create(name=organization_name)
-            Position.objects.create(user=user, organization=organization, title=position_title)
-        return result
+        request_user = args[1].context.user
+        if organization_invitation_token := kwargs.get(OrganizationInvitation.token.field.name):
+            try:
+                organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
+            except OrganizationInvitation.DoesNotExist:
+                return cls(success=False, errors={"token": "Invalid token."})
+            organization = organization_invitation.organization
+            role = organization_invitation.role
+        else:
+            organization_name = kwargs.get(Organization.name.field.name)
+            organization = Organization.objects.create(name=organization_name, created_by=request_user)
+            role = OrganizationMembership.Role.CREATOR.value
+
+        super().mutate(*args, **kwargs)
+        email = kwargs.get(User.EMAIL_FIELD)
+        user = User.objects.get(**{User.EMAIL_FIELD: email})
+        OrganizationMembership.objects.create(user=user, organization=organization, role=role, invited_by=request_user)
+        return cls(success=True, errors=None)
 
 
 def referral_registration(user, referral_code):
