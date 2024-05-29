@@ -50,4 +50,5 @@ class ScoreObserver(FieldsObserver):
 
             scores_dict[score.slug] = score.calculate(**cls.get_calculate_params(instance))
 
-        cls.scores_calculated(instance, scores_dict)
+        if scores_dict:
+            cls.scores_calculated(instance, scores_dict)

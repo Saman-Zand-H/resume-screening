@@ -97,6 +97,10 @@ class MobileScoreObserver(BaseObserver, ScoreObserver):
     _observed_model = Contact
     scores = [MobileScore]
 
+    @classmethod
+    def get_calculate_params(cls, instance):
+        return {"user": instance.contactable.profile.user}
+
 
 @register_observer
 class ResumeObserver(BaseObserver, ScoreObserver):

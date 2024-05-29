@@ -127,7 +127,7 @@ class MobileScore(Score):
 
     @classmethod
     def test_func(cls, instance):
-        return instance.type == Contact.Type.PHONE
+        return instance.type == Contact.Type.PHONE and getattr(instance, "contactable")
 
     def calculate(self, user) -> int:
         return (
