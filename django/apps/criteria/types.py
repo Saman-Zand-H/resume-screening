@@ -63,9 +63,7 @@ class JobAssessmentType(DjangoObjectType):
 
     def resolve_jobs(self, info):
         user = info.context.user
-        interested_jobs = (
-            profile.interested_jobs.values_list("pk", flat=True) if (profile := user.get_profile()) else []
-        )
+        interested_jobs = user.profile.interested_jobs.values_list("pk", flat=True)
         return self.job_assessment_jobs.filter(job__in=interested_jobs)
 
     @classmethod
@@ -108,4 +106,4 @@ class JobAssessmentType(DjangoObjectType):
 
     def resolve_required(self, info):
         user = info.context.user
-        return self.is_required(profile.interested_jobs.all() if (profile := user.get_profile()) else [])
+        return self.is_required(user.profile.interested_jobs.all())

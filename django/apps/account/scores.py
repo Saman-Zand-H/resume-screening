@@ -60,13 +60,6 @@ JOB_ASSESSMENT_SCORES_PERCENTAGE = {
 }
 
 
-def get_profile_interested_jobs(user: User):
-    profile = user.get_profile()
-    if not profile or not profile.interested_jobs.exists():
-        return []
-    return profile.interested_jobs.all()
-
-
 class UserFieldExistingScore(ExistingScore):
     user_field: ClassVar[str]
     score = Scores.ID_INFORMATION.value
@@ -87,10 +80,7 @@ class ProfileFieldScore(UserFieldExistingScore):
         return [cls.profile_field]
 
     def get_value(self, user):
-        profile = user.get_profile()
-
-        if profile:
-            return getattr(profile, self.profile_field)
+        return getattr(user.profile, self.profile_field)
 
 
 @register_score
@@ -265,7 +255,7 @@ class SkillScore(Score):
     slug = "skill"
 
     def calculate(self, user) -> int:
-        return Scores.SKILL_ADD.value if (profile := user.get_profile()) and profile.skills.exists() else 0
+        return Scores.SKILL_ADD.value if user.profile.skills.exists() else 0
 
 
 @register_score
@@ -283,9 +273,7 @@ class JobInterestScore(Score):
     slug = "job_interest"
 
     def calculate(self, user) -> int:
-        if get_profile_interested_jobs(user):
-            return Scores.JOB_INTEREST.value
-        return 0
+        return Scores.JOB_INTEREST.value if user.profile.interested_jobs.exists() else 0
 
 
 @register_score
@@ -294,7 +282,7 @@ class AssessmentScore(Score):
     slug = "assessment"
 
     def calculate(self, user) -> int:
-        if not (interested_jobs := get_profile_interested_jobs(user)):
+        if not (interested_jobs := user.profile.interested_jobs.all()):
             return 0
         required = JobAssessment.objects.filter_by_required(True, interested_jobs)
         scores = (
@@ -328,7 +316,7 @@ class OptionalAssessmentScore(Score):
     slug = "optional_assessment"
 
     def calculate(self, user) -> int:
-        if not (interested_jobs := get_profile_interested_jobs(user)):
+        if not (interested_jobs := user.profile.interested_jobs.all()):
             return 0
         optional = JobAssessment.objects.filter_by_optional(interested_jobs)
 
