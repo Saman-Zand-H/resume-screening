@@ -66,6 +66,12 @@ def generate_ticket_id():
     return str(uuid.uuid4())[:8]
 
 
+class Contactable(models.Model):
+    class Meta:
+        verbose_name = _("Contactable")
+        verbose_name_plural = _("Contactables")
+
+
 class User(AbstractUser):
     class Gender(models.TextChoices):
         MALE = "male", _("Male")
@@ -163,6 +169,13 @@ class Organization(models.Model):
         _500_1000 = "_500_1000", _("500-1000")
         OVER_1000 = "over_1000", _("Over 1000")
 
+    contactable = models.OneToOneField(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     logo = models.ImageField(upload_to="organization/logo", verbose_name=_("Logo"), null=True, blank=True)
     short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
@@ -370,6 +383,19 @@ class Profile(ComputedFieldsModel):
         ON_THE_ROAD = "on_the_road", _("On the road")
         GLOBAL = "global", _("Global")
 
+    class Gender(models.TextChoices):
+        MALE = "male", _("Male")
+        FEMALE = "female", _("Female")
+        NOT_KNOWN = "not_known", _("Not Known")
+        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
+
+    contactable = models.OneToOneField(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        null=True,
+        blank=True,
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
@@ -436,6 +462,17 @@ class Profile(ComputedFieldsModel):
     )
     scores = models.JSONField(verbose_name=_("Scores"), default=dict, blank=True)
     score = models.PositiveIntegerField(verbose_name=_("Score"), default=0, blank=True)
+    gender = models.CharField(
+        max_length=50,
+        choices=Gender.choices,
+        verbose_name=_("Gender"),
+        null=True,
+        blank=True,
+    )
+    birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
+    raw_skills = ArrayField(models.CharField(max_length=64), verbose_name=_("Raw Skills"), blank=True, null=True)
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", editable=False)
+    available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
@@ -456,6 +493,13 @@ class Profile(ComputedFieldsModel):
         scores = self.scores.get("scores", {})
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
+
+    def create_contactable(self):
+        if hasattr(self, "contactable"):
+            return
+
+        self.contactable = Contactable.objects.create()
+        self.save()
 
     class Meta:
         verbose_name = _("User Profile")
@@ -526,7 +570,22 @@ class Contact(models.Model):
         Type.WHATSAPP: fix_whatsapp_value,
     }
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="contacts")
+    contactable = models.ForeignKey(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        related_name="contacts",
+        blank=True,
+        null=True,
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_("User"),
+        related_name="contacts",
+        null=True,
+        blank=True,
+    )
     type = models.CharField(
         max_length=50,
         choices=Type.choices,
@@ -536,12 +595,12 @@ class Contact(models.Model):
     value = models.CharField(max_length=255, verbose_name=_("Value"))
 
     class Meta:
-        unique_together = ("user", "type")
+        unique_together = ("contactable", "type")
         verbose_name = _("Contact")
         verbose_name_plural = _("Contacts")
 
     def __str__(self):
-        return f"{self.user.email} - {self.type}: {self.value}"
+        return f"{self.contactable} - {self.type}: {self.value}"
 
     def get_display_dict(self) -> Dict[str, Optional[str]]:
         """

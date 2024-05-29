@@ -31,17 +31,6 @@ def get_existing_foreign_keys(model, ids: List[int]) -> Optional[List[int]]:
     return existing_ids or None
 
 
-class UserModel(BaseModel):
-    gender: Optional[User.Gender] = None
-    birth_date: Optional[date] = None
-    skills: Optional[List[int]] = None
-
-    @field_validator("skills")
-    def check_skills(cls, value):
-        if value is not None:
-            return get_existing_foreign_keys(Skill, value)
-
-
 class ProfileModel(BaseModel):
     height: Optional[int] = None
     weight: Optional[int] = None
@@ -51,6 +40,14 @@ class ProfileModel(BaseModel):
     employment_status: Optional[Profile.EmploymentStatus] = None
     interested_jobs: Optional[List[int]] = None
     city_id: Optional[int] = None
+    gender: Optional[Profile.Gender] = None
+    birth_date: Optional[date] = None
+    skills: Optional[List[int]] = None
+
+    @field_validator("skills")
+    def check_skills(cls, value):
+        if value is not None:
+            return get_existing_foreign_keys(Skill, value)
 
     @field_validator("interested_jobs")
     def check_interested_jobs(cls, value):
@@ -181,7 +178,6 @@ class CertificateAndLicenseModel(BaseModel):
 
 
 class ResumeModel(BaseModel):
-    user: Optional[UserModel]
     profile: Optional[ProfileModel]
     contact: Optional[List[ContactModel]] = []
     education: Optional[List[EducationModel]] = []
