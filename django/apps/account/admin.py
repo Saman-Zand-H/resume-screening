@@ -25,8 +25,8 @@ from .models import (
     OfflineMethod,
     OnlineMethod,
     Organization,
-    OrganizationMembership,
     OrganizationInvitation,
+    OrganizationMembership,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -113,6 +113,7 @@ class ProfileAdmin(admin.ModelAdmin):
         Profile.skin_color.field.name,
         Profile.hair_color.field.name,
         Profile.eye_color.field.name,
+        Profile.contactable.field.name,
     )
     search_fields = (fields_join(Profile.user, User.email),)
     list_filter = (
@@ -138,7 +139,17 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
     exclude = (Profile.interested_jobs.field.name,)
-    actions = ("recalculate_scores",)
+    actions = ("recalculate_scores", "connect_to_contactable")
+
+    @admin.action(description="Connect to Contactable")
+    def connect_to_contactable(self, request, queryset):
+        for profile in queryset.filter(contactable__isnull=True):
+            contactable = profile.contactable
+            if not contactable:
+                contactable = Contactable.objects.create()
+                Profile.objects.filter(pk=profile.pk).update(contactable=contactable)
+
+            profile.user.contacts.update(contactable=contactable)
 
     @admin.action(description="Recalculate Scores")
     def recalculate_scores(self, request, queryset):
@@ -561,3 +572,10 @@ class ContactableAdmin(admin.ModelAdmin):
         Profile.contactable.field.related_query_name(),
         Organization.contactable.field.related_query_name(),
     )
+    actions = ("delete_reduntant_contactables",)
+
+    @admin.action
+    def delete_reduntant_contactables(self, request, queryset):
+        for contactable in queryset:
+            if not hasattr(contactable, "profile") and not contactable.contacts.exists():
+                contactable.delete()
