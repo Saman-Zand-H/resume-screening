@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import math
 from typing import ClassVar
@@ -13,6 +14,7 @@ from .models import (
     CanadaVisa,
     CertificateAndLicense,
     Contact,
+    Contactable,
     Education,
     LanguageCertificate,
     Profile,
@@ -127,7 +129,8 @@ class MobileScore(Score):
 
     @classmethod
     def test_func(cls, instance):
-        return instance.type == Contact.Type.PHONE and getattr(instance, "contactable")
+        with contextlib.suppress(Contactable.DoesNotExist):
+            return instance.type == Contact.Type.PHONE and instance.contactable
 
     def calculate(self, user) -> int:
         return (
