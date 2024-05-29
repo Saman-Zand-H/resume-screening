@@ -160,6 +160,7 @@ class Organization(models.Model):
         OVER_1000 = "over_1000", _("Over 1000")
 
     name = models.CharField(max_length=255, verbose_name=_("Name"))
+    logo = models.ImageField(upload_to="organization/logo", verbose_name=_("Logo"), null=True, blank=True)
     short_name = models.CharField(max_length=255, verbose_name=_("Short Name"), null=True, blank=True)
     national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
     type = models.CharField(max_length=50, choices=Type.choices, verbose_name=_("Type"), null=True, blank=True)
@@ -177,14 +178,17 @@ class Organization(models.Model):
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_("Created By"), related_name="organizations"
+    )
 
     class Meta:
         verbose_name = _("Organization")
         verbose_name_plural = _("Organizations")
 
 
-class Position(models.Model):
-    class Title(models.TextChoices):
+class OrganizationMembership(models.Model):
+    class Role(models.TextChoices):
         CTO = "cto", _("CTO")
         CFO = "cfo", _("CFO")
         CEO = "ceo", _("CEO")
@@ -192,14 +196,26 @@ class Position(models.Model):
         OPERATIONS = "operations", _("Operations")
         ASSOCIATE = "associate", _("Associate")
         OTHER = "other", _("Other")
+        CREATOR = "creator", _("Creator")
 
-    title = models.CharField(max_length=50, choices=Title.choices, default=Title.OTHER.value, verbose_name=_("Title"))
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="positions")
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="position")
+    role = models.CharField(max_length=50, verbose_name=_("Role"), choices=Role.choices, default=Role.OTHER.value)
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="memberships", verbose_name=_("Organization")
+    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="membership", verbose_name=_("User"))
+    invited_by = models.ForeignKey(
+        User,
+        verbose_name=_("Invited By"),
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
+        related_name="invited_memberships",
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Position")
-        verbose_name_plural = _("Positions")
+        verbose_name = _("Organization Membership")
+        verbose_name_plural = _("Organization Memberships")
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
