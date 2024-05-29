@@ -3,11 +3,11 @@ import logging
 from django.utils.deprecation import MiddlewareMixin
 from django.views.debug import ExceptionReporter
 
+from .errors import Errors
 from .exceptions import GraphQLError
 from .utils import map_exception_to_error
 
 graphql_logger = logging.getLogger("graphql.error")
-
 django_logger = logging.getLogger("django.error")
 
 
@@ -32,9 +32,8 @@ class GrapheneErrorHandlingMiddleware:
                 kwargs.update({"error": error})
             kwargs.update({"exception": e})
 
-            request = info.context
-            exc_type, exc_value, tb = type(e), e, e.__traceback__
-            self.on_error(request, exc_type, exc_value, tb)
+            if error is Errors.INTERNAL_SERVER_ERROR:
+                self.on_error(info.context, type(e), e, e.__traceback__)
 
             raise base_exception(**kwargs)
 
