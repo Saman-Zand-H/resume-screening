@@ -40,6 +40,9 @@ class EmailVerificationMixin:
     def get_verification_content(self):
         return render_to_string(self.get_verification_template_name(), self.get_verification_context_data())
 
+    def get_file_model_ids(self):
+        return []
+
     def send_verification(self, *, is_async=True):
         email = self.get_verification_email()
         from_email = self.get_verification_email_from()
@@ -52,6 +55,7 @@ class EmailVerificationMixin:
             subject=subject,
             content=content,
             from_email=from_email,
+            file_model_ids=self.get_file_model_ids(),
         )
 
 

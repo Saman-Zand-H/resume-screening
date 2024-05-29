@@ -171,7 +171,7 @@ class Organization(models.Model):
 
     contactable = models.OneToOneField(
         Contactable,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name=_("Contactable"),
         null=True,
         blank=True,
@@ -391,7 +391,7 @@ class Profile(ComputedFieldsModel):
 
     contactable = models.OneToOneField(
         Contactable,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name=_("Contactable"),
         null=True,
         blank=True,
@@ -494,12 +494,11 @@ class Profile(ComputedFieldsModel):
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
 
-    def create_contactable(self):
-        if hasattr(self, "contactable"):
-            return
-
-        self.contactable = Contactable.objects.create()
-        self.save()
+    def get_or_create_contactable(self):
+        if not (self.contactable):
+            self.contactable = Contactable.objects.create()
+            self.save()
+        return self.contactable
 
     class Meta:
         verbose_name = _("User Profile")
@@ -844,6 +843,9 @@ class CommunicationMethod(EducationVerificationMethodAbstract, EmailVerification
         verbose_name=_("Degree File"),
     )
 
+    def get_file_model_ids(self):
+        return [self.degree_file.pk]
+
     def get_verification_context_data(self, **kwargs):
         return super().get_verification_context_data(**kwargs, education=self.education)
 
@@ -926,9 +928,8 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract, EmailVerifi
     )
 
     def send_verification(self, *, is_async=True):
-        from .tasks import send_work_experience_verification
-
-        send_work_experience_verification.delay(self.pk)
+        for employer in self.employers.all():
+            employer.send_verification(is_async=is_async)
 
     class Meta:
         verbose_name = _("Employer Letter Method")
@@ -980,6 +981,9 @@ class ReferenceCheckEmployer(models.Model, EmailVerificationMixin):
             employer=self.name,
             work_experience=self.work_experience_verification.work_experience,
         )
+
+    def get_file_model_ids(self):
+        return [self.work_experience_verification.employer_letter.pk]
 
     class Meta:
         verbose_name = _("Reference Check Employer")

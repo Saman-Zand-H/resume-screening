@@ -2,14 +2,15 @@ import json
 from collections import namedtuple
 from functools import wraps
 from logging import getLogger
-from typing import Any, Callable, Dict, Protocol, Tuple
+from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
+from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
 
 from django.contrib.auth import get_user_model
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 
 from .utils import (
     extract_available_jobs,
@@ -100,6 +101,8 @@ def set_user_skills(user_id: int) -> bool:
 
     if extracted_skills:
         profile.skills.set(extracted_skills)
+    else:
+        profile.skills.clear()
 
     return True
 
@@ -163,46 +166,26 @@ class SerializableContext:
 
 
 @register_task([AccountSubscription.EMAILING])
-def send_email_async(recipient_list, from_email, subject, content):
-    return send_mail(
+def send_email_async(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
+    email = EmailMessage(
         subject=subject,
         from_email=from_email,
-        recipient_list=recipient_list,
-        fail_silently=True,
-        message=content,
-        html_message=content,
+        to=recipient_list,
+        body=content,
     )
+    email.content_subtype = "html"
 
+    if file_model_ids:
+        blob_builder = BlobResponseBuilder.get_response_builder()
+        for file_model_id in file_model_ids:
+            attachment = FileModel.objects.get(pk=file_model_id)
+            email.attach(
+                blob_builder.get_file_name(attachment),
+                attachment.file.read(),
+                blob_builder.get_content_type(attachment),
+            )
 
-@register_task([AccountSubscription.EMAILING])
-def send_work_experience_verification(employer_letter_method_id: int):
-    from account.models import EmployerLetterMethod, ReferenceCheckEmployer
-
-    employer_letter_method = EmployerLetterMethod.objects.filter(pk=employer_letter_method_id).first()
-    attachment = employer_letter_method.employer_letter.file
-    blob_builder = BlobResponseBuilder.get_response_builder()
-    if not employer_letter_method:
-        return False
-
-    for employer in getattr(
-        employer_letter_method,
-        ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
-    ).all():
-        email = employer.get_verification_email()
-        from_email = employer.get_verification_email_from()
-        subject = employer.get_verification_subject()
-        content = employer.get_verification_content()
-        email = EmailMessage(
-            subject=subject,
-            from_email=from_email,
-            to=[email],
-            body=content,
-        )
-        email.content_subtype = "html"
-        email.attach(
-            blob_builder.get_file_name(attachment), attachment.read(), blob_builder.get_content_type(attachment)
-        )
-        email.send()
+    email.send()
 
 
 @register_task(subscriptions=[AccountSubscription.EMAILING])

@@ -103,6 +103,8 @@ def extract_or_create_skills(skills: List[str], resume_json) -> Optional[List[Sk
         except ValueError:
             return None
 
+    return Skill.objects.none()
+
 
 def is_env(env: Environment):
     return settings.ENVIRONMENT_NAME.value == env.value
