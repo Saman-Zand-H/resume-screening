@@ -1,5 +1,6 @@
 from typing import Dict
 
+from academy.models import CourseResult
 from criteria.models import JobAssessmentResult
 from flex_observer.types import register_observer
 from score.types import ScoreObserver
@@ -22,6 +23,7 @@ from .scores import (
     AssessmentScore,
     CertificationScore,
     CityScore,
+    CourseGeneralScore,
     DateOfBirthScore,
     EducationNewScore,
     EducationVerificationScore,
@@ -147,3 +149,9 @@ class CanadaVisaObserver(BaseObserver, ScoreObserver):
 class JobAssesmentResultObserver(BaseObserver, ScoreObserver):
     _observed_model = JobAssessmentResult
     scores = [AssessmentScore, OptionalAssessmentScore]
+
+
+@register_observer
+class CourseObserver(BaseObserver, ScoreObserver):
+    _observed_model = CourseResult
+    scores = [CourseGeneralScore]
