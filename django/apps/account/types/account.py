@@ -352,3 +352,11 @@ class OrganizationInvitationType(DjangoObjectType):
             OrganizationInvitation.created_at.field.name,
             OrganizationInvitation.created_by.field.name,
         )
+
+    @classmethod
+    def get_node_by_token(cls, info, token):
+        model = cls._meta.model
+        try:
+            return model.objects.get(token=token)
+        except model.DoesNotExist:
+            return None
