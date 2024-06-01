@@ -1351,6 +1351,9 @@ class Organization(models.Model):
         verbose_name = _("Organization")
         verbose_name_plural = _("Organizations")
 
+    def __str__(self):
+        return self.name
+
 
 class OrganizationMembership(models.Model):
     class Role(models.TextChoices):
@@ -1381,6 +1384,9 @@ class OrganizationMembership(models.Model):
     class Meta:
         verbose_name = _("Organization Membership")
         verbose_name_plural = _("Organization Memberships")
+
+    def __str__(self):
+        return f"{self.user.email} - {self.organization.name}"
 
 
 class OrganizationInvitation(models.Model):

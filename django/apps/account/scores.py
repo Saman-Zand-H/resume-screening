@@ -3,6 +3,7 @@ import datetime
 import math
 from typing import ClassVar
 
+from academy.models import CourseResult
 from criteria.models import JobAssessment, JobAssessmentResult
 from pydantic import BaseModel
 from score.types import ExistingScore, Score, ScorePack
@@ -330,6 +331,18 @@ class OptionalAssessmentScore(Score):
         )
 
 
+@register_score
+class CourseGeneralScore(Score):
+    observed_fields = [CourseResult.id.field.name, CourseResult.status.field.name]
+    slug = "course_general"
+
+    def calculate(self, user) -> int:
+        return (
+            CourseResult.objects.filter(user=user, status=CourseResult.Status.COMPLETED).count()
+            * Scores.COURSE_GENERAL.value
+        )
+
+
 @register_pack
 class UserScorePack(ScorePack):
     slug = "user_score_pack"
@@ -355,4 +368,5 @@ class UserScorePack(ScorePack):
         JobInterestScore,
         AssessmentScore,
         OptionalAssessmentScore,
+        CourseGeneralScore,
     ]

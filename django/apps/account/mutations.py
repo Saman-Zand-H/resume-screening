@@ -33,6 +33,7 @@ from graphql_jwt.decorators import (
 
 from account.utils import is_env
 from django.db import transaction
+from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -72,6 +73,35 @@ from .types.account import UserNode
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
+class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
+    class Meta:
+        model = OrganizationInvitation
+        fields = (
+            OrganizationInvitation.email.field.name,
+            OrganizationInvitation.role.field.name,
+        )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        user = info.context.user
+        obj.created_by = user
+        try:
+            obj.organization = user.membership.organization
+        except OrganizationMembership.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("User is not a member of an organization."))
+        cls.full_clean(obj)
+
+    @classmethod
+    def validate(cls, root, info, input):
+        # TODO: add validations, check if user has access to invite
+        return super().validate(root, info, input)
+
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        # TODO: send invitation email
+        return super().after_mutate(root, info, input, obj, return_data)
+
+
 class RegisterOrganization(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _required_args = [User.EMAIL_FIELD]
@@ -85,7 +115,10 @@ class RegisterOrganization(graphql_auth_mutations.Register):
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        request_user = args[1].context.user
+        super().mutate(*args, **kwargs)
+        email = kwargs.get(User.EMAIL_FIELD)
+        user = User.objects.get(**{User.EMAIL_FIELD: email})
+        organization_invitation = None
         if organization_invitation_token := kwargs.get(OrganizationInvitation.token.field.name):
             try:
                 organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
@@ -93,15 +126,23 @@ class RegisterOrganization(graphql_auth_mutations.Register):
                 return cls(success=False, errors={"token": "Invalid token."})
             organization = organization_invitation.organization
             role = organization_invitation.role
+            invited_by = organization_invitation.created_by
         else:
-            organization_name = kwargs.get(Organization.name.field.name)
-            organization = Organization.objects.create(name=organization_name, created_by=request_user)
-            role = OrganizationMembership.Role.CREATOR.value
+            if organization_name := kwargs.get(Organization.name.field.name):
+                organization = Organization.objects.create(name=organization_name, created_by=user)
+                role = OrganizationMembership.Role.CREATOR.value
+                invited_by = user
+            else:
+                return cls(success=False, errors={"name": "This field is required."})
+        try:
+            OrganizationMembership.objects.create(
+                user=user, organization=organization, role=role, invited_by=invited_by
+            )
+        except IntegrityError:
+            return cls(success=False, errors={"email": "User has already membership in an organization."})
 
-        super().mutate(*args, **kwargs)
-        email = kwargs.get(User.EMAIL_FIELD)
-        user = User.objects.get(**{User.EMAIL_FIELD: email})
-        OrganizationMembership.objects.create(user=user, organization=organization, role=role, invited_by=request_user)
+        if organization_invitation:
+            organization_invitation.delete()
         return cls(success=True, errors=None)
 
 
@@ -221,11 +262,12 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
+class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPatchMutation):
     class Meta:
         model = Organization
         fields = (
             Organization.name.field.name,
+            Organization.logo.field.name,
             Organization.short_name.field.name,
             Organization.national_number.field.name,
             Organization.type.field.name,
@@ -237,13 +279,16 @@ class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
         )
 
     @classmethod
-    def check_permissions(cls, *args):
-        info, obj = args[1], args[-1]
-        org_users = {position.user: position.title for position in obj.positions.all()}
+    def check_permissions(cls, root, info, input, id, obj) -> None:
+        # TODO: Allow update before
         user = info.context.user
-        if user not in org_users or org_users[user] != OrganizationMembership.Role.ASSOCIATE.value:
+        org_users = {membership.user: membership.role for membership in obj.memberships.all()}
+        if user not in org_users or org_users[user] not in [
+            OrganizationMembership.Role.ASSOCIATE.value,
+            OrganizationMembership.Role.CREATOR.value,
+        ]:
             raise PermissionError("Not permitted to modify this record.")
-        return super().check_permissions(*args)
+        return super().check_permissions(root, info, input, id, obj)
 
     @classmethod
     def update_obj(cls, *args, **kwargs):
@@ -772,6 +817,7 @@ class ProfileMutation(graphene.ObjectType):
 
 class OrganizationMutation(graphene.ObjectType):
     register = RegisterOrganization.Field()
+    invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
 
 

@@ -8,7 +8,16 @@ from .types.account import (
     LanguageCertificateNode,
     UserNode,
     WorkExperienceNode,
+    OrganizationInvitationType,
 )
+
+
+class OrganizationInvitationQuery(graphene.ObjectType):
+    get = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
+
+    @login_required
+    def resolve_get(self, info, token):
+        return OrganizationInvitationType.get_node_by_token(info, token)
 
 
 class EducationQuery(graphene.ObjectType):
@@ -49,6 +58,7 @@ class Query(MeQuery, graphene.ObjectType):
     work_experience = graphene.Field(WorkExperienceQuery)
     language_certificate = graphene.Field(LanguageCertificateQuery)
     certificate_and_license = graphene.Field(CertificateAndLicenseQuery)
+    organization_invitation = graphene.Field(OrganizationInvitationQuery)
 
     def resolve_education(self, info):
         return EducationQuery()
@@ -61,3 +71,6 @@ class Query(MeQuery, graphene.ObjectType):
 
     def resolve_certificate_and_license(self, info):
         return CertificateAndLicenseQuery()
+
+    def resolve_organization_invitation(self, info):
+        return OrganizationInvitationQuery()
