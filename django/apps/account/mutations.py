@@ -262,11 +262,12 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
+class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPatchMutation):
     class Meta:
         model = Organization
         fields = (
             Organization.name.field.name,
+            Organization.logo.field.name,
             Organization.short_name.field.name,
             Organization.national_number.field.name,
             Organization.type.field.name,
@@ -278,13 +279,16 @@ class OrganizationUpdateMutation(DocumentCUDMixin, DjangoPatchMutation):
         )
 
     @classmethod
-    def check_permissions(cls, *args):
-        info, obj = args[1], args[-1]
-        org_users = {position.user: position.title for position in obj.positions.all()}
+    def check_permissions(cls, root, info, input, id, obj) -> None:
+        # TODO: Allow update before
         user = info.context.user
-        if user not in org_users or org_users[user] != OrganizationMembership.Role.ASSOCIATE.value:
+        org_users = {membership.user: membership.role for membership in obj.memberships.all()}
+        if user not in org_users or org_users[user] not in [
+            OrganizationMembership.Role.ASSOCIATE.value,
+            OrganizationMembership.Role.CREATOR.value,
+        ]:
             raise PermissionError("Not permitted to modify this record.")
-        return super().check_permissions(*args)
+        return super().check_permissions(root, info, input, id, obj)
 
     @classmethod
     def update_obj(cls, *args, **kwargs):
