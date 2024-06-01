@@ -75,6 +75,7 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
         LanguageProficiencySkill.skill_name.field.name,
         LanguageProficiencySkill.test.field.name,
         LanguageProficiencySkill.slug.field.name,
+        LanguageProficiencySkill.validators.field.name,
     )
     search_fields = list_display
 
