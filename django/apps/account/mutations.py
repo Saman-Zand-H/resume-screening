@@ -72,6 +72,35 @@ from .types.account import UserNode
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
+class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
+    class Meta:
+        model = OrganizationInvitation
+        fields = (
+            OrganizationInvitation.email.field.name,
+            OrganizationInvitation.role.field.name,
+        )
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        user = info.context.user
+        obj.created_by = user
+        try:
+            obj.organization = user.membership.organization
+        except OrganizationMembership.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("User is not a member of an organization."))
+        cls.full_clean(obj)
+
+    @classmethod
+    def validate(cls, root, info, input):
+        # TODO: add validations, check if user has access to invite
+        return super().validate(root, info, input)
+
+    @classmethod
+    def after_mutate(cls, root, info, input, obj, return_data):
+        # TODO: send invitation email
+        return super().after_mutate(root, info, input, obj, return_data)
+
+
 class RegisterOrganization(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _required_args = [User.EMAIL_FIELD]
@@ -772,6 +801,7 @@ class ProfileMutation(graphene.ObjectType):
 
 class OrganizationMutation(graphene.ObjectType):
     register = RegisterOrganization.Field()
+    invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
 
 
