@@ -937,10 +937,17 @@ class LanguageCertificateValue(EavValue):
         return f"{self.skill} - {self.value}"
 
     def clean(self):
+        if not self.skill.test == self.language_certificate.test:
+            raise ValidationError({LanguageCertificateValue.skill.field.name: _("Skill must be related to the test")})
         try:
             super().clean()
         except ValidationError as e:
-            raise ValidationError({LanguageCertificateValue.value.field.name: e.error_list[0].message})
+            message = ""
+            if error := getattr(e, "error_dict", None):
+                message = list(error.values())[0]
+            elif error := getattr(e, "error_list", None):
+                message = error[0].message
+            raise ValidationError({LanguageCertificateValue.value.field.name: message})
 
 
 class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAbstract):
