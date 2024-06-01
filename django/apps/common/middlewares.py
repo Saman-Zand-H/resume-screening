@@ -24,11 +24,11 @@ class GrapheneErrorHandlingMiddleware:
             base_exception = GraphQLError
             kwargs = {}
 
+            error = map_exception_to_error(e.__class__, str(e))
             if isinstance(e, GraphQLError):
                 base_exception = e.__class__
                 kwargs.update(e.asdict())
             else:
-                error = map_exception_to_error(e.__class__, str(e))
                 kwargs.update({"error": error})
             kwargs.update({"exception": e})
 
