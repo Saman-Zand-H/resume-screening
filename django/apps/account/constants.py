@@ -21,6 +21,7 @@ class OpenAiAssistants:
     SKILL = settings.ASSISTANT_IDS.get(Assistants.SKILL) or "asst_xgHHntfKpoAsnmQNeJntI4TH"
     RESUME = settings.ASSISTANT_IDS.get(Assistants.RESUME) or "asst_myiZIH7CBPn4ciVbqDGMF8ZL"
     HEADLINES = settings.ASSISTANT_IDS.get(Assistants.HEADLINES) or "asst_hhsL57Pbb95cNuzrVImCvGWR"
+    GENERATE_RESUME = settings.ASSISTANT_IDS.get(Assistants.GENERATE_RESUME) or "asst_VXIB9igMMv7Fj4EElfygf6FD"
 
 
 class VectorStores:

@@ -73,13 +73,20 @@ def extract_resume_json(text: str) -> Optional[ResumeSchema]:
 
 
 def get_user_additional_information(user_id: int):
-    from .models import Education, User, WorkExperience
+    from .models import CertificateAndLicense, Education, User, WorkExperience
 
     user = User.objects.filter(pk=user_id).first()
     if not user:
         return {}
 
     profile = user.profile
+    certifications = CertificateAndLicense.objects.filter(
+        user=user, status__in=CertificateAndLicense.get_verified_statuses()
+    ).values(
+        CertificateAndLicense.title.field.name,
+        CertificateAndLicense.issued_at.field.name,
+        CertificateAndLicense.certifier.field.name,
+    )
     work_experiences = WorkExperience.objects.filter(
         user=user,
         status__in=WorkExperience.get_verified_statuses(),
@@ -102,6 +109,7 @@ def get_user_additional_information(user_id: int):
         "work_experiences": work_experiences,
         "educations": educations,
         "languages": languages,
+        "certifications": certifications,
     }
 
     if profile.city:
