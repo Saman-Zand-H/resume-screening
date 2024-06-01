@@ -314,6 +314,7 @@ ASSISTANT_IDS = {
     Assistants.SKILL: os.environ.get("SKILL_ASSISTANT_ID"),
     Assistants.RESUME: os.environ.get("RESUME_ASSISTANT_ID"),
     Assistants.HEADLINES: os.environ.get("HEADLINES_ASSISTANT_ID"),
+    Assistants.GENERATE_RESUME: os.environ.get("GENERATE_RESUME_ASSISTANT_ID"),
 }
 
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")

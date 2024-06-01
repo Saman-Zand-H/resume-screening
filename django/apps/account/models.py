@@ -502,7 +502,7 @@ class Contact(models.Model):
                 link = f"tel:{self.value}"
 
             case Contact.Type.LINKEDIN:
-                display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/(in/[^/]+)"
+                display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/in/([^/]+)"
                 display_name = re.match(display_regex, self.value).group(1)
                 link = self.value
 

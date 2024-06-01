@@ -18,14 +18,13 @@
         />
     </head>
     <body>
-        <div class="cpj-watermark-container">
-            <div class="cpj-watermark">
-                <img
-                    src="{% static 'img/logo/cpj-watermark.svg' %}"
-                    alt="CPJ Watermark"
-                />
-            </div>
+        <div class="cpj-watermark">
+            <img
+                src="{% static 'img/logo/cpj-watermark.svg' %}"
+                alt="CPJ Watermark"
+            />
         </div>
+        <div class="hollow-circle"></div>
         <div role="main" lang="en" dir="ltr" class="resume-container">
             <div role="article" class="resume-wrapper">
                 <div class="resume-content">
@@ -78,14 +77,16 @@
                                         </div>
                                     {% endif %}
                                     {% if languages %}
-                                        <div class="language-section">
+                                        <div class="social-section">
                                             <div class="section-title">
                                                 Language:
                                             </div>
-                                            <div class="language-list">
+                                            <div class="social-links">
                                                 {% for language in languages %}
-                                                    <div class="language-item">
-                                                        {{ language }}
+                                                    <div class="social-item">
+                                                        <div class="platform">
+                                                            {{ language }}
+                                                        </div>
                                                     </div>
                                                 {% endfor %}
                                             </div>
@@ -230,6 +231,17 @@
                                                                     {{ experience.city }}
                                                                 </div>
                                                             </div>
+                                                            {% if experience.achievements %}
+                                                                <div class="section-descriptions">
+                                                                    <ul>
+                                                                        {% for achievement in experience.achievements %}
+                                                                            <li class="section-description">
+                                                                                {{ achievement }}
+                                                                            </li>
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </div>  
+                                                            {% endif %}
                                                         </div>
                                                     {% endfor %}
                                                 </div>
@@ -255,7 +267,7 @@
                                                     <div class="section-list-item">
                                                         {% for certification in certifications %}
                                                             <span class="item-title">
-                                                                {{ certification.issued_at }}
+                                                                {{ certification.date }}
                                                             </span>
                                                             <span
                                                                 class="item-description"
@@ -381,7 +393,7 @@
                                                                 <div
                                                                     class="section-subheading"
                                                                 >
-                                                                    {{ education.university.name }}
+                                                                    {{ education.university_name }}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -396,11 +408,14 @@
                                                 <div
                                                     class="section-title-container"
                                                 >
-                                                    <img
-                                                        src="{% static 'img/icon/cv/Medal.svg' %}"
-                                                        alt="About"
-                                                        class="section-icon"
-                                                    />
+                                                    <div>
+                                                        <img
+                                                            src="{% static 'img/icon/cv/Medal.svg' %}"
+                                                            alt="About"
+                                                            class="section-icon"
+                                                        />
+    
+                                                    </div>
                                                     <div class="section-title">
                                                         Additional Sections:
                                                     </div>
@@ -440,7 +455,9 @@
                 <div class="footer-contact">
                     <div class="contact-label">Contact Us :</div>
                     <div class="contact-email">
-                        {{ contact_us_email|default:"info@cpj.ai" }}
+                        <a href="mailto:{{ contact_us_email|default:"info@cpj.ai" }}">
+                            {{ contact_us_email|default:"info@cpj.ai" }}
+                        </a>
                     </div>
                 </div>
             </footer>

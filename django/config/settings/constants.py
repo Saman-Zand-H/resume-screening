@@ -13,3 +13,4 @@ class Assistants:
     SKILL = "skill"
     RESUME = "resume"
     HEADLINES = "headlines"
+    GENERATE_RESUME = "generate-resume"

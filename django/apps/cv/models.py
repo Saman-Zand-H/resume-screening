@@ -1,8 +1,7 @@
 import os
 
 import pdfkit
-from account.models import Contact, User, WorkExperience
-from common.choices import LANGUAGES
+from account.models import Contact, User
 from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
 from flex_blob.models import FileModel
 from model_utils.models import TimeStampedModel
@@ -16,7 +15,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .constants import TEMPLATE_VALID_EXTENSIONS
-from .utils import get_static_base_url
+from .utils import extract_generated_resume_input, get_static_base_url
 
 
 class CVTemplate(TimeStampedModel):
@@ -104,18 +103,6 @@ class GeneratedCV(FileModel):
     @classmethod
     def get_user_context(cls, user: User):
         profile = user.profile
-        educations = user.educations.all()
-        work_experiences = user.workexperiences.filter(
-            status__in=[
-                WorkExperience.Status.VERIFIED,
-                WorkExperience.Status.SELF_VERIFIED,
-            ]
-        )
-        resume = user.resume if hasattr(user, "resume") else None
-        about_me = resume and resume.about_me
-        headline = resume and resume.headline
-        languages = {profile.native_language, *(profile.fluent_languages or [])}
-        languages_dict = dict(LANGUAGES)
         contacts = Contact.objects.filter(contactable__profile__user=user)
         social_contacts = contacts.filter(
             type__in=[
@@ -124,22 +111,17 @@ class GeneratedCV(FileModel):
                 Contact.Type.WEBSITE,
             ],
         )
-        certifications = user.certificateandlicenses.all()
         phone = phone_qs.first().value if (phone_qs := contacts.filter(type=Contact.Type.PHONE)).exists() else None
         skills = profile.skills.all()
+        asssistant_data = extract_generated_resume_input(user)
 
         return {
             "user": user,
-            "educations": educations,
-            "work_experiences": work_experiences,
-            "about_me": about_me,
-            "headline": headline,
             "phone": phone,
-            "certifications": certifications,
-            "languages": [languages_dict.get(lang) for lang in languages],
             "social_contacts": social_contacts,
             "skills": skills,
             "now": timezone.now(),
+            **asssistant_data,
         }
 
     @classmethod
