@@ -293,11 +293,8 @@ a {
 .update-date {
     color: #000;
     font: 10px/1.6 Poppins, sans-serif;
-    margin-left: auto;
-}
-
-.update-date span {
-    margin-left: auto
+    display: flex;
+    justify-content: space-between;
 }
 
 .divider {
