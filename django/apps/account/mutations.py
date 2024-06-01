@@ -33,6 +33,7 @@ from graphql_jwt.decorators import (
 
 from account.utils import is_env
 from django.db import transaction
+from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -114,7 +115,10 @@ class RegisterOrganization(graphql_auth_mutations.Register):
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        request_user = args[1].context.user
+        super().mutate(*args, **kwargs)
+        email = kwargs.get(User.EMAIL_FIELD)
+        user = User.objects.get(**{User.EMAIL_FIELD: email})
+        organization_invitation = None
         if organization_invitation_token := kwargs.get(OrganizationInvitation.token.field.name):
             try:
                 organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
@@ -122,15 +126,23 @@ class RegisterOrganization(graphql_auth_mutations.Register):
                 return cls(success=False, errors={"token": "Invalid token."})
             organization = organization_invitation.organization
             role = organization_invitation.role
+            invited_by = organization_invitation.created_by
         else:
-            organization_name = kwargs.get(Organization.name.field.name)
-            organization = Organization.objects.create(name=organization_name, created_by=request_user)
-            role = OrganizationMembership.Role.CREATOR.value
+            if organization_name := kwargs.get(Organization.name.field.name):
+                organization = Organization.objects.create(name=organization_name, created_by=user)
+                role = OrganizationMembership.Role.CREATOR.value
+                invited_by = user
+            else:
+                return cls(success=False, errors={"name": "This field is required."})
+        try:
+            OrganizationMembership.objects.create(
+                user=user, organization=organization, role=role, invited_by=invited_by
+            )
+        except IntegrityError:
+            return cls(success=False, errors={"email": "User has already membership in an organization."})
 
-        super().mutate(*args, **kwargs)
-        email = kwargs.get(User.EMAIL_FIELD)
-        user = User.objects.get(**{User.EMAIL_FIELD: email})
-        OrganizationMembership.objects.create(user=user, organization=organization, role=role, invited_by=request_user)
+        if organization_invitation:
+            organization_invitation.delete()
         return cls(success=True, errors=None)
 
 
