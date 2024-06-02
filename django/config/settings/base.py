@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "django_filters",
     "graphql_auth",
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
+    "cachalot",
     "corsheaders",
     "colorfield",
     "cities_light",
@@ -302,6 +303,8 @@ PUBSUB_SETTINGS = {
     "BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_BACKEND_CLASS"),
     "SCHEDULER_BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_SCHEDULER_BACKEND_CLASS"),
 }
+
+SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
