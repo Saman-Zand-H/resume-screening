@@ -16,8 +16,8 @@ class ValidateFileSize:
             raise ValidationError(code="max_file_size", message=_(f"You cannot upload file more than {self.max}Mb"))
 
 
-IMAGE_FILE_SIZE_VALIDATOR = ValidateFileSize(max=2)
-DOCUMENT_FILE_SIZE_VALIDATOR = ValidateFileSize(max=4)
+IMAGE_FILE_SIZE_VALIDATOR = ValidateFileSize(max=5)
+DOCUMENT_FILE_SIZE_VALIDATOR = ValidateFileSize(max=5)
 
 IMAGE_FILE_EXTENSION_VALIDATOR = FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"])
 DOCUMENT_FILE_EXTENSION_VALIDATOR = FileExtensionValidator(

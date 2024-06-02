@@ -24,6 +24,7 @@ from common.validators import (
     DOCUMENT_FILE_SIZE_VALIDATOR,
     IMAGE_FILE_EXTENSION_VALIDATOR,
     IMAGE_FILE_SIZE_VALIDATOR,
+    ValidateFileSize,
 )
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
@@ -212,6 +213,9 @@ class AvatarFile(UserUploadedImageFile):
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
+
+    def get_validators(self):
+        return [IMAGE_FILE_EXTENSION_VALIDATOR, ValidateFileSize(max=10)]
 
     class Meta:
         verbose_name = _("Avatar Image")
