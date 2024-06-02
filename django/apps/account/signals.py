@@ -2,11 +2,12 @@ from common.models import Job, Skill
 from flex_observer.types import FieldsObserverRegistry
 
 from django.core.cache import cache
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
-from .constants import VectorStores
+from .constants import JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD, VectorStores
 from .models import Contactable, Organization, Profile, Referral, SupportTicket, User
+from .tasks import find_available_jobs, user_task_runner
 
 
 @receiver(post_save, sender=SupportTicket)
@@ -19,6 +20,17 @@ def user_create_one_to_one_objetcs(sender, instance, created, **kwargs):
     if created:
         Referral.objects.create(user=instance)
         Profile.objects.create(user=instance)
+
+
+@receiver(pre_save, sender=Profile)
+def run_find_available_jobs(instance, **kwargs):
+    old_instance = Profile.objects.filter(pk=instance.pk).first()
+    if (
+        old_instance
+        and old_instance.score != instance.score
+        and instance.completion_percentage >= JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD
+    ):
+        user_task_runner(find_available_jobs, user_id=instance.user.pk, task_user_id=instance.user.pk)
 
 
 @receiver(post_save, sender=Profile)

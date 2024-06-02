@@ -1274,10 +1274,9 @@ class UserTask(models.Model):
     status_description = models.TextField(verbose_name=_("Status Description"), blank=True, null=True)
 
     def change_status(self, status: str, description: str = None):
-        self.status = status
-        self.status_description = description
-        self.save(update_fields=[UserTask.status.field.name, UserTask.status_description.field.name])
-        return
+        UserTask.objects.filter(user=self.user, task_name=self.task_name).update(
+            status=status, status_description=description
+        )
 
     def __str__(self):
         return f"{self.user} - {self.task_name}"

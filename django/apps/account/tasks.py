@@ -10,6 +10,7 @@ from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.mail import EmailMessage
 
 from .utils import (
@@ -69,8 +70,12 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
         task_name=task_name,
     )
 
+    if cache.get(cache_key := f"task_{task_name}_{task_user_id}_scheduled"):
+        return
+
     if user_task.status not in [UserTask.Status.IN_PROGRESS, UserTask.Status.SCHEDULED]:
         user_task.change_status(UserTask.Status.SCHEDULED)
+        cache.set(cache_key, (task, task_user_id, args, kwargs), timeout=5)
         task.delay(*args, task_user_id=task_user_id, **kwargs)
 
 

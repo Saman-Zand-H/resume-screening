@@ -1,3 +1,4 @@
+import contextlib
 from typing import Dict
 
 from academy.models import CourseResult
@@ -7,7 +8,6 @@ from score.types import ScoreObserver
 
 from django.db.models import Model
 
-from .constants import JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
@@ -43,7 +43,6 @@ from .scores import (
     WorkExperienceNewScore,
     WorkExperienceVerificationScore,
 )
-from .tasks import find_available_jobs, user_task_runner
 
 
 class BaseObserver[T: Model]:
@@ -59,10 +58,8 @@ class BaseObserver[T: Model]:
         profile.scores.update(scores_dict)
         profile.score = sum(profile.scores.values())
 
-        if profile.completion_percentage >= JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD:
-            user_task_runner(find_available_jobs, user_id=user.pk, task_user_id=user.pk)
-
-        Profile.objects.filter(pk=profile.pk).update(score=profile.score, scores=profile.scores)
+        with contextlib.suppress(ValueError):
+            profile.save(update_fields=["score", "scores"])
 
 
 @register_observer
