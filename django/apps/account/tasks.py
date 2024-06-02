@@ -1,5 +1,6 @@
 import json
 from collections import namedtuple
+from datetime import timedelta
 from functools import wraps
 from logging import getLogger
 from typing import Any, Callable, Dict, List, Protocol, Tuple
@@ -12,6 +13,7 @@ from flex_pubsub.tasks import register_task
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.mail import EmailMessage
+from django.utils import timezone
 
 from .utils import (
     extract_available_jobs,
@@ -23,6 +25,20 @@ from .utils import (
 )
 
 logger = getLogger("django")
+
+
+@register_task([AccountSubscription.DOCUMENT_VERIFICATION], schedule={"schedule": "0 0 * * *"})
+def self_verify_documents():
+    from .models import DocumentAbstract, Education, WorkExperience
+
+    self_verifiable_models: List[DocumentAbstract] = [WorkExperience, Education]
+
+    for model in self_verifiable_models:
+        model.objects.filter(
+            status=DocumentAbstract.Status.SUBMITTED,
+            updated_at__lte=timezone.now() - timedelta(days=7),
+            allow_self_verification=True,
+        ).update(status=DocumentAbstract.Status.SELF_VERIFIED)
 
 
 class Task(Protocol):
