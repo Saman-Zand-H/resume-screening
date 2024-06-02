@@ -577,7 +577,7 @@ class DocumentAbstract(models.Model):
 
     @classmethod
     def get_verified_statuses(cls):
-        return (cls.Status.VERIFIED,)
+        return (cls.Status.VERIFIED, cls.Status.SELF_VERIFIED)
 
 
 class DocumentVerificationMethodAbstract(models.Model):
