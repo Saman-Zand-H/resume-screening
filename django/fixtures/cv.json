@@ -1,1 +1,1 @@
-[{"model": "cv.cvtemplate", "pk": 1, "fields": {"created": "2024-12-13T18:41:49.217Z", "modified": "2024-12-13T18:41:49.217Z", "title": "Main", "path": "cv/main/main.html", "is_active": true}}]
+[{"model": "cv.cvtemplate", "pk": 1, "fields": {"created": "2024-12-13T18:41:49.217Z", "modified": "2024-12-13T18:41:49.217Z", "title": "Main", "path": "cv/main/main.html", "is_active": true, "footer_path": "cv/main/footer.html"}}]

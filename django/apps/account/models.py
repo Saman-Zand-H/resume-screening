@@ -39,6 +39,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
+from django.templatetags.static import static
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
@@ -457,6 +458,14 @@ class Contact(models.Model):
         Type.WHATSAPP: fix_whatsapp_value,
     }
 
+    TYPE_ICON = {
+        Type.WEBSITE: static("img/icon/web.svg"),
+        Type.ADDRESS: static("img/icon/Building office.svg"),
+        Type.LINKEDIN: static("img/icon/linkedin.svg"),
+        Type.WHATSAPP: static("img/icon/whatsapp.svg"),
+        Type.PHONE: static("img/icon/Call.svg"),
+    }
+
     contactable = models.ForeignKey(
         Contactable,
         on_delete=models.CASCADE,
@@ -488,6 +497,9 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.contactable} - {self.type}: {self.value}"
+
+    def get_contact_icon(self):
+        return self.TYPE_ICON.get(self.type)
 
     def get_display_dict(self) -> Dict[str, Optional[str]]:
         """

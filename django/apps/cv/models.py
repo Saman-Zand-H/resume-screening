@@ -1,4 +1,5 @@
 import os
+from tempfile import NamedTemporaryFile
 
 import pdfkit
 from account.models import Contact, User
@@ -21,6 +22,7 @@ from .utils import extract_generated_resume_input, get_static_base_url
 class CVTemplate(TimeStampedModel):
     title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
     path = models.CharField(max_length=255, verbose_name=_("Path"), unique=True)
+    footer_path = models.CharField(max_length=255, verbose_name=_("Footer Path"), null=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name=_("Is active"))
 
     def clean(self):
@@ -43,23 +45,39 @@ class CVTemplate(TimeStampedModel):
             f"{get_static_base_url()}{settings.STATIC_URL}",
         )
 
-    def render_pdf(self, context: dict) -> bytes:
+    def _render_pdf(self, context: dict, **options) -> bytes:
         template = self.render(context)
         options = {
             "margin-top": "0",
             "margin-right": "0",
             "margin-bottom": "0",
             "margin-left": "0",
-            "zoom": 1.0,
+            "zoom": 2.0,
             "enable-local-file-access": "",
             "encoding": "UTF-8",
+            **options,
         }
+
         pdf_bytes: bytes = pdfkit.from_string(
             template,
             output_path=False,
             options=options,
         )
         return pdf_bytes
+
+    def render_pdf(self, context: dict) -> bytes:
+        if not self.footer_path:
+            return self._render_pdf(context)
+
+        footer_template = render_to_string(self.footer_path).replace(
+            settings.STATIC_URL,
+            f"{get_static_base_url()}{settings.STATIC_URL}",
+        )
+        with NamedTemporaryFile(delete=False, suffix=".html") as footer_file:
+            footer_file.write(footer_template.encode())
+            footer_file_path = footer_file.name
+
+            return self._render_pdf(context, **{"footer-html": footer_file_path})
 
     def __str__(self):
         return f"{self.title}: {self.path}"
@@ -103,22 +121,21 @@ class GeneratedCV(FileModel):
     @classmethod
     def get_user_context(cls, user: User):
         profile = user.profile
-        contacts = Contact.objects.filter(contactable__profile__user=user)
-        social_contacts = contacts.filter(
+        contacts = Contact.objects.filter(
+            contactable__profile__user=user,
             type__in=[
                 Contact.Type.LINKEDIN,
                 Contact.Type.WHATSAPP,
                 Contact.Type.WEBSITE,
+                Contact.Type.PHONE,
             ],
         )
-        phone = phone_qs.first().value if (phone_qs := contacts.filter(type=Contact.Type.PHONE)).exists() else None
         skills = profile.skills.all()
         asssistant_data = extract_generated_resume_input(user)
 
         return {
             "user": user,
-            "phone": phone,
-            "social_contacts": social_contacts,
+            "contacts": contacts,
             "skills": skills,
             "now": timezone.now(),
             **asssistant_data,

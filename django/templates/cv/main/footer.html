@@ -1,0 +1,26 @@
+{% extends "./base.html" %}
+{% load static %}
+
+{% block content %}
+<footer class="resume-footer">
+    <div class="footer-reference">
+        <div class="reference-text">Refrenced by :</div>
+        <div class="company-reference">
+            <img
+                src="{% static 'img/logo/cpj-logo-28x29.svg' %}"
+                class="reference-logo"
+                alt="CPJ company logo"
+            />
+            <div class="company-name">CPJ company</div>
+        </div>
+    </div>
+    <div class="footer-contact">
+        <div class="contact-label">Contact Us :</div>
+        <div class="contact-email">
+            <a style="color: white;" href="mailto:{{ contact_us_email|default:"info@cpj.ai" }}">
+                {{ contact_us_email|default:"info@cpj.ai" }}
+            </a>
+        </div>
+    </div>
+</footer>
+{% endblock %}
