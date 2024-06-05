@@ -1,5 +1,4 @@
 import os
-from tempfile import NamedTemporaryFile
 
 import pdfkit
 from account.models import Contact, User
@@ -16,13 +15,16 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .constants import TEMPLATE_VALID_EXTENSIONS
-from .utils import extract_generated_resume_input, get_static_base_url
+from .utils import (
+    extract_generated_resume_input,
+    get_static_base_url,
+    merge_pdf_pages_to_single_page,
+)
 
 
 class CVTemplate(TimeStampedModel):
     title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
     path = models.CharField(max_length=255, verbose_name=_("Path"), unique=True)
-    footer_path = models.CharField(max_length=255, verbose_name=_("Footer Path"), null=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name=_("Is active"))
 
     def clean(self):
@@ -45,16 +47,18 @@ class CVTemplate(TimeStampedModel):
             f"{get_static_base_url()}{settings.STATIC_URL}",
         )
 
-    def _render_pdf(self, context: dict, **options) -> bytes:
+    def render_pdf(self, context: dict, **options) -> bytes:
         template = self.render(context)
         options = {
             "margin-top": "0",
             "margin-right": "0",
             "margin-bottom": "0",
             "margin-left": "0",
-            "zoom": 2.0,
+            "zoom": 1.0,
             "enable-local-file-access": "",
             "encoding": "UTF-8",
+            "disable-smart-shrinking": "",
+            "dpi": 500,
             **options,
         }
 
@@ -63,21 +67,7 @@ class CVTemplate(TimeStampedModel):
             output_path=False,
             options=options,
         )
-        return pdf_bytes
-
-    def render_pdf(self, context: dict) -> bytes:
-        if not self.footer_path:
-            return self._render_pdf(context)
-
-        footer_template = render_to_string(self.footer_path).replace(
-            settings.STATIC_URL,
-            f"{get_static_base_url()}{settings.STATIC_URL}",
-        )
-        with NamedTemporaryFile(delete=False, suffix=".html") as footer_file:
-            footer_file.write(footer_template.encode())
-            footer_file_path = footer_file.name
-
-            return self._render_pdf(context, **{"footer-html": footer_file_path})
+        return merge_pdf_pages_to_single_page(pdf_bytes)
 
     def __str__(self):
         return f"{self.title}: {self.path}"
