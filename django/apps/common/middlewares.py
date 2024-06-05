@@ -38,6 +38,13 @@ class GrapheneErrorHandlingMiddleware:
             raise base_exception(**kwargs)
 
 
+class GrapheneDisableIntrospectionMiddleware:
+    def resolve(self, next, root, info, **kwargs):
+        if info.field_name.lower() in ["__schema", "__introspection"]:
+            raise GraphQLError(Errors.PERMISSION_DENIED)
+        return next(root, info, **kwargs)
+
+
 class DjangoErrorHandlingMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
         reporter = ExceptionReporter(request, type(exception), exception, exception.__traceback__, is_email=False)
