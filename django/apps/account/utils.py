@@ -25,11 +25,8 @@ def extract_resume_json(text: str) -> Optional[ResumeSchema]:
     service = OpenAIService(OpenAiAssistants.RESUME)
     message = service.send_text_to_assistant(text)
     if message:
-        try:
-            json = service.message_to_json(message)
-            return ResumeSchema.model_validate(json)
-        except ValueError:
-            return None
+        json = service.message_to_json(message)
+        return ResumeSchema.model_validate(json)
 
 
 def get_user_additional_information(user_id: int):
