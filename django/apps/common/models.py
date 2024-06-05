@@ -104,7 +104,7 @@ class Skill(models.Model):
         default=InsertType.SYSTEM,
         verbose_name=_("Insert Type"),
     )
-    topic = models.ForeignKey(SkillTopic, on_delete=models.CASCADE, verbose_name=_("Topic"))
+    topic = models.ForeignKey(SkillTopic, on_delete=models.CASCADE, verbose_name=_("Topic"), null=True, blank=True)
     objects = SkillQuerySet.as_manager()
 
     class Meta:
