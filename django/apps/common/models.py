@@ -38,10 +38,12 @@ class Job(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     category = models.ForeignKey(JobCategory, on_delete=models.CASCADE, verbose_name=_("Category"))
     require_appearance_data = models.BooleanField(default=False, verbose_name=_("Require Appearance Data"))
+    order = models.PositiveIntegerField(default=0, verbose_name=_("Order"))
 
     class Meta:
         verbose_name = _("Job")
         verbose_name_plural = _("Jobs")
+        ordering = ("title",)
 
     def __str__(self):
         return self.title
