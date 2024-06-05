@@ -1,4 +1,3 @@
-import contextlib
 import copy
 import functools
 import re
@@ -32,26 +31,25 @@ class WarningFilter:
             r"builtin type SwigPyPacked has no __module__ attribute",
             r"builtin type SwigPyObject has no __module__ attribute",
             r"builtin type swigvarlink has no __module__ attribute",
-            r"builtin type swigvarlink has no __module__ attribute",
         ]
 
     def filter(self, message):
-        with contextlib.suppress(Exception):
-            for pattern in self.patterns:
-                if re.search(pattern, message):
-                    return True
+        for pattern in self.patterns:
+            if re.search(pattern, message):
+                return True
         return False
 
 
 class IgnoreSpecificWarnings:
     def __init__(self):
         self.warning_filter = WarningFilter()
+        self.original_showwarning = warnings.showwarning
 
     def __call__(self, message, category, filename, lineno, file=None, line=None):
         if self.warning_filter.filter(str(message)):
             return
 
-        warnings.showwarning(message, category, filename, lineno, file, line)
+        self.original_showwarning(message, category, filename, lineno, file, line)
 
 
 warnings.showwarning = IgnoreSpecificWarnings()
