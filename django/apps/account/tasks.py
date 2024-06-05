@@ -1,4 +1,5 @@
 import json
+import os
 from collections import namedtuple
 from datetime import timedelta
 from functools import wraps
@@ -199,8 +200,9 @@ def send_email_async(recipient_list, from_email, subject, content, file_model_id
         blob_builder = BlobResponseBuilder.get_response_builder()
         for file_model_id in file_model_ids:
             attachment = FileModel.objects.get(pk=file_model_id)
+            file_name = os.path.basename(blob_builder.get_file_name(attachment))
             email.attach(
-                blob_builder.get_file_name(attachment),
+                file_name,
                 attachment.file.read(),
                 blob_builder.get_content_type(attachment),
             )
