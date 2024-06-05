@@ -121,7 +121,8 @@ def extract_or_create_skills(skills: List[str], resume_json, **additional_inform
                         s[0].pk
                         for s in [
                             Skill.objects.get_or_create(
-                                title=s, defaults={Skill.insert_type.field.name: Skill.InsertType.AI}
+                                title=s,
+                                defaults={Skill.insert_type.field.name: Skill.InsertType.AI},
                             )
                             for s in new_skills
                         ]

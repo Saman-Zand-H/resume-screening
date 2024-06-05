@@ -122,7 +122,7 @@ def set_user_skills(user_id: int) -> bool:
         **get_user_additional_information(user_id),
     )
 
-    profile.skills.set(extracted_skills) if extracted_skills else profile.skills.clear()
+    profile.skills.set(*extracted_skills) if extracted_skills else profile.skills.clear()
 
     return True
 
