@@ -392,7 +392,10 @@ class UserSetSkillsMutation(graphene.Mutation):
         profile.raw_skills = (skills := input.get("skills"))
         profile.save(update_fields=[Profile.raw_skills.field.name])
 
-        skills and user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
+        if skills:
+            user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
+        else:
+            user.skills.clear()
 
         return UserSetSkillsMutation(user=user)
 
