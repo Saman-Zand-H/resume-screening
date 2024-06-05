@@ -202,7 +202,7 @@ def send_email_async(recipient_list, from_email, subject, content, file_model_id
             attachment = FileModel.objects.get(pk=file_model_id)
             file_name = os.path.basename(blob_builder.get_file_name(attachment))
             email.attach(
-                file_name,
+                file_name.split("/")[-1],
                 attachment.file.read(),
                 blob_builder.get_content_type(attachment),
             )
