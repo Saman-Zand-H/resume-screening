@@ -2,9 +2,9 @@ from datetime import date, datetime
 
 import graphene
 import graphene_django
-from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from graphene_django_cud.mutations.core import DjangoCudBaseOptions
 
+from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.fields.related import RelatedField
 from django.utils.functional import cached_property
@@ -50,7 +50,7 @@ class ArrayChoiceTypeMixin:
             array_choice_fields = [
                 field
                 for field in model._meta.fields
-                if field.name in fields and isinstance(field, ArrayField) and hasattr(field.base_field, "choices")
+                if field.name in fields and isinstance(field, ArrayField) and getattr(field.base_field, "choices")
             ]
 
             match class_type:

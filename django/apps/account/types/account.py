@@ -78,6 +78,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.scores.field.name,
             Profile.score.field.name,
             Profile.contactable.field.name,
+            Profile.raw_skills.field.name,
         )
 
     def resolve_contacts(self, info):
