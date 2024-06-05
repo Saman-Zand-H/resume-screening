@@ -363,10 +363,6 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
             raise GraphQLErrorBadRequest("User has no profile.")
 
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
-            available_jobs = map(str, set(profile.available_jobs.values_list("id", flat=True)))
-            if not interested_jobs.issubset(available_jobs):
-                raise GraphQLErrorBadRequest(_("Interested jobs must be in available jobs."))
-
             if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
                     raise GraphQLErrorBadRequest(_("Appearance related data cannot be unset."))
