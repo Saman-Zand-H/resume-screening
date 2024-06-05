@@ -1,12 +1,17 @@
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
+from common.models import Job
+from common.types import JobNode
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.models import GeneratedCV
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
+
+from django.db.models import Case, IntegerField, Value, When
 
 from ..mixins import FilterQuerySetByUserMixin
 from ..models import (
@@ -46,6 +51,7 @@ class ContactType(DjangoObjectType):
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
     completion_percentage = graphene.Float(source=Profile.completion_percentage.fget.__name__)
     contacts = graphene.List(ContactType)
+    available_jobs = DjangoFilterConnectionField(JobNode)
 
     class Meta:
         model = Profile
@@ -59,7 +65,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.gender.field.name,
             Profile.birth_date.field.name,
             Profile.skills.field.name,
-            Profile.available_jobs.field.name,
             Profile.full_body_image.field.name,
             Profile.employment_status.field.name,
             Profile.interested_jobs.field.name,
@@ -77,6 +82,19 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
 
     def resolve_contacts(self, info):
         return self.contactable.contacts.all()
+
+    def resolve_available_jobs(self, info, **kwargs):
+        return (
+            JobNode.get_queryset(JobNode._meta.model.objects.all(), info)
+            .annotate(
+                _priority=Case(
+                    When(id__in=self.available_jobs.values("pk"), then=Value(1)),
+                    default=Value(2),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("_priority", Job.order.field.name)
+        )
 
 
 class EducationMethodFieldTypes(graphene.ObjectType):

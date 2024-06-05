@@ -29,7 +29,7 @@ class JobCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = (Job.title.field.name, Job.category.field.name)
+    list_display = (Job.title.field.name, Job.category.field.name, Job.order.field.name)
     search_fields = (Job.title.field.name,)
     list_filter = (Job.category.field.name,)
 
