@@ -18,7 +18,6 @@ class WorkExperienceItem(BaseModel):
     job_title: str = Field(..., description="The title of the job held.")
     company_name: str = Field(..., description="The name of the company where the individual worked.")
     employment_dates: str = Field(..., description="The dates of employment.")
-    key_responsibilities: List[str] = Field(..., description="A list of key responsibilities held in the job.")
     achievements: Optional[List[str]] = Field(None, description="A list of achievements during employment.")
 
 
