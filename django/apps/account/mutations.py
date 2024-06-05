@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -31,7 +32,6 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.utils import timezone
@@ -446,6 +446,8 @@ class DocumentPatchMutationBase(DocumentCUDFieldMixin, DocumentUpdateMutationMix
 
 
 class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoUpdateMutation):
+    verification_new_status = DocumentAbstract.Status.SUBMITTED
+
     class Meta:
         abstract = True
 
@@ -488,7 +490,7 @@ class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoU
 
     @classmethod
     def after_mutate(cls, root, info, id, input, obj, return_data):
-        obj.status = DocumentAbstract.Status.SUBMITTED.value
+        obj.status = cls.verification_new_status.value
         obj.save(update_fields=[DocumentAbstract.status.field.name])
 
         if isinstance((verification_method := obj.get_verification_method()), EmailVerificationMixin):
@@ -690,6 +692,8 @@ class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDel
 class LanguageCertificateSetVerificationMethodMutation(
     DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
 ):
+    verification_new_status = DocumentAbstract.Status.SELF_VERIFIED
+
     class Meta:
         model = LanguageCertificate
 
@@ -727,6 +731,8 @@ class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoD
 class CertificateAndLicenseSetVerificationMethodMutation(
     DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
 ):
+    verification_new_status = DocumentAbstract.Status.SELF_VERIFIED
+
     class Meta:
         model = CertificateAndLicense
 

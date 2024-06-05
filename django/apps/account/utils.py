@@ -30,7 +30,13 @@ def extract_resume_json(text: str) -> Optional[ResumeSchema]:
 
 
 def get_user_additional_information(user_id: int):
-    from .models import CertificateAndLicense, Education, User, WorkExperience
+    from .models import (
+        CertificateAndLicense,
+        Education,
+        LanguageCertificate,
+        User,
+        WorkExperience,
+    )
 
     user = User.objects.filter(pk=user_id).first()
     if not user:
@@ -38,7 +44,8 @@ def get_user_additional_information(user_id: int):
 
     profile = user.profile
     certifications = CertificateAndLicense.objects.filter(
-        user=user, status__in=CertificateAndLicense.get_verified_statuses()
+        user=user,
+        status__in=CertificateAndLicense.get_verified_statuses(),
     ).values(
         CertificateAndLicense.title.field.name,
         CertificateAndLicense.issued_at.field.name,
@@ -54,6 +61,13 @@ def get_user_additional_information(user_id: int):
         WorkExperience.end.field.name,
         WorkExperience.city.field.name,
     )
+    language_certificates = [
+        {"language": i.language, "scores": i.scores}
+        for i in LanguageCertificate.objects.filter(
+            user=user,
+            status__in=LanguageCertificate.get_verified_statuses(),
+        ).all()
+    ]
     educations = Education.objects.filter(user=user, status__in=Education.get_verified_statuses()).values(
         Education.degree.field.name,
         fields_join(Education.university, University.name),
@@ -67,6 +81,7 @@ def get_user_additional_information(user_id: int):
         "educations": educations,
         "languages": languages,
         "certifications": certifications,
+        "language_certificates": language_certificates,
     }
 
     if profile.city:

@@ -904,6 +904,10 @@ class LanguageCertificate(DocumentAbstract):
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
 
+    @property
+    def scores(self):
+        return ", ".join(f"{skill}: {score}" for skill, score in self.values.values_list("skill__skill_name", "value"))
+
     def __str__(self):
         return f"{self.user.email} - {self.language}"
 
