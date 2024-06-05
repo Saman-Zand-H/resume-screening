@@ -62,8 +62,8 @@ def get_user_additional_information(user_id: int):
         WorkExperience.city.field.name,
     )
     language_certificates = [
-        {"language": i.language, "scores": i.scores}
-        for i in LanguageCertificate.objects.filter(
+        {"language": certificate.language, "scores": certificate.scores, "name": certificate.test.title}
+        for certificate in LanguageCertificate.objects.filter(
             user=user,
             status__in=LanguageCertificate.get_verified_statuses(),
         ).all()
