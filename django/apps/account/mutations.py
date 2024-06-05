@@ -395,7 +395,7 @@ class UserSetSkillsMutation(graphene.Mutation):
         if skills:
             user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
         else:
-            user.skills.clear()
+            profile.skills.clear()
 
         return UserSetSkillsMutation(user=user)
 
