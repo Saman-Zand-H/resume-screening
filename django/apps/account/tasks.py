@@ -2,6 +2,7 @@ import json
 from collections import namedtuple
 from datetime import timedelta
 from functools import wraps
+from itertools import chain
 from logging import getLogger
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
@@ -122,8 +123,10 @@ def set_user_skills(user_id: int) -> bool:
         **get_user_additional_information(user_id),
     )
 
-    profile.skills.set(*extracted_skills) if extracted_skills else profile.skills.clear()
-
+    if not extracted_skills:
+        profile.skills.clear()
+    else:
+        profile.skills.set(chain.from_iterable(extracted_skills))
     return True
 
 
