@@ -16,23 +16,11 @@ def copy_user_to_profile(apps, schema_editor):
         profile.save()
 
 
-def reverse_copy_user_to_profile(apps, schema_editor):
-    Profile = apps.get_model("auth_account", "Profile")
-    for profile in Profile.objects.all():
-        user = profile.user
-        user.gender = profile.gender
-        user.birth_date = profile.birth_date
-        user.raw_skills = profile.raw_skills
-        user.skills.set(profile.skills.all())
-        user.available_jobs.set(profile.available_jobs.all())
-        user.save()
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("auth_account", "0017_profile_available_jobs_profile_birth_date_and_more"),
     ]
 
     operations = [
-        migrations.RunPython(copy_user_to_profile, reverse_copy_user_to_profile),
+        migrations.RunPython(copy_user_to_profile),
     ]
