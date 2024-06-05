@@ -71,7 +71,6 @@ def extract_generated_resume_input(user):
     service = OpenAIService(OpenAiAssistants.GENERATE_RESUME)
     message = service.send_text_to_assistant(json.dumps(data))
     if message:
-        print(message)
         try:
             return service.message_to_json(message)
         except ValueError:
