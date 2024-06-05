@@ -1,4 +1,3 @@
-import contextlib
 import json
 from typing import Any, List, Optional
 
@@ -9,49 +8,10 @@ from common.utils import fields_join
 from config.settings.constants import Environment
 
 from django.conf import settings
+from django.db import transaction
 
 from .constants import OpenAiAssistants, VectorStores
-from .types.resume import ResumeHeadlines, ResumeSchema
-
-
-def extract_resume_headlines(resume_json: ResumeSchema) -> ResumeHeadlines:
-    service = OpenAIService(OpenAiAssistants.HEADLINES)
-    message = service.send_text_to_assistant(resume_json.model_dump_json())
-    if message:
-        with contextlib.suppress(ValueError):
-            return ResumeHeadlines.model_validate(service.message_to_json(message))
-    return None
-
-
-def extract_job_additional_input(user):
-    profile = user.profile
-    data = {
-        "skills": ", ".join(profile.skills.values_list("title", flat=True)),
-        "languages": ", ".join(filter(bool, [profile.native_language, *profile.fluent_languages])),
-        "certifications": ", ".join(user.certificateandlicenses.values_list("title", flat=True)),
-        "educations": ", ".join(education.title for education in user.educations.all()),
-        "work_experiences": ", ".join(experience.job.title for experience in user.workexperiences.all()),
-    }
-
-    if hasattr(user, "resume"):
-        data["resume_data"] = user.resume.resume_json
-
-    return data
-
-
-def extract_skills_additional_input(user):
-    profile = user.profile
-    data = {
-        "languages": ", ".join(filter(bool, [profile.native_language, *profile.fluent_languages])),
-        "certifications": ", ".join(user.certificateandlicenses.values_list("title", flat=True)),
-        "educations": ", ".join(education.title for education in user.educations.all()),
-        "work_experiences": ", ".join(experience.job.title for experience in user.workexperiences.all()),
-    }
-
-    if hasattr(user, "resume"):
-        data["resume_data"] = user.resume.resume_json
-
-    return data
+from .types.resume import ResumeSchema
 
 
 def extract_resume_text(file: bytes) -> Optional[str]:
@@ -153,8 +113,23 @@ def extract_or_create_skills(skills: List[str], resume_json, **additional_inform
     if message:
         try:
             response = service.message_to_json(message)
-            existing_skills = response.get("similar_skills") or []
-            return Skill.objects.filter(pk__in=[s["pk"] for s in existing_skills])
+            existing_skills, new_skills = response["similar_skills"], response["new_skills"]
+            existing_skills = Skill.objects.filter(pk__in=[s["pk"] for s in existing_skills])
+            with transaction.atomic():
+                skills = Skill.objects.filter(
+                    pk__in=[
+                        s[0].pk
+                        for s in [
+                            Skill.objects.get_or_create(
+                                title=s, defaults={Skill.insert_type.field.name: Skill.InsertType.AI}
+                            )
+                            for s in new_skills
+                        ]
+                    ]
+                )
+                existing_skills = (existing_skills | skills).system().distinct()
+                new_skills = skills.ai()
+                return existing_skills, new_skills
         except ValueError:
             return None
 

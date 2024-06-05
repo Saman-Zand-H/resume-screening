@@ -61,8 +61,3 @@ class ResumeSchema(BaseModel):
     additional_information: Optional[List[AdditionalInformationItem]] = Field(
         None, description="Any additional information that the individual wants to include."
     )
-
-
-class ResumeHeadlines(BaseModel):
-    about_me: Optional[str] = Field(None, description="A brief summary about the individual.")
-    headline: Optional[str] = Field(None, description="A headline extracted from the resume text.")

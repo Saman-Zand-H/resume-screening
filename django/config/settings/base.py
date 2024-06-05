@@ -312,7 +312,6 @@ ASSISTANT_IDS = {
     Assistants.JOB: os.environ.get("JOB_ASSISTANT_ID"),
     Assistants.SKILL: os.environ.get("SKILL_ASSISTANT_ID"),
     Assistants.RESUME: os.environ.get("RESUME_ASSISTANT_ID"),
-    Assistants.HEADLINES: os.environ.get("HEADLINES_ASSISTANT_ID"),
     Assistants.GENERATE_RESUME: os.environ.get("GENERATE_RESUME_ASSISTANT_ID"),
 }
 

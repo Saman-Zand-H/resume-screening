@@ -68,6 +68,8 @@ a {
     flex-direction: column;
     gap: 20px;
     display: block;
+    width: 100%;
+    padding-top: 25px;
 }
 
 .heading-section {
@@ -256,7 +258,7 @@ a {
     background-color: #c71f2c;
     position: absolute;
     left: -4.1%;
-    top: 4%;
+    top: 2.8%;
 }
 
 .body-section {
@@ -405,7 +407,7 @@ a {
     display: flex;
     gap: 20px;
     width: var(--page-width);
-    margin-top: 10mm;
+    margin-top: 15mm;
     height: 12mm;
     color: #fff;
     flex-wrap: nowrap;
