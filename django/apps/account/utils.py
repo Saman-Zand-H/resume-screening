@@ -113,7 +113,7 @@ def extract_or_create_skills(skills: List[str], resume_json, **additional_inform
     if message:
         try:
             response = service.message_to_json(message)
-            existing_skills, new_skills = response["similar_skills"], response["new_skills"]
+            existing_skills, new_skills = response["matched_skills"], response["new_skills"]
             existing_skills = Skill.objects.filter(pk__in=[s["pk"] for s in existing_skills])
             with transaction.atomic():
                 skills = Skill.objects.filter(
