@@ -8,7 +8,10 @@ from common.utils import fields_join
 from config.settings.constants import Environment
 
 from django.conf import settings
+from django.contrib.postgres.expressions import ArraySubquery
 from django.db import transaction
+from django.db.models import F, OuterRef, Subquery
+from django.db.models.functions import JSONObject
 
 from .constants import OpenAiAssistants, VectorStores
 from .types.resume import ResumeSchema
@@ -34,6 +37,8 @@ def get_user_additional_information(user_id: int):
         CertificateAndLicense,
         Education,
         LanguageCertificate,
+        LanguageCertificateValue,
+        LanguageProficiencySkill,
         User,
         WorkExperience,
     )
@@ -61,18 +66,31 @@ def get_user_additional_information(user_id: int):
         WorkExperience.end.field.name,
         WorkExperience.city.field.name,
     )
-    language_certificates = [
-        {
-            "language": certificate.language,
-            "scores": certificate.scores,
-            "name": certificate.test.title,
-            "issued_at": certificate.issued_at.isoformat(),
-        }
-        for certificate in LanguageCertificate.objects.filter(
-            user=user,
-            status__in=LanguageCertificate.get_verified_statuses(),
-        ).all()
-    ]
+
+    language_certificates_values = Subquery(
+        LanguageCertificateValue.objects.filter(
+            **{LanguageCertificateValue.language_certificate.field.name: OuterRef("pk")}
+        ).values_list(
+            JSONObject(
+                **{
+                    LanguageProficiencySkill.skill_name.field.name: F(
+                        fields_join(LanguageCertificateValue.skill, LanguageProficiencySkill.skill_name)
+                    ),
+                    LanguageCertificateValue.value.field.name: F(LanguageCertificateValue.value.field.name),
+                }
+            ),
+            flat=True,
+        )
+    )
+    language_certificates = LanguageCertificate.objects.filter(
+        user=user,
+        status__in=LanguageCertificate.get_verified_statuses(),
+    ).values(
+        LanguageCertificate.language.field.name,
+        LanguageCertificate.issued_at.field.name,
+        scores=ArraySubquery(language_certificates_values),
+    )
+
     educations = Education.objects.filter(user=user, status__in=Education.get_verified_statuses()).values(
         Education.degree.field.name,
         fields_join(Education.university, University.name),
