@@ -489,11 +489,7 @@ class Contact(models.Model):
     def get_contact_icon(self):
         return self.TYPE_ICON.get(self.type)
 
-    def get_display_dict(self) -> Dict[str, Optional[str]]:
-        """
-        Returns:
-            Dict[str, Optional[str]]: A dictionary with 'display' and 'link' keys
-        """
+    def get_display_name_and_link(self) -> Dict[str, Optional[str]]:
         display_name, link = self.value, None
 
         match self.type:
@@ -512,6 +508,8 @@ class Contact(models.Model):
 
             case Contact.Type.WHATSAPP:
                 link = f"https://wa.me/{self.value}"
+                display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
+                display_name = re.match(display_regex, self.value).group(1)
 
         return {"display": display_name, "link": link}
 
@@ -1276,8 +1274,13 @@ class UserTask(models.Model):
     status_description = models.TextField(verbose_name=_("Status Description"), blank=True, null=True)
 
     def change_status(self, status: str, description: str = None):
-        UserTask.objects.filter(user=self.user, task_name=self.task_name).update(
-            status=status, status_description=description
+        self.status = status
+        self.status_description = description
+        self.save(
+            update_fields=[
+                self.__class__.status.field.name,
+                self.__class__.status_description.field.name,
+            ]
         )
 
     def __str__(self):

@@ -124,10 +124,7 @@ def set_user_skills(user_id: int) -> bool:
         **get_user_additional_information(user_id),
     )
 
-    if not extracted_skills:
-        profile.skills.clear()
-    else:
-        profile.skills.set(chain.from_iterable(extracted_skills))
+    profile.skills.clear() if not extracted_skills else profile.skills.set(chain.from_iterable(extracted_skills))
     return True
 
 

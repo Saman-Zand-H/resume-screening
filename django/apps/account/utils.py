@@ -129,13 +129,11 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     }
     message = service.send_text_to_assistant(json.dumps(message_dict))
     if message:
-        try:
-            return Job.objects.filter(pk__in=[j["pk"] for j in service.message_to_json(message)])
-        except ValueError:
-            return None
+        return Job.objects.filter(pk__in=[j["pk"] for j in service.message_to_json(message)])
     return None
 
 
+@transaction.atomic
 def extract_or_create_skills(skills: List[str], resume_json, **additional_information) -> Optional[List[Skill]]:
     if not (skills or resume_json):
         return Skill.objects.none()
@@ -146,28 +144,23 @@ def extract_or_create_skills(skills: List[str], resume_json, **additional_inform
     message = service.send_text_to_assistant(json.dumps(message_dict))
 
     if message:
-        try:
-            response = service.message_to_json(message)
-            existing_skills, new_skills = response["matched_skills"], response["new_skills"]
-            existing_skills = Skill.objects.filter(pk__in=[s["pk"] for s in existing_skills])
-            with transaction.atomic():
-                skills = Skill.objects.filter(
-                    pk__in=[
-                        s[0].pk
-                        for s in [
-                            Skill.objects.get_or_create(
-                                title__iexact=s.get("title"),
-                                defaults={Skill.insert_type.field.name: Skill.InsertType.AI},
-                            )
-                            for s in new_skills
-                        ]
-                    ]
-                )
-                existing_skills = (existing_skills | skills).system().distinct()
-                new_skills = skills.ai()
-                return existing_skills, new_skills
-        except ValueError:
-            return None
+        response = service.message_to_json(message)
+        existing_skill_matches, new_skill_matches = response["matched_skills"], response["new_skills"]
+
+        existing_skills = Skill.objects.filter(pk__in=[match.get("pk") for match in existing_skill_matches])
+        created_skills = Skill.objects.filter(
+            pk__in=[
+                Skill.objects.get_or_create(
+                    title=skill_name,
+                    defaults={Skill.insert_type.field.name: Skill.InsertType.AI},
+                )[0].pk
+                for new_skill in new_skill_matches
+                if (skill_name := new_skill.get("title"))
+            ]
+        )
+        existing_skills = (existing_skills | created_skills).system().distinct()
+
+        return existing_skills, created_skills.ai()
 
     return Skill.objects.none()
 

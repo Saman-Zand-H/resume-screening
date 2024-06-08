@@ -57,7 +57,7 @@
                                         </div>
                                     </div>
                                     {% for contact in contacts %}
-                                        {% with display_contact=contact.get_display_dict %}
+                                        {% with display_contact=contact.get_display_name_and_link %}
                                             <div class="contact-item">
                                                 <img
                                                     src="{{ contact.get_contact_icon }}"
