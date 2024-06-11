@@ -42,6 +42,8 @@ from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from django.utils.timezone import now
+from datetime import timedelta
 
 from .choices import get_task_names_choices
 from .constants import SUPPORT_RECIPIENT_LIST, SUPPORT_TICKET_SUBJECT_TEMPLATE
@@ -62,6 +64,20 @@ def generate_unique_referral_code():
 
 def generate_invitation_token():
     return base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:15]
+
+
+def generate_dnc_txt_record_code():
+    return base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:20]
+
+
+def generate_unique_file_name():
+    return "cpj_" + base64.b32encode(uuid.uuid4().bytes).decode("utf-8")[:20]
+
+
+def generate_unique_verification_code():
+    import random
+
+    return random.randint(100000, 999999)
 
 
 def generate_ticket_id():
@@ -1303,7 +1319,13 @@ class OrganizationLogoFile(UserUploadedImageFile):
         verbose_name_plural = _("Organization Logo Files")
 
 
-class Organization(models.Model):
+class Organization(DocumentAbstract):
+    class Status(models.TextChoices):
+        DRAFTED = "drafted", _("Drafted")
+        SUBMITTED = "submitted", _("Submitted")
+        REJECTED = "rejected", _("Rejected")
+        VERIFIED = "verified", _("Verified")
+
     class Type(models.TextChoices):
         COMPANY = "company", _("Company")
         STOCK = "stock", _("Stock")
@@ -1332,6 +1354,12 @@ class Organization(models.Model):
         null=True,
         blank=True,
     )
+    status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        verbose_name=_("Status"),
+        default=Status.DRAFTED.value,
+    )
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     logo = models.OneToOneField(
         OrganizationLogoFile,
@@ -1358,9 +1386,7 @@ class Organization(models.Model):
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
-    created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_("Created By"), related_name="organizations"
-    )
+    allow_self_verification = None
 
     class Meta:
         verbose_name = _("Organization")
@@ -1368,6 +1394,134 @@ class Organization(models.Model):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def get_verification_abstract_model(cls):
+        return OrganizationVerificationMethodAbstract
+
+
+class OrganizationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, verbose_name=_("Organization"))
+    DOCUMENT_FIELD = "organization"
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.organization} Verification"
+
+    def _update_status(self, status: Organization.Status):
+        self.organization.status = status
+        self.organization.save(update_fields=["status"])
+
+    def verify(self) -> bool:
+        self.verified_at = now()
+        self.save(update_fields=["verified_at"])
+        self._update_status(Organization.Status.VERIFIED)
+        return True
+
+    def reject(self):
+        self._update_status(Organization.Status.REJECTED)
+
+
+class DNSTXTRecordMethod(OrganizationVerificationMethodAbstract):
+    code = models.CharField(
+        max_length=20,
+        verbose_name=_("code"),
+        default=generate_dnc_txt_record_code,
+        unique=True,
+    )
+
+    class Meta:
+        verbose_name = _("DNS TXT Record Method")
+        verbose_name_plural = _("DNS TXT Record Methods")
+
+    def verify(self) -> bool:
+        import dns.resolver
+
+        website_address = ""
+        try:
+            txt_records = dns.resolver.resolve(website_address, "TXT")
+        except dns.resolver.NoAnswer:
+            return False
+
+        for txt_record in txt_records:
+            if self.code in txt_record.strings:
+                return super().verify()
+        return False
+
+
+class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
+    file_name = models.CharField(
+        max_length=30, verbose_name=_("File Name"), default=generate_unique_file_name, unique=True
+    )
+
+    class Meta:
+        verbose_name = _("Upload File To Website Method")
+        verbose_name_plural = _("Upload File To Website Methods")
+
+    def verify(self) -> bool:
+        import requests
+
+        url = f"http://EXAMPLE.com/{self.file_name}.txt"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                return super().verify()
+        except requests.exceptions.RequestException:
+            pass
+        return False
+
+
+class OrganizationCertificateFile(UserUploadedDocumentFile):
+    SLUG = "organization_certificate"
+
+    def get_upload_path(self, filename):
+        return f"organization/certificate/{self.uploaded_by.id}/{filename}"
+
+    class Meta:
+        verbose_name = _("Organization Certificate File")
+        verbose_name_plural = _("Organization Certificate Files")
+
+
+class UploadCompanyCertificateMethod(OrganizationVerificationMethodAbstract):
+    organization_certificate_file = models.OneToOneField(
+        OrganizationCertificateFile,
+        on_delete=models.CASCADE,
+        related_name="upload_company_certificate_method",
+        verbose_name=_("Organization Certificate"),
+    )
+
+    class Meta:
+        verbose_name = _("Upload Company Certificate Method")
+        verbose_name_plural = _("Upload Company Certificate Methods")
+
+
+class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
+    email_code = models.CharField(
+        max_length=6, verbose_name=_("Email Verification Code"), default=generate_unique_verification_code
+    )
+    phone_code = models.CharField(
+        max_length=6, verbose_name=_("Phone Verification Code"), default=generate_unique_verification_code
+    )
+
+    CODE_EXPIRE_TIME = timedelta(minutes=5)
+
+    class Meta:
+        verbose_name = _("Communicate Organization Method")
+        verbose_name_plural = _("Communicate Organization Methods")
+
+    def send_email_code(self):
+        print(f"Sending Email: Your verification code is {self.email_code}.")
+
+    def send_phone_code(self):
+        print(f"Sending SMS: Your verification code is {self.phone_code}.")
+
+    def _verify_email_code(self, code):
+        return self.email_code == code and self.created_at + self.CODE_EXPIRE_TIME >= now()
+
+    def _verify_phone_code(self, code):
+        return self.phone_code == code and self.created_at + self.CODE_EXPIRE_TIME >= now()
 
 
 class OrganizationMembership(models.Model):
