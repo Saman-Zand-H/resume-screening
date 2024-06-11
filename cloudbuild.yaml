@@ -45,9 +45,10 @@ steps:
     waitFor: ['push-django-setup']
     entrypoint: 'gcloud'
     args: [
-      'run', 'jobs', 'execute', 'job-seekers-django-setup',
+      'run', 'jobs', 'deploy', 'job-seekers-django-setup',
       '--image', 'gcr.io/$PROJECT_ID/job-seekers-django-setup:$TAG_NAME',
       '--region', 'us-central1',
+      '--execute-now',
       '--wait'
     ]
 
