@@ -743,6 +743,33 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
         model = CertificateAndLicense
 
 
+class OrganizationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+    class Meta:
+        model = Organization
+
+
+class OrganizationVerificationMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @classmethod
+    def mutate(cls, root, info, id):
+        user = info.context.user
+        organization = Organization.objects.get(pk=id)
+        # TODO: check user permission
+        verification_method_instance = [
+            getattr(organization, m.get_related_name())
+            for m in Organization.get_method_models()
+            if hasattr(organization, m.get_related_name())
+        ]
+        if len(verification_method_instance) != 1:
+            raise GraphQLErrorBadRequest("Organization has no verification method.")
+        result = verification_method_instance[0].verify()
+        return OrganizationVerificationMutation(success=result)
+
+
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
@@ -825,6 +852,8 @@ class OrganizationMutation(graphene.ObjectType):
     register = RegisterOrganization.Field()
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
+    set_verification_method = OrganizationSetVerificationMethodMutation.Field()
+    verify = OrganizationVerificationMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
