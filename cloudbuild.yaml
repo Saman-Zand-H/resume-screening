@@ -1,66 +1,54 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-django-base'
+    id: 'build-django-setup'
     waitFor: ['-']
     args: [
-      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-base', 
-      '-f', 'Dockerfile', '.'
-    ]
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push-django-base'
-    waitFor: ['build-django-base']
-    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-base']
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-django-setup'
-    waitFor: ['push-django-base']
-    args: [
-      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-setup', 
-      '-f', 'Dockerfile.setup', '.',
-      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/job-seekers-django-base'
-    ]
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-django-api'
-    waitFor: ['push-django-base']
-    args: [
-      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-api', 
-      '-f', 'Dockerfile.backend', '.', 
-      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/job-seekers-django-base'
-    ]
-
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'build-django-pubsub'
-    waitFor: ['push-django-base']
-    args: [
-      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-pubsub', 
-      '-f', 'Dockerfile.pubsub', '.',
-      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/job-seekers-django-base'
+      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-setup:$TAG_NAME', 
+      '-f', 'Dockerfile.setup', '.'
     ]
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-django-setup'
     waitFor: ['build-django-setup']
-    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-setup']
+    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-setup:$TAG_NAME']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-django-api'
+    waitFor: ['push-django-setup']
+    args: [
+      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-api:$TAG_NAME', 
+      '-f', 'Dockerfile.backend', '.', 
+      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/job-seekers-django-setup:$TAG_NAME'
+    ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-django-pubsub'
+    waitFor: ['push-django-setup']
+    args: [
+      'build', '-t', 'gcr.io/$PROJECT_ID/job-seekers-django-pubsub:$TAG_NAME', 
+      '-f', 'Dockerfile.pubsub', '.',
+      '--build-arg', 'BASE_IMAGE=gcr.io/$PROJECT_ID/job-seekers-django-setup:$TAG_NAME'
+    ]
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-django-api'
     waitFor: ['build-django-api']
-    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-api']
+    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-api:$TAG_NAME']
 
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-django-pubsub'
     waitFor: ['build-django-pubsub']
-    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-pubsub']
+    args: ['push', 'gcr.io/$PROJECT_ID/job-seekers-django-pubsub:$TAG_NAME']
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'execute-django-setup'
     waitFor: ['push-django-setup']
     entrypoint: 'gcloud'
     args: [
-      'run', 'jobs', 'execute', 'job-seekers-django-setup',
+      'run', 'jobs', 'deploy', 'job-seekers-django-setup',
+      '--image', 'gcr.io/$PROJECT_ID/job-seekers-django-setup:$TAG_NAME',
       '--region', 'us-central1',
+      '--execute-now',
       '--wait'
     ]
 
@@ -70,7 +58,7 @@ steps:
     entrypoint: 'gcloud'
     args: [
       'run', 'deploy', 'job-seekers-django-api',
-      '--image', 'gcr.io/$PROJECT_ID/job-seekers-django-api',
+      '--image', 'gcr.io/$PROJECT_ID/job-seekers-django-api:$TAG_NAME',
       '--region', 'us-central1',
     ]
 
@@ -80,7 +68,7 @@ steps:
     entrypoint: 'gcloud'
     args: [
       'run', 'deploy', 'job-seekers-django-pubsub-email',
-      '--image', 'gcr.io/$PROJECT_ID/job-seekers-django-pubsub',
+      '--image', 'gcr.io/$PROJECT_ID/job-seekers-django-pubsub:$TAG_NAME',
       '--region', 'us-central1',
     ]
 
