@@ -356,8 +356,15 @@ class OrganizationType(DjangoObjectType):
             Organization.established_at.field.name,
             Organization.size.field.name,
             Organization.about.field.name,
-            Organization.created_by.field.name,
+            Organization.user.field.name,
         )
+
+    @classmethod
+    def get_node_by_user(cls, info, user):
+        try:
+            return Organization.objects.get(memberships__user=user)
+        except Organization.DoesNotExist:
+            return None
 
 
 class OrganizationInvitationType(DjangoObjectType):

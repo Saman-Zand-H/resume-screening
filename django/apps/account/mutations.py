@@ -110,6 +110,7 @@ class RegisterOrganization(graphql_auth_mutations.Register):
         Organization.name.field.name,
         User.first_name.field.name,
         User.last_name.field.name,
+        "website",
     ]
 
     @classmethod
@@ -129,7 +130,7 @@ class RegisterOrganization(graphql_auth_mutations.Register):
             invited_by = organization_invitation.created_by
         else:
             if organization_name := kwargs.get(Organization.name.field.name):
-                organization = Organization.objects.create(name=organization_name, created_by=user)
+                organization = Organization.objects.create(name=organization_name, user=user)
                 role = OrganizationMembership.Role.CREATOR.value
                 invited_by = user
             else:
@@ -280,7 +281,8 @@ class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPa
 
     @classmethod
     def check_permissions(cls, root, info, input, id, obj) -> None:
-        # TODO: Allow update before
+        if obj.status != Organization.Status.DRAFTED.value:
+            raise PermissionError("Not permitted to modify this record.")
         user = info.context.user
         org_users = {membership.user: membership.role for membership in obj.memberships.all()}
         if user not in org_users or org_users[user] not in [
@@ -742,6 +744,33 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
         model = CertificateAndLicense
 
 
+class OrganizationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+    class Meta:
+        model = Organization
+
+
+class OrganizationVerificationMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    success = graphene.Boolean()
+
+    @classmethod
+    def mutate(cls, root, info, id):
+        user = info.context.user
+        organization = Organization.objects.get(pk=id)
+        # TODO: check user permission
+        verification_method_instance = [
+            getattr(organization, m.get_related_name())
+            for m in Organization.get_method_models()
+            if hasattr(organization, m.get_related_name())
+        ]
+        if len(verification_method_instance) != 1:
+            raise GraphQLErrorBadRequest("Organization has no verification method.")
+        result = verification_method_instance[0].verify()
+        return OrganizationVerificationMutation(success=result)
+
+
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
@@ -824,6 +853,8 @@ class OrganizationMutation(graphene.ObjectType):
     register = RegisterOrganization.Field()
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
+    set_verification_method = OrganizationSetVerificationMethodMutation.Field()
+    verify = OrganizationVerificationMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
