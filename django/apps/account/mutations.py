@@ -110,6 +110,7 @@ class RegisterOrganization(graphql_auth_mutations.Register):
         Organization.name.field.name,
         User.first_name.field.name,
         User.last_name.field.name,
+        "website",
     ]
 
     @classmethod
