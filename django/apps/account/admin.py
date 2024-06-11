@@ -37,6 +37,11 @@ from .models import (
     User,
     UserTask,
     WorkExperience,
+    DNSTXTRecordMethod,
+    UploadFileToWebsiteMethod,
+    CommunicateOrganizationMethod,
+    UploadCompanyCertificateMethod,
+
 )
 from .scores import UserScorePack
 
@@ -495,7 +500,7 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.type.field.name,
         Organization.established_at.field.name,
         Organization.size.field.name,
-        Organization.created_by.field.name,
+        Organization.user.field.name,
     )
     search_fields = (
         Organization.name.field.name,
@@ -566,3 +571,65 @@ class ContactableAdmin(admin.ModelAdmin):
     @admin.display(description="Contacts Count")
     def contacts_count(self, obj):
         return obj.contacts.count()
+
+
+@register(DNSTXTRecordMethod)
+class DNSTXTRecordMethodAdmin(admin.ModelAdmin):
+    list_display = (
+        DNSTXTRecordMethod.code.field.name,
+        DNSTXTRecordMethod.organization.field.name,
+        DNSTXTRecordMethod.verified_at.field.name,
+        DNSTXTRecordMethod.created_at.field.name,
+    )
+    search_fields = (DNSTXTRecordMethod.organization.field.name,)
+    list_filter = (
+        DNSTXTRecordMethod.verified_at.field.name,
+        DNSTXTRecordMethod.created_at.field.name,
+    )
+    raw_id_fields = (DNSTXTRecordMethod.organization.field.name,)
+
+
+@register(UploadFileToWebsiteMethod)
+class UploadFileToWebsiteMethodAdmin(admin.ModelAdmin):
+    list_display = (
+        UploadFileToWebsiteMethod.file_name.field.name,
+        UploadFileToWebsiteMethod.organization.field.name,
+        UploadFileToWebsiteMethod.verified_at.field.name,
+        UploadFileToWebsiteMethod.created_at.field.name,
+    )
+    search_fields = (UploadFileToWebsiteMethod.organization.field.name,)
+    list_filter = (
+        UploadFileToWebsiteMethod.verified_at.field.name,
+        UploadFileToWebsiteMethod.created_at.field.name,
+    )
+    raw_id_fields = (UploadFileToWebsiteMethod.organization.field.name,)
+
+
+@register(CommunicateOrganizationMethod)
+class CommunicateOrganizationMethodAdmin(admin.ModelAdmin):
+    list_display = (
+        CommunicateOrganizationMethod.organization.field.name,
+        CommunicateOrganizationMethod.verified_at.field.name,
+        CommunicateOrganizationMethod.created_at.field.name,
+    )
+    search_fields = (CommunicateOrganizationMethod.organization.field.name,)
+    list_filter = (
+        CommunicateOrganizationMethod.verified_at.field.name,
+        CommunicateOrganizationMethod.created_at.field.name,
+    )
+    raw_id_fields = (CommunicateOrganizationMethod.organization.field.name,)
+
+
+@register(UploadCompanyCertificateMethod)
+class UploadCompanyCertificateMethodAdmin(admin.ModelAdmin):
+    list_display = (
+        UploadCompanyCertificateMethod.organization.field.name,
+        UploadCompanyCertificateMethod.verified_at.field.name,
+        UploadCompanyCertificateMethod.created_at.field.name,
+    )
+    search_fields = (UploadCompanyCertificateMethod.organization.field.name,)
+    list_filter = (
+        UploadCompanyCertificateMethod.verified_at.field.name,
+        UploadCompanyCertificateMethod.created_at.field.name,
+    )
+    raw_id_fields = (UploadCompanyCertificateMethod.organization.field.name,)
