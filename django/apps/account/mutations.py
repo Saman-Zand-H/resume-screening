@@ -280,7 +280,8 @@ class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPa
 
     @classmethod
     def check_permissions(cls, root, info, input, id, obj) -> None:
-        # TODO: Allow update before
+        if obj.status != Organization.Status.DRAFTED.value:
+            raise PermissionError("Not permitted to modify this record.")
         user = info.context.user
         org_users = {membership.user: membership.role for membership in obj.memberships.all()}
         if user not in org_users or org_users[user] not in [
