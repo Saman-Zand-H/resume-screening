@@ -356,7 +356,7 @@ class OrganizationType(DjangoObjectType):
             Organization.established_at.field.name,
             Organization.size.field.name,
             Organization.about.field.name,
-            Organization.created_by.field.name,
+            Organization.user.field.name,
         )
 
 

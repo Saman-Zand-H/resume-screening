@@ -129,7 +129,7 @@ class RegisterOrganization(graphql_auth_mutations.Register):
             invited_by = organization_invitation.created_by
         else:
             if organization_name := kwargs.get(Organization.name.field.name):
-                organization = Organization.objects.create(name=organization_name, created_by=user)
+                organization = Organization.objects.create(name=organization_name, user=user)
                 role = OrganizationMembership.Role.CREATOR.value
                 invited_by = user
             else:
