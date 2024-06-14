@@ -139,10 +139,7 @@ class Register(graphql_auth_mutations.Register):
             return result
 
         referral_registration(User.objects.get(**{User.EMAIL_FIELD: email}), kwargs.pop("referral_code", None))
-        result_ = cls.add_to_organization(*args, **kwargs)
-        if result_:
-            return result_
-
+        cls.add_to_organization(*args, **kwargs)
         return result
 
     @classmethod
@@ -151,7 +148,7 @@ class Register(graphql_auth_mutations.Register):
             try:
                 organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
             except OrganizationInvitation.DoesNotExist:
-                return cls(success=False, errors={"token": "Invalid invitation token."})
+                raise GraphQLErrorBadRequest(_("Organization invitation token is invalid."))
 
             user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
             try:
@@ -162,7 +159,7 @@ class Register(graphql_auth_mutations.Register):
                     invited_by=organization_invitation.created_by,
                 )
             except IntegrityError:
-                return cls(success=False, errors={"email": "User has already membership in an organization."})
+                raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
             organization_invitation.delete()
 
 
@@ -187,7 +184,7 @@ class RegisterOrganization(Register):
                 user=user, organization=organization, role=OrganizationMembership.Role.CREATOR.value, invited_by=user
             )
         except IntegrityError:
-            return cls(success=False, errors={"email": "User has already membership in an organization."})
+            raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
         return cls(success=True, errors=None)
 
     @classmethod
