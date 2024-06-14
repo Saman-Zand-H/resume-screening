@@ -88,7 +88,9 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
         try:
             obj.organization = user.membership.organization
         except OrganizationMembership.DoesNotExist:
-            raise GraphQLErrorBadRequest(_("User is not a member of an organization."))
+            raise GraphQLErrorBadRequest(_("User is not member of an organization."))
+
+        OrganizationInvitation.objects.filter(email=obj.email, organization=obj.organization).delete()
         cls.full_clean(obj)
 
     @classmethod
