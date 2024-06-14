@@ -102,51 +102,6 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
         return super().after_mutate(root, info, input, obj, return_data)
 
 
-class RegisterOrganization(graphql_auth_mutations.Register):
-    form = PasswordLessRegisterForm
-    _required_args = [User.EMAIL_FIELD]
-    _args = [
-        OrganizationInvitation.token.field.name,
-        Organization.name.field.name,
-        User.first_name.field.name,
-        User.last_name.field.name,
-        "website",
-    ]
-
-    @classmethod
-    @transaction.atomic
-    def mutate(cls, *args, **kwargs):
-        super().mutate(*args, **kwargs)
-        email = kwargs.get(User.EMAIL_FIELD)
-        user = User.objects.get(**{User.EMAIL_FIELD: email})
-        organization_invitation = None
-        if organization_invitation_token := kwargs.get(OrganizationInvitation.token.field.name):
-            try:
-                organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
-            except OrganizationInvitation.DoesNotExist:
-                return cls(success=False, errors={"token": "Invalid token."})
-            organization = organization_invitation.organization
-            role = organization_invitation.role
-            invited_by = organization_invitation.created_by
-        else:
-            if organization_name := kwargs.get(Organization.name.field.name):
-                organization = Organization.objects.create(name=organization_name, user=user)
-                role = OrganizationMembership.Role.CREATOR.value
-                invited_by = user
-            else:
-                return cls(success=False, errors={"name": "This field is required."})
-        try:
-            OrganizationMembership.objects.create(
-                user=user, organization=organization, role=role, invited_by=invited_by
-            )
-        except IntegrityError:
-            return cls(success=False, errors={"email": "User has already membership in an organization."})
-
-        if organization_invitation:
-            organization_invitation.delete()
-        return cls(success=True, errors=None)
-
-
 def referral_registration(user, referral_code):
     if not referral_code:
         return
@@ -159,6 +114,7 @@ class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
+        OrganizationInvitation.token.field.name,
     ]
 
     @classmethod
@@ -181,8 +137,62 @@ class Register(graphql_auth_mutations.Register):
             return result
 
         referral_registration(User.objects.get(**{User.EMAIL_FIELD: email}), kwargs.pop("referral_code", None))
+        result_ = cls.add_to_organization(*args, **kwargs)
+        if result_:
+            return result_
 
         return result
+
+    @classmethod
+    def add_to_organization(cls, *args, **kwargs):
+        if organization_invitation_token := kwargs.pop(OrganizationInvitation.token.field.name, None):
+            try:
+                organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
+            except OrganizationInvitation.DoesNotExist:
+                return cls(success=False, errors={"token": "Invalid invitation token."})
+
+            user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
+            try:
+                OrganizationMembership.objects.create(
+                    user=user,
+                    organization=organization_invitation.organization,
+                    role=organization_invitation.role,
+                    invited_by=organization_invitation.created_by,
+                )
+            except IntegrityError:
+                return cls(success=False, errors={"email": "User has already membership in an organization."})
+            organization_invitation.delete()
+
+
+class RegisterOrganization(Register):
+    _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
+    _args = []
+
+    @classmethod
+    @transaction.atomic
+    def mutate(cls, *args, **kwargs):
+        result = super().mutate(*args, **kwargs)
+        if not result.success:
+            return result
+
+        email = kwargs.get(User.EMAIL_FIELD)
+        user = User.objects.get(**{User.EMAIL_FIELD: email})
+
+        organization_name = kwargs.get(Organization.name.field.name)
+        organization = Organization.objects.create(name=organization_name, user=user)
+        try:
+            OrganizationMembership.objects.create(
+                user=user, organization=organization, role=OrganizationMembership.Role.CREATOR.value, invited_by=user
+            )
+        except IntegrityError:
+            return cls(success=False, errors={"email": "User has already membership in an organization."})
+        return cls(success=True, errors=None)
+
+    @classmethod
+    def add_to_organization(cls, *args, **kwargs):
+        # This method is intentionally left empty because the organization registration
+        # process is handled in the mutate method of the RegisterOrganization class.
+        pass
 
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
