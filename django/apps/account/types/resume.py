@@ -41,7 +41,9 @@ class AdditionalInformationItem(BaseModel):
 
 
 class ResumeSchema(BaseModel):
-    contact_information: ContactInformation
+    contact_information: Optional[ContactInformation] = Field(
+        None, description="Contact information of the individual."
+    )
     professional_summary: Optional[str] = Field(
         None, description="A brief 2-4 sentence summary about the individual's professional background."
     )
