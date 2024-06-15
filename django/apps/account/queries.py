@@ -2,14 +2,14 @@ import graphene
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
 
-from .types.account import (
+from .types import (
     CertificateAndLicenseNode,
     EducationNode,
     LanguageCertificateNode,
-    UserNode,
-    WorkExperienceNode,
     OrganizationInvitationType,
     OrganizationType,
+    UserNode,
+    WorkExperienceNode,
 )
 
 

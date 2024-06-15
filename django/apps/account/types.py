@@ -13,8 +13,8 @@ from graphql_auth.settings import graphql_auth_settings
 
 from django.db.models import Case, IntegerField, Value, When
 
-from ..mixins import FilterQuerySetByUserMixin
-from ..models import (
+from .mixins import FilterQuerySetByUserMixin
+from .models import (
     CanadaVisa,
     CertificateAndLicense,
     CommunicationMethod,

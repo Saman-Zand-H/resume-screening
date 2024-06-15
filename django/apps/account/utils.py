@@ -14,7 +14,6 @@ from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
 from .constants import OpenAiAssistants, VectorStores
-from .types.resume import ResumeSchema
 
 
 def extract_resume_text(file: bytes) -> Optional[str]:
@@ -24,13 +23,12 @@ def extract_resume_text(file: bytes) -> Optional[str]:
     return None
 
 
-def extract_resume_json(text: str) -> Optional[ResumeSchema]:
+def extract_resume_json(text: str):
     service = OpenAIService(OpenAiAssistants.RESUME)
     message = service.send_text_to_assistant(text)
-    print(f"OPEN AI MESSAGE: {(json:=service.message_to_json(message))}", ResumeSchema.model_validate(json))
+
     if message:
-        json = service.message_to_json(message)
-        return ResumeSchema.model_validate(json)
+        return service.message_to_json(message)
 
 
 def get_user_additional_information(user_id: int):

@@ -1,7 +1,7 @@
 import contextlib
+from datetime import timedelta
 
 import graphene
-from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -32,11 +32,11 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from datetime import timedelta
 
 from .forms import PasswordLessRegisterForm
 from .mixins import (
@@ -70,7 +70,7 @@ from .models import (
     WorkExperience,
 )
 from .tasks import set_user_resume_json, set_user_skills, user_task_runner
-from .types.account import UserNode
+from .types import UserNode
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
