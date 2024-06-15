@@ -27,7 +27,7 @@ def extract_resume_text(file: bytes) -> Optional[str]:
 def extract_resume_json(text: str) -> Optional[ResumeSchema]:
     service = OpenAIService(OpenAiAssistants.RESUME)
     message = service.send_text_to_assistant(text)
-    print(f"OPEN AI MESSAGE: {message}")
+    print(f"OPEN AI MESSAGE: {(json:=service.message_to_json(message))}", ResumeSchema.model_validate(json))
     if message:
         json = service.message_to_json(message)
         return ResumeSchema.model_validate(json)

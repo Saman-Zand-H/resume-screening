@@ -145,6 +145,7 @@ def set_user_resume_json(user_id: str) -> bool:
         raise ValueError("Resume text could not be extracted.")
 
     resume_json = extract_resume_json(resume_text)
+    print(resume_json)
     if resume_json:
         Resume.objects.update_or_create(
             user=user,
