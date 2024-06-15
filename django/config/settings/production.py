@@ -78,6 +78,11 @@ if GOOGLE_CLOUD_ERROR_BUCKET_NAME:
                 "level": "ERROR",
                 "propagate": False,
             },
+            "django.pubsub": {
+                "handlers": ["gcs", "console"],
+                "level": "INFO",
+                "propagate": False,
+            },
         },
     }
 
