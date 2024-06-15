@@ -39,6 +39,7 @@ def get_user_additional_information(user_id: int):
         LanguageCertificate,
         LanguageCertificateValue,
         LanguageProficiencySkill,
+        Profile,
         User,
         WorkExperience,
     )
@@ -47,7 +48,7 @@ def get_user_additional_information(user_id: int):
     if not user:
         return {}
 
-    profile = user.profile
+    profile: Profile = user.profile
     certifications = CertificateAndLicense.objects.filter(
         user=user,
         status__in=CertificateAndLicense.get_verified_statuses(),
@@ -105,6 +106,7 @@ def get_user_additional_information(user_id: int):
         "languages": languages,
         "certifications": certifications,
         "language_certificates": language_certificates,
+        "skills": profile.raw_skills,
     }
 
     if profile.city:
@@ -113,6 +115,9 @@ def get_user_additional_information(user_id: int):
 
     if profile.gender:
         additional_info["gender"] = profile.get_gender_display()
+
+    if profile.skills.exists():
+        additional_info["skills"].extend(profile.skills.values_list("title", flat=True))
 
     return additional_info
 
