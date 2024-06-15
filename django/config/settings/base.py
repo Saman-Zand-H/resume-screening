@@ -77,12 +77,12 @@ INSTALLED_APPS = [
 INSTALLED_APPS += [
     "common",
     "api",
-    "account",
-    "ai",
     "cv",
+    "ai",
     "criteria",
     "score",
     "academy",
+    "account",
 ]
 
 MIDDLEWARE = [
