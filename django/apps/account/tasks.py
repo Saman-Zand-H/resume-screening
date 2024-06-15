@@ -149,7 +149,7 @@ def set_user_resume_json(user_id: str) -> bool:
         Resume.objects.update_or_create(
             user=user,
             defaults={
-                "resume_json": resume_json.model_dump(),
+                "resume_json": resume_json,
                 "text": resume_text,
             },
         )
