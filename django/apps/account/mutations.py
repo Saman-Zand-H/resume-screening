@@ -36,6 +36,7 @@ from django.db import transaction
 from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from datetime import timedelta
 
 from .forms import PasswordLessRegisterForm
 from .mixins import (
@@ -147,6 +148,8 @@ class Register(graphql_auth_mutations.Register):
         if organization_invitation_token := kwargs.pop(OrganizationInvitation.token.field.name, None):
             try:
                 organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
+                if organization_invitation.created_at + timedelta(minutes=10) < timezone.now():
+                    raise GraphQLErrorBadRequest(_("Organization invitation token is expired."))
             except OrganizationInvitation.DoesNotExist:
                 raise GraphQLErrorBadRequest(_("Organization invitation token is invalid."))
 
