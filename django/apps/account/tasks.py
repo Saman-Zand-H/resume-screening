@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from collections import namedtuple
 from datetime import timedelta
 from functools import wraps
@@ -73,7 +74,10 @@ def user_task_decorator(func: Callable) -> Callable:
             user_task.change_status(UserTask.Status.COMPLETED)
             return True
         except Exception as e:
-            user_task.change_status(UserTask.Status.FAILED, str(e))
+            user_task.change_status(
+                UserTask.Status.FAILED,
+                f"{e}\n{traceback.format_exc()}",
+            )
 
     return wrapper
 
