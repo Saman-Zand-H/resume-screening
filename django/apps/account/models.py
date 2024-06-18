@@ -2,6 +2,7 @@ import base64
 import contextlib
 import re
 import uuid
+from datetime import timedelta
 from typing import Dict, Optional
 
 from cities_light.models import City, Country
@@ -41,9 +42,8 @@ from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.functional import cached_property
-from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-from datetime import timedelta
+from django.utils.translation import gettext_lazy as _
 
 from .choices import get_task_names_choices
 from .constants import SUPPORT_RECIPIENT_LIST, SUPPORT_TICKET_SUBJECT_TEMPLATE

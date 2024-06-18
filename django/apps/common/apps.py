@@ -7,3 +7,6 @@ class CommonConfig(AppConfig):
 
     def ready(self):
         from . import types  # noqa
+        from . import permissions
+
+        permissions.PermissionClass.ensure_permissions_exist()
