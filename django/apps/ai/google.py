@@ -1,13 +1,50 @@
 from typing import Optional, Union
 
 import magic
+from google import genai
 from google.cloud import vision
+from google.genai import types as genai_types
+
+from django.conf import settings
 
 from .constants import FILE_TYPE_MAPPING, FileType
+from .models import VertexAIModel
 from .types import FileToTextResult
+from .utils import parse_json_markdown
 
 
 class GoogleServices:
+    client: genai.Client
+
+    def __init__(self, model_slug: str):
+        if not (instance := VertexAIModel.objects.filter(**{VertexAIModel.slug.field.name: model_slug}).first()):
+            raise ValueError("Model not found")
+
+        self.instance = instance
+        self.client = genai.Client(
+            project=settings.GOOGLE_CLOUD_PROJECT,
+            location=settings.GOOGLE_CLOUD_LOCATION,
+            vertexai=True,
+        )
+
+    def generate_content(self, contents: genai_types.ContentListUnion):
+        return self.client.models.generate_content(
+            model=self.instance.model_name,
+            contents=contents,
+            config=genai_types.GenerateContentConfig(
+                temperature=self.instance.temperature,
+                max_output_tokens=self.instance.max_tokens,
+                system_instruction=self.instance.instruction,
+            ),
+        )
+
+    def generate_text_content(self, contents: genai_types.ContentListUnion) -> str:
+        return self.generate_content(contents).text
+
+    @staticmethod
+    def message_to_json(results: str):
+        return parse_json_markdown(results)
+
     @classmethod
     def get_vision_client(cls) -> vision.ImageAnnotatorClient:
         return vision.ImageAnnotatorClient()

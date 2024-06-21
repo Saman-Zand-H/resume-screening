@@ -29,6 +29,7 @@ env.read_env(ENV_FILE_PATH)
 
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
+GOOGLE_CLOUD_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 if GOOGLE_APPLICATION_CREDENTIALS:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS
@@ -64,6 +65,7 @@ INSTALLED_APPS = [
     "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
     "cachalot",
     "corsheaders",
+    "rules.apps.AutodiscoverRulesConfig",
     "colorfield",
     "cities_light",
     "phonenumber_field",
@@ -77,12 +79,12 @@ INSTALLED_APPS = [
 INSTALLED_APPS += [
     "common",
     "api",
-    "account",
-    "ai",
     "cv",
+    "ai",
     "criteria",
     "score",
     "academy",
+    "account",
 ]
 
 MIDDLEWARE = [
@@ -197,6 +199,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "auth_account.User"
 
 AUTHENTICATION_BACKENDS = [
+    "rules.permissions.ObjectPermissionBackend",
     "graphql_auth.backends.GraphQLAuthBackend",
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
@@ -284,8 +287,6 @@ SOCIALACCOUNT_ADAPTER = "account.adapters.SocialAccountAdapter"
 HEADLESS_ONLY = True
 
 CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities500.zip"]
-
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
 
 CRITERIA_SETTINGS = {
     "BASE_URL": os.environ.get("CRITERIA_BASE_URL", "https://integrations.criteriacorp.com/api/v1"),
