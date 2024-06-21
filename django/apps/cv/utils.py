@@ -2,7 +2,6 @@ import io
 import json
 import re
 
-import fitz
 from account.utils import get_user_additional_information
 from ai.google import GoogleServices
 from config.settings.constants import Assistants
@@ -12,6 +11,8 @@ from django.conf import settings
 
 
 def crop_last_page(input_bytes: bytes) -> bytes:
+    import fitz
+
     doc = fitz.open(stream=input_bytes, filetype="pdf")
     last_page = doc[-1]
 
@@ -39,6 +40,8 @@ def crop_last_page(input_bytes: bytes) -> bytes:
 
 
 def merge_pdf_pages_to_single_page(input_pdf_bytes):
+    import fitz
+
     input_pdf = fitz.open(stream=input_pdf_bytes, filetype="pdf")
     output_pdf = fitz.open()
     output_page = output_pdf.new_page(

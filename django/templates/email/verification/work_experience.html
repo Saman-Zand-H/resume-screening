@@ -1,17 +1,18 @@
 {% extends "email/base.html" %}
 
-{% block title %}Request for Employment Verification{% endblock %}
-
 {% block style %}
 <style>
     h2 {
         color: #333;
         text-align: center;
     }
-    p, ul {
+
+    p,
+    ul {
         color: #555;
         font-size: 16px;
     }
+
     p.center {
         color: #333;
         font-size: 16px;
@@ -24,8 +25,9 @@
 <h2>Dear {{ employer }},</h2>
 <p>We hope this message finds you well.</p>
 <p>
-    This email is sent on behalf of <strong>Canada Prime Jobs (CPJ)</strong>, the leading recruitment platform in Canada.
-    We are currently verifying the employment details of <strong>{{ work_experience.user.full_name }}</strong>, 
+    This email is sent on behalf of <strong>Canada Prime Jobs (CPJ)</strong>, the leading recruitment platform in
+    Canada.
+    We are currently verifying the employment details of <strong>{{ work_experience.user.full_name }}</strong>,
     who has provided an employment confirmation letter from your organization on our platform.
 </p>
 <p>We kindly request your assistance in confirming the following details:</p>
@@ -38,17 +40,18 @@
         <ul>
             <li><strong>Grade:</strong> {{ work_experience.get_grade_display }}</li>
             {% if work_experience.skills %}
-                <li><strong>Skills:</strong> {{ work_experience.skills }}</li>
+            <li><strong>Skills:</strong> {{ work_experience.skills }}</li>
             {% endif %}
         </ul>
     </li>
 </ul>
 <p>
-    For your convenience, a copy of the submitted document is attached. We kindly ask you to verify the information or share any discrepancies with us.
+    For your convenience, a copy of the submitted document is attached. We kindly ask you to verify the information or
+    share any discrepancies with us.
 </p>
 <p>
-    Should you need further information, please do not hesitate to contact us at 
-    <a href="mailto:{{ cpj_email }}">{{ cpj_email }}</a> or 
+    Should you need further information, please do not hesitate to contact us at
+    <a href="mailto:{{ cpj_email }}">{{ cpj_email }}</a> or
     <a href="tel:{{ cpj_phone }}">{{ cpj_phone }}</a>.
 </p>
 <p class="center">

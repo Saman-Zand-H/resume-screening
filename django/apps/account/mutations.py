@@ -35,6 +35,7 @@ from graphql_jwt.decorators import (
 from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -69,7 +70,12 @@ from .models import (
     User,
     WorkExperience,
 )
-from .tasks import set_user_resume_json, set_user_skills, user_task_runner
+from .tasks import (
+    send_email_async,
+    set_user_resume_json,
+    set_user_skills,
+    user_task_runner,
+)
 from .types import UserNode
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -205,7 +211,15 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         response = super().mutate(*args, **kwargs)
         if response.success:
             payload = get_token_payload(kwargs.get("token"), TokenAction.ACTIVATION, None)
-            response.token = get_token(User.objects.get(**payload), TokenAction.PASSWORD_RESET)
+            user = User.objects.get(**payload)
+            response.token = get_token(user, TokenAction.PASSWORD_RESET)
+            send_email_async.delay(
+                [user.email],
+                None,
+                subject=_("Welcome to CPJ - Your Journey to Career Excellence Starts Here!"),
+                content=render_to_string("email/welcome.html", {"user": user}),
+            )
+
         return response
 
 
