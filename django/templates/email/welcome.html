@@ -1,0 +1,43 @@
+{% extends "email/base.html" %}
+
+
+{% block content %}
+<h2 style="color: #333; text-align: center;">Dear {{ user.first_name }},</h2>
+<p style="color: #555; font-size: 16px;">
+    Welcome to <strong>Canada Prime Jobs (CPJ)</strong>, Canada’s largest and most trusted recruitment platform! We’re
+    excited to have you on board and look forward to supporting you in achieving your career goals.
+</p>
+<p style="color: #555; font-size: 16px;">
+    At CPJ, we go beyond traditional job matching by offering a suite of services designed to ensure your success:
+</p>
+<ul style="color: #555; font-size: 16px;">
+    <li><strong>Verification:</strong> We verify your education, work experience, and identity to build a strong and
+        credible profile that attracts top employers.</li>
+    <li><strong>Assessment:</strong> Our tailored assessments help you identify your unique strengths and areas for
+        improvement.</li>
+    <li><strong>Training:</strong> We provide personalized training programs to bridge any skill gaps and meet job
+        market demands.</li>
+    <li><strong>Post-Hiring Support:</strong> Even after securing your role, we offer resources and guidance to help you
+        thrive.</li>
+</ul>
+<p style="color: #555; font-size: 16px;">
+    <strong>Why Choose CPJ?</strong>
+</p>
+<ul style="color: #555; font-size: 16px;">
+    <li>Job opportunities tailored to your skills and preferences.</li>
+    <li>Expert insights to improve your resume and interview performance.</li>
+    <li>A seamless journey from application to employment and beyond.</li>
+</ul>
+<p style="color: #555; font-size: 16px;">
+    Ready to Begin? Start by completing your profile and exploring the opportunities waiting for you. If you have any
+    questions, our 24/7 support team is here to assist you every step of the way.
+</p>
+<p style="color: #555; font-size: 16px;">
+    We’re here to make your career aspirations a reality. Together, let’s build a brighter future!
+</p>
+<p style="color: #333; font-size: 16px; text-align: center;">
+    Warm regards,<br>
+    <strong>The CPJ Support Team</strong><br>
+    Canada Prime Jobs
+</p>
+{% endblock %}
