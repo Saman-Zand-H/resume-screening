@@ -376,14 +376,13 @@ class Profile(ComputedFieldsModel):
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
         depends=[
-            ("user.referral.referred_users", ["id"]),
+            ("user.referral.referred_users.user.status", ["verified"]),
         ],
-        prefetch_related=["user__referral__referred_users"],
     )
     def credits(self):
         _credits = 0
         with contextlib.suppress(ObjectDoesNotExist):
-            _credits += self.user.referral.referred_users.count() * 100
+            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * 100
         return _credits
 
     @property
