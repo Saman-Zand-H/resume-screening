@@ -138,13 +138,13 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
 
 
 @transaction.atomic
-def extract_or_create_skills(skills: List[str], resume_json, **additional_information) -> Optional[List[Skill]]:
-    if not (skills or resume_json):
+def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_information) -> Optional[List[Skill]]:
+    if not (raw_skills or resume_json):
         return Skill.objects.none()
 
     service = OpenAIService(OpenAiAssistants.SKILL)
     service.assistant_vector_store_update_cache(VectorStores.SKILL)
-    message_dict = {"raw_skills": skills, "resume_data": resume_json, **additional_information}
+    message_dict = {"raw_skills": raw_skills, "resume_data": resume_json, **additional_information}
     message = service.send_text_to_assistant(json.dumps(message_dict))
 
     if message:
