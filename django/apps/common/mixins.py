@@ -1,16 +1,46 @@
 from datetime import date, datetime
+from typing import ClassVar, Type
 
 import graphene
 import graphene_django
+import rules
+from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from graphene_django_cud.mutations.core import DjangoCudBaseOptions
 
-from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.fields.related import RelatedField
 from django.utils.functional import cached_property
 
 from .models import FileModel
+from .permissions import Rule
 from .utils import get_file_models
+
+
+class GraphenePermissionRequiredMixin:
+    rule_class: ClassVar[Type[Rule]] = None
+
+    def get_rule(self):
+        return self.rule_class.name
+
+    def get_rule_object(self, *args, **kwargs):
+        return None
+
+    def get_user(self, *args, **kwargs):
+        return None
+
+    def has_permission(self, *args, **kwargs):
+        rule = self.get_rule()
+        obj = self.get_rule_object(*args, **kwargs)
+        user = self.get_user(*args, **kwargs)
+        test_rule_kwargs = {}
+
+        if obj:
+            test_rule_kwargs.update({"obj": obj})
+
+        if user:
+            test_rule_kwargs.update({"user": user})
+
+        return rules.test_rule(rule, **test_rule_kwargs)
 
 
 class HasDurationMixin:

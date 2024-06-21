@@ -2,16 +2,17 @@ import io
 import json
 import re
 
-import fitz
-from account.constants import OpenAiAssistants
 from account.utils import get_user_additional_information
-from ai.openai import OpenAIService
+from ai.google import GoogleServices
+from config.settings.constants import Assistants
 from PIL import Image, ImageChops
 
 from django.conf import settings
 
 
 def crop_last_page(input_bytes: bytes) -> bytes:
+    import fitz
+
     doc = fitz.open(stream=input_bytes, filetype="pdf")
     last_page = doc[-1]
 
@@ -39,6 +40,8 @@ def crop_last_page(input_bytes: bytes) -> bytes:
 
 
 def merge_pdf_pages_to_single_page(input_pdf_bytes):
+    import fitz
+
     input_pdf = fitz.open(stream=input_pdf_bytes, filetype="pdf")
     output_pdf = fitz.open()
     output_page = output_pdf.new_page(
@@ -68,8 +71,8 @@ def extract_generated_resume_input(user):
     if hasattr(user, "resume"):
         data["resume_data"] = user.resume.resume_json
 
-    service = OpenAIService(OpenAiAssistants.GENERATE_RESUME)
-    message = service.send_text_to_assistant(json.dumps(data))
+    service = GoogleServices(Assistants.GENERATE_RESUME)
+    message = service.generate_text_content(json.dumps(data))
     if message:
         try:
             return service.message_to_json(message)

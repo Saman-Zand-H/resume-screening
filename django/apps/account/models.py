@@ -2,6 +2,7 @@ import base64
 import contextlib
 import re
 import uuid
+from datetime import timedelta
 from typing import Dict, Optional
 
 from cities_light.models import City, Country
@@ -41,9 +42,8 @@ from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.functional import cached_property
-from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-from datetime import timedelta
+from django.utils.translation import gettext_lazy as _
 
 from .choices import get_task_names_choices
 from .constants import SUPPORT_RECIPIENT_LIST, SUPPORT_TICKET_SUBJECT_TEMPLATE
@@ -376,14 +376,13 @@ class Profile(ComputedFieldsModel):
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
         depends=[
-            ("user.referral.referred_users", ["id"]),
+            ("user.referral.referred_users.user.status", ["verified"]),
         ],
-        prefetch_related=["user__referral__referred_users"],
     )
     def credits(self):
         _credits = 0
         with contextlib.suppress(ObjectDoesNotExist):
-            _credits += self.user.referral.referred_users.count() * 100
+            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * 100
         return _credits
 
     @property
@@ -524,8 +523,10 @@ class Contact(models.Model):
 
             case Contact.Type.WHATSAPP:
                 link = f"https://wa.me/{self.value}"
+                display_name = self.value
                 display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
-                display_name = re.match(display_regex, self.value).group(1)
+                if matched_value := re.match(display_regex, self.value):
+                    display_name = matched_value.group(1)
 
         return {"display": display_name, "link": link}
 

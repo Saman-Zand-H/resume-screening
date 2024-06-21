@@ -22,7 +22,6 @@ from .utils import (
     extract_available_jobs,
     extract_or_create_skills,
     extract_resume_json,
-    extract_resume_text,
     get_user_additional_information,
 )
 
@@ -140,17 +139,14 @@ def set_user_resume_json(user_id: str) -> bool:
     resume = Resume.objects.get(user_id=user_id)
     user = resume.user
 
-    resume_text = extract_resume_text(resume.file.file.read())
-    if not resume_text:
-        raise ValueError("Resume text could not be extracted.")
+    with resume.file.file.open() as f:
+        resume_json = extract_resume_json(f.read())
 
-    resume_json = extract_resume_json(resume_text)
     if resume_json:
         Resume.objects.update_or_create(
             user=user,
             defaults={
                 "resume_json": resume_json,
-                "text": resume_text,
             },
         )
         return True

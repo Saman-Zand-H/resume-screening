@@ -26,4 +26,3 @@ __monkeypatch_graphql_jwt_datetime_func__()
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", DeprecationWarning)
-    import fitz
