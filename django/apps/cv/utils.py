@@ -3,9 +3,9 @@ import json
 import re
 
 import fitz
-from account.constants import OpenAiAssistants
 from account.utils import get_user_additional_information
-from ai.openai import OpenAIService
+from ai.google import GoogleServices
+from config.settings.constants import Assistants
 from PIL import Image, ImageChops
 
 from django.conf import settings
@@ -68,8 +68,8 @@ def extract_generated_resume_input(user):
     if hasattr(user, "resume"):
         data["resume_data"] = user.resume.resume_json
 
-    service = OpenAIService(OpenAiAssistants.GENERATE_RESUME)
-    message = service.send_text_to_assistant(json.dumps(data))
+    service = GoogleServices(Assistants.GENERATE_RESUME)
+    message = service.generate_text_content(json.dumps(data))
     if message:
         try:
             return service.message_to_json(message)

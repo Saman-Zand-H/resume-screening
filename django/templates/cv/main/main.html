@@ -198,8 +198,8 @@
                                                 </div>
                                             </div>
                                             <div class="section-list">
-                                                <div class="section-list-item">
-                                                    {% for certification in certifications %}
+                                                {% for certification in certifications %}
+                                                    <div class="section-list-item">
                                                         <span class="item-title">
                                                             {{ certification.date }}
                                                         </span>
@@ -208,8 +208,8 @@
                                                         >
                                                             {{ certification.title }}
                                                         </span>
-                                                    {% endfor %}
-                                                </div>
+                                                    </div>
+                                                {% endfor %}
                                             </div>
                                             {% if certifications.cpjs.exists %}
                                                 <div class="cpj-label">

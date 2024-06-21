@@ -1,11 +1,12 @@
 import json
+import mimetypes
 from typing import Any, List, Optional
 
 from ai.google import GoogleServices
-from ai.openai import OpenAIService
 from common.models import Job, Skill, University
 from common.utils import fields_join
-from config.settings.constants import Environment
+from config.settings.constants import Assistants, Environment
+from google.genai import types
 
 from django.conf import settings
 from django.contrib.postgres.expressions import ArraySubquery
@@ -13,22 +14,23 @@ from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
-from .constants import OpenAiAssistants, VectorStores
+from .constants import VectorStores
 
 
-def extract_resume_text(file: bytes) -> Optional[str]:
-    ocr = GoogleServices.file_to_text(file)
-    if ocr:
-        return ocr.text
-    return None
+def extract_resume_json(file_bytes: bytes):
+    service = GoogleServices(Assistants.RESUME)
+    mime_type = mimetypes.guess_type("file.pdf")[0]
+    results = service.generate_text_content(
+        [
+            types.Part.from_bytes(file_bytes, mime_type),
+            types.Part.from_text(
+                "extract resume JSON",
+            ),
+        ]
+    )
 
-
-def extract_resume_json(text: str):
-    service = OpenAIService(OpenAiAssistants.RESUME)
-    message = service.send_text_to_assistant(text)
-
-    if message:
-        return service.message_to_json(message)
+    if results:
+        return service.message_to_json(results)
 
 
 def get_user_additional_information(user_id: int):
@@ -125,16 +127,22 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     if not resume_json:
         return None
 
-    service = OpenAIService(OpenAiAssistants.JOB)
-    service.assistant_vector_store_update_cache(VectorStores.JOB)
+    service = GoogleServices(Assistants.JOB)
     message_dict = {
         "resume_data": resume_json,
         **additional_information,
     }
-    message = service.send_text_to_assistant(json.dumps(message_dict))
+    message = service.generate_text_content(
+        [
+            types.Part.from_text(json.dumps(message_dict)),
+            types.Part.from_text("\nTHE FOLLOWING IS THE DATA:\n"),
+            types.Part.from_text(json.dumps(VectorStores.JOB.data_fn())),
+        ]
+    )
     if message:
         return Job.objects.filter(pk__in=[j["pk"] for j in service.message_to_json(message)])
-    return None
+
+    return Job.objects.none()
 
 
 @transaction.atomic
@@ -142,10 +150,15 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
     if not (raw_skills or resume_json):
         return Skill.objects.none()
 
-    service = OpenAIService(OpenAiAssistants.SKILL)
-    service.assistant_vector_store_update_cache(VectorStores.SKILL)
+    service = GoogleServices(Assistants.SKILL)
     message_dict = {"raw_skills": raw_skills, "resume_data": resume_json, **additional_information}
-    message = service.send_text_to_assistant(json.dumps(message_dict))
+    message = service.generate_text_content(
+        [
+            types.Part.from_text(json.dumps(message_dict)),
+            types.Part.from_text("\nTHE FOLLOWING IS THE DATA:\n"),
+            types.Part.from_text(json.dumps(VectorStores.SKILL.data_fn())),
+        ]
+    )
 
     if message:
         response = service.message_to_json(message)
@@ -181,4 +194,5 @@ class IDLikeObject:
         self.context = context
 
     def __repr__(self):
+        return repr(self._id)
         return repr(self._id)

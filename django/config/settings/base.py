@@ -29,6 +29,7 @@ env.read_env(ENV_FILE_PATH)
 
 GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_CLOUD_CREDENTIALS") or None
 GOOGLE_CLOUD_PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT")
+GOOGLE_CLOUD_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 if GOOGLE_APPLICATION_CREDENTIALS:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS
@@ -286,8 +287,6 @@ SOCIALACCOUNT_ADAPTER = "account.adapters.SocialAccountAdapter"
 HEADLESS_ONLY = True
 
 CITIES_LIGHT_CITY_SOURCES = ["https://download.geonames.org/export/dump/cities500.zip"]
-
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY"))
 
 CRITERIA_SETTINGS = {
     "BASE_URL": os.environ.get("CRITERIA_BASE_URL", "https://integrations.criteriacorp.com/api/v1"),

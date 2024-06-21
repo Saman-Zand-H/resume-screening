@@ -524,8 +524,10 @@ class Contact(models.Model):
 
             case Contact.Type.WHATSAPP:
                 link = f"https://wa.me/{self.value}"
+                display_name = self.value
                 display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
-                display_name = re.match(display_regex, self.value).group(1)
+                if matched_value := re.match(display_regex, self.value):
+                    display_name = matched_value.group(1)
 
         return {"display": display_name, "link": link}
 
