@@ -514,7 +514,7 @@ class Contact(models.Model):
                 link = self.value
 
             case Contact.Type.PHONE:
-                link = f"tel:{self.value}"
+                link = f"tel:{PhoneNumber.from_string(self.value).as_international}"
 
             case Contact.Type.LINKEDIN:
                 display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/in/([^/]+)"
@@ -523,10 +523,10 @@ class Contact(models.Model):
 
             case Contact.Type.WHATSAPP:
                 link = f"https://wa.me/{self.value}"
-                display_name = self.value
                 display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
-                if matched_value := re.match(display_regex, self.value):
-                    display_name = matched_value.group(1)
+                display_name = (
+                    (matched_value := re.match(display_regex, self.value)) and matched_value.group(1) or self.value
+                )
 
         return {"display": display_name, "link": link}
 

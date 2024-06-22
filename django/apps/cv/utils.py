@@ -56,6 +56,7 @@ def merge_pdf_pages_to_single_page(input_pdf_bytes):
             fitz.Rect(0, y_offset, page.rect.width, y_offset + page.rect.height),
             input_pdf,
             page_num,
+            keep_proxies=True,
         )
         y_offset += page.rect.height
 
