@@ -26,6 +26,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationInvitation,
+    OrganizationMembership,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -284,6 +285,12 @@ class SupportTicketType(DjangoObjectType):
         )
 
 
+class OrganizationMembershipType(DjangoObjectType):
+    class Meta:
+        model = OrganizationMembership
+        fields = (OrganizationMembership.organization.field.name,)
+
+
 class UserTaskType(DjangoObjectType):
     class Meta:
         model = UserTask
@@ -301,6 +308,7 @@ class UserNode(BaseUserNode):
     job_assessments = graphene.List(
         JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
     )
+    organization_membership = graphene.Field(OrganizationMembershipType)
     has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
 
     class Meta:
@@ -339,6 +347,12 @@ class UserNode(BaseUserNode):
             if filters.required is not None:
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
+
+    def resolve_organization_membership(self, info):
+        try:
+            return self.membership
+        except OrganizationMembership.DoesNotExist:
+            return None
 
 
 class OrganizationType(DjangoObjectType):
