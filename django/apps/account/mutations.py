@@ -38,6 +38,7 @@ from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.conf import settings
 
 from .forms import PasswordLessRegisterForm
 from .mixins import (
@@ -124,11 +125,16 @@ class Register(graphql_auth_mutations.Register):
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
         OrganizationInvitation.token.field.name,
+        "frontend_url",
     ]
 
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
+        graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"] = kwargs.pop(
+            "frontend_url", settings.FRONTEND_URL
+        )
+
         email = kwargs.get(User.EMAIL_FIELD)
         try:
             UserStatus.clean_email(email)
@@ -174,7 +180,7 @@ class Register(graphql_auth_mutations.Register):
 
 class RegisterOrganization(Register):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
-    _args = []
+    _args = ["frontend_url"]
 
     @classmethod
     @transaction.atomic
@@ -221,6 +227,32 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
             )
 
         return response
+
+
+class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
+    _args = [
+        "frontend_url",
+    ]
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"] = kwargs.pop(
+            "frontend_url", settings.FRONTEND_URL
+        )
+        return super().mutate(*args, **kwargs)
+
+
+class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
+    _args = [
+        "frontend_url",
+    ]
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"] = kwargs.pop(
+            "frontend_url", settings.FRONTEND_URL
+        )
+        return super().mutate(*args, **kwargs)
 
 
 class RefreshToken(graphql_auth_mutations.RefreshToken):
@@ -926,8 +958,8 @@ class SupportTicketMutation(graphene.ObjectType):
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
-    resend_activation_email = graphql_auth_mutations.ResendActivationEmail.Field()
-    send_password_reset_email = graphql_auth_mutations.SendPasswordResetEmail.Field()
+    resend_activation_email = ResendActivationEmail.Field()
+    send_password_reset_email = SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
     token_auth = graphql_auth_mutations.ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()

@@ -234,6 +234,8 @@ GRAPHQL_JWT = {
     ],
 }
 
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+
 GRAPHQL_AUTH = {
     "LOGIN_ALLOWED_FIELDS": ["email"],
     "ALLOW_LOGIN_NOT_VERIFIED": False,
@@ -243,7 +245,7 @@ GRAPHQL_AUTH = {
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=1),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
     "EMAIL_TEMPLATE_VARIABLES": {
-        "frontend_url": os.environ.get("FRONTEND_URL", "http://localhost:5173"),
+        "frontend_url": FRONTEND_URL,
         "frontend_url_account_verify": os.environ.get("FRONTEND_URL_ACCOUNT_VERIFY", "/auth/verify"),
         "frontend_url_password_reset": os.environ.get(
             "FRONTEND_URL_PASSWORD_RESET", "/auth/reset-password/set-password"
