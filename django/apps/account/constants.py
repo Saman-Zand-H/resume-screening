@@ -3,6 +3,10 @@ from functools import partial
 from ai.types import CachableVectorStore
 from common.models import Job, Skill
 
+EARLY_USERS_COUNT = 1000
+
+ORGANIZATION_PHONE_OTP_CACHE_KEY = "organization-phone-otp-%(user_id)s"
+ORGANIZATION_PHONE_OTP_EXPIRY = 300
 JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD = 70
 VERIFICATION_EMAIL_FROM = "verify@cpj.ai"
 VERIFICATION_PHONE_FROM = "+1 (236) 501 4000"
