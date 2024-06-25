@@ -126,6 +126,14 @@ DEFAULT_EMAIL_CALLBACK_URL = (
 )
 
 
+def set_email_context(context, **kwargs):
+    email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
+    email_template_variables = {
+        "email_callback_url": email_callback_url,
+    }
+    setattr(context, "email_template_variables", email_template_variables)
+
+
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
@@ -137,9 +145,7 @@ class Register(graphql_auth_mutations.Register):
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_email_context(args[1].context, **kwargs)
 
         email = kwargs.get(User.EMAIL_FIELD)
         try:
@@ -242,9 +248,7 @@ class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_email_context(args[1].context, **kwargs)
         return super().mutate(*args, **kwargs)
 
 
@@ -255,9 +259,7 @@ class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_email_context(args[1].context, **kwargs)
         return super().mutate(*args, **kwargs)
 
 
