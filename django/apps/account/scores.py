@@ -11,6 +11,7 @@ from score.utils import register_pack, register_score
 
 from django.db.models import Count, DurationField, ExpressionWrapper, F, Sum
 
+from .constants import EARLY_USERS_COUNT
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
@@ -51,6 +52,7 @@ class Scores:
     COURSE_GENERAL = ScoreValue(name="Course General", slug="COURSE_GENERAL", value=20)
     ASSESSMENT_ADD = ScoreValue(name="Assessment Add", slug="ASSESSMENT_ADD", value=15)
     ASSESSMENT = ScoreValue(name="Assessment", slug="ASSESSMENT", value=200)
+    EARLY_USERS = ScoreValue(name="Early Users", slug="EARLY_USERS", value=100)
 
 
 JOB_ASSESSMENT_SCORES_PERCENTAGE = {
@@ -104,6 +106,16 @@ class FirstNameScore(UserFieldExistingScore):
 class LastNameScore(UserFieldExistingScore):
     slug = "last_name"
     user_field = User.last_name.field.name
+
+
+@register_score
+class EarlyUsersScore(Score):
+    slug = "early_users"
+    observed_fields = [User.id.field.name]
+
+    @classmethod
+    def test_func(cls, instance: User):
+        return User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].filter(id=instance.id).exists()
 
 
 @register_score

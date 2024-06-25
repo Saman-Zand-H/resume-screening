@@ -25,6 +25,7 @@ from .scores import (
     CityScore,
     CourseGeneralScore,
     DateOfBirthScore,
+    EarlyUsersScore,
     EducationNewScore,
     EducationVerificationScore,
     EmailScore,
@@ -83,6 +84,7 @@ class UserObserver(BaseObserver, ScoreObserver):
         EmailScore,
         FirstNameScore,
         LastNameScore,
+        EarlyUsersScore,
     ]
 
     @classmethod

@@ -1,6 +1,8 @@
 import base64
 import contextlib
+import random
 import re
+import string
 import uuid
 from typing import Dict, Optional
 
@@ -36,6 +38,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
@@ -46,7 +49,12 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from .choices import get_task_names_choices
-from .constants import SUPPORT_RECIPIENT_LIST, SUPPORT_TICKET_SUBJECT_TEMPLATE
+from .constants import (
+    ORGANIZATION_PHONE_OTP_CACHE_KEY,
+    ORGANIZATION_PHONE_OTP_EXPIRY,
+    SUPPORT_RECIPIENT_LIST,
+    SUPPORT_TICKET_SUBJECT_TEMPLATE,
+)
 from .managers import CertificateAndLicenseManager, UserManager
 from .mixins import EmailVerificationMixin
 from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
@@ -82,6 +90,10 @@ def generate_unique_verification_code():
 
 def generate_ticket_id():
     return str(uuid.uuid4())[:8]
+
+
+def get_phone_otp(length=6):
+    return "".join(random.choices(string.digits, k=length))
 
 
 class Contactable(models.Model):
@@ -1490,34 +1502,27 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("Communicate Organization Method")
         verbose_name_plural = _("Communicate Organization Methods")
 
-    @staticmethod
-    def get_totp(identifier: str) -> pyotp.TOTP:
-        from django.conf import settings
-        from base64 import b32encode
+    def get_otp_cache_key(self):
+        return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"user_id": self.pk}
 
-        return pyotp.TOTP(b32encode((settings.SECRET_KEY + identifier).encode()))
+    def get_otp(self):
+        if otp := cache.get(cache_key := self.get_otp_cache_key()):
+            return otp
 
-    def generate_otp(self, identifier):
-        totp = self.get_totp(identifier)
-        # at(for_time: int | datetime, counter_offset: int = 0)
-        return totp.at(now())
-
-    def verify_otp(self, identifier, otp_code):
-        totp = self.get_totp(identifier)
-        return totp.verify(otp_code)
+        cache.set(cache_key, (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
+        return otp
 
     def send_otp(self):
-        if not self.is_phonenumber_verified:
-            otp_code = self.generate_otp(str(self.phonenumber))
-            print(f"Your verification code {otp_code} has been sent to {self.phonenumber}.")
+        otp = self.get_otp()
+        # send_sms(self.phonenumber, otp)
 
-    def verify_phonenumber_otp(self, otp_code):
-        if not self.is_phonenumber_verified:
-            if self.verify_otp(str(self.phonenumber), otp_code):
-                self.is_phonenumber_verified = True
-                self.save(update_fields=["is_phonenumber_verified"])
-                return True
-            return False
+    def verify_otp(self, input_otp: str):
+        if not cache.get(self.get_otp_cache_key()) == input_otp:
+            return
+
+        cache.delete(self.get_otp_cache_key())
+        self.is_phonenumber_verified = True
+        self.save(update_fields=[self.__class__.is_phonenumber_verified.field.name])
 
 
 class OrganizationMembership(models.Model):
