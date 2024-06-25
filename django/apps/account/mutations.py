@@ -53,6 +53,7 @@ from .models import (
     CanadaVisa,
     CertificateAndLicense,
     Contact,
+    CommunicateOrganizationMethod,
     DocumentAbstract,
     Education,
     EmployerLetterMethod,
@@ -807,9 +808,58 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
         model = CertificateAndLicense
 
 
-class OrganizationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
-    class Meta:
-        model = Organization
+class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
+    organization_certificate_file_id = graphene.ID(required=True)
+
+
+class CommunicateOrganizationMethodInput(graphene.InputObjectType):
+    phonenumber = graphene.String(required=True)
+    email = graphene.String(required=False)
+
+
+class OrganizationVerificationMethodInput(graphene.InputObjectType):
+    dnstxtrecordmethod = graphene.String()
+    uploadfiletowebsitemethod = graphene.String()
+    uploadcompanycertificatemethod = graphene.Field(UploadCompanyCertificateMethodInput)
+    communicateorganizationmethod = graphene.Field(CommunicateOrganizationMethodInput)
+
+
+class OrganizationSetVerificationMethodMutation(graphene.Mutation):
+    class Arguments:
+        id = graphene.ID(required=True)
+        input = OrganizationVerificationMethodInput(required=True)
+
+    success = graphene.Boolean()
+    output = GenericScalar()
+
+    @classmethod
+    @transaction.atomic
+    @login_required
+    def mutate(cls, root, info, id, input):
+        user = info.context.user
+
+        # Get the first verification method if multiple methods are provided
+        method, input_data = next(((key, value) for key, value in input.items() if value is not None), (None, None))
+
+        if method is None:
+            raise GraphQLErrorBadRequest(_("No verification method provided."))
+
+        try:
+            organization = Organization.objects.get(pk=id)
+        except Organization.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        # TODO: Check if user is authorized to set verification method
+
+        if organization.status in [Organization.Status.VERIFIED.value]:
+            raise GraphQLErrorBadRequest(_("Organization verification method is already set."))
+
+        if verification_method := organization.get_verification_method():
+            verification_method.delete()
+
+        method_model = {m.get_related_name(): m for m in Organization.get_method_models()}[method]
+        method_instance = method_model.objects.create(organization=organization, **(input_data or {}))
+        return cls(success=True, output=method_instance.get_output())
 
 
 class OrganizationVerificationMutation(graphene.Mutation):

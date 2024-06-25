@@ -2,9 +2,9 @@ import base64
 import contextlib
 import re
 import uuid
-from datetime import timedelta
 from typing import Dict, Optional
 
+import pyotp
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -1411,6 +1411,9 @@ class OrganizationVerificationMethodAbstract(DocumentVerificationMethodAbstract)
     def __str__(self):
         return f"{self.organization} Verification"
 
+    def get_output(self):
+        pass
+
     def _update_status(self, status: Organization.Status):
         self.organization.status = status
         self.organization.save(update_fields=["status"])
@@ -1437,19 +1440,8 @@ class DNSTXTRecordMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("DNS TXT Record Method")
         verbose_name_plural = _("DNS TXT Record Methods")
 
-    def verify(self) -> bool:
-        import dns.resolver
-
-        website_address = ""
-        try:
-            txt_records = dns.resolver.resolve(website_address, "TXT")
-        except dns.resolver.NoAnswer:
-            return False
-
-        for txt_record in txt_records:
-            if self.code in txt_record.strings:
-                return super().verify()
-        return False
+    def get_output(self):
+        return {"code": self.code}
 
 
 class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
@@ -1461,17 +1453,8 @@ class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("Upload File To Website Method")
         verbose_name_plural = _("Upload File To Website Methods")
 
-    def verify(self) -> bool:
-        import requests
-
-        url = f"http://EXAMPLE.com/{self.file_name}.txt"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                return super().verify()
-        except requests.exceptions.RequestException:
-            pass
-        return False
+    def get_output(self):
+        return {"file_name": self.file_name}
 
 
 class OrganizationCertificateFile(UserUploadedDocumentFile):
@@ -1499,30 +1482,42 @@ class UploadCompanyCertificateMethod(OrganizationVerificationMethodAbstract):
 
 
 class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
-    email_code = models.CharField(
-        max_length=6, verbose_name=_("Email Verification Code"), default=generate_unique_verification_code
-    )
-    phone_code = models.CharField(
-        max_length=6, verbose_name=_("Phone Verification Code"), default=generate_unique_verification_code
-    )
-
-    CODE_EXPIRE_TIME = timedelta(minutes=5)
+    phonenumber = PhoneNumberField(verbose_name=_("Phone Number"))
+    email = models.EmailField(verbose_name=_("Email"), null=True, blank=True)
+    is_phonenumber_verified = models.BooleanField(default=False, verbose_name=_("Is Phone Number Verified"))
 
     class Meta:
         verbose_name = _("Communicate Organization Method")
         verbose_name_plural = _("Communicate Organization Methods")
 
-    def send_email_code(self):
-        print(f"Sending Email: Your verification code is {self.email_code}.")
+    @staticmethod
+    def get_totp(identifier: str) -> pyotp.TOTP:
+        from django.conf import settings
+        from base64 import b32encode
 
-    def send_phone_code(self):
-        print(f"Sending SMS: Your verification code is {self.phone_code}.")
+        return pyotp.TOTP(b32encode((settings.SECRET_KEY + identifier).encode()))
 
-    def _verify_email_code(self, code):
-        return self.email_code == code and self.created_at + self.CODE_EXPIRE_TIME >= now()
+    def generate_otp(self, identifier):
+        totp = self.get_totp(identifier)
+        # at(for_time: int | datetime, counter_offset: int = 0)
+        return totp.at(now())
 
-    def _verify_phone_code(self, code):
-        return self.phone_code == code and self.created_at + self.CODE_EXPIRE_TIME >= now()
+    def verify_otp(self, identifier, otp_code):
+        totp = self.get_totp(identifier)
+        return totp.verify(otp_code)
+
+    def send_otp(self):
+        if not self.is_phonenumber_verified:
+            otp_code = self.generate_otp(str(self.phonenumber))
+            print(f"Your verification code {otp_code} has been sent to {self.phonenumber}.")
+
+    def verify_phonenumber_otp(self, otp_code):
+        if not self.is_phonenumber_verified:
+            if self.verify_otp(str(self.phonenumber), otp_code):
+                self.is_phonenumber_verified = True
+                self.save(update_fields=["is_phonenumber_verified"])
+                return True
+            return False
 
 
 class OrganizationMembership(models.Model):
