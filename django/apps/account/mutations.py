@@ -38,7 +38,6 @@ from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.conf import settings
 
 from .forms import PasswordLessRegisterForm
 from .mixins import (
@@ -120,20 +119,26 @@ def referral_registration(user, referral_code):
         ReferralUser.objects.create(user=user, referral=referral)
 
 
+DEFAULT_EMAIL_CALLBACK_URL = (
+    graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"]
+    + graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url_account_verify"]
+)
+
+
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
         OrganizationInvitation.token.field.name,
-        "frontend_url",
+        "email_callback_url",
     ]
 
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"] = kwargs.pop(
-            "frontend_url", settings.FRONTEND_URL
-        )
+        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
+        context = args[1].context
+        setattr(context, "email_callback_url", email_callback_url)
 
         email = kwargs.get(User.EMAIL_FIELD)
         try:
@@ -180,7 +185,7 @@ class Register(graphql_auth_mutations.Register):
 
 class RegisterOrganization(Register):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
-    _args = ["frontend_url"]
+    _args = ["email_callback_url"]
 
     @classmethod
     @transaction.atomic
@@ -231,27 +236,27 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
 
 class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
     _args = [
-        "frontend_url",
+        "email_callback_url",
     ]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"] = kwargs.pop(
-            "frontend_url", settings.FRONTEND_URL
-        )
+        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
+        context = args[1].context
+        setattr(context, "email_callback_url", email_callback_url)
         return super().mutate(*args, **kwargs)
 
 
 class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
     _args = [
-        "frontend_url",
+        "email_callback_url",
     ]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"] = kwargs.pop(
-            "frontend_url", settings.FRONTEND_URL
-        )
+        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
+        context = args[1].context
+        setattr(context, "email_callback_url", email_callback_url)
         return super().mutate(*args, **kwargs)
 
 
