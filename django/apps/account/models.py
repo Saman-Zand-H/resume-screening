@@ -49,6 +49,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .choices import get_task_names_choices
 from .constants import (
+    EARLY_USERS_COUNT,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
@@ -392,8 +393,19 @@ class Profile(ComputedFieldsModel):
     )
     def credits(self):
         _credits = 0
+        is_early_user = (
+            User.objects.filter(
+                id__in=User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].values_list(
+                    "pk", flat=True
+                )
+            )
+            .filter(id=self.user.id)
+            .exists()
+        )
         with contextlib.suppress(ObjectDoesNotExist):
-            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * 100
+            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * (
+                500 if is_early_user else 250
+            )
         return _credits
 
     @property

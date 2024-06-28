@@ -14,9 +14,11 @@ from .models import (
     CertificateAndLicense,
     CertificateAndLicenseOfflineVerificationMethod,
     CertificateAndLicenseOnlineVerificationMethod,
+    CommunicateOrganizationMethod,
     CommunicationMethod,
     Contact,
     Contactable,
+    DNSTXTRecordMethod,
     Education,
     EmployerLetterMethod,
     IEEMethod,
@@ -34,13 +36,11 @@ from .models import (
     ReferralUser,
     Resume,
     SupportTicket,
+    UploadCompanyCertificateMethod,
+    UploadFileToWebsiteMethod,
     User,
     UserTask,
     WorkExperience,
-    DNSTXTRecordMethod,
-    UploadFileToWebsiteMethod,
-    CommunicateOrganizationMethod,
-    UploadCompanyCertificateMethod,
 )
 from .scores import UserScorePack
 
