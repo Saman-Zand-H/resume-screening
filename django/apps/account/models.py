@@ -1540,7 +1540,9 @@ class OrganizationMembership(models.Model):
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name="memberships", verbose_name=_("Organization")
     )
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="membership", verbose_name=_("User"))
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="organization_memberships", verbose_name=_("User")
+    )
     invited_by = models.ForeignKey(
         User,
         verbose_name=_("Invited By"),
