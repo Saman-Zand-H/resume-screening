@@ -1502,7 +1502,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         verbose_name_plural = _("Communicate Organization Methods")
 
     def get_otp_cache_key(self):
-        return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"user_id": self.pk}
+        return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
     def get_otp(self):
         if otp := cache.get(cache_key := self.get_otp_cache_key()):
@@ -1515,13 +1515,14 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         otp = self.get_otp()
         # send_sms(self.phonenumber, otp)
 
-    def verify_otp(self, input_otp: str):
-        if not cache.get(self.get_otp_cache_key()) == input_otp:
-            return
+    def verify_otp(self, input_otp: str) -> bool:
+        if cache.get(self.get_otp_cache_key()) != input_otp:
+            return False
 
         cache.delete(self.get_otp_cache_key())
         self.is_phonenumber_verified = True
         self.save(update_fields=[self.__class__.is_phonenumber_verified.field.name])
+        return True
 
 
 class OrganizationMembership(models.Model):
