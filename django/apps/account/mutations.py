@@ -26,6 +26,7 @@ from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
+from graphql_auth.shortcuts import get_user_by_email
 from graphql_jwt.decorators import (
     login_required,
     on_token_auth_resolve,
@@ -85,6 +86,7 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = OrganizationInvitation
         fields = (
+            OrganizationInvitation.organization.field.name,
             OrganizationInvitation.email.field.name,
             OrganizationInvitation.role.field.name,
         )
@@ -93,11 +95,6 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
     def before_create_obj(cls, info, input, obj):
         user = info.context.user
         obj.created_by = user
-        try:
-            obj.organization = user.membership.organization
-        except OrganizationMembership.DoesNotExist:
-            raise GraphQLErrorBadRequest(_("User is not member of an organization."))
-
         OrganizationInvitation.objects.filter(email=obj.email, organization=obj.organization).delete()
         cls.full_clean(obj)
 
@@ -125,21 +122,33 @@ DEFAULT_EMAIL_CALLBACK_URL = (
     + graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url_account_verify"]
 )
 
+EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+USER_FIRSTNAME_VARIABLE = "user_firstname"
+TEMPLATE_CONTEXT_VARIABLE = "template_context"
+
+
+def set_template_context_variable(context, key, value):
+    _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
+    _template_context[key] = value
+    setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+
 
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
         OrganizationInvitation.token.field.name,
-        "email_callback_url",
+        EMAIL_CALLBACK_URL_VARIABLE,
     ]
 
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
 
         email = kwargs.get(User.EMAIL_FIELD)
         try:
@@ -186,7 +195,7 @@ class Register(graphql_auth_mutations.Register):
 
 class RegisterOrganization(Register):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
-    _args = ["email_callback_url"]
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     @transaction.atomic
@@ -236,28 +245,29 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
 
 
 class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
-    _args = [
-        "email_callback_url",
-    ]
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
         return super().mutate(*args, **kwargs)
 
 
 class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
-    _args = [
-        "email_callback_url",
-    ]
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        user = get_user_by_email(kwargs.get("email"))
+        set_template_context_variable(
+            args[1].context,
+            USER_FIRSTNAME_VARIABLE,
+            user.first_name,
+        )
         return super().mutate(*args, **kwargs)
 
 
@@ -862,26 +872,29 @@ class OrganizationSetVerificationMethodMutation(graphene.Mutation):
         return cls(success=True, output=method_instance.get_output())
 
 
-class OrganizationVerificationMutation(graphene.Mutation):
+class OrganizationCommunicationMethodVerify(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        organization = graphene.ID(required=True)
+        otp = graphene.String(required=True, description="OTP sent to the phone number.")
 
     success = graphene.Boolean()
 
     @classmethod
-    def mutate(cls, root, info, id):
-        user = info.context.user
-        organization = Organization.objects.get(pk=id)
-        # TODO: check user permission
-        verification_method_instance = [
-            getattr(organization, m.get_related_name())
-            for m in Organization.get_method_models()
-            if hasattr(organization, m.get_related_name())
-        ]
-        if len(verification_method_instance) != 1:
-            raise GraphQLErrorBadRequest("Organization has no verification method.")
-        result = verification_method_instance[0].verify()
-        return OrganizationVerificationMutation(success=result)
+    @login_required
+    def mutate(cls, root, info, organization, otp):
+        # TODO: check if the user is authorized
+        try:
+            organization = Organization.objects.get(pk=organization)
+        except Organization.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        try:
+            model = organization.communicateorganizationmethod
+        except CommunicateOrganizationMethod.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Cannot verify OTP."))
+
+        result = model.verify_otp(otp)
+        return cls(success=result)
 
 
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
@@ -967,7 +980,7 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
-    verify = OrganizationVerificationMutation.Field()
+    verify_communication_method = OrganizationCommunicationMethodVerify.Field()
 
 
 class EducationMutation(graphene.ObjectType):

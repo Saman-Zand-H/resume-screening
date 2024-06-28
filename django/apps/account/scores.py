@@ -115,7 +115,18 @@ class EarlyUsersScore(Score):
 
     @classmethod
     def test_func(cls, instance: User):
-        return User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].filter(id=instance.id).exists()
+        return (
+            User.objects.filter(
+                id__in=User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].values_list(
+                    "pk", flat=True
+                )
+            )
+            .filter(id=instance.id)
+            .exists()
+        )
+
+    def calculate(self, user) -> int:
+        return Scores.EARLY_USERS.value
 
 
 @register_score

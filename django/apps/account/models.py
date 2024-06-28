@@ -6,7 +6,6 @@ import string
 import uuid
 from typing import Dict, Optional
 
-import pyotp
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -50,6 +49,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .choices import get_task_names_choices
 from .constants import (
+    EARLY_USERS_COUNT,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
@@ -393,8 +393,19 @@ class Profile(ComputedFieldsModel):
     )
     def credits(self):
         _credits = 0
+        is_early_user = (
+            User.objects.filter(
+                id__in=User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].values_list(
+                    "pk", flat=True
+                )
+            )
+            .filter(id=self.user.id)
+            .exists()
+        )
         with contextlib.suppress(ObjectDoesNotExist):
-            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * 100
+            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * (
+                500 if is_early_user else 250
+            )
         return _credits
 
     @property
@@ -1503,7 +1514,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         verbose_name_plural = _("Communicate Organization Methods")
 
     def get_otp_cache_key(self):
-        return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"user_id": self.pk}
+        return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
     def get_otp(self):
         if otp := cache.get(cache_key := self.get_otp_cache_key()):
@@ -1516,13 +1527,14 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         otp = self.get_otp()
         # send_sms(self.phonenumber, otp)
 
-    def verify_otp(self, input_otp: str):
-        if not cache.get(self.get_otp_cache_key()) == input_otp:
-            return
+    def verify_otp(self, input_otp: str) -> bool:
+        if cache.get(self.get_otp_cache_key()) != input_otp:
+            return False
 
         cache.delete(self.get_otp_cache_key())
         self.is_phonenumber_verified = True
         self.save(update_fields=[self.__class__.is_phonenumber_verified.field.name])
+        return True
 
 
 class OrganizationMembership(models.Model):
@@ -1540,7 +1552,9 @@ class OrganizationMembership(models.Model):
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name="memberships", verbose_name=_("Organization")
     )
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="membership", verbose_name=_("User"))
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="organization_memberships", verbose_name=_("User")
+    )
     invited_by = models.ForeignKey(
         User,
         verbose_name=_("Invited By"),
@@ -1580,3 +1594,105 @@ class OrganizationInvitation(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.organization.name}"
+
+
+class OrganizationJobPosition(models.Model):
+    class Status(models.TextChoices):
+        DRAFTED = "drafted", _("Drafted")
+        PUBLISHED = "published", _("Published")
+        COMPLETED = "completed", _("Completed")
+        SUSPENDED = "suspended", _("Suspended")
+        EXPIRED = "expired", _("Expired")
+        CLOSED = "closed", _("Closed")
+
+    class Age(models.TextChoices):
+        _18_25 = "_18_25", _("18-25")
+        _26_35 = "_26_35", _("26-35")
+        _36_45 = "_36_45", _("36-45")
+        _46_55 = "_46_55", _("46-55")
+        _56_65 = "_56_65", _("56-65")
+        OVER_65 = "over_65", _("Over 65")
+
+    class ContractType(models.TextChoices):
+        FULL_TIME = "full_time", _("Full Time")
+        PART_TIME = "part_time", _("Part Time")
+        REMOTE = "remote", _("Remote")
+        TEMPORARY = "temporary", _("Temporary")
+        INTERNSHIP = "internship", _("Internship")
+        CONTRACT = "contract", _("Contract")
+        FREELANCE = "freelance", _("Freelance")
+
+    class PaymentTerm(models.TextChoices):
+        HOURLY = "hourly", _("Hourly")
+        DAILY = "daily", _("Daily")
+        WEEKLY = "weekly", _("Weekly")
+        MONTHLY = "monthly", _("Monthly")
+        YEARLY = "yearly", _("Yearly")
+
+    class WeekDay(models.TextChoices):
+        MONDAY = "monday", _("Monday")
+        TUESDAY = "tuesday", _("Tuesday")
+        WEDNESDAY = "wednesday", _("Wednesday")
+        THURSDAY = "thursday", _("Thursday")
+        FRIDAY = "friday", _("Friday")
+        SATURDAY = "saturday", _("Saturday")
+        SUNDAY = "sunday", _("Sunday")
+
+    title = models.CharField(max_length=255, verbose_name=_("Title"), null=True, blank=True)
+    vaccancy = models.PositiveIntegerField(verbose_name=_("Vacancy"), null=True, blank=True)
+    start_at = models.DateField(verbose_name=_("Start At"), null=True, blank=True)
+    validity_date = models.DateField(verbose_name=_("Validity Date"), null=True, blank=True)
+    description = models.TextField(verbose_name=_("Description"), null=True, blank=True)
+
+    # TODO: check if below field has to be ManyToManyField to Skill model
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="job_positions")
+    educations = models.ManyToManyField(Field, verbose_name=_("Educations"), related_name="job_positions")
+    work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
+    languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32),
+        verbose_name=_("Languages"),
+        null=True,
+        blank=True,
+    )
+    age_range = models.CharField(max_length=50, choices=Age.choices, verbose_name=_("Age Range"), null=True, blank=True)
+    required_document = ArrayField(models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True)
+    performance_expectation = models.TextField(verbose_name=_("Performance Expectation"), null=True, blank=True)
+
+    contract_type = models.CharField(max_length=50, choices=ContractType.choices, verbose_name=_("Contract Type"), null=True, blank=True)
+    salary_min = models.PositiveIntegerField(verbose_name=_("Salary Min"), null=True, blank=True)
+    salary_max = models.PositiveIntegerField(verbose_name=_("Salary Max"), null=True, blank=True)
+    # TODO: check if below field is correct
+    payment_term = models.CharField(max_length=50, choices=PaymentTerm.choices, verbose_name=_("Payment Term"), null=True, blank=True)
+    working_start_at = models.TimeField(verbose_name=_("Working Start At"), null=True, blank=True)
+    working_end_at = models.TimeField(verbose_name=_("Working End At"), null=True, blank=True)
+    # TODO: check if below field
+    benefits = ArrayField(models.CharField(max_length=255), verbose_name=_("Benefits"), null=True, blank=True)
+    days_off = ArrayField(
+        models.CharField(choices=WeekDay.choices, max_length=50),
+        verbose_name=_("Days Off"),
+        null=True,
+        blank=True,
+    )
+    job_restrictions = models.TextField(verbose_name=_("Job Restrictions"), null=True, blank=True)
+    employer_questions = ArrayField(models.CharField(max_length=255), verbose_name=_("Employer Questions"), null=True, blank=True)
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
+    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
+    published_at = models.DateTimeField(verbose_name=_("Published At"), null=True, blank=True)
+    completed_at = models.DateTimeField(verbose_name=_("Completed At"), null=True, blank=True)
+    closed_at = models.DateTimeField(verbose_name=_("Closed At"), null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Job Position")
+        verbose_name_plural = _("Organization Job Positions")
+
+    def __str__(self):
+        return f"{self.title} - {self.organization.name}"
+
+    def required_fields(self):
+        # TODO: update below fields
+        return [
+            OrganizationJobPosition.title.field.name,
+        ]

@@ -7,19 +7,13 @@ from .types import (
     EducationNode,
     LanguageCertificateNode,
     OrganizationInvitationType,
-    OrganizationType,
     UserNode,
     WorkExperienceNode,
 )
 
 
 class OrganizationQuery(graphene.ObjectType):
-    me = graphene.Field(OrganizationType)
     invitation = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
-
-    @login_required
-    def resolve_me(self, info):
-        return OrganizationType.get_node_by_user(info, info.context.user)
 
     @login_required
     def resolve_invitation(self, info, token):
