@@ -18,7 +18,6 @@ django-cities-light~=3.10
 django-phonenumber-field[phonenumbers]~=8.0
 django-markdownfield~=0.11
 django-computedfields~=0.2
-openai~=1.54
 python-magic~=0.4
 google-cloud-vision~=3.8
 httpx~=0.27
