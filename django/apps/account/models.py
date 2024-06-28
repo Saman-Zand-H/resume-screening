@@ -6,7 +6,6 @@ import string
 import uuid
 from typing import Dict, Optional
 
-import pyotp
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
