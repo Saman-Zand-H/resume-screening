@@ -26,6 +26,7 @@ from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
+from graphql_auth.shortcuts import get_user_by_email
 from graphql_jwt.decorators import (
     login_required,
     on_token_auth_resolve,
@@ -53,6 +54,7 @@ from .models import (
     CanadaVisa,
     CertificateAndLicense,
     Contact,
+    CommunicateOrganizationMethod,
     DocumentAbstract,
     Education,
     EmployerLetterMethod,
@@ -125,6 +127,7 @@ DEFAULT_EMAIL_CALLBACK_URL = (
 )
 
 EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+USER_FIRSTNAME_VARIABLE = "user_firstname"
 TEMPLATE_CONTEXT_VARIABLE = "template_context"
 
 
@@ -263,10 +266,11 @@ class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
 
     @classmethod
     def mutate(cls, *args, **kwargs):
+        user = get_user_by_email(kwargs.get("email"))
         set_template_context_variable(
             args[1].context,
-            EMAIL_CALLBACK_URL_VARIABLE,
-            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+            USER_FIRSTNAME_VARIABLE,
+            user.first_name,
         )
         return super().mutate(*args, **kwargs)
 
@@ -872,26 +876,29 @@ class OrganizationSetVerificationMethodMutation(graphene.Mutation):
         return cls(success=True, output=method_instance.get_output())
 
 
-class OrganizationVerificationMutation(graphene.Mutation):
+class OrganizationCommunicationMethodVerify(graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        organization = graphene.ID(required=True)
+        otp = graphene.String(required=True, description="OTP sent to the phone number.")
 
     success = graphene.Boolean()
 
     @classmethod
-    def mutate(cls, root, info, id):
-        user = info.context.user
-        organization = Organization.objects.get(pk=id)
-        # TODO: check user permission
-        verification_method_instance = [
-            getattr(organization, m.get_related_name())
-            for m in Organization.get_method_models()
-            if hasattr(organization, m.get_related_name())
-        ]
-        if len(verification_method_instance) != 1:
-            raise GraphQLErrorBadRequest("Organization has no verification method.")
-        result = verification_method_instance[0].verify()
-        return OrganizationVerificationMutation(success=result)
+    @login_required
+    def mutate(cls, root, info, organization, otp):
+        # TODO: check if the user is authorized
+        try:
+            organization = Organization.objects.get(pk=organization)
+        except Organization.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        try:
+            model = organization.communicateorganizationmethod
+        except CommunicateOrganizationMethod.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Cannot verify OTP."))
+
+        result = model.verify_otp(otp)
+        return cls(success=result)
 
 
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
@@ -977,7 +984,7 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
-    verify = OrganizationVerificationMutation.Field()
+    verify_communication_method = OrganizationCommunicationMethodVerify.Field()
 
 
 class EducationMutation(graphene.ObjectType):
