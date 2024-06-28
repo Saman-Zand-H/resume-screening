@@ -41,7 +41,6 @@ from .models import (
     UploadFileToWebsiteMethod,
     CommunicateOrganizationMethod,
     UploadCompanyCertificateMethod,
-
 )
 from .scores import UserScorePack
 
@@ -632,4 +631,7 @@ class UploadCompanyCertificateMethodAdmin(admin.ModelAdmin):
         UploadCompanyCertificateMethod.verified_at.field.name,
         UploadCompanyCertificateMethod.created_at.field.name,
     )
-    raw_id_fields = (UploadCompanyCertificateMethod.organization.field.name,)
+    raw_id_fields = (
+        UploadCompanyCertificateMethod.organization.field.name,
+        UploadCompanyCertificateMethod.organization_certificate_file.field.name,
+    )
