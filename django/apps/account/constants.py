@@ -2,8 +2,16 @@ from functools import partial
 
 from ai.types import CachableVectorStore
 from common.models import Job, Skill
+from disposable_email_domains import blocklist
 
-EARLY_USERS_COUNT = 1000
+EXTENDED_EMAIL_BLOCKLIST = blocklist.union(
+    {
+        "kisoq.com",
+        "myweblaw.com",
+    }
+)
+
+SCORE_EARLY_USERS_COUNT = CREDIT_EARLY_USERS_COUNT = 1000
 
 ORGANIZATION_PHONE_OTP_CACHE_KEY = "organization-phone-otp-%(organization_id)s"
 ORGANIZATION_PHONE_OTP_EXPIRY = 300

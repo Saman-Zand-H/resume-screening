@@ -54,7 +54,6 @@ from .models import (
     CanadaVisa,
     CertificateAndLicense,
     Contact,
-    CommunicateOrganizationMethod,
     DocumentAbstract,
     Education,
     EmployerLetterMethod,
@@ -211,7 +210,10 @@ class RegisterOrganization(Register):
         organization = Organization.objects.create(name=organization_name, user=user)
         try:
             OrganizationMembership.objects.create(
-                user=user, organization=organization, role=OrganizationMembership.Role.CREATOR.value, invited_by=user
+                user=user,
+                organization=organization,
+                role=OrganizationMembership.UserRole.CREATOR.value,
+                invited_by=user,
             )
         except IntegrityError:
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
@@ -360,8 +362,8 @@ class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPa
         user = info.context.user
         org_users = {membership.user: membership.role for membership in obj.memberships.all()}
         if user not in org_users or org_users[user] not in [
-            OrganizationMembership.Role.ASSOCIATE.value,
-            OrganizationMembership.Role.CREATOR.value,
+            OrganizationMembership.UserRole.ASSOCIATE.value,
+            OrganizationMembership.UserRole.CREATOR.value,
         ]:
             raise PermissionError("Not permitted to modify this record.")
         return super().check_permissions(root, info, input, id, obj)

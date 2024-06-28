@@ -12,3 +12,6 @@ class AccountConfig(AppConfig):
         from . import signals  # noqa
         from . import tasks  # noqa
         from . import types  # noqa
+        from .accesses import AccessContainer
+
+        AccessContainer.register_all_rules()

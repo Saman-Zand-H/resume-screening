@@ -39,3 +39,4 @@ django-cachalot~=2.7
 PyMuPDF~=1.25.1
 rules~=3.5
 google-genai~=0.3
+disposable-email-domains~=0.0.112
