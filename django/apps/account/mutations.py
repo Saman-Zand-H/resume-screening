@@ -86,6 +86,7 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = OrganizationInvitation
         fields = (
+            OrganizationInvitation.organization.field.name,
             OrganizationInvitation.email.field.name,
             OrganizationInvitation.role.field.name,
         )
@@ -94,11 +95,6 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
     def before_create_obj(cls, info, input, obj):
         user = info.context.user
         obj.created_by = user
-        try:
-            obj.organization = user.membership.organization
-        except OrganizationMembership.DoesNotExist:
-            raise GraphQLErrorBadRequest(_("User is not member of an organization."))
-
         OrganizationInvitation.objects.filter(email=obj.email, organization=obj.organization).delete()
         cls.full_clean(obj)
 
