@@ -26,6 +26,7 @@ from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.utils import get_token, get_token_payload
+from graphql_auth.shortcuts import get_user_by_email
 from graphql_jwt.decorators import (
     login_required,
     on_token_auth_resolve,
@@ -125,6 +126,7 @@ DEFAULT_EMAIL_CALLBACK_URL = (
 )
 
 EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+USER_FIRSTNAME_VARIABLE = "user_firstname"
 TEMPLATE_CONTEXT_VARIABLE = "template_context"
 
 
@@ -263,10 +265,11 @@ class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
 
     @classmethod
     def mutate(cls, *args, **kwargs):
+        user = get_user_by_email(kwargs.get("email"))
         set_template_context_variable(
             args[1].context,
-            EMAIL_CALLBACK_URL_VARIABLE,
-            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+            USER_FIRSTNAME_VARIABLE,
+            user.first_name,
         )
         return super().mutate(*args, **kwargs)
 
