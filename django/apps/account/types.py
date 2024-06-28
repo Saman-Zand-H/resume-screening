@@ -308,7 +308,6 @@ class UserNode(BaseUserNode):
     job_assessments = graphene.List(
         JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
     )
-    organization_membership = graphene.Field(OrganizationMembershipType)
     has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
 
     class Meta:
@@ -327,6 +326,7 @@ class UserNode(BaseUserNode):
             SupportTicket.user.field.related_query_name(),
             UserTask.user.field.related_query_name(),
             GeneratedCV.user.field.related_query_name(),
+            OrganizationMembership.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
@@ -348,12 +348,6 @@ class UserNode(BaseUserNode):
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
 
-    def resolve_organization_membership(self, info):
-        try:
-            return self.membership
-        except OrganizationMembership.DoesNotExist:
-            return None
-
 
 class OrganizationType(DjangoObjectType):
     class Meta:
@@ -372,13 +366,6 @@ class OrganizationType(DjangoObjectType):
             Organization.about.field.name,
             Organization.user.field.name,
         )
-
-    @classmethod
-    def get_node_by_user(cls, info, user):
-        try:
-            return Organization.objects.get(memberships__user=user)
-        except Organization.DoesNotExist:
-            return None
 
 
 class OrganizationInvitationType(DjangoObjectType):
