@@ -157,6 +157,7 @@ class SerializableContext:
         self._port = context.get_port()
         self._is_secure = context.is_secure()
         self._host = context.get_host()
+        self._template_context = getattr(context, "template_context", {})
 
     def get_port(self):
         return self._port
@@ -167,11 +168,15 @@ class SerializableContext:
     def get_host(self):
         return self._host
 
+    def template_context(self):
+        return self._template_context
+
     def to_dict(self):
         return {
             "_port": self._port,
             "_is_secure": self._is_secure,
             "_host": self._host,
+            "_template_context": self._template_context,
         }
 
     @classmethod
@@ -180,6 +185,7 @@ class SerializableContext:
         instance._port = data["_port"]
         instance._is_secure = data["_is_secure"]
         instance._host = data["_host"]
+        instance._template_context = data["_template_context"]
         return instance
 
 

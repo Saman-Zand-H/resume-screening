@@ -53,7 +53,6 @@ from .models import (
     CanadaVisa,
     CertificateAndLicense,
     Contact,
-    CommunicateOrganizationMethod,
     DocumentAbstract,
     Education,
     EmployerLetterMethod,
@@ -125,21 +124,32 @@ DEFAULT_EMAIL_CALLBACK_URL = (
     + graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url_account_verify"]
 )
 
+EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+TEMPLATE_CONTEXT_VARIABLE = "template_context"
+
+
+def set_template_context_variable(context, key, value):
+    _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
+    _template_context[key] = value
+    setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+
 
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
         OrganizationInvitation.token.field.name,
-        "email_callback_url",
+        EMAIL_CALLBACK_URL_VARIABLE,
     ]
 
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
 
         email = kwargs.get(User.EMAIL_FIELD)
         try:
@@ -186,7 +196,7 @@ class Register(graphql_auth_mutations.Register):
 
 class RegisterOrganization(Register):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
-    _args = ["email_callback_url"]
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     @transaction.atomic
@@ -236,28 +246,28 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
 
 
 class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
-    _args = [
-        "email_callback_url",
-    ]
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
         return super().mutate(*args, **kwargs)
 
 
 class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
-    _args = [
-        "email_callback_url",
-    ]
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     def mutate(cls, *args, **kwargs):
-        email_callback_url = kwargs.pop("email_callback_url", DEFAULT_EMAIL_CALLBACK_URL)
-        context = args[1].context
-        setattr(context, "email_callback_url", email_callback_url)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
         return super().mutate(*args, **kwargs)
 
 
