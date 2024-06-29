@@ -35,7 +35,7 @@ from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
 
 from django.contrib.auth.models import AbstractUser
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
@@ -367,6 +367,7 @@ class Profile(ComputedFieldsModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, verbose_name=_("Role"), null=True, blank=True)
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
@@ -1454,7 +1455,11 @@ class Organization(DocumentAbstract):
     national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
     type = models.CharField(max_length=50, choices=Type.choices, verbose_name=_("Type"), null=True, blank=True)
     business_type = models.CharField(
-        max_length=50, choices=BussinessType.choices, verbose_name=_("Business Type"), null=True, blank=True
+        max_length=50,
+        choices=BussinessType.choices,
+        verbose_name=_("Business Type"),
+        null=True,
+        blank=True,
     )
     industry = models.ForeignKey(
         Industry,
@@ -1464,6 +1469,7 @@ class Organization(DocumentAbstract):
         blank=True,
         related_name="organizations",
     )
+    roles = GenericRelation(Role, verbose_name=_("Roles"), related_query_name="organization")
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
@@ -1734,14 +1740,31 @@ class OrganizationJobPosition(models.Model):
         blank=True,
     )
     age_range = models.CharField(max_length=50, choices=Age.choices, verbose_name=_("Age Range"), null=True, blank=True)
-    required_document = ArrayField(models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True)
+    required_document = ArrayField(
+        models.CharField(max_length=255),
+        verbose_name=_("Required Document"),
+        null=True,
+        blank=True,
+    )
     performance_expectation = models.TextField(verbose_name=_("Performance Expectation"), null=True, blank=True)
 
-    contract_type = models.CharField(max_length=50, choices=ContractType.choices, verbose_name=_("Contract Type"), null=True, blank=True)
+    contract_type = models.CharField(
+        max_length=50,
+        choices=ContractType.choices,
+        verbose_name=_("Contract Type"),
+        null=True,
+        blank=True,
+    )
     salary_min = models.PositiveIntegerField(verbose_name=_("Salary Min"), null=True, blank=True)
     salary_max = models.PositiveIntegerField(verbose_name=_("Salary Max"), null=True, blank=True)
     # TODO: check if below field is correct
-    payment_term = models.CharField(max_length=50, choices=PaymentTerm.choices, verbose_name=_("Payment Term"), null=True, blank=True)
+    payment_term = models.CharField(
+        max_length=50,
+        choices=PaymentTerm.choices,
+        verbose_name=_("Payment Term"),
+        null=True,
+        blank=True,
+    )
     working_start_at = models.TimeField(verbose_name=_("Working Start At"), null=True, blank=True)
     working_end_at = models.TimeField(verbose_name=_("Working End At"), null=True, blank=True)
     # TODO: check if below field
@@ -1753,7 +1776,12 @@ class OrganizationJobPosition(models.Model):
         blank=True,
     )
     job_restrictions = models.TextField(verbose_name=_("Job Restrictions"), null=True, blank=True)
-    employer_questions = ArrayField(models.CharField(max_length=255), verbose_name=_("Employer Questions"), null=True, blank=True)
+    employer_questions = ArrayField(
+        models.CharField(max_length=255),
+        verbose_name=_("Employer Questions"),
+        null=True,
+        blank=True,
+    )
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
     status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)

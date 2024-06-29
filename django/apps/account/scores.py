@@ -11,7 +11,7 @@ from score.utils import register_pack, register_score
 
 from django.db.models import Count, DurationField, ExpressionWrapper, F, Sum
 
-from .constants import SCORE_EARLY_USERS_COUNT
+from .constants import EARLY_USERS_COUNT
 from .models import (
     CanadaVisa,
     CertificateAndLicense,

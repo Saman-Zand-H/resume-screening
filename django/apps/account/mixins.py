@@ -9,6 +9,8 @@ from graphene.types.utils import yank_fields_from_attrs
 from graphene_django_cud.mutations import DjangoPatchMutation
 from rules.rulesets import test_rule
 
+from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.template.loader import render_to_string
 
 from .accesses import AccessType
@@ -18,6 +20,14 @@ from .utils import IDLikeObject
 
 
 class AccessRequiredMixin:
+    @classmethod
+    def find_related_access(cls, info, access_slug):
+        if not (user := cls.get_user(info)):
+            return
+
+        access_q = Q(role__accesses__slug=access_slug) | Q(memberships__role__accesses__slug=access_slug)
+        return get_user_model().objects.filter(access_q, id=user.id).exists()
+
     @classmethod
     def has_access(cls, access_slug: str, **kwargs):
         if not test_rule(access_slug, **kwargs):
@@ -48,15 +58,16 @@ class MutationAccessRequiredMixin(AccessRequiredMixin):
         if user := cls.get_user(info, *args, **kwargs):
             has_access_kwargs["user"] = user
 
-        access_denied_value, denied_has_value = cls.has_access(cls.access.slug, **has_access_kwargs)
-        if denied_has_value:
-            return access_denied_value
+        if cls.find_related_access(info, cls.access.slug):
+            cls.has_access(cls.access.slug, **has_access_kwargs)
+        elif not cls.access.default_predicate(**has_access_kwargs):
+            cls.access_denied(cls.access.slug)
 
         return super().mutate(root, info, *args, **kwargs)
 
 
 class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
-    field_access_slugs: Dict[str, AccessType] = {}
+    fields_access: Dict[str, AccessType] = {}
 
     @classmethod
     def resolver_wrapper(cls, field_name: str) -> Callable:
@@ -67,7 +78,10 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
                 if user := cls.get_user(info, *args, **kwargs):
                     has_access_kwargs["user"] = user
 
-                cls.has_access(cls.field_access_slugs.get(field_name), **has_access_kwargs)
+                if cls.find_related_access(info, cls.fields_access.get(field_name).slug):
+                    cls.has_access(cls.fields_access.get(field_name).slug, **has_access_kwargs)
+                elif not cls.fields_access.get(field_name).default_predicate(**has_access_kwargs):
+                    cls.access_denied(cls.fields_access.get(field_name).slug)
 
                 return resolver(root, info, *args, **kwargs)
 
@@ -92,7 +106,7 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
                 setattr(cls, f"resolve_{field_name}", wrapper(resolver))
                 registered_field_resolvers.add(field_name)
 
-        if len(cls.field_access_slugs) != len(registered_field_resolvers):
+        if len(cls.fields_access) != len(registered_field_resolvers):
             kwargs.update(default_resolver=wrapper(kwargs.get("default_resolver", get_default_resolver())))
 
         super().__init_subclass_with_meta__(*args, **kwargs)
