@@ -45,7 +45,6 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -149,9 +148,11 @@ class User(AbstractUser):
             and profile
         )
 
-    @cached_property
+    @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    full_name.fget.verbose_name = _("Full Name")
 
     @property
     def has_resume(self):
@@ -473,6 +474,8 @@ class Profile(ComputedFieldsModel):
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
 
+    completion_percentage.fget.verbose_name = _("Completion Percentage")
+
     class Meta:
         verbose_name = _("User Profile")
         verbose_name_plural = _("User Profiles")
@@ -519,6 +522,8 @@ class Profile(ComputedFieldsModel):
     @property
     def has_appearance_related_data(self):
         return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
+
+    has_appearance_related_data.fget.verbose_name = _("Has Appearance Related Data")
 
 
 class Contact(models.Model):
@@ -736,9 +741,11 @@ class Education(DocumentAbstract, HasDurationMixin):
             "start",
         ]
 
-    @cached_property
+    @property
     def title(self):
         return f"{self.get_degree_display()} in {self.field.name}"
+
+    title.fget.verbose_name = _("Title")
 
     @classmethod
     def get_verification_abstract_model(cls):
@@ -977,7 +984,10 @@ class ReferenceCheckEmployer(models.Model, EmailVerificationMixin):
         return f"{self.work_experience_verification} - {self.name}"
 
 
-class LanguageCertificate(DocumentAbstract):
+class LanguageCertificate(DocumentAbstract, HasDurationMixin):
+    start_date_field = "issued_at"
+    end_date_field = "expired_at"
+
     language = models.CharField(choices=LANGUAGES, max_length=32, verbose_name=_("Language"))
     test = models.ForeignKey(
         LanguageProficiencyTest,
@@ -991,6 +1001,8 @@ class LanguageCertificate(DocumentAbstract):
     @property
     def scores(self):
         return ", ".join(f"{skill}: {score}" for skill, score in self.values.values_list("skill__skill_name", "value"))
+
+    scores.fget.verbose_name = _("Scores")
 
     def __str__(self):
         return f"{self.user.email} - {self.language}"

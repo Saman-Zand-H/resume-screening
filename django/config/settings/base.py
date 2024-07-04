@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "cachalot",
     "corsheaders",
     "rules.apps.AutodiscoverRulesConfig",
+    "import_export",
     "colorfield",
     "cities_light",
     "phonenumber_field",
