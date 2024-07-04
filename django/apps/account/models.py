@@ -404,7 +404,7 @@ class Profile(ComputedFieldsModel):
         )
         with contextlib.suppress(ObjectDoesNotExist):
             _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * (
-                500 if is_early_user else 250
+                150 if is_early_user else 100
             )
         return _credits
 
