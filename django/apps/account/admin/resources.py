@@ -19,9 +19,6 @@ from ..models import (
 class ProfileResource(ModelResource):
     phone_number = fields.Field(column_name=_("Phone Number"))
 
-    def dehydrate_birth_date(self, obj: Profile):
-        return (obj.birth_date and obj.birth_date.strftime("%Y-%m-%d")) or "_"
-
     def dehydrate_phone_number(self, obj: Profile):
         return ", ".join(
             display_value
@@ -50,6 +47,9 @@ class ProfileResource(ModelResource):
             Profile.avatar.field.name,
             Profile.gender.field.name,
         ]
+        widgets = {
+            Profile.birth_date.field.name: {"format": "%Y-%m-%d"},
+        }
 
 
 class EducationResource(ModelResource):
@@ -216,15 +216,6 @@ class CertificateAndLicenseResource(ModelResource):
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
-
-    def dehydrate_issuing_organization(self, obj: CertificateAndLicense):
-        return obj.issuing_organization
-
-    def dehydrate_issue_date(self, obj: CertificateAndLicense):
-        return obj.issue_date and obj.issue_date.strftime("%Y-%m-%d")
-
-    def dehydrate_expiration_date(self, obj: CertificateAndLicense):
-        return obj.expiration_date and obj.expiration_date.strftime("%Y-%m-%d")
 
     def dehydrate_status(self, obj: CertificateAndLicense):
         return obj.get_status_display()
