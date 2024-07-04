@@ -28,6 +28,7 @@ from .models import (
     OnlineMethod,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
     OrganizationMembership,
     PaystubsMethod,
     Profile,
@@ -634,4 +635,35 @@ class UploadCompanyCertificateMethodAdmin(admin.ModelAdmin):
     raw_id_fields = (
         UploadCompanyCertificateMethod.organization.field.name,
         UploadCompanyCertificateMethod.organization_certificate_file.field.name,
+    )
+
+
+@register(OrganizationJobPosition)
+class OrganizationJobPositionAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationJobPosition.id.field.name,
+        OrganizationJobPosition.title.field.name,
+        OrganizationJobPosition.status.field.name,
+        OrganizationJobPosition.organization.field.name,
+        OrganizationJobPosition.updated_at.field.name,
+        OrganizationJobPosition.created_at.field.name,
+    )
+    search_fields = (OrganizationJobPosition.title.field.name,)
+    list_filter = (
+        OrganizationJobPosition.status.field.name,
+        OrganizationJobPosition.age_range.field.name,
+        OrganizationJobPosition.contract_type.field.name,
+        OrganizationJobPosition.payment_term.field.name,
+        OrganizationJobPosition.start_at.field.name,
+        OrganizationJobPosition.validity_date.field.name,
+        OrganizationJobPosition.published_at.field.name,
+        OrganizationJobPosition.completed_at.field.name,
+        OrganizationJobPosition.closed_at.field.name,
+        OrganizationJobPosition.updated_at.field.name,
+        OrganizationJobPosition.created_at.field.name,
+    )
+    raw_id_fields = (
+        OrganizationJobPosition.organization.field.name,
+        OrganizationJobPosition.skills.field.name,
+        OrganizationJobPosition.educations.field.name,
     )
