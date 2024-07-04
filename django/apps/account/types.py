@@ -26,6 +26,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
     OrganizationMembership,
     PaystubsMethod,
     Profile,
@@ -387,3 +388,15 @@ class OrganizationInvitationType(DjangoObjectType):
             return model.objects.get(token=token)
         except model.DoesNotExist:
             return None
+
+
+class OrganizationJobPositionType(DjangoObjectType):
+    class Meta:
+        model = OrganizationJobPosition
+        fields = (
+            OrganizationJobPosition.id.field.name,
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.organization.field.name,
+            OrganizationJobPosition.created_at.field.name,
+            OrganizationJobPosition.updated_at.field.name,
+        )

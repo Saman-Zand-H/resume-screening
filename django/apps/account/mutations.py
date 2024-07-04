@@ -62,6 +62,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
     OrganizationMembership,
     Profile,
     ReferenceCheckEmployer,
@@ -897,6 +898,70 @@ class OrganizationCommunicationMethodVerify(graphene.Mutation):
         return cls(success=result)
 
 
+ORGANIZATION_JOB_POSITION_FIELDS = [
+    OrganizationJobPosition.title.field.name,
+    OrganizationJobPosition.vaccancy.field.name,
+    OrganizationJobPosition.start_at.field.name,
+    OrganizationJobPosition.validity_date.field.name,
+    OrganizationJobPosition.description.field.name,
+    OrganizationJobPosition.skills.field.name,
+    OrganizationJobPosition.educations.field.name,
+    OrganizationJobPosition.work_experience_years.field.name,
+    OrganizationJobPosition.languages.field.name,
+    OrganizationJobPosition.native_languages.field.name,
+    OrganizationJobPosition.age_range.field.name,
+    OrganizationJobPosition.required_document.field.name,
+    OrganizationJobPosition.performance_expectation.field.name,
+    OrganizationJobPosition.contract_type.field.name,
+    OrganizationJobPosition.salary_min.field.name,
+    OrganizationJobPosition.salary_max.field.name,
+    OrganizationJobPosition.payment_term.field.name,
+    OrganizationJobPosition.working_start_at.field.name,
+    OrganizationJobPosition.working_end_at.field.name,
+    OrganizationJobPosition.benefits.field.name,
+    OrganizationJobPosition.days_off.field.name,
+    OrganizationJobPosition.job_restrictions.field.name,
+    OrganizationJobPosition.employer_questions.field.name,
+]
+
+
+class OrganizationJobPositionCreateMutation(DjangoCreateMutation):
+    class Meta:
+        model = OrganizationJobPosition
+        login_required = True
+        fields = ORGANIZATION_JOB_POSITION_FIELDS + [
+            OrganizationJobPosition.organization.field.name,
+        ]
+
+
+class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
+    class Meta:
+        model = OrganizationJobPosition
+        login_required = True
+        fields = ORGANIZATION_JOB_POSITION_FIELDS + [
+            OrganizationJobPosition.status.field.name,
+        ]
+
+    @classmethod
+    def validate(cls, root, info, input, id, obj):
+        if obj.status in [
+            OrganizationJobPosition.Status.COMPLETED,
+            OrganizationJobPosition.Status.EXPIRED.value,
+        ]:
+            raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
+
+        return super().validate(root, info, input, id, obj)
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj):
+        if status := input.get(OrganizationJobPosition.status.field.name):
+            if status.value == OrganizationJobPosition.Status.PUBLISHED.value:
+                missing_fields = [field for field in obj.required_fields() if not getattr(obj, field)]
+                if missing_fields:
+                    raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
+        return super().before_save(root, info, input, id, obj)
+
+
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
@@ -981,6 +1046,8 @@ class OrganizationMutation(graphene.ObjectType):
     update = OrganizationUpdateMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
+    create_job_position = OrganizationJobPositionCreateMutation.Field()
+    update_job_position = OrganizationJobPositionUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
