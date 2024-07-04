@@ -1646,6 +1646,7 @@ class OrganizationJobPosition(models.Model):
 
     # TODO: check if below field has to be ManyToManyField to Skill model
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="job_positions")
+    # TODO: check if below field has to be ManyToManyField to Field model
     educations = models.ManyToManyField(Field, verbose_name=_("Educations"), related_name="job_positions")
     work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
     languages = ArrayField(
@@ -1654,15 +1655,27 @@ class OrganizationJobPosition(models.Model):
         null=True,
         blank=True,
     )
+    native_languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32),
+        verbose_name=_("Native Languages"),
+        null=True,
+        blank=True,
+    )
     age_range = models.CharField(max_length=50, choices=Age.choices, verbose_name=_("Age Range"), null=True, blank=True)
-    required_document = ArrayField(models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True)
+    required_document = ArrayField(
+        models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True
+    )
     performance_expectation = models.TextField(verbose_name=_("Performance Expectation"), null=True, blank=True)
 
-    contract_type = models.CharField(max_length=50, choices=ContractType.choices, verbose_name=_("Contract Type"), null=True, blank=True)
+    contract_type = models.CharField(
+        max_length=50, choices=ContractType.choices, verbose_name=_("Contract Type"), null=True, blank=True
+    )
     salary_min = models.PositiveIntegerField(verbose_name=_("Salary Min"), null=True, blank=True)
     salary_max = models.PositiveIntegerField(verbose_name=_("Salary Max"), null=True, blank=True)
     # TODO: check if below field is correct
-    payment_term = models.CharField(max_length=50, choices=PaymentTerm.choices, verbose_name=_("Payment Term"), null=True, blank=True)
+    payment_term = models.CharField(
+        max_length=50, choices=PaymentTerm.choices, verbose_name=_("Payment Term"), null=True, blank=True
+    )
     working_start_at = models.TimeField(verbose_name=_("Working Start At"), null=True, blank=True)
     working_end_at = models.TimeField(verbose_name=_("Working End At"), null=True, blank=True)
     # TODO: check if below field
@@ -1674,7 +1687,9 @@ class OrganizationJobPosition(models.Model):
         blank=True,
     )
     job_restrictions = models.TextField(verbose_name=_("Job Restrictions"), null=True, blank=True)
-    employer_questions = ArrayField(models.CharField(max_length=255), verbose_name=_("Employer Questions"), null=True, blank=True)
+    employer_questions = ArrayField(
+        models.CharField(max_length=255), verbose_name=_("Employer Questions"), null=True, blank=True
+    )
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
     status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
@@ -1695,4 +1710,14 @@ class OrganizationJobPosition(models.Model):
         # TODO: update below fields
         return [
             OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.skills.field.name,
+            OrganizationJobPosition.educations.field.name,
+            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.contract_type.field.name,
         ]
