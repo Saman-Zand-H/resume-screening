@@ -1,8 +1,9 @@
-from common.utils import fields_join, nested_getattr
+from common.utils import LOOKUP_SEP, fields_join, nested_getattr
 from import_export import fields
 from import_export.resources import ModelResource
 
 from django.conf import settings
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 
 from ..models import (
@@ -18,6 +19,67 @@ from ..models import (
 
 class ProfileResource(ModelResource):
     phone_number = fields.Field(column_name=_("Phone Number"))
+    educations = fields.Field(column_name=_("Educations"))
+    work_experiences = fields.Field(column_name=_("Work Experiences"))
+    language_certificates = fields.Field(column_name=_("Language Certificates"))
+    certificate_and_licenses = fields.Field(column_name=_("Certificates and Licenses"))
+    birth_date = fields.Field(column_name=_("Birth Date"), default="_")
+
+    def dehydrate_educations(self, obj: Profile):
+        return "\n\n".join(
+            "\n".join(
+                [
+                    f"Degree: {education.get_degree_display()}",
+                    f"Status: {education.get_status_display()}",
+                    f"University: {education.university.name}",
+                    f"Admin Link: {settings.SITE_DOMAIN.strip("/")}/{reverse_lazy('admin:auth_account_education_change', args=[education.pk])}",
+                ]
+            )
+            for education in Education.objects.filter(**{Education.user.field.name: obj.user})
+        )
+
+    def dehydrate_work_experiences(self, obj: Profile):
+        return "\n\n".join(
+            "\n".join(
+                [
+                    f"Job Title: {work_experience.job_title}",
+                    f"Status: {work_experience.get_status_display()}",
+                    f"Organization: {work_experience.organization}",
+                    f"Admin Link: {settings.SITE_DOMAIN.rstrip('/')}/{reverse_lazy('admin:auth_account_workexperience_change', args=[work_experience.pk])}",
+                ]
+            )
+            for work_experience in WorkExperience.objects.filter(**{WorkExperience.user.field.name: obj.user})
+        )
+
+    def dehydrate_certificate_and_licenses(self, obj: Profile):
+        return "\n\n".join(
+            "\n".join(
+                [
+                    f"Title: {certificate_and_license.title}",
+                    f"Status: {certificate_and_license.get_status_display()}",
+                    f"Certifier: {certificate_and_license.certifier}",
+                    f"Admin Link: {settings.SITE_DOMAIN.rstrip('/')}/{reverse_lazy('admin:auth_account_certificateandlicense_change', args=[certificate_and_license.pk])}",
+                ]
+            )
+            for certificate_and_license in CertificateAndLicense.objects.filter(
+                **{CertificateAndLicense.user.field.name: obj.user}
+            )
+        )
+
+    def dehydrate_language_certificates(self, obj: Profile):
+        return "\n\n".join(
+            "\n".join(
+                [
+                    f"Language: {language_certificate.language.name}",
+                    f"Test: {language_certificate.test.title}",
+                    f"Level: {language_certificate.get_level_display()}",
+                    f"Admin Link: {settings.SITE_DOMAIN.rstrip('/')}/{reverse_lazy('admin:auth_account_languagecertificate_change', args=[language_certificate.pk])}",
+                ]
+            )
+            for language_certificate in LanguageCertificate.objects.filter(
+                **{LanguageCertificate.user.field.name: obj.user}
+            )
+        )
 
     def dehydrate_phone_number(self, obj: Profile):
         return ", ".join(
@@ -43,9 +105,12 @@ class ProfileResource(ModelResource):
             "email",
             "full_name",
             "phone_number",
+            "educations",
             Profile.birth_date.field.name,
             Profile.avatar.field.name,
             Profile.gender.field.name,
+            Profile.credits.field.name,
+            Profile.score.field.name,
         ]
         widgets = {
             Profile.birth_date.field.name: {"format": "%Y-%m-%d"},
@@ -76,7 +141,7 @@ class EducationResource(ModelResource):
         return obj.university.name
 
     def dehydrate_email(self, obj: Education):
-        return nested_getattr(obj, fields_join(Education.profile, User.email))
+        return nested_getattr(obj, fields_join(Education.user, User.email), LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: Education):
         return ", ".join(
@@ -122,7 +187,7 @@ class WorkExperienceResource(ModelResource):
         return obj.city.display_name
 
     def dehydrate_email(self, obj: WorkExperience):
-        return nested_getattr(obj, fields_join(WorkExperience.profile, User.email))
+        return nested_getattr(obj, fields_join(WorkExperience.user, User.email), delimeter=LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: WorkExperience):
         return ", ".join(
@@ -167,7 +232,7 @@ class LanguageCertificateResource(ModelResource):
         return obj.scores
 
     def dehydrate_email(self, obj: LanguageCertificate):
-        return nested_getattr(obj, fields_join(LanguageCertificate.profile, User.email))
+        return nested_getattr(obj, fields_join(LanguageCertificate.user, User.email), delimeter=LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: LanguageCertificate):
         return ", ".join(
@@ -206,7 +271,7 @@ class CertificateAndLicenseResource(ModelResource):
         return obj.duration
 
     def dehydrate_email(self, obj: CertificateAndLicense):
-        return nested_getattr(obj, fields_join(CertificateAndLicense.profile, User.email))
+        return nested_getattr(obj, fields_join(CertificateAndLicense.user, User.email), delimeter=LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: CertificateAndLicense):
         return ", ".join(

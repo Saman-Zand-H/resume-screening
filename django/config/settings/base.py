@@ -16,6 +16,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from import_export.formats.base_formats import XLSX
 
 from .constants import Assistants
 
@@ -326,3 +327,5 @@ ACADEMY_SETTINGS = {
     "PASSWORD": os.environ.get("ACADEMY_PASSWORD"),
     "WEBHOOK_SECRET": os.environ.get("ACADEMY_WEBHOOK_SECRET"),
 }
+
+EXPORT_FORMATS = [XLSX]
