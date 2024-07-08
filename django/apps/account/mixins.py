@@ -1,11 +1,7 @@
-from functools import wraps
 from operator import call
-from typing import Any, Callable, Dict
+from typing import Any, Dict, List
 
-import graphene
 from common.exceptions import GraphQLErrorBadRequest
-from graphene.types.resolver import get_default_resolver
-from graphene.types.utils import yank_fields_from_attrs
 from graphene_django_cud.mutations import DjangoPatchMutation
 from rules.rulesets import test_rule
 
@@ -29,17 +25,25 @@ class AccessRequiredMixin:
         return get_user_model().objects.filter(access_q, id=user.id).exists()
 
     @classmethod
-    def has_access(cls, access_slug: str, **kwargs):
-        if not test_rule(access_slug, **kwargs):
-            cls.access_denied()
+    def has_item_access(cls, access_slug, info, **kwargs):
+        return test_rule(access_slug, cls.get_has_access_kwargs(access_slug, info, **kwargs))
 
     @classmethod
-    def get_rule_object(cls, info, *args, **kwargs) -> Dict[str, Any]:
+    def has_access(cls, accesses: List[AccessType], info, **kwargs):
+        if not any(cls.has_item_access(access.slug, info, **kwargs) for access in accesses):
+            cls.access_denied(accesses)
+
+    @classmethod
+    def get_rule_object(cls, info=None, *args, **kwargs) -> Dict[str, Any]:
         return {}
 
     @classmethod
     def access_denied(cls, access_slug: str):
         raise PermissionError("You don't have permission to perform this action.")
+
+    @classmethod
+    def get_has_access_kwargs(cls, access_slug: str, info, **kwargs):
+        return {"instance": cls.get_rule_object(info), "user": cls.get_user(info), "access_slug": access_slug, **kwargs}
 
     @classmethod
     def get_user(cls, info, *args, **kwargs):
@@ -50,66 +54,13 @@ class AccessRequiredMixin:
 
 
 class MutationAccessRequiredMixin(AccessRequiredMixin):
-    access: AccessType = None
+    accesses: List[AccessType] = []
 
     @classmethod
     def mutate(cls, root, info, *args, **kwargs):
-        has_access_kwargs = cls.get_rule_object() or {}
-        if user := cls.get_user(info, *args, **kwargs):
-            has_access_kwargs["user"] = user
-
-        if cls.find_related_access(info, cls.access.slug):
-            cls.has_access(cls.access.slug, **has_access_kwargs)
-        elif not cls.access.default_predicate(**has_access_kwargs):
-            cls.access_denied(cls.access.slug)
+        cls.has_access(cls.accesses, info)
 
         return super().mutate(root, info, *args, **kwargs)
-
-
-class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
-    fields_access: Dict[str, AccessType] = {}
-
-    @classmethod
-    def resolver_wrapper(cls, field_name: str) -> Callable:
-        def wrapper(resolver: Callable) -> Callable:
-            @wraps(resolver)
-            def inner_wrapper(root, info, *args, **kwargs):
-                has_access_kwargs = cls.get_rule_object(root, info, *args, **kwargs)
-                if user := cls.get_user(info, *args, **kwargs):
-                    has_access_kwargs["user"] = user
-
-                if cls.find_related_access(info, cls.fields_access.get(field_name).slug):
-                    cls.has_access(cls.fields_access.get(field_name).slug, **has_access_kwargs)
-                elif not cls.fields_access.get(field_name).default_predicate(**has_access_kwargs):
-                    cls.access_denied(cls.fields_access.get(field_name).slug)
-
-                return resolver(root, info, *args, **kwargs)
-
-            return inner_wrapper
-
-        return wrapper
-
-    @classmethod
-    def __init_subclass_with_meta__(cls, *args, **kwargs):
-        attr_fields = yank_fields_from_attrs(cls.__dict__, _as=graphene.Field)
-        registered_field_resolvers = set()
-
-        for field_name, graphene_field in attr_fields.items():
-            if getattr(graphene_field, "resolver", False):
-                wrapper = cls.resolver_wrapper(field_name)
-                setattr(cls, f"resolve_{field_name}", wrapper(graphene_field.resolver))
-                registered_field_resolvers.add(field_name)
-                continue
-
-            if resolver := getattr(cls, f"resolve_{field_name}", False):
-                wrapper = cls.resolver_wrapper(field_name)
-                setattr(cls, f"resolve_{field_name}", wrapper(resolver))
-                registered_field_resolvers.add(field_name)
-
-        if len(cls.fields_access) != len(registered_field_resolvers):
-            kwargs.update(default_resolver=wrapper(kwargs.get("default_resolver", get_default_resolver())))
-
-        super().__init_subclass_with_meta__(*args, **kwargs)
 
 
 class EmailVerificationMixin:

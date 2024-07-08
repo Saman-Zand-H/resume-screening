@@ -1,39 +1,60 @@
-from typing import Annotated, Callable, List, Optional, Type
+from typing import Callable, List, Optional, Type, TypedDict
 
 from common.utils import get_all_subclasses
-from pydantic import AfterValidator, BaseModel
+from pydantic import BaseModel
 from rules import predicates
 from rules.rulesets import add_rule
 
-from django.core.validators import validate_slug as django_validate_slug
-from django.utils.functional import classproperty, lazy
+from django.db.models import Model
+from django.utils.functional import classproperty
+
+
+class AccessPredicateArgument(TypedDict):
+    user: Model
+    access_slug: str
+    instance: Optional[Model]
 
 
 class AccessType(BaseModel):
-    slug: Annotated[str, AfterValidator(django_validate_slug)]
+    slug: str
     description: Optional[str] = None
-    predicate: Optional[Callable] = predicates.always_allow
-    default_predicate: Optional[Callable] = predicates.always_deny
+    predicate: Optional[Callable[[AccessPredicateArgument], bool]] = predicates.always_allow
+    fallback_predicate: Optional[Callable[[AccessPredicateArgument], bool]] = predicates.always_deny
 
 
 @predicates.predicate
-def check_user_ownership(user, instance):
-    from .models import User
+def has_related_access(kwargs: AccessPredicateArgument):
+    user = kwargs.get("user")
+    access_slug = kwargs.get("access_slug")
 
-    assert isinstance(user, User) and hasattr(instance, "user")
+    return user.has_access(access_slug)
+
+
+@predicates.predicate
+def check_user_ownership(kwargs: AccessPredicateArgument):
+    user = kwargs.get("user")
+    if not (instance := kwargs.get("instance")):
+        raise AttributeError("Instance is required for check_user_ownership predicate")
+
+    assert hasattr(instance, "user"), f"{instance} of class {instance.__class__} does not have a user attribute"
     return instance.user == user
 
 
 class AccessContainer:
     @classmethod
     def get_accesses(cls) -> List[Type[AccessType]]:
-        return list(filter(lambda access: isinstance(access, AccessType), cls.__dict__.values()))
+        return list(
+            filter(
+                lambda access: isinstance(getattr(cls, access), AccessType),
+                dir(cls),
+            )
+        )
 
-    @lazy
     @classmethod
     def register_rules(cls) -> None:
-        for access in cls.get_accesses():
-            add_rule(access.slug, access.predicate)
+        for access_attr in cls.get_accesses():
+            access = getattr(cls, access_attr)
+            add_rule(access.slug, (has_related_access & access.predicate) | access.fallback_predicate)
 
     @classmethod
     def register_all_rules(cls) -> None:
@@ -52,7 +73,7 @@ class CRUDAccessContainer(AccessContainer):
             slug=f"can_add_{(access_name:=cls.get_access_name())}",
             description=f"Can add all {access_name}",
             predicate=check_user_ownership,
-            default_predicate=check_user_ownership,
+            fallback_predicate=check_user_ownership,
         )
 
     @classproperty
@@ -69,7 +90,7 @@ class CRUDAccessContainer(AccessContainer):
             slug=f"can_view_{(access_name:=cls.get_access_name())}",
             description=f"Can view all {access_name}",
             predicate=check_user_ownership,
-            default_predicate=check_user_ownership,
+            fallback_predicate=check_user_ownership,
         )
 
     @classproperty
@@ -116,7 +137,7 @@ class VerificationAccessContainer(AccessContainer):
             slug=f"can_change_verification_method_{(access_name:=cls.get_access_name())}",
             description=f"Can change verification methods for all {access_name}",
             predicate=check_user_ownership,
-            default_predicate=check_user_ownership,
+            fallback_predicate=check_user_ownership,
         )
 
     @classproperty
