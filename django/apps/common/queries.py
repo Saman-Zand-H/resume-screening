@@ -14,6 +14,7 @@ from .types import (
     LanguageProficiencyTestNode,
     RegionNode,
     UniversityNode,
+    JobBenefitNode,
 )
 
 
@@ -27,6 +28,7 @@ class CommonQuery(graphene.ObjectType):
     job_categories = DjangoFilterConnectionField(JobCategoryNode)
     jobs = DjangoFilterConnectionField(JobNode)
     industries = DjangoFilterConnectionField(IndustryNode)
+    job_benefits = DjangoFilterConnectionField(JobBenefitNode)
 
 
 class MetaDataQuery(graphene.ObjectType):
