@@ -70,7 +70,7 @@ class ProfileResource(ModelResource):
         return "\n\n".join(
             "\n".join(
                 [
-                    f"Language: {language_certificate.language.name}",
+                    f"Language: {language_certificate.language}",
                     f"Test: {language_certificate.test.title}",
                     f"Level: {language_certificate.get_level_display()}",
                     f"Admin Link: {settings.SITE_DOMAIN.strip('/')}/{reverse_lazy('admin:auth_account_languagecertificate_change', args=[language_certificate.pk])}",
