@@ -93,9 +93,8 @@ class GeneratedCV(FileModel):
 
     @classmethod
     def get_resume_info(cls, user: User):
-        if (instance := cls.objects.filter(user=user).first()) and instance.input_json == (
-            input_json := get_resume_info_input(user)
-        ):
+        input_json = get_resume_info_input(user)
+        if (instance := cls.objects.filter(user=user).first()) and instance.input_json == input_json:
             return {
                 "work_experiences": instance.work_experiences,
                 "educations": instance.educations,
