@@ -101,6 +101,9 @@ class ProfileResource(ModelResource):
     def dehydrate_full_name(self, obj: Profile):
         return obj.user.full_name
 
+    def dehydrate_email(self, obj: Profile):
+        return obj.user.email
+
     class Meta:
         model = Profile
         fields = [
