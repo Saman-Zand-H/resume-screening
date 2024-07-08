@@ -1,4 +1,5 @@
 import graphene
+from graphene import Field, String
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode
@@ -391,6 +392,8 @@ class OrganizationInvitationType(DjangoObjectType):
 
 
 class OrganizationJobPositionNode(DjangoObjectType):
+    status = Field(String, description="The current status of the job position.")
+
     class Meta:
         model = OrganizationJobPosition
         use_connection = True
@@ -402,14 +405,17 @@ class OrganizationJobPositionNode(DjangoObjectType):
             OrganizationJobPosition.validity_date.field.name,
             OrganizationJobPosition.description.field.name,
             OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.educations.field.name,
+            OrganizationJobPosition.fields.field.name,
+            OrganizationJobPosition.degrees.field.name,
             OrganizationJobPosition.work_experience_years.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
-            OrganizationJobPosition.age_range.field.name,
-            OrganizationJobPosition.required_document.field.name,
+            OrganizationJobPosition.age_min.field.name,
+            OrganizationJobPosition.age_max.field.name,
+            OrganizationJobPosition.required_documents.field.name,
             OrganizationJobPosition.performance_expectation.field.name,
             OrganizationJobPosition.contract_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
             OrganizationJobPosition.salary_min.field.name,
             OrganizationJobPosition.salary_max.field.name,
             OrganizationJobPosition.payment_term.field.name,
@@ -419,11 +425,15 @@ class OrganizationJobPositionNode(DjangoObjectType):
             OrganizationJobPosition.days_off.field.name,
             OrganizationJobPosition.job_restrictions.field.name,
             OrganizationJobPosition.employer_questions.field.name,
-            OrganizationJobPosition.status.field.name,
+            OrganizationJobPosition.city.field.name,
         )
         filter_fields = {
             OrganizationJobPosition.organization.field.name: ["exact"],
             OrganizationJobPosition.title.field.name: ["icontains"],
-            OrganizationJobPosition.status.field.name: ["exact"],
+            OrganizationJobPosition._status.field.name: ["exact"],
             OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
+            OrganizationJobPosition.city.field.name: ["exact"],
         }
+
+    def resolve_status(self, info):
+        return self.status
