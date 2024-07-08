@@ -26,6 +26,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
     OrganizationMembership,
     PaystubsMethod,
     Profile,
@@ -387,3 +388,42 @@ class OrganizationInvitationType(DjangoObjectType):
             return model.objects.get(token=token)
         except model.DoesNotExist:
             return None
+
+
+class OrganizationJobPositionNode(DjangoObjectType):
+    class Meta:
+        model = OrganizationJobPosition
+        use_connection = True
+        fields = (
+            OrganizationJobPosition.id.field.name,
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.skills.field.name,
+            OrganizationJobPosition.educations.field.name,
+            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.age_range.field.name,
+            OrganizationJobPosition.required_document.field.name,
+            OrganizationJobPosition.performance_expectation.field.name,
+            OrganizationJobPosition.contract_type.field.name,
+            OrganizationJobPosition.salary_min.field.name,
+            OrganizationJobPosition.salary_max.field.name,
+            OrganizationJobPosition.payment_term.field.name,
+            OrganizationJobPosition.working_start_at.field.name,
+            OrganizationJobPosition.working_end_at.field.name,
+            OrganizationJobPosition.benefits.field.name,
+            OrganizationJobPosition.days_off.field.name,
+            OrganizationJobPosition.job_restrictions.field.name,
+            OrganizationJobPosition.employer_questions.field.name,
+            OrganizationJobPosition.status.field.name,
+        )
+        filter_fields = {
+            OrganizationJobPosition.organization.field.name: ["exact"],
+            OrganizationJobPosition.title.field.name: ["icontains"],
+            OrganizationJobPosition.status.field.name: ["exact"],
+            OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
+        }

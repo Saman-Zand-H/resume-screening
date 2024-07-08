@@ -488,7 +488,7 @@ class Profile(ComputedFieldsModel):
         )
         with contextlib.suppress(ObjectDoesNotExist):
             _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * (
-                500 if is_early_user else 250
+                150 if is_early_user else 100
             )
         return _credits
 
@@ -1768,11 +1768,18 @@ class OrganizationJobPosition(models.Model):
 
     # TODO: check if below field has to be ManyToManyField to Skill model
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="job_positions")
+    # TODO: check if below field has to be ManyToManyField to Field model
     educations = models.ManyToManyField(Field, verbose_name=_("Educations"), related_name="job_positions")
     work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
     languages = ArrayField(
         models.CharField(choices=LANGUAGES, max_length=32),
         verbose_name=_("Languages"),
+        null=True,
+        blank=True,
+    )
+    native_languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32),
+        verbose_name=_("Native Languages"),
         null=True,
         blank=True,
     )
@@ -1839,4 +1846,14 @@ class OrganizationJobPosition(models.Model):
         # TODO: update below fields
         return [
             OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.skills.field.name,
+            OrganizationJobPosition.educations.field.name,
+            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.contract_type.field.name,
         ]
