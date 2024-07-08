@@ -1,13 +1,63 @@
 from operator import call
+from typing import Any, Dict, List
 
 from common.exceptions import GraphQLErrorBadRequest
 from graphene_django_cud.mutations import DjangoPatchMutation
+from rules.rulesets import test_rule
 
 from django.template.loader import render_to_string
 
+from .accesses import AccessType
 from .constants import VERIFICATION_EMAIL_FROM, VERIFICATION_PHONE_FROM
 from .tasks import send_email_async
 from .utils import IDLikeObject
+
+
+class AccessRequiredMixin:
+    @classmethod
+    def has_item_access(cls, access_slug, info, **kwargs):
+        from .models import User
+
+        has_access_kwargs = cls.get_has_access_kwargs(access_slug, info, **kwargs)
+        user: User = has_access_kwargs.get("user")
+        if not user:
+            return
+
+        return user.has_access(access_slug) and test_rule(access_slug, has_access_kwargs)
+
+    @classmethod
+    def has_access(cls, accesses: List[AccessType], info, **kwargs):
+        if not any(cls.has_item_access(access.slug, info, **kwargs) for access in accesses):
+            cls.access_denied(accesses)
+
+    @classmethod
+    def get_rule_object(cls, info=None, *args, **kwargs) -> Dict[str, Any]:
+        return {}
+
+    @classmethod
+    def access_denied(cls, access_slug: str):
+        raise PermissionError("You don't have permission to perform this action.")
+
+    @classmethod
+    def get_has_access_kwargs(cls, access_slug: str, info, **kwargs):
+        return {"instance": cls.get_rule_object(info), "user": cls.get_user(info), "access_slug": access_slug, **kwargs}
+
+    @classmethod
+    def get_user(cls, info, *args, **kwargs):
+        if not getattr(info, "context", False):
+            return
+
+        return info.context.user
+
+
+class MutationAccessRequiredMixin(AccessRequiredMixin):
+    accesses: List[AccessType] = []
+
+    @classmethod
+    def mutate(cls, root, info, *args, **kwargs):
+        cls.has_access(cls.accesses, info)
+
+        return super().mutate(root, info, *args, **kwargs)
 
 
 class EmailVerificationMixin:

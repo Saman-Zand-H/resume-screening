@@ -2,6 +2,14 @@ from functools import partial
 
 from ai.types import CachableVectorStore
 from common.models import Job, Skill
+from disposable_email_domains import blocklist
+
+EXTENDED_EMAIL_BLOCKLIST = blocklist.union(
+    {
+        "kisoq.com",
+        "myweblaw.com",
+    }
+)
 
 EARLY_USERS_COUNT = 1000
 

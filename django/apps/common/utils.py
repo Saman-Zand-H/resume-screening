@@ -1,4 +1,4 @@
-from functools import lru_cache
+from functools import lru_cache, reduce
 from typing import Set
 
 import graphene
@@ -9,6 +9,10 @@ from django.db.models.constants import LOOKUP_SEP
 
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
 from .models import FileModel
+
+
+def nested_getattr(obj, attr, delimeter="."):
+    return reduce(getattr, attr.split(delimeter), obj)
 
 
 def get_all_subclasses[T](klass: T) -> Set[T]:

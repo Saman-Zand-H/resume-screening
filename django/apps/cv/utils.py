@@ -39,34 +39,55 @@ def crop_last_page(input_bytes: bytes) -> bytes:
     return output_stream.getvalue()
 
 
-def merge_pdf_pages_to_single_page(input_pdf_bytes):
+def merge_pdf_pages_to_single_page(input_pdf_bytes: bytes):
     import fitz
 
-    input_pdf = fitz.open(stream=input_pdf_bytes, filetype="pdf")
-    output_pdf = fitz.open()
-    output_page = output_pdf.new_page(
-        width=input_pdf[0].rect.width,
-        height=input_pdf[0].rect.height * input_pdf.page_count,
-    )
-
-    y_offset = 0
-    for page_num in range(input_pdf.page_count):
-        page = input_pdf.load_page(page_num)
-        output_page.show_pdf_page(
-            fitz.Rect(0, y_offset, page.rect.width, y_offset + page.rect.height),
-            input_pdf,
-            page_num,
-            keep_proxies=True,
+    with fitz.open(stream=input_pdf_bytes, filetype="pdf") as input_pdf:
+        output_pdf = fitz.open()
+        output_page = output_pdf.new_page(
+            width=input_pdf[0].rect.width,
+            height=input_pdf[0].rect.height * input_pdf.page_count,
         )
-        y_offset += page.rect.height
 
-    output_pdf_bytes = io.BytesIO()
-    output_pdf.save(output_pdf_bytes)
-    output_pdf_bytes.seek(0)
+        y_offset = 0
+        for page_num in range(input_pdf.page_count):
+            page = input_pdf.load_page(page_num)
+
+            rect = fitz.Rect(0, y_offset, page.rect.width, y_offset + page.rect.height)
+            output_page.show_pdf_page(rect, input_pdf, page_num)
+
+            for link in page.get_links():
+                link_rect = fitz.Rect(link["from"])
+                link_rect.y0 += y_offset
+                link_rect.y1 += y_offset
+                output_page.insert_link(
+                    {
+                        "from": link_rect,
+                        "uri": link.get("uri"),
+                        "kind": link.get("kind"),
+                        "dest": link.get("dest"),
+                    }
+                )
+
+            y_offset += page.rect.height
+
+        output_pdf_bytes = io.BytesIO()
+        output_pdf.save(output_pdf_bytes)
+        output_pdf_bytes.seek(0)
+
     return crop_last_page(output_pdf_bytes.getvalue())
 
 
-def extract_generated_resume_input(user):
+def get_resume_info_input(user) -> dict:
+    data = get_user_additional_information(user.id)
+
+    if hasattr(user, "resume"):
+        data["resume_data"] = user.resume.resume_json
+
+    return data
+
+
+def extract_generated_resume_info(user):
     data = get_user_additional_information(user.id)
 
     if hasattr(user, "resume"):

@@ -2,6 +2,7 @@ import contextlib
 from datetime import timedelta
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -25,15 +26,14 @@ from graphql_auth.constants import TokenAction
 from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
-from graphql_auth.utils import get_token, get_token_payload
 from graphql_auth.shortcuts import get_user_by_email
+from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import (
     login_required,
     on_token_auth_resolve,
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
@@ -53,8 +53,8 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
-    Contact,
     CommunicateOrganizationMethod,
+    Contact,
     DocumentAbstract,
     Education,
     EmployerLetterMethod,
@@ -212,7 +212,10 @@ class RegisterOrganization(Register):
         organization = Organization.objects.create(name=organization_name, user=user)
         try:
             OrganizationMembership.objects.create(
-                user=user, organization=organization, role=OrganizationMembership.Role.CREATOR.value, invited_by=user
+                user=user,
+                organization=organization,
+                role=OrganizationMembership.UserRole.CREATOR.value,
+                invited_by=user,
             )
         except IntegrityError:
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
@@ -361,8 +364,8 @@ class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPa
         user = info.context.user
         org_users = {membership.user: membership.role for membership in obj.memberships.all()}
         if user not in org_users or org_users[user] not in [
-            OrganizationMembership.Role.ASSOCIATE.value,
-            OrganizationMembership.Role.CREATOR.value,
+            OrganizationMembership.UserRole.ASSOCIATE.value,
+            OrganizationMembership.UserRole.CREATOR.value,
         ]:
             raise PermissionError("Not permitted to modify this record.")
         return super().check_permissions(root, info, input, id, obj)
