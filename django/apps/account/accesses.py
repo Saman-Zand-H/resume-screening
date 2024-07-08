@@ -19,15 +19,6 @@ class AccessType(BaseModel):
     slug: str
     description: Optional[str] = None
     predicate: Optional[Callable[[AccessPredicateArgument], bool]] = predicates.always_allow
-    fallback_predicate: Optional[Callable[[AccessPredicateArgument], bool]] = predicates.always_deny
-
-
-@predicates.predicate
-def has_related_access(kwargs: AccessPredicateArgument):
-    user = kwargs.get("user")
-    access_slug = kwargs.get("access_slug")
-
-    return user.has_access(access_slug)
 
 
 @predicates.predicate
@@ -54,7 +45,7 @@ class AccessContainer:
     def register_rules(cls) -> None:
         for access_attr in cls.get_accesses():
             access = getattr(cls, access_attr)
-            add_rule(access.slug, (has_related_access & access.predicate) | access.fallback_predicate)
+            add_rule(access.slug, access.predicate)
 
     @classmethod
     def register_all_rules(cls) -> None:
@@ -73,7 +64,6 @@ class CRUDAccessContainer(AccessContainer):
             slug=f"can_add_{(access_name:=cls.get_access_name())}",
             description=f"Can add all {access_name}",
             predicate=check_user_ownership,
-            fallback_predicate=check_user_ownership,
         )
 
     @classproperty
@@ -90,7 +80,6 @@ class CRUDAccessContainer(AccessContainer):
             slug=f"can_view_{(access_name:=cls.get_access_name())}",
             description=f"Can view all {access_name}",
             predicate=check_user_ownership,
-            fallback_predicate=check_user_ownership,
         )
 
     @classproperty
@@ -137,7 +126,6 @@ class VerificationAccessContainer(AccessContainer):
             slug=f"can_change_verification_method_{(access_name:=cls.get_access_name())}",
             description=f"Can change verification methods for all {access_name}",
             predicate=check_user_ownership,
-            fallback_predicate=check_user_ownership,
         )
 
     @classproperty

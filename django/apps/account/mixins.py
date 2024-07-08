@@ -5,8 +5,6 @@ from common.exceptions import GraphQLErrorBadRequest
 from graphene_django_cud.mutations import DjangoPatchMutation
 from rules.rulesets import test_rule
 
-from django.contrib.auth import get_user_model
-from django.db.models import Q
 from django.template.loader import render_to_string
 
 from .accesses import AccessType
@@ -17,16 +15,15 @@ from .utils import IDLikeObject
 
 class AccessRequiredMixin:
     @classmethod
-    def find_related_access(cls, info, access_slug):
-        if not (user := cls.get_user(info)):
+    def has_item_access(cls, access_slug, info, **kwargs):
+        from .models import User
+
+        has_access_kwargs = cls.get_has_access_kwargs(access_slug, info, **kwargs)
+        user: User = has_access_kwargs.get("user")
+        if not user:
             return
 
-        access_q = Q(role__accesses__slug=access_slug) | Q(memberships__role__accesses__slug=access_slug)
-        return get_user_model().objects.filter(access_q, id=user.id).exists()
-
-    @classmethod
-    def has_item_access(cls, access_slug, info, **kwargs):
-        return test_rule(access_slug, cls.get_has_access_kwargs(access_slug, info, **kwargs))
+        return user.has_access(access_slug) and test_rule(access_slug, has_access_kwargs)
 
     @classmethod
     def has_access(cls, accesses: List[AccessType], info, **kwargs):

@@ -78,7 +78,16 @@ def merge_pdf_pages_to_single_page(input_pdf_bytes: bytes):
     return crop_last_page(output_pdf_bytes.getvalue())
 
 
-def extract_generated_resume_input(user):
+def get_resume_info_input(user) -> dict:
+    data = get_user_additional_information(user.id)
+
+    if hasattr(user, "resume"):
+        data["resume_data"] = user.resume.resume_json
+
+    return data
+
+
+def extract_generated_resume_info(user):
     data = get_user_additional_information(user.id)
 
     if hasattr(user, "resume"):
