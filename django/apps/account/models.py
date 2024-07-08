@@ -1,10 +1,13 @@
 import base64
 import contextlib
+import random
 import re
+import string
 import uuid
-from datetime import timedelta
 from typing import Dict, Optional
 
+from markdownfield.models import MarkdownField
+from markdownfield.validators import VALIDATOR_STANDARD
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -18,8 +21,9 @@ from common.models import (
     LanguageProficiencyTest,
     Skill,
     University,
+    JobBenefit,
 )
-from common.utils import get_all_subclasses
+from common.utils import fields_join, get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -27,6 +31,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
     ValidateFileSize,
 )
+from common.exceptions import GraphQLErrorBadRequest
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
@@ -34,22 +39,36 @@ from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
 
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from .choices import get_task_names_choices
-from .constants import SUPPORT_RECIPIENT_LIST, SUPPORT_TICKET_SUBJECT_TEMPLATE
+from .choices import get_access_slugs, get_task_names_choices
+from .constants import (
+    EARLY_USERS_COUNT,
+    ORGANIZATION_PHONE_OTP_CACHE_KEY,
+    ORGANIZATION_PHONE_OTP_EXPIRY,
+    SUPPORT_RECIPIENT_LIST,
+    SUPPORT_TICKET_SUBJECT_TEMPLATE,
+)
 from .managers import CertificateAndLicenseManager, UserManager
 from .mixins import EmailVerificationMixin
-from .validators import LinkedInUsernameValidator, NameValidator, WhatsAppValidator
+from .validators import (
+    BlocklistEmailDomainValidator,
+    LinkedInUsernameValidator,
+    NameValidator,
+    NoTagEmailValidator,
+    WhatsAppValidator,
+)
 
 
 def fix_whatsapp_value(value):
@@ -84,6 +103,10 @@ def generate_ticket_id():
     return str(uuid.uuid4())[:8]
 
 
+def get_phone_otp(length=6):
+    return "".join(random.choices(string.digits, k=length))
+
+
 class Contactable(models.Model):
     class Meta:
         verbose_name = _("Contactable")
@@ -106,6 +129,7 @@ class User(AbstractUser):
             "blank": False,
             "null": False,
             "db_index": True,
+            "validators": [NoTagEmailValidator(), BlocklistEmailDomainValidator()],
         },
         "username": {
             "blank": True,
@@ -128,9 +152,11 @@ class User(AbstractUser):
             and profile
         )
 
-    @cached_property
+    @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    full_name.fget.verbose_name = _("Full Name")
 
     @property
     def has_resume(self):
@@ -153,10 +179,83 @@ class User(AbstractUser):
             CertificateAndLicense.user,
         )
 
+    def has_access(self, access_slug):
+        return self.__class__.objects.filter(
+            models.Q(
+                **{
+                    fields_join(
+                        Profile.user.field.related_query_name(),
+                        Profile.role,
+                        Role.accesses,
+                        Access.slug,
+                    ): access_slug
+                }
+            )
+            | models.Q(
+                **{
+                    fields_join(
+                        OrganizationMembership.user.field.related_query_name(),
+                        OrganizationMembership.access_role,
+                        Role.accesses,
+                        Access.slug,
+                    ): access_slug
+                }
+            ),
+            pk=self.pk,
+        ).exists()
+
 
 for field, properties in User.FIELDS_PROPERTIES.items():
     for key, value in properties.items():
         setattr(User._meta.get_field(field), key, value)
+
+
+class Access(models.Model):
+    slug = models.SlugField(
+        max_length=255,
+        unique=True,
+        db_index=True,
+        verbose_name=_("Slug"),
+        choices=get_access_slugs(),
+    )
+    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
+
+    def __str__(self):
+        return self.slug
+
+    class Meta:
+        verbose_name = _("Access")
+        verbose_name_plural = _("Accesses")
+        ordering = ["slug"]
+
+
+class Role(models.Model):
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
+    accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), blank=True)
+
+    managed_by_model = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        verbose_name=_("Managed By Model"),
+        related_name="roles",
+        blank=True,
+        null=True,
+    )
+    managed_by_id = models.PositiveIntegerField(
+        verbose_name=_("Managed By ID"),
+        null=True,
+        blank=True,
+    )
+    managed_by = GenericForeignKey("managed_by_model", "managed_by_id")
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = _("Role")
+        verbose_name_plural = _("Roles")
+        ordering = ["title"]
 
 
 class UserFile(FileModel):
@@ -298,6 +397,7 @@ class Profile(ComputedFieldsModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"))
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, verbose_name=_("Role"), null=True, blank=True)
     skin_color = ColorField(choices=SkinColor.choices, null=True, blank=True, verbose_name=_("Skin Color"))
     hair_color = ColorField(null=True, blank=True, verbose_name=_("Hair Color"))
     eye_color = ColorField(choices=EyeColor.choices, null=True, blank=True, verbose_name=_("Eye Color"))
@@ -381,8 +481,19 @@ class Profile(ComputedFieldsModel):
     )
     def credits(self):
         _credits = 0
+        is_early_user = (
+            User.objects.filter(
+                id__in=User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].values_list(
+                    "pk", flat=True
+                )
+            )
+            .filter(id=self.user.id)
+            .exists()
+        )
         with contextlib.suppress(ObjectDoesNotExist):
-            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * 100
+            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * (
+                150 if is_early_user else 100
+            )
         return _credits
 
     @property
@@ -391,6 +502,8 @@ class Profile(ComputedFieldsModel):
         scores = self.scores
         completed_scores = sum(1 for score in related_scores if scores.get(score.slug, 0))
         return (completed_scores / len(related_scores)) * 100
+
+    completion_percentage.fget.verbose_name = _("Completion Percentage")
 
     class Meta:
         verbose_name = _("User Profile")
@@ -438,6 +551,8 @@ class Profile(ComputedFieldsModel):
     @property
     def has_appearance_related_data(self):
         return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
+
+    has_appearance_related_data.fget.verbose_name = _("Has Appearance Related Data")
 
 
 class Contact(models.Model):
@@ -514,7 +629,7 @@ class Contact(models.Model):
                 link = self.value
 
             case Contact.Type.PHONE:
-                link = f"tel:{self.value}"
+                link = f"tel:{PhoneNumber.from_string(self.value).as_international}"
 
             case Contact.Type.LINKEDIN:
                 display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/in/([^/]+)"
@@ -523,10 +638,10 @@ class Contact(models.Model):
 
             case Contact.Type.WHATSAPP:
                 link = f"https://wa.me/{self.value}"
-                display_name = self.value
                 display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
-                if matched_value := re.match(display_regex, self.value):
-                    display_name = matched_value.group(1)
+                display_name = (
+                    (matched_value := re.match(display_regex, self.value)) and matched_value.group(1) or self.value
+                )
 
         return {"display": display_name, "link": link}
 
@@ -655,9 +770,11 @@ class Education(DocumentAbstract, HasDurationMixin):
             "start",
         ]
 
-    @cached_property
+    @property
     def title(self):
         return f"{self.get_degree_display()} in {self.field.name}"
+
+    title.fget.verbose_name = _("Title")
 
     @classmethod
     def get_verification_abstract_model(cls):
@@ -896,7 +1013,10 @@ class ReferenceCheckEmployer(models.Model, EmailVerificationMixin):
         return f"{self.work_experience_verification} - {self.name}"
 
 
-class LanguageCertificate(DocumentAbstract):
+class LanguageCertificate(DocumentAbstract, HasDurationMixin):
+    start_date_field = "issued_at"
+    end_date_field = "expired_at"
+
     language = models.CharField(choices=LANGUAGES, max_length=32, verbose_name=_("Language"))
     test = models.ForeignKey(
         LanguageProficiencyTest,
@@ -910,6 +1030,8 @@ class LanguageCertificate(DocumentAbstract):
     @property
     def scores(self):
         return ", ".join(f"{skill}: {score}" for skill, score in self.values.values_list("skill__skill_name", "value"))
+
+    scores.fget.verbose_name = _("Scores")
 
     def __str__(self):
         return f"{self.user.email} - {self.language}"
@@ -1374,7 +1496,11 @@ class Organization(DocumentAbstract):
     national_number = models.CharField(max_length=255, verbose_name=_("National Number"), null=True, blank=True)
     type = models.CharField(max_length=50, choices=Type.choices, verbose_name=_("Type"), null=True, blank=True)
     business_type = models.CharField(
-        max_length=50, choices=BussinessType.choices, verbose_name=_("Business Type"), null=True, blank=True
+        max_length=50,
+        choices=BussinessType.choices,
+        verbose_name=_("Business Type"),
+        null=True,
+        blank=True,
     )
     industry = models.ForeignKey(
         Industry,
@@ -1384,6 +1510,7 @@ class Organization(DocumentAbstract):
         blank=True,
         related_name="organizations",
     )
+    roles = GenericRelation(Role, verbose_name=_("Roles"), related_query_name="organization")
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
@@ -1400,6 +1527,12 @@ class Organization(DocumentAbstract):
     def get_verification_abstract_model(cls):
         return OrganizationVerificationMethodAbstract
 
+    def get_membership(self, user: User) -> Optional["OrganizationMembership"]:
+        if not (accessor := getattr(self, OrganizationMembership.organization.related_query_name(), None)):
+            return
+
+        return accessor.filter(**{OrganizationMembership.user.field.name: user}).first()
+
 
 class OrganizationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
     organization = models.OneToOneField(Organization, on_delete=models.CASCADE, verbose_name=_("Organization"))
@@ -1410,6 +1543,9 @@ class OrganizationVerificationMethodAbstract(DocumentVerificationMethodAbstract)
 
     def __str__(self):
         return f"{self.organization} Verification"
+
+    def get_output(self):
+        pass
 
     def _update_status(self, status: Organization.Status):
         self.organization.status = status
@@ -1437,19 +1573,8 @@ class DNSTXTRecordMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("DNS TXT Record Method")
         verbose_name_plural = _("DNS TXT Record Methods")
 
-    def verify(self) -> bool:
-        import dns.resolver
-
-        website_address = ""
-        try:
-            txt_records = dns.resolver.resolve(website_address, "TXT")
-        except dns.resolver.NoAnswer:
-            return False
-
-        for txt_record in txt_records:
-            if self.code in txt_record.strings:
-                return super().verify()
-        return False
+    def get_output(self):
+        return {"code": self.code}
 
 
 class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
@@ -1461,17 +1586,8 @@ class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("Upload File To Website Method")
         verbose_name_plural = _("Upload File To Website Methods")
 
-    def verify(self) -> bool:
-        import requests
-
-        url = f"http://EXAMPLE.com/{self.file_name}.txt"
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                return super().verify()
-        except requests.exceptions.RequestException:
-            pass
-        return False
+    def get_output(self):
+        return {"file_name": self.file_name}
 
 
 class OrganizationCertificateFile(UserUploadedDocumentFile):
@@ -1499,34 +1615,40 @@ class UploadCompanyCertificateMethod(OrganizationVerificationMethodAbstract):
 
 
 class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
-    email_code = models.CharField(
-        max_length=6, verbose_name=_("Email Verification Code"), default=generate_unique_verification_code
-    )
-    phone_code = models.CharField(
-        max_length=6, verbose_name=_("Phone Verification Code"), default=generate_unique_verification_code
-    )
-
-    CODE_EXPIRE_TIME = timedelta(minutes=5)
+    phonenumber = PhoneNumberField(verbose_name=_("Phone Number"))
+    email = models.EmailField(verbose_name=_("Email"), null=True, blank=True)
+    is_phonenumber_verified = models.BooleanField(default=False, verbose_name=_("Is Phone Number Verified"))
 
     class Meta:
         verbose_name = _("Communicate Organization Method")
         verbose_name_plural = _("Communicate Organization Methods")
 
-    def send_email_code(self):
-        print(f"Sending Email: Your verification code is {self.email_code}.")
+    def get_otp_cache_key(self):
+        return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
-    def send_phone_code(self):
-        print(f"Sending SMS: Your verification code is {self.phone_code}.")
+    def get_otp(self):
+        if otp := cache.get(cache_key := self.get_otp_cache_key()):
+            return otp
 
-    def _verify_email_code(self, code):
-        return self.email_code == code and self.created_at + self.CODE_EXPIRE_TIME >= now()
+        cache.set(cache_key, (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
+        return otp
 
-    def _verify_phone_code(self, code):
-        return self.phone_code == code and self.created_at + self.CODE_EXPIRE_TIME >= now()
+    def send_otp(self):
+        otp = self.get_otp()
+        # send_sms(self.phonenumber, otp)
+
+    def verify_otp(self, input_otp: str) -> bool:
+        if cache.get(self.get_otp_cache_key()) != input_otp:
+            return False
+
+        cache.delete(self.get_otp_cache_key())
+        self.is_phonenumber_verified = True
+        self.save(update_fields=[self.__class__.is_phonenumber_verified.field.name])
+        return True
 
 
 class OrganizationMembership(models.Model):
-    class Role(models.TextChoices):
+    class UserRole(models.TextChoices):
         CTO = "cto", _("CTO")
         CFO = "cfo", _("CFO")
         CEO = "ceo", _("CEO")
@@ -1536,11 +1658,29 @@ class OrganizationMembership(models.Model):
         OTHER = "other", _("Other")
         CREATOR = "creator", _("Creator")
 
-    role = models.CharField(max_length=50, verbose_name=_("Role"), choices=Role.choices, default=Role.OTHER.value)
-    organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name="memberships", verbose_name=_("Organization")
+    role = models.CharField(
+        max_length=50,
+        verbose_name=_("Role"),
+        choices=UserRole.choices,
+        default=UserRole.OTHER.value,
     )
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="membership", verbose_name=_("User"))
+    access_role = models.ForeignKey(
+        Role,
+        on_delete=models.RESTRICT,
+        related_name="organization_memberships",
+        verbose_name=_("Access Role"),
+        null=True,
+        blank=True,
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+        verbose_name=_("Organization"),
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="organization_memberships", verbose_name=_("User")
+    )
     invited_by = models.ForeignKey(
         User,
         verbose_name=_("Invited By"),
@@ -1565,8 +1705,8 @@ class OrganizationInvitation(models.Model):
     role = models.CharField(
         max_length=50,
         verbose_name=_("Role"),
-        choices=OrganizationMembership.Role.choices,
-        default=OrganizationMembership.Role.OTHER.value,
+        choices=OrganizationMembership.UserRole.choices,
+        default=OrganizationMembership.UserRole.OTHER.value,
     )
     token = models.CharField(
         max_length=15, verbose_name=_("Token"), unique=True, db_index=True, default=generate_invitation_token
@@ -1580,3 +1720,169 @@ class OrganizationInvitation(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.organization.name}"
+
+
+class OrganizationJobPosition(models.Model):
+    class Status(models.TextChoices):
+        DRAFTED = "drafted", _("Drafted")
+        PUBLISHED = "published", _("Published")
+        COMPLETED = "completed", _("Completed")
+        SUSPENDED = "suspended", _("Suspended")
+        EXPIRED = "expired", _("Expired")
+
+    class ContractType(models.TextChoices):
+        FULL_TIME = "full_time", _("Full Time")
+        PART_TIME = "part_time", _("Part Time")
+        TEMPORARY = "temporary", _("Temporary")
+        INTERNSHIP = "internship", _("Internship")
+        CONTRACT = "contract", _("Contract")
+        FREELANCE = "freelance", _("Freelance")
+
+    class LocationType(models.TextChoices):
+        ONSITE = "onsite", _("Onsite")
+        REMOTE = "remote", _("Remote")
+        HYBRID = "hybrid", _("Hybrid")
+
+    class PaymentTerm(models.TextChoices):
+        HOURLY = "hourly", _("Hourly")
+        DAILY = "daily", _("Daily")
+        WEEKLY = "weekly", _("Weekly")
+        MONTHLY = "monthly", _("Monthly")
+        YEARLY = "yearly", _("Yearly")
+
+    class WeekDay(models.TextChoices):
+        MONDAY = "monday", _("Monday")
+        TUESDAY = "tuesday", _("Tuesday")
+        WEDNESDAY = "wednesday", _("Wednesday")
+        THURSDAY = "thursday", _("Thursday")
+        FRIDAY = "friday", _("Friday")
+        SATURDAY = "saturday", _("Saturday")
+        SUNDAY = "sunday", _("Sunday")
+
+    title = models.CharField(max_length=255, verbose_name=_("Title"), null=True, blank=True)
+    vaccancy = models.PositiveIntegerField(verbose_name=_("Vacancy"), null=True, blank=True)
+    start_at = models.DateField(verbose_name=_("Start At"), null=True, blank=True)
+    validity_date = models.DateField(verbose_name=_("Validity Date"), null=True, blank=True)
+    description = MarkdownField(
+        rendered_field="description_rendered", validator=VALIDATOR_STANDARD, null=True, blank=True
+    )
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="job_positions", blank=True)
+    fields = models.ManyToManyField(Field, verbose_name=_("Fields"), related_name="job_positions", blank=True)
+    degrees = ArrayField(
+        models.CharField(choices=Education.Degree.choices, max_length=50),
+        verbose_name=_("Degree"),
+        null=True,
+        blank=True,
+    )
+    work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
+    languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32),
+        verbose_name=_("Languages"),
+        null=True,
+        blank=True,
+    )
+    native_languages = ArrayField(
+        models.CharField(choices=LANGUAGES, max_length=32),
+        verbose_name=_("Native Languages"),
+        null=True,
+        blank=True,
+    )
+    age_min = models.PositiveSmallIntegerField(verbose_name=_("Age Min"), null=True, blank=True)
+    age_max = models.PositiveSmallIntegerField(verbose_name=_("Age Max"), null=True, blank=True)
+    required_documents = ArrayField(
+        models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True
+    )
+    performance_expectation = MarkdownField(
+        rendered_field="performance_expectation_rendered", validator=VALIDATOR_STANDARD, null=True, blank=True
+    )
+    contract_type = models.CharField(
+        max_length=50,
+        choices=ContractType.choices,
+        verbose_name=_("Contract Type"),
+        null=True,
+        blank=True,
+    )
+    location_type = models.CharField(
+        max_length=50, choices=LocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
+    )
+    salary_min = models.PositiveIntegerField(verbose_name=_("Salary Min"), null=True, blank=True)
+    salary_max = models.PositiveIntegerField(verbose_name=_("Salary Max"), null=True, blank=True)
+    payment_term = models.CharField(
+        max_length=50,
+        choices=PaymentTerm.choices,
+        verbose_name=_("Payment Term"),
+        null=True,
+        blank=True,
+    )
+    working_start_at = models.TimeField(verbose_name=_("Working Start At"), null=True, blank=True)
+    working_end_at = models.TimeField(verbose_name=_("Working End At"), null=True, blank=True)
+    benefits = models.ManyToManyField(JobBenefit, verbose_name=_("Benefits"), related_name="job_positions", blank=True)
+    days_off = ArrayField(
+        models.CharField(choices=WeekDay.choices, max_length=50),
+        verbose_name=_("Days Off"),
+        null=True,
+        blank=True,
+    )
+    job_restrictions = models.TextField(verbose_name=_("Job Restrictions"), null=True, blank=True)
+    employer_questions = ArrayField(
+        models.CharField(max_length=255),
+        verbose_name=_("Employer Questions"),
+        null=True,
+        blank=True,
+    )
+    city = models.ForeignKey(
+        City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="job_positions", null=True, blank=True
+    )
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
+    _status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Job Position")
+        verbose_name_plural = _("Organization Job Positions")
+
+    def __str__(self):
+        return f"{self.title} - {self.organization.name}"
+
+    @property
+    def status(self):
+        if self.validity_date and self.validity_date < now().date():
+            self._status = self.Status.EXPIRED
+            self.save(update_fields=[self.__class__._status.field.name])
+            self.set_status_history()
+        return self._status
+
+    def set_status_history(self):
+        OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
+
+    @property
+    def required_fields(self):
+        return [
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.skills.field.name,
+            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.contract_type.field.name,
+        OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.city.field.name,
+        ]
+
+ 
+
+class OrganizationJobPositionStatusHistory(models.Model):
+    job_position = models.ForeignKey(OrganizationJobPosition, on_delete=models.CASCADE, related_name="status_histories")
+    status = models.CharField(max_length=50, choices=OrganizationJobPosition.Status.choices, verbose_name=_("Status"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Status History")
+        verbose_name_plural = _("Status Histories")
+
+    def __str__(self):
+        return f"{self.job_position.title} - {self.status}"

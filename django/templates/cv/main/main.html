@@ -51,7 +51,7 @@
                                             alt="Email icon"
                                         />
                                         <div class="contact-text">
-                                            <a href="mailto:{{ user.email }}">
+                                            <a href="mailto:{{ user.email }}" target="_blank">
                                                 {{ user.email }}
                                             </a>
                                         </div>
@@ -66,11 +66,11 @@
                                                 />
                                                 <div class="contact-text">
                                                     {% if display_contact.link %}
-                                                        <a href="{{ display_contact.link }}">
+                                                        <a href="{{ display_contact.link }}" target="_blank">
                                                             {{ display_contact.display }}
                                                         </a>
                                                     {% else %}
-                                                        <p>{{ display_contact.display}}</p>
+                                                        <p>{{ display_contact.display }}</p>
                                                     {% endif %}
                                                 </div>
                                             </div>
@@ -387,7 +387,7 @@
             <div class="footer-contact">
                 <div class="contact-label">Contact Us :</div>
                 <div class="contact-email">
-                    <a style="color: white;" href="mailto:{{ contact_us_email|default:"info@cpj.ai" }}">
+                    <a style="color: white;" href="mailto:{{ contact_us_email|default:'info@cpj.ai' }}">
                         {{ contact_us_email|default:"info@cpj.ai" }}
                     </a>
                 </div>

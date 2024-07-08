@@ -4,6 +4,7 @@ from .models import (
     Field,
     Industry,
     Job,
+    JobBenefit,
     JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
@@ -78,6 +79,15 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
         LanguageProficiencySkill.validators.field.name,
     )
     search_fields = list_display
+
+
+@admin.register(JobBenefit)
+class JobBenefitsAdmin(admin.ModelAdmin):
+    list_display = (
+        JobBenefit.id.field.name,
+        JobBenefit.name.field.name,
+    )
+    search_fields = (JobBenefit.name.field.name,)
 
 
 for model in get_file_models():

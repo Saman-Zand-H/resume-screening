@@ -1,4 +1,5 @@
 import graphene
+from graphene import Field, String
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode
@@ -26,6 +27,8 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
+    OrganizationMembership,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -284,6 +287,12 @@ class SupportTicketType(DjangoObjectType):
         )
 
 
+class OrganizationMembershipType(DjangoObjectType):
+    class Meta:
+        model = OrganizationMembership
+        fields = (OrganizationMembership.organization.field.name,)
+
+
 class UserTaskType(DjangoObjectType):
     class Meta:
         model = UserTask
@@ -319,6 +328,7 @@ class UserNode(BaseUserNode):
             SupportTicket.user.field.related_query_name(),
             UserTask.user.field.related_query_name(),
             GeneratedCV.user.field.related_query_name(),
+            OrganizationMembership.user.field.related_query_name(),
         )
 
     def resolve_educations(self, info):
@@ -359,13 +369,6 @@ class OrganizationType(DjangoObjectType):
             Organization.user.field.name,
         )
 
-    @classmethod
-    def get_node_by_user(cls, info, user):
-        try:
-            return Organization.objects.get(memberships__user=user)
-        except Organization.DoesNotExist:
-            return None
-
 
 class OrganizationInvitationType(DjangoObjectType):
     class Meta:
@@ -386,3 +389,51 @@ class OrganizationInvitationType(DjangoObjectType):
             return model.objects.get(token=token)
         except model.DoesNotExist:
             return None
+
+
+class OrganizationJobPositionNode(DjangoObjectType):
+    status = Field(String, description="The current status of the job position.")
+
+    class Meta:
+        model = OrganizationJobPosition
+        use_connection = True
+        fields = (
+            OrganizationJobPosition.id.field.name,
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.skills.field.name,
+            OrganizationJobPosition.fields.field.name,
+            OrganizationJobPosition.degrees.field.name,
+            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.age_min.field.name,
+            OrganizationJobPosition.age_max.field.name,
+            OrganizationJobPosition.required_documents.field.name,
+            OrganizationJobPosition.performance_expectation.field.name,
+            OrganizationJobPosition.contract_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.salary_min.field.name,
+            OrganizationJobPosition.salary_max.field.name,
+            OrganizationJobPosition.payment_term.field.name,
+            OrganizationJobPosition.working_start_at.field.name,
+            OrganizationJobPosition.working_end_at.field.name,
+            OrganizationJobPosition.benefits.field.name,
+            OrganizationJobPosition.days_off.field.name,
+            OrganizationJobPosition.job_restrictions.field.name,
+            OrganizationJobPosition.employer_questions.field.name,
+            OrganizationJobPosition.city.field.name,
+        )
+        filter_fields = {
+            OrganizationJobPosition.organization.field.name: ["exact"],
+            OrganizationJobPosition.title.field.name: ["icontains"],
+            OrganizationJobPosition._status.field.name: ["exact"],
+            OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
+            OrganizationJobPosition.city.field.name: ["exact"],
+        }
+
+    def resolve_status(self, info):
+        return self.status

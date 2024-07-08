@@ -10,7 +10,7 @@
     below:
 </p>
 <p style="text-align: center;">
-    <a href="{{ frontend_url }}{{frontend_url_account_verify}}?token={{ token }}" class="button" style="color: white;">
+    <a href="{{ request.template_context.email_callback_url}}?token={{ token }}" class="button" style="color: white;">
         Verify Email
     </a>
 </p>

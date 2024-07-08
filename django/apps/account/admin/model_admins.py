@@ -2,21 +2,24 @@ from cities_light.models import City
 from common.models import Field
 from common.utils import fields_join
 from graphql_auth.models import UserStatus
+from import_export.admin import ExportMixin
 
 from django.contrib import admin
 from django.contrib.admin import register
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
-from .forms import UserChangeForm
-from .models import (
+from ..forms import UserChangeForm
+from ..models import (
     CanadaVisa,
     CertificateAndLicense,
     CertificateAndLicenseOfflineVerificationMethod,
     CertificateAndLicenseOnlineVerificationMethod,
+    CommunicateOrganizationMethod,
     CommunicationMethod,
     Contact,
     Contactable,
+    DNSTXTRecordMethod,
     Education,
     EmployerLetterMethod,
     IEEMethod,
@@ -26,6 +29,8 @@ from .models import (
     OnlineMethod,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
+    OrganizationJobPositionStatusHistory,
     OrganizationMembership,
     PaystubsMethod,
     Profile,
@@ -34,16 +39,20 @@ from .models import (
     ReferralUser,
     Resume,
     SupportTicket,
+    UploadCompanyCertificateMethod,
+    UploadFileToWebsiteMethod,
     User,
     UserTask,
     WorkExperience,
-    DNSTXTRecordMethod,
-    UploadFileToWebsiteMethod,
-    CommunicateOrganizationMethod,
-    UploadCompanyCertificateMethod,
-
 )
-from .scores import UserScorePack
+from ..scores import UserScorePack
+from .resources import (
+    CertificateAndLicenseResource,
+    EducationResource,
+    LanguageCertificateResource,
+    ProfileResource,
+    WorkExperienceResource,
+)
 
 
 @register(User)
@@ -110,7 +119,8 @@ class ProfileInterestedJobsInline(admin.TabularInline):
 
 
 @register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
+class ProfileAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [ProfileResource]
     list_display = (
         Profile.user.field.name,
         Profile.height.field.name,
@@ -169,7 +179,8 @@ class ContactAdmin(admin.ModelAdmin):
 
 
 @register(Education)
-class EducationAdmin(admin.ModelAdmin):
+class EducationAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [EducationResource]
     list_display = (
         Education.user.field.name,
         Education.field.field.name,
@@ -239,7 +250,8 @@ class CommunicationMethodAdmin(admin.ModelAdmin):
 
 
 @register(WorkExperience)
-class WorkExperienceAdmin(admin.ModelAdmin):
+class WorkExperienceAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [WorkExperienceResource]
     list_display = (
         WorkExperience.user.field.name,
         WorkExperience.job_title.field.name,
@@ -305,7 +317,8 @@ class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
 
 
 @register(LanguageCertificate)
-class LanguageCertificateAdmin(admin.ModelAdmin):
+class LanguageCertificateAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [LanguageCertificateResource]
     list_display = (LanguageCertificate.user.field.name,)
     search_fields = (fields_join(LanguageCertificate.user, User.email),)
     raw_id_fields = (LanguageCertificate.user.field.name,)
@@ -326,7 +339,8 @@ class LanguageCertificateValueAdmin(admin.ModelAdmin):
 
 
 @register(CertificateAndLicense)
-class CertificateAndLicenseAdmin(admin.ModelAdmin):
+class CertificateAndLicenseAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [CertificateAndLicenseResource]
     list_display = (
         CertificateAndLicense.user.field.name,
         CertificateAndLicense.title.field.name,
@@ -632,4 +646,51 @@ class UploadCompanyCertificateMethodAdmin(admin.ModelAdmin):
         UploadCompanyCertificateMethod.verified_at.field.name,
         UploadCompanyCertificateMethod.created_at.field.name,
     )
-    raw_id_fields = (UploadCompanyCertificateMethod.organization.field.name,)
+    raw_id_fields = (
+        UploadCompanyCertificateMethod.organization.field.name,
+        UploadCompanyCertificateMethod.organization_certificate_file.field.name,
+    )
+
+
+@register(OrganizationJobPosition)
+class OrganizationJobPositionAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationJobPosition.id.field.name,
+        OrganizationJobPosition.title.field.name,
+        OrganizationJobPosition._status.field.name,
+        OrganizationJobPosition.organization.field.name,
+        OrganizationJobPosition.created_at.field.name,
+    )
+    search_fields = (OrganizationJobPosition.title.field.name,)
+    list_filter = (
+        OrganizationJobPosition._status.field.name,
+        OrganizationJobPosition.age_min.field.name,
+        OrganizationJobPosition.age_max.field.name,
+        OrganizationJobPosition.contract_type.field.name,
+        OrganizationJobPosition.location_type.field.name,
+        OrganizationJobPosition.payment_term.field.name,
+        OrganizationJobPosition.start_at.field.name,
+        OrganizationJobPosition.validity_date.field.name,
+        OrganizationJobPosition.created_at.field.name,
+    )
+    raw_id_fields = (
+        OrganizationJobPosition.organization.field.name,
+        OrganizationJobPosition.skills.field.name,
+        OrganizationJobPosition.fields.field.name,
+        OrganizationJobPosition.city.field.name,
+    )
+
+
+@register(OrganizationJobPositionStatusHistory)
+class OrganizationJobPositionStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationJobPositionStatusHistory.id.field.name,
+        OrganizationJobPositionStatusHistory.job_position.field.name,
+        OrganizationJobPositionStatusHistory.status.field.name,
+        OrganizationJobPositionStatusHistory.created_at.field.name,
+    )
+    list_filter = (
+        OrganizationJobPositionStatusHistory.status.field.name,
+        OrganizationJobPositionStatusHistory.created_at.field.name,
+    )
+    raw_id_fields = (OrganizationJobPositionStatusHistory.job_position.field.name,)

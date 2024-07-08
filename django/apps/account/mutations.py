@@ -2,6 +2,7 @@ import contextlib
 from datetime import timedelta
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -25,6 +26,7 @@ from graphql_auth.constants import TokenAction
 from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
+from graphql_auth.shortcuts import get_user_by_email
 from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import (
     login_required,
@@ -32,7 +34,6 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
@@ -52,6 +53,7 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
+    CommunicateOrganizationMethod,
     Contact,
     DocumentAbstract,
     Education,
@@ -60,6 +62,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationInvitation,
+    OrganizationJobPosition,
     OrganizationMembership,
     Profile,
     ReferenceCheckEmployer,
@@ -84,6 +87,7 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = OrganizationInvitation
         fields = (
+            OrganizationInvitation.organization.field.name,
             OrganizationInvitation.email.field.name,
             OrganizationInvitation.role.field.name,
         )
@@ -92,11 +96,6 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
     def before_create_obj(cls, info, input, obj):
         user = info.context.user
         obj.created_by = user
-        try:
-            obj.organization = user.membership.organization
-        except OrganizationMembership.DoesNotExist:
-            raise GraphQLErrorBadRequest(_("User is not member of an organization."))
-
         OrganizationInvitation.objects.filter(email=obj.email, organization=obj.organization).delete()
         cls.full_clean(obj)
 
@@ -119,16 +118,39 @@ def referral_registration(user, referral_code):
         ReferralUser.objects.create(user=user, referral=referral)
 
 
+DEFAULT_EMAIL_CALLBACK_URL = (
+    graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url"]
+    + graphql_auth_settings.EMAIL_TEMPLATE_VARIABLES["frontend_url_account_verify"]
+)
+
+EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+USER_FIRSTNAME_VARIABLE = "user_firstname"
+TEMPLATE_CONTEXT_VARIABLE = "template_context"
+
+
+def set_template_context_variable(context, key, value):
+    _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
+    _template_context[key] = value
+    setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+
+
 class Register(graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
         OrganizationInvitation.token.field.name,
+        EMAIL_CALLBACK_URL_VARIABLE,
     ]
 
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
+
         email = kwargs.get(User.EMAIL_FIELD)
         try:
             UserStatus.clean_email(email)
@@ -174,7 +196,7 @@ class Register(graphql_auth_mutations.Register):
 
 class RegisterOrganization(Register):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
-    _args = []
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
 
     @classmethod
     @transaction.atomic
@@ -190,7 +212,10 @@ class RegisterOrganization(Register):
         organization = Organization.objects.create(name=organization_name, user=user)
         try:
             OrganizationMembership.objects.create(
-                user=user, organization=organization, role=OrganizationMembership.Role.CREATOR.value, invited_by=user
+                user=user,
+                organization=organization,
+                role=OrganizationMembership.UserRole.CREATOR.value,
+                invited_by=user,
             )
         except IntegrityError:
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
@@ -221,6 +246,33 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
             )
 
         return response
+
+
+class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_CALLBACK_URL_VARIABLE,
+            kwargs.pop(EMAIL_CALLBACK_URL_VARIABLE, DEFAULT_EMAIL_CALLBACK_URL),
+        )
+        return super().mutate(*args, **kwargs)
+
+
+class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
+    _args = [EMAIL_CALLBACK_URL_VARIABLE]
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        user = get_user_by_email(kwargs.get("email"))
+        set_template_context_variable(
+            args[1].context,
+            USER_FIRSTNAME_VARIABLE,
+            user.first_name,
+        )
+        return super().mutate(*args, **kwargs)
 
 
 class RefreshToken(graphql_auth_mutations.RefreshToken):
@@ -312,8 +364,8 @@ class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPa
         user = info.context.user
         org_users = {membership.user: membership.role for membership in obj.memberships.all()}
         if user not in org_users or org_users[user] not in [
-            OrganizationMembership.Role.ASSOCIATE.value,
-            OrganizationMembership.Role.CREATOR.value,
+            OrganizationMembership.UserRole.ASSOCIATE.value,
+            OrganizationMembership.UserRole.CREATOR.value,
         ]:
             raise PermissionError("Not permitted to modify this record.")
         return super().check_permissions(root, info, input, id, obj)
@@ -770,31 +822,145 @@ class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
         model = CertificateAndLicense
 
 
-class OrganizationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
-    class Meta:
-        model = Organization
+class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
+    organization_certificate_file_id = graphene.ID(required=True)
 
 
-class OrganizationVerificationMutation(graphene.Mutation):
+class CommunicateOrganizationMethodInput(graphene.InputObjectType):
+    phonenumber = graphene.String(required=True)
+    email = graphene.String(required=False)
+
+
+class OrganizationVerificationMethodInput(graphene.InputObjectType):
+    dnstxtrecordmethod = graphene.String()
+    uploadfiletowebsitemethod = graphene.String()
+    uploadcompanycertificatemethod = graphene.Field(UploadCompanyCertificateMethodInput)
+    communicateorganizationmethod = graphene.Field(CommunicateOrganizationMethodInput)
+
+
+class OrganizationSetVerificationMethodMutation(graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
+        input = OrganizationVerificationMethodInput(required=True)
+
+    success = graphene.Boolean()
+    output = GenericScalar()
+
+    @classmethod
+    @transaction.atomic
+    @login_required
+    def mutate(cls, root, info, id, input):
+        user = info.context.user
+
+        # Get the first verification method if multiple methods are provided
+        method, input_data = next(((key, value) for key, value in input.items() if value is not None), (None, None))
+
+        if method is None:
+            raise GraphQLErrorBadRequest(_("No verification method provided."))
+
+        try:
+            organization = Organization.objects.get(pk=id)
+        except Organization.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        # TODO: Check if user is authorized to set verification method
+
+        if organization.status in [Organization.Status.VERIFIED.value]:
+            raise GraphQLErrorBadRequest(_("Organization verification method is already set."))
+
+        if verification_method := organization.get_verification_method():
+            verification_method.delete()
+
+        method_model = {m.get_related_name(): m for m in Organization.get_method_models()}[method]
+        method_instance = method_model.objects.create(organization=organization, **(input_data or {}))
+        return cls(success=True, output=method_instance.get_output())
+
+
+class OrganizationCommunicationMethodVerify(graphene.Mutation):
+    class Arguments:
+        organization = graphene.ID(required=True)
+        otp = graphene.String(required=True, description="OTP sent to the phone number.")
 
     success = graphene.Boolean()
 
     @classmethod
-    def mutate(cls, root, info, id):
-        user = info.context.user
-        organization = Organization.objects.get(pk=id)
-        # TODO: check user permission
-        verification_method_instance = [
-            getattr(organization, m.get_related_name())
-            for m in Organization.get_method_models()
-            if hasattr(organization, m.get_related_name())
+    @login_required
+    def mutate(cls, root, info, organization, otp):
+        # TODO: check if the user is authorized
+        try:
+            organization = Organization.objects.get(pk=organization)
+        except Organization.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        try:
+            model = organization.communicateorganizationmethod
+        except CommunicateOrganizationMethod.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Cannot verify OTP."))
+
+        result = model.verify_otp(otp)
+        return cls(success=result)
+
+
+ORGANIZATION_JOB_POSITION_FIELDS = [
+    OrganizationJobPosition.title.field.name,
+    OrganizationJobPosition.vaccancy.field.name,
+    OrganizationJobPosition.start_at.field.name,
+    OrganizationJobPosition.validity_date.field.name,
+    OrganizationJobPosition.description.field.name,
+    OrganizationJobPosition.skills.field.name,
+    OrganizationJobPosition.fields.field.name,
+    OrganizationJobPosition.degrees.field.name,
+    OrganizationJobPosition.work_experience_years.field.name,
+    OrganizationJobPosition.languages.field.name,
+    OrganizationJobPosition.native_languages.field.name,
+    OrganizationJobPosition.age_min.field.name,
+    OrganizationJobPosition.age_max.field.name,
+    OrganizationJobPosition.required_documents.field.name,
+    OrganizationJobPosition.performance_expectation.field.name,
+    OrganizationJobPosition.contract_type.field.name,
+    OrganizationJobPosition.location_type.field.name,
+    OrganizationJobPosition.salary_min.field.name,
+    OrganizationJobPosition.salary_max.field.name,
+    OrganizationJobPosition.payment_term.field.name,
+    OrganizationJobPosition.working_start_at.field.name,
+    OrganizationJobPosition.working_end_at.field.name,
+    OrganizationJobPosition.benefits.field.name,
+    OrganizationJobPosition.days_off.field.name,
+    OrganizationJobPosition.job_restrictions.field.name,
+    OrganizationJobPosition.employer_questions.field.name,
+    OrganizationJobPosition.city.field.name,
+]
+
+
+class OrganizationJobPositionCreateMutation(DjangoCreateMutation):
+    class Meta:
+        model = OrganizationJobPosition
+        login_required = True
+        fields = ORGANIZATION_JOB_POSITION_FIELDS + [
+            OrganizationJobPosition.organization.field.name,
         ]
-        if len(verification_method_instance) != 1:
-            raise GraphQLErrorBadRequest("Organization has no verification method.")
-        result = verification_method_instance[0].verify()
-        return OrganizationVerificationMutation(success=result)
+
+
+class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
+    class Meta:
+        model = OrganizationJobPosition
+        login_required = True
+        fields = ORGANIZATION_JOB_POSITION_FIELDS
+
+    @classmethod
+    def validate(cls, root, info, input, id, obj):
+        if obj.status != OrganizationJobPosition.Status.DRAFTED.value:
+            raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
+        return super().validate(root, info, input, id, obj)
+
+    @classmethod
+    def before_save(cls, root, info, input, id, obj):
+        if status := input.get(OrganizationJobPosition.status.field.name):
+            if status.value == OrganizationJobPosition.Status.PUBLISHED.value:
+                missing_fields = [field for field in obj.required_fields() if not getattr(obj, field)]
+                if missing_fields:
+                    raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
+        return super().before_save(root, info, input, id, obj)
 
 
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
@@ -880,7 +1046,9 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
-    verify = OrganizationVerificationMutation.Field()
+    verify_communication_method = OrganizationCommunicationMethodVerify.Field()
+    create_job_position = OrganizationJobPositionCreateMutation.Field()
+    update_job_position = OrganizationJobPositionUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
@@ -926,8 +1094,8 @@ class SupportTicketMutation(graphene.ObjectType):
 class AccountMutation(graphene.ObjectType):
     register = Register.Field()
     verify = VerifyAccount.Field()
-    resend_activation_email = graphql_auth_mutations.ResendActivationEmail.Field()
-    send_password_reset_email = graphql_auth_mutations.SendPasswordResetEmail.Field()
+    resend_activation_email = ResendActivationEmail.Field()
+    send_password_reset_email = SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
     token_auth = graphql_auth_mutations.ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()

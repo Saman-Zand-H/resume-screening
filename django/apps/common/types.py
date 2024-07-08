@@ -21,11 +21,26 @@ from .models import (
     LanguageProficiencyTest,
     Skill,
     University,
+    JobBenefit,
 )
 from .utils import get_file_models
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = graphene.Enum("Errors", enum_values)
+
+
+class JobBenefitNode(DjangoObjectType):
+    class Meta:
+        model = JobBenefit
+        use_connection = True
+        fields = (
+            JobBenefit.id.field.name,
+            JobBenefit.name.field.name,
+        )
+        filter_fields = {
+            JobBenefit.id.field.name: ["exact"],
+            JobBenefit.name.field.name: ["icontains"],
+        }
 
 
 class IndustryNode(DjangoObjectType):

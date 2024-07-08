@@ -1,33 +1,42 @@
 import graphene
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
+from graphene_django.filter import DjangoFilterConnectionField
 
 from .types import (
     CertificateAndLicenseNode,
     EducationNode,
     LanguageCertificateNode,
     OrganizationInvitationType,
-    OrganizationType,
+    OrganizationJobPositionNode,
     UserNode,
     WorkExperienceNode,
 )
 
 
-class OrganizationQuery(graphene.ObjectType):
-    me = graphene.Field(OrganizationType)
-    invitation = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
+class OrganizationJobPositionQuery(graphene.ObjectType):
+    get = graphene.Field(OrganizationJobPositionNode, id=graphene.ID(required=True))
+    list = DjangoFilterConnectionField(OrganizationJobPositionNode)
 
     @login_required
-    def resolve_me(self, info):
-        return OrganizationType.get_node_by_user(info, info.context.user)
+    def resolve_get(self, info, id):
+        return OrganizationJobPositionNode.get_node(info, id)
+
+
+class OrganizationQuery(graphene.ObjectType):
+    invitation = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
+    job_position = graphene.Field(OrganizationJobPositionQuery)
 
     @login_required
     def resolve_invitation(self, info, token):
         return OrganizationInvitationType.get_node_by_token(info, token)
 
+    def resolve_job_position(self, info):
+        return OrganizationJobPositionQuery()
+
 
 class EducationQuery(graphene.ObjectType):
-    get = graphene.Field(EducationNode, id=graphene.ID())
+    get = graphene.Field(EducationNode, id=graphene.ID(), required=True)
 
     @login_required
     def resolve_get(self, info, id):

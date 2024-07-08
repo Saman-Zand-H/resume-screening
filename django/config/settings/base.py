@@ -16,6 +16,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from import_export.formats.base_formats import XLSX
 
 from .constants import Assistants
 
@@ -66,6 +67,7 @@ INSTALLED_APPS = [
     "cachalot",
     "corsheaders",
     "rules.apps.AutodiscoverRulesConfig",
+    "import_export",
     "colorfield",
     "cities_light",
     "phonenumber_field",
@@ -234,6 +236,7 @@ GRAPHQL_JWT = {
     ],
 }
 
+
 GRAPHQL_AUTH = {
     "LOGIN_ALLOWED_FIELDS": ["email"],
     "ALLOW_LOGIN_NOT_VERIFIED": False,
@@ -324,3 +327,5 @@ ACADEMY_SETTINGS = {
     "PASSWORD": os.environ.get("ACADEMY_PASSWORD"),
     "WEBHOOK_SECRET": os.environ.get("ACADEMY_WEBHOOK_SECRET"),
 }
+
+EXPORT_FORMATS = [XLSX]

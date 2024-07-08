@@ -16,7 +16,8 @@ from django.utils.translation import gettext_lazy as _
 
 from .constants import TEMPLATE_VALID_EXTENSIONS
 from .utils import (
-    extract_generated_resume_input,
+    extract_generated_resume_info,
+    get_resume_info_input,
     get_static_base_url,
     merge_pdf_pages_to_single_page,
 )
@@ -84,6 +85,28 @@ class GeneratedCV(FileModel):
         related_name="cv",
         verbose_name=_("User"),
     )
+    input_json = models.JSONField(verbose_name=_("Input JSON"), blank=True, null=True)
+    work_experiences = models.JSONField(verbose_name=_("Work Experiences"), blank=True, null=True)
+    educations = models.JSONField(verbose_name=_("Educations"), blank=True, null=True)
+    certifications = models.JSONField(verbose_name=_("Certifications"), blank=True, null=True)
+    additional_sections = models.JSONField(verbose_name=_("Additional Sections"), blank=True, null=True)
+
+    @classmethod
+    def get_resume_info(cls, user: User):
+        if (instance := cls.objects.filter(user=user).first()) and instance.input_json == (
+            input_json := get_resume_info_input(user)
+        ):
+            return {
+                "work_experiences": instance.work_experiences,
+                "educations": instance.educations,
+                "certifications": instance.certifications,
+                "additional_sections": instance.additional_sections,
+            }
+
+        instance.input_json = input_json
+        instance.save()
+        resume_info = extract_generated_resume_info(user)
+        return resume_info
 
     def __str__(self):
         return f"{self.user}: {self.file.name}"
@@ -121,7 +144,7 @@ class GeneratedCV(FileModel):
             ],
         )
         skills = profile.skills.all()
-        asssistant_data = extract_generated_resume_input(user)
+        asssistant_data = cls.get_resume_info(user)
 
         return {
             "user": user,
