@@ -96,7 +96,7 @@ class GeneratedCV(FileModel):
         if not template:
             template = CVTemplate.objects.latest("created")
 
-        if (instance := cls.object.filter(user=user, template=template)) and instance.input_json == (
+        if (instance := cls.objects.filter(user=user, template=template)) and instance.input_json == (
             input_json := get_resume_info_input(user)
         ):
             return {
