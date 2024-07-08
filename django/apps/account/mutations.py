@@ -905,14 +905,17 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
     OrganizationJobPosition.validity_date.field.name,
     OrganizationJobPosition.description.field.name,
     OrganizationJobPosition.skills.field.name,
-    OrganizationJobPosition.educations.field.name,
+    OrganizationJobPosition.fields.field.name,
+    OrganizationJobPosition.degrees.field.name,
     OrganizationJobPosition.work_experience_years.field.name,
     OrganizationJobPosition.languages.field.name,
     OrganizationJobPosition.native_languages.field.name,
-    OrganizationJobPosition.age_range.field.name,
-    OrganizationJobPosition.required_document.field.name,
+    OrganizationJobPosition.age_min.field.name,
+    OrganizationJobPosition.age_max.field.name,
+    OrganizationJobPosition.required_documents.field.name,
     OrganizationJobPosition.performance_expectation.field.name,
     OrganizationJobPosition.contract_type.field.name,
+    OrganizationJobPosition.location_type.field.name,
     OrganizationJobPosition.salary_min.field.name,
     OrganizationJobPosition.salary_max.field.name,
     OrganizationJobPosition.payment_term.field.name,
@@ -922,6 +925,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
     OrganizationJobPosition.days_off.field.name,
     OrganizationJobPosition.job_restrictions.field.name,
     OrganizationJobPosition.employer_questions.field.name,
+    OrganizationJobPosition.city.field.name,
 ]
 
 
@@ -938,18 +942,12 @@ class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
     class Meta:
         model = OrganizationJobPosition
         login_required = True
-        fields = ORGANIZATION_JOB_POSITION_FIELDS + [
-            OrganizationJobPosition.status.field.name,
-        ]
+        fields = ORGANIZATION_JOB_POSITION_FIELDS
 
     @classmethod
     def validate(cls, root, info, input, id, obj):
-        if obj.status in [
-            OrganizationJobPosition.Status.COMPLETED,
-            OrganizationJobPosition.Status.EXPIRED.value,
-        ]:
+        if obj.status != OrganizationJobPosition.Status.DRAFTED.value:
             raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
-
         return super().validate(root, info, input, id, obj)
 
     @classmethod

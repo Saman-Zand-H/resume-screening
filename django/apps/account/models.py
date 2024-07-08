@@ -6,6 +6,8 @@ import string
 import uuid
 from typing import Dict, Optional
 
+from markdownfield.models import MarkdownField
+from markdownfield.validators import VALIDATOR_STANDARD
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -19,6 +21,7 @@ from common.models import (
     LanguageProficiencyTest,
     Skill,
     University,
+    JobBenefit,
 )
 from common.utils import get_all_subclasses
 from common.validators import (
@@ -28,6 +31,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
     ValidateFileSize,
 )
+from common.exceptions import GraphQLErrorBadRequest
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from phonenumber_field.modelfields import PhoneNumberField
@@ -1603,24 +1607,19 @@ class OrganizationJobPosition(models.Model):
         COMPLETED = "completed", _("Completed")
         SUSPENDED = "suspended", _("Suspended")
         EXPIRED = "expired", _("Expired")
-        CLOSED = "closed", _("Closed")
-
-    class Age(models.TextChoices):
-        _18_25 = "_18_25", _("18-25")
-        _26_35 = "_26_35", _("26-35")
-        _36_45 = "_36_45", _("36-45")
-        _46_55 = "_46_55", _("46-55")
-        _56_65 = "_56_65", _("56-65")
-        OVER_65 = "over_65", _("Over 65")
 
     class ContractType(models.TextChoices):
         FULL_TIME = "full_time", _("Full Time")
         PART_TIME = "part_time", _("Part Time")
-        REMOTE = "remote", _("Remote")
         TEMPORARY = "temporary", _("Temporary")
         INTERNSHIP = "internship", _("Internship")
         CONTRACT = "contract", _("Contract")
         FREELANCE = "freelance", _("Freelance")
+
+    class LocationType(models.TextChoices):
+        ONSITE = "onsite", _("Onsite")
+        REMOTE = "remote", _("Remote")
+        HYBRID = "hybrid", _("Hybrid")
 
     class PaymentTerm(models.TextChoices):
         HOURLY = "hourly", _("Hourly")
@@ -1642,12 +1641,17 @@ class OrganizationJobPosition(models.Model):
     vaccancy = models.PositiveIntegerField(verbose_name=_("Vacancy"), null=True, blank=True)
     start_at = models.DateField(verbose_name=_("Start At"), null=True, blank=True)
     validity_date = models.DateField(verbose_name=_("Validity Date"), null=True, blank=True)
-    description = models.TextField(verbose_name=_("Description"), null=True, blank=True)
-
-    # TODO: check if below field has to be ManyToManyField to Skill model
-    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="job_positions")
-    # TODO: check if below field has to be ManyToManyField to Field model
-    educations = models.ManyToManyField(Field, verbose_name=_("Educations"), related_name="job_positions")
+    description = MarkdownField(
+        rendered_field="description_rendered", validator=VALIDATOR_STANDARD, null=True, blank=True
+    )
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="job_positions", blank=True)
+    fields = models.ManyToManyField(Field, verbose_name=_("Fields"), related_name="job_positions", blank=True)
+    degrees = ArrayField(
+        models.CharField(choices=Education.Degree.choices, max_length=50),
+        verbose_name=_("Degree"),
+        null=True,
+        blank=True,
+    )
     work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
     languages = ArrayField(
         models.CharField(choices=LANGUAGES, max_length=32),
@@ -1661,25 +1665,28 @@ class OrganizationJobPosition(models.Model):
         null=True,
         blank=True,
     )
-    age_range = models.CharField(max_length=50, choices=Age.choices, verbose_name=_("Age Range"), null=True, blank=True)
-    required_document = ArrayField(
+    age_min = models.PositiveSmallIntegerField(verbose_name=_("Age Min"), null=True, blank=True)
+    age_max = models.PositiveSmallIntegerField(verbose_name=_("Age Max"), null=True, blank=True)
+    required_documents = ArrayField(
         models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True
     )
-    performance_expectation = models.TextField(verbose_name=_("Performance Expectation"), null=True, blank=True)
-
+    performance_expectation = MarkdownField(
+        rendered_field="performance_expectation_rendered", validator=VALIDATOR_STANDARD, null=True, blank=True
+    )
     contract_type = models.CharField(
         max_length=50, choices=ContractType.choices, verbose_name=_("Contract Type"), null=True, blank=True
     )
+    location_type = models.CharField(
+        max_length=50, choices=LocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
+    )
     salary_min = models.PositiveIntegerField(verbose_name=_("Salary Min"), null=True, blank=True)
     salary_max = models.PositiveIntegerField(verbose_name=_("Salary Max"), null=True, blank=True)
-    # TODO: check if below field is correct
     payment_term = models.CharField(
         max_length=50, choices=PaymentTerm.choices, verbose_name=_("Payment Term"), null=True, blank=True
     )
     working_start_at = models.TimeField(verbose_name=_("Working Start At"), null=True, blank=True)
     working_end_at = models.TimeField(verbose_name=_("Working End At"), null=True, blank=True)
-    # TODO: check if below field
-    benefits = ArrayField(models.CharField(max_length=255), verbose_name=_("Benefits"), null=True, blank=True)
+    benefits = models.ManyToManyField(JobBenefit, verbose_name=_("Benefits"), related_name="job_positions", blank=True)
     days_off = ArrayField(
         models.CharField(choices=WeekDay.choices, max_length=50),
         verbose_name=_("Days Off"),
@@ -1690,13 +1697,12 @@ class OrganizationJobPosition(models.Model):
     employer_questions = ArrayField(
         models.CharField(max_length=255), verbose_name=_("Employer Questions"), null=True, blank=True
     )
+    city = models.ForeignKey(
+        City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="job_positions", null=True, blank=True
+    )
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
-    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
-    published_at = models.DateTimeField(verbose_name=_("Published At"), null=True, blank=True)
-    completed_at = models.DateTimeField(verbose_name=_("Completed At"), null=True, blank=True)
-    closed_at = models.DateTimeField(verbose_name=_("Closed At"), null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    _status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -1706,8 +1712,19 @@ class OrganizationJobPosition(models.Model):
     def __str__(self):
         return f"{self.title} - {self.organization.name}"
 
+    @property
+    def status(self):
+        if self.validity_date and self.validity_date < now().date():
+            self._status = self.Status.EXPIRED
+            self.save(update_fields=[self.__class__._status.field.name])
+            self.set_status_history()
+        return self._status
+
+    def set_status_history(self):
+        OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
+
+    @property
     def required_fields(self):
-        # TODO: update below fields
         return [
             OrganizationJobPosition.title.field.name,
             OrganizationJobPosition.vaccancy.field.name,
@@ -1715,9 +1732,24 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.validity_date.field.name,
             OrganizationJobPosition.description.field.name,
             OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.educations.field.name,
             OrganizationJobPosition.work_experience_years.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.contract_type.field.name,
+        OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.city.field.name,
         ]
+
+ 
+
+class OrganizationJobPositionStatusHistory(models.Model):
+    job_position = models.ForeignKey(OrganizationJobPosition, on_delete=models.CASCADE, related_name="status_histories")
+    status = models.CharField(max_length=50, choices=OrganizationJobPosition.Status.choices, verbose_name=_("Status"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Status History")
+        verbose_name_plural = _("Status Histories")
+
+    def __str__(self):
+        return f"{self.job_position.title} - {self.status}"

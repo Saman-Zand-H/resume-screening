@@ -29,6 +29,7 @@ from .models import (
     Organization,
     OrganizationInvitation,
     OrganizationJobPosition,
+    OrganizationJobPositionStatusHistory,
     OrganizationMembership,
     PaystubsMethod,
     Profile,
@@ -643,27 +644,40 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
     list_display = (
         OrganizationJobPosition.id.field.name,
         OrganizationJobPosition.title.field.name,
-        OrganizationJobPosition.status.field.name,
+        OrganizationJobPosition._status.field.name,
         OrganizationJobPosition.organization.field.name,
-        OrganizationJobPosition.updated_at.field.name,
         OrganizationJobPosition.created_at.field.name,
     )
     search_fields = (OrganizationJobPosition.title.field.name,)
     list_filter = (
-        OrganizationJobPosition.status.field.name,
-        OrganizationJobPosition.age_range.field.name,
+        OrganizationJobPosition._status.field.name,
+        OrganizationJobPosition.age_min.field.name,
+        OrganizationJobPosition.age_max.field.name,
         OrganizationJobPosition.contract_type.field.name,
+        OrganizationJobPosition.location_type.field.name,
         OrganizationJobPosition.payment_term.field.name,
         OrganizationJobPosition.start_at.field.name,
         OrganizationJobPosition.validity_date.field.name,
-        OrganizationJobPosition.published_at.field.name,
-        OrganizationJobPosition.completed_at.field.name,
-        OrganizationJobPosition.closed_at.field.name,
-        OrganizationJobPosition.updated_at.field.name,
         OrganizationJobPosition.created_at.field.name,
     )
     raw_id_fields = (
         OrganizationJobPosition.organization.field.name,
         OrganizationJobPosition.skills.field.name,
-        OrganizationJobPosition.educations.field.name,
+        OrganizationJobPosition.fields.field.name,
+        OrganizationJobPosition.city.field.name,
     )
+
+
+@register(OrganizationJobPositionStatusHistory)
+class OrganizationJobPositionStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationJobPositionStatusHistory.id.field.name,
+        OrganizationJobPositionStatusHistory.job_position.field.name,
+        OrganizationJobPositionStatusHistory.status.field.name,
+        OrganizationJobPositionStatusHistory.created_at.field.name,
+    )
+    list_filter = (
+        OrganizationJobPositionStatusHistory.status.field.name,
+        OrganizationJobPositionStatusHistory.created_at.field.name,
+    )
+    raw_id_fields = (OrganizationJobPositionStatusHistory.job_position.field.name,)
