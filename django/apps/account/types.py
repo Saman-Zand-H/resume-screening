@@ -393,6 +393,8 @@ class OrganizationInvitationType(DjangoObjectType):
 
 class OrganizationJobPositionNode(DjangoObjectType):
     status = Field(String, description="The current status of the job position.")
+    age_range = Field(String, description="The age range of the job position.")
+    salary_range = Field(String, description="The salary range of the job position.")
 
     class Meta:
         model = OrganizationJobPosition
@@ -410,18 +412,15 @@ class OrganizationJobPositionNode(DjangoObjectType):
             OrganizationJobPosition.work_experience_years.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
-            OrganizationJobPosition.age_min.field.name,
-            OrganizationJobPosition.age_max.field.name,
             OrganizationJobPosition.required_documents.field.name,
             OrganizationJobPosition.performance_expectation.field.name,
             OrganizationJobPosition.contract_type.field.name,
             OrganizationJobPosition.location_type.field.name,
-            OrganizationJobPosition.salary_min.field.name,
-            OrganizationJobPosition.salary_max.field.name,
             OrganizationJobPosition.payment_term.field.name,
             OrganizationJobPosition.working_start_at.field.name,
             OrganizationJobPosition.working_end_at.field.name,
             OrganizationJobPosition.benefits.field.name,
+            OrganizationJobPosition.other_benefits.field.name,
             OrganizationJobPosition.days_off.field.name,
             OrganizationJobPosition.job_restrictions.field.name,
             OrganizationJobPosition.employer_questions.field.name,
@@ -437,3 +436,9 @@ class OrganizationJobPositionNode(DjangoObjectType):
 
     def resolve_status(self, info):
         return self.status
+
+    def resolve_age_range(self, info):
+        return self.age_range
+
+    def resolve_salary_range(self, info):
+        return self.salary_range

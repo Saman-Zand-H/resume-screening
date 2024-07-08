@@ -664,8 +664,7 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
     search_fields = (OrganizationJobPosition.title.field.name,)
     list_filter = (
         OrganizationJobPosition._status.field.name,
-        OrganizationJobPosition.age_min.field.name,
-        OrganizationJobPosition.age_max.field.name,
+        OrganizationJobPosition.age_range.field.name,
         OrganizationJobPosition.contract_type.field.name,
         OrganizationJobPosition.location_type.field.name,
         OrganizationJobPosition.payment_term.field.name,

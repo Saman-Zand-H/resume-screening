@@ -41,7 +41,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -1787,8 +1787,7 @@ class OrganizationJobPosition(models.Model):
         null=True,
         blank=True,
     )
-    age_min = models.PositiveSmallIntegerField(verbose_name=_("Age Min"), null=True, blank=True)
-    age_max = models.PositiveSmallIntegerField(verbose_name=_("Age Max"), null=True, blank=True)
+    age_range = IntegerRangeField(verbose_name=_("Age Range"), null=True, blank=True)
     required_documents = ArrayField(
         models.CharField(max_length=255), verbose_name=_("Required Document"), null=True, blank=True
     )
@@ -1805,8 +1804,7 @@ class OrganizationJobPosition(models.Model):
     location_type = models.CharField(
         max_length=50, choices=LocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
     )
-    salary_min = models.PositiveIntegerField(verbose_name=_("Salary Min"), null=True, blank=True)
-    salary_max = models.PositiveIntegerField(verbose_name=_("Salary Max"), null=True, blank=True)
+    salary_range = IntegerRangeField(verbose_name=_("Salary Range"), null=True, blank=True)
     payment_term = models.CharField(
         max_length=50,
         choices=PaymentTerm.choices,
@@ -1817,6 +1815,9 @@ class OrganizationJobPosition(models.Model):
     working_start_at = models.TimeField(verbose_name=_("Working Start At"), null=True, blank=True)
     working_end_at = models.TimeField(verbose_name=_("Working End At"), null=True, blank=True)
     benefits = models.ManyToManyField(JobBenefit, verbose_name=_("Benefits"), related_name="job_positions", blank=True)
+    other_benefits = ArrayField(
+        models.CharField(max_length=255), verbose_name=_("Other Benefits"), null=True, blank=True
+    )
     days_off = ArrayField(
         models.CharField(choices=WeekDay.choices, max_length=50),
         verbose_name=_("Days Off"),
