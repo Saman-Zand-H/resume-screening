@@ -18,6 +18,8 @@ from ..models import (
 
 
 class ProfileResource(ModelResource):
+    email = fields.Field(column_name=_("Email"))
+    full_name = fields.Field(column_name=_("Full Name"))
     phone_number = fields.Field(column_name=_("Phone Number"))
     educations = fields.Field(column_name=_("Educations"))
     work_experiences = fields.Field(column_name=_("Work Experiences"))
