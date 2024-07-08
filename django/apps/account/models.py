@@ -20,7 +20,7 @@ from common.models import (
     Skill,
     University,
 )
-from common.utils import get_all_subclasses
+from common.utils import fields_join, get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -174,6 +174,31 @@ class User(AbstractUser):
             LanguageCertificate.user,
             CertificateAndLicense.user,
         )
+
+    def has_access(self, access_slug):
+        return self.__class__.objects.filter(
+            models.Q(
+                **{
+                    fields_join(
+                        Profile.user.field.related_query_name(),
+                        Profile.role,
+                        Role.accesses,
+                        Access.slug,
+                    ): access_slug
+                }
+            )
+            | models.Q(
+                **{
+                    fields_join(
+                        OrganizationMembership.user.field.related_query_name(),
+                        OrganizationMembership.access_role,
+                        Role.accesses,
+                        Access.slug,
+                    ): access_slug
+                }
+            ),
+            pk=self.pk,
+        ).exists()
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():

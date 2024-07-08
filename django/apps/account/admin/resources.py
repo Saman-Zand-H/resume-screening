@@ -45,7 +45,7 @@ class ProfileResource(ModelResource):
                     f"Job Title: {work_experience.job_title}",
                     f"Status: {work_experience.get_status_display()}",
                     f"Organization: {work_experience.organization}",
-                    f"Admin Link: {settings.SITE_DOMAIN.rstrip('/')}/{reverse_lazy('admin:auth_account_workexperience_change', args=[work_experience.pk])}",
+                    f"Admin Link: {settings.SITE_DOMAIN.strip('/')}/{reverse_lazy('admin:auth_account_workexperience_change', args=[work_experience.pk])}",
                 ]
             )
             for work_experience in WorkExperience.objects.filter(**{WorkExperience.user.field.name: obj.user})
@@ -58,7 +58,7 @@ class ProfileResource(ModelResource):
                     f"Title: {certificate_and_license.title}",
                     f"Status: {certificate_and_license.get_status_display()}",
                     f"Certifier: {certificate_and_license.certifier}",
-                    f"Admin Link: {settings.SITE_DOMAIN.rstrip('/')}/{reverse_lazy('admin:auth_account_certificateandlicense_change', args=[certificate_and_license.pk])}",
+                    f"Admin Link: {settings.SITE_DOMAIN.strip('/')}/{reverse_lazy('admin:auth_account_certificateandlicense_change', args=[certificate_and_license.pk])}",
                 ]
             )
             for certificate_and_license in CertificateAndLicense.objects.filter(
@@ -73,7 +73,7 @@ class ProfileResource(ModelResource):
                     f"Language: {language_certificate.language.name}",
                     f"Test: {language_certificate.test.title}",
                     f"Level: {language_certificate.get_level_display()}",
-                    f"Admin Link: {settings.SITE_DOMAIN.rstrip('/')}/{reverse_lazy('admin:auth_account_languagecertificate_change', args=[language_certificate.pk])}",
+                    f"Admin Link: {settings.SITE_DOMAIN.strip('/')}/{reverse_lazy('admin:auth_account_languagecertificate_change', args=[language_certificate.pk])}",
                 ]
             )
             for language_certificate in LanguageCertificate.objects.filter(
@@ -91,7 +91,7 @@ class ProfileResource(ModelResource):
         )
 
     def dehydrate_avatar(self, obj: Profile):
-        return obj.avatar and f"{settings.SITE_DOMAIN.rstrip("/")}/{obj.avatar.file}"
+        return obj.avatar and f"{settings.SITE_DOMAIN.strip("/")}/{obj.avatar.file}"
 
     def dehydrate_gender(self, obj: Profile):
         return obj.get_gender_display()
@@ -111,6 +111,9 @@ class ProfileResource(ModelResource):
             Profile.gender.field.name,
             Profile.credits.field.name,
             Profile.score.field.name,
+            "work_experiences",
+            "language_certificates",
+            "certificate_and_licenses",
         ]
         widgets = {
             Profile.birth_date.field.name: {"format": "%Y-%m-%d"},

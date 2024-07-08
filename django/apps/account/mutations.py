@@ -2,6 +2,7 @@ import contextlib
 from datetime import timedelta
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -25,15 +26,14 @@ from graphql_auth.constants import TokenAction
 from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
-from graphql_auth.utils import get_token, get_token_payload
 from graphql_auth.shortcuts import get_user_by_email
+from graphql_auth.utils import get_token, get_token_payload
 from graphql_jwt.decorators import (
     login_required,
     on_token_auth_resolve,
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
@@ -53,6 +53,7 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
+    CommunicateOrganizationMethod,
     Contact,
     DocumentAbstract,
     Education,

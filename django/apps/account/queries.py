@@ -21,7 +21,7 @@ class OrganizationQuery(graphene.ObjectType):
 
 
 class EducationQuery(graphene.ObjectType):
-    get = graphene.Field(EducationNode, id=graphene.ID())
+    get = graphene.Field(EducationNode, id=graphene.ID(), required=True)
 
     @login_required
     def resolve_get(self, info, id):

@@ -84,6 +84,26 @@ class GeneratedCV(FileModel):
         related_name="cv",
         verbose_name=_("User"),
     )
+    input_json = models.JSONField(verbose_name=_("Input JSON"), blank=True, null=True)
+    work_experiences = models.JSONField(verbose_name=_("Work Experiences"), blank=True, null=True)
+    educations = models.JSONField(verbose_name=_("Educations"), blank=True, null=True)
+    certifications = models.JSONField(verbose_name=_("Certifications"), blank=True, null=True)
+    additional_sections = models.JSONField(verbose_name=_("Additional Sections"), blank=True, null=True)
+
+    @classmethod
+    def get_resume_info(cls, user: User, input_json: dict, template: CVTemplate = None):
+        if not template:
+            template = CVTemplate.objects.latest("created")
+
+        if (instance := cls.object.filter(user=user, template=template)) and instance.input_json == input_json:
+            return {
+                "work_experiences": instance.work_experiences,
+                "educations": instance.educations,
+                "certifications": instance.certifications,
+                "additional_sections": instance.additional_sections,
+            }
+
+        return extract_generated_resume_input(user)
 
     def __str__(self):
         return f"{self.user}: {self.file.name}"
@@ -121,7 +141,7 @@ class GeneratedCV(FileModel):
             ],
         )
         skills = profile.skills.all()
-        asssistant_data = extract_generated_resume_input(user)
+        asssistant_data = cls.get_resume_info(user, profile.resume_input)
 
         return {
             "user": user,

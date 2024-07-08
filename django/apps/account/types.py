@@ -387,4 +387,3 @@ class OrganizationInvitationType(DjangoObjectType):
             return model.objects.get(token=token)
         except model.DoesNotExist:
             return None
-            return None
