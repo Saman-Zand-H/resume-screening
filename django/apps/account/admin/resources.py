@@ -72,7 +72,7 @@ class ProfileResource(ModelResource):
                 [
                     f"Language: {language_certificate.language}",
                     f"Test: {language_certificate.test.title}",
-                    f"Level: {language_certificate.get_level_display()}",
+                    f"Scores: {language_certificate.scores}",
                     f"Admin Link: {settings.SITE_DOMAIN.strip('/')}/{reverse_lazy('admin:auth_account_languagecertificate_change', args=[language_certificate.pk])}",
                 ]
             )
@@ -227,9 +227,6 @@ class LanguageCertificateResource(ModelResource):
 
     def dehydrate_duration(self, obj):
         return obj.duration
-
-    def dehydrate_level(self, obj: LanguageCertificate):
-        return obj.get_level_display()
 
     def dehydrate_scores(self, obj: LanguageCertificate):
         return obj.scores
