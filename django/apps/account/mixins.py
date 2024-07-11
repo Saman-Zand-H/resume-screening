@@ -1,7 +1,12 @@
+import warnings
+from functools import wraps
 from operator import call
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
+import graphene
 from common.exceptions import GraphQLErrorBadRequest
+from graphene.types.resolver import get_default_resolver
+from graphene.types.utils import yank_fields_from_attrs
 from graphene_django_cud.mutations import DjangoPatchMutation
 from rules.rulesets import test_rule
 
@@ -31,12 +36,13 @@ class AccessRequiredMixin:
             cls.access_denied(accesses)
 
     @classmethod
-    def get_rule_object(cls, info=None, *args, **kwargs) -> Dict[str, Any]:
-        return {}
+    def get_rule_object(cls, info=None, *args, **kwargs) -> Any:
+        return None
 
     @classmethod
     def access_denied(cls, access_slug: str):
-        raise PermissionError("You don't have permission to perform this action.")
+        """Returns a value if access is denied."""
+        raise PermissionError()
 
     @classmethod
     def get_has_access_kwargs(cls, access_slug: str, info, **kwargs):
@@ -54,10 +60,81 @@ class MutationAccessRequiredMixin(AccessRequiredMixin):
     accesses: List[AccessType] = []
 
     @classmethod
-    def mutate(cls, root, info, *args, **kwargs):
-        cls.has_access(cls.accesses, info)
+    def resolver_wrapper(cls, mutation: Callable):
+        @wraps(mutation)
+        def wrapper(root, info, *args, **kwargs):
+            try:
+                cls.has_access(cls.accesses, info)
+                return mutation(root, info, *args, **kwargs)
+            except PermissionError as e:
+                return e.args and e.args[0] or None
 
-        return super().mutate(root, info, *args, **kwargs)
+        return wrapper
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        setattr(cls, "mutate", cls.resolver_wrapper(getattr(cls, "mutate", lambda *args, **kwargs: None)))
+
+        super().__init_subclass_with_meta__(*args, **kwargs)
+
+
+class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
+    fields_access: Dict[str, AccessType] = {}
+
+    @classmethod
+    def resolver_wrapper(cls, field_name: str) -> Callable:
+        def wrapper(resolver: Callable):
+            @wraps(resolver)
+            def inner_wrapper(root, info, *args, **kwargs):
+                try:
+                    cls.has_access(cls.accesses, info)
+                    return resolver(root, info, *args, **kwargs)
+                except PermissionError as e:
+                    return e.args and e.args[0] or None
+
+            return inner_wrapper
+
+        return wrapper
+
+    @classmethod
+    def register_resolver(cls, field_name, graphene_field, registered_field_resolvers):
+        resolver = getattr(
+            cls,
+            f"resolve_{field_name}",
+            graphene_field.resolver if getattr(graphene_field, "resolver", False) else None,
+        )
+        if not resolver:
+            return
+
+        wrapper = cls.resolver_wrapper(field_name)
+        setattr(cls, f"resolve_{field_name}", wrapper(resolver))
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        attr_fields = yank_fields_from_attrs(cls.__dict__, _as=graphene.Field)
+        registered_field_resolvers = set()
+
+        if "__all__" in cls.fields_access:
+            for field_name, graphene_field in attr_fields.items():
+                cls.register_resolver(field_name, graphene_field)
+                registered_field_resolvers.add(field_name)
+            kwargs.update(default_resolver=cls.resolver_wrapper(kwargs.get("default_resolver", get_default_resolver())))
+            return super().__init_subclass_with_meta__(*args, **kwargs)
+
+        for field_name, graphene_field in attr_fields.items():
+            cls.register_resolver(field_name, graphene_field)
+            registered_field_resolvers.add(field_name)
+
+        if len(cls.fields_access) != len(registered_field_resolvers):
+            kwargs.update(default_resolver=cls.resolver_wrapper(kwargs.get("default_resolver", get_default_resolver())))
+
+        if abs(len(cls.fields_access) - len(registered_field_resolvers)) > 1:
+            warnings.warn(
+                "Some fields are not registered with access checks or "
+                "multiple accesses are passed for default resolvers."
+            )
+
+        super().__init_subclass_with_meta__(*args, **kwargs)
 
 
 class EmailVerificationMixin:

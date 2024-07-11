@@ -6,8 +6,6 @@ import string
 import uuid
 from typing import Dict, Optional
 
-from markdownfield.models import MarkdownField
-from markdownfield.validators import VALIDATOR_STANDARD
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -17,11 +15,11 @@ from common.models import (
     FileModel,
     Industry,
     Job,
+    JobBenefit,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
     University,
-    JobBenefit,
 )
 from common.utils import fields_join, get_all_subclasses
 from common.validators import (
@@ -31,9 +29,10 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
     ValidateFileSize,
 )
-from common.exceptions import GraphQLErrorBadRequest
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
+from markdownfield.models import MarkdownField
+from markdownfield.validators import VALIDATOR_STANDARD
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -230,9 +229,10 @@ class Access(models.Model):
 
 
 class Role(models.Model):
+    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name=_("Slug"))
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
-    accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), blank=True)
+    accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), through="RoleAccess", blank=True)
 
     managed_by_model = models.ForeignKey(
         ContentType,
@@ -256,6 +256,26 @@ class Role(models.Model):
         verbose_name = _("Role")
         verbose_name_plural = _("Roles")
         ordering = ["title"]
+
+
+class RoleAccess(models.Model):
+    role = models.ForeignKey(
+        Role,
+        to_field=Role.slug.field.name,
+        on_delete=models.CASCADE,
+        verbose_name=_("Role"),
+    )
+    access = models.ForeignKey(
+        Access,
+        to_field=Access.slug.field.name,
+        on_delete=models.CASCADE,
+        verbose_name=_("Access"),
+    )
+
+    class Meta:
+        verbose_name = _("Role Access")
+        verbose_name_plural = _("Role Accesses")
+        unique_together = ("role", "access")
 
 
 class UserFile(FileModel):
@@ -1870,11 +1890,10 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.contract_type.field.name,
-        OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
             OrganizationJobPosition.city.field.name,
         ]
 
- 
 
 class OrganizationJobPositionStatusHistory(models.Model):
     job_position = models.ForeignKey(OrganizationJobPosition, on_delete=models.CASCADE, related_name="status_histories")

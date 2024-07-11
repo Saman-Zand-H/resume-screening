@@ -315,7 +315,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 ASSISTANT_IDS = {
     Assistants.JOB: os.environ.get("FIND_USER_AVAILABLE_JOBS_ASSISTANT_ID"),
     Assistants.SKILL: os.environ.get("FIND_USER_SKILLS_OR_CREATE_ASSISTANT_ID"),
-    Assistants.RESUME: os.environ.get("GET_RESUME_JSON_ASSISTANT_ID"),
+    Assistants.RESUME_JSON: os.environ.get("GET_RESUME_JSON_ASSISTANT_ID"),
     Assistants.GENERATE_RESUME: os.environ.get("GENERATE_RESUME_INFO_ASSISTANT_ID"),
 }
 
