@@ -1,0 +1,27 @@
+{% extends "email/base.html" %}
+
+
+{% block content %}
+<h2 style="color: #333; text-align: center;">Invitation to Join {{ organization.name }}</h2>
+<p style="color: #555; font-size: 16px;">
+    Dear {{ email }},
+</p>
+<p style="color: #555; font-size: 16px;">
+    You have been invited to join <strong>{{ organization.name }}</strong> as a <strong>{{ role }}</strong>. We are thrilled to extend this opportunity and look forward to having you as part of our team.
+</p>
+<p style="color: #555; font-size: 16px;">
+    To accept this invitation and join our organization, please click the button below:
+</p>
+<div style="text-align: center; margin: 20px 0;">
+    <a href="{{ token }}" style="background-color: #007BFF; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-size: 16px;">
+        Accept Invitation
+    </a>
+</div>
+<p style="color: #555; font-size: 16px;">
+    If you have any questions or need assistance, feel free to reach out to our support team. We’re here to help!
+</p>
+<p style="color: #333; font-size: 16px; text-align: center;">
+    Best regards,<br>
+    <strong>The {{ organization.name }} Team</strong>
+</p>
+{% endblock %}

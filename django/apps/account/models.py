@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import base64
 import contextlib
 import random
@@ -1877,6 +1878,14 @@ class OrganizationJobPosition(models.Model):
     def set_status_history(self):
         OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
 
+    def clean(self):
+        if self.start_at and self.validity_date and self.start_at > self.validity_date:
+            raise ValidationError({"validity_date": _("Validity date must be after Start date")})
+        
+        if self.working_start_at and self.working_end_at and self.working_start_at > self.working_end_at:
+            raise ValidationError({"working_end_at": _("Working End At must be after Working Start At")})
+        return super().clean()
+
     @property
     def required_fields(self):
         return [
@@ -1893,6 +1902,80 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.location_type.field.name,
             OrganizationJobPosition.city.field.name,
         ]
+
+    def change_status(self, new_status):
+        state_mapping = {
+            self.Status.DRAFTED: DraftedState(),
+            self.Status.PUBLISHED: PublishedState(),
+            self.Status.COMPLETED: CompletedState(),
+            self.Status.SUSPENDED: SuspendedState(),
+            self.Status.EXPIRED: ExpiredState(),
+        }
+        current_state = state_mapping.get(self._status)
+        if not current_state:
+            raise ValueError(f"Invalid status: {self._status}")
+        current_state.change_status(self, new_status)
+        self.save(update_fields=[self.__class__._status.field.name])
+
+
+class OrganizationJobPositionState(ABC):
+    @abstractmethod
+    def change_status(self, job_position, new_status):
+        pass
+
+
+class DraftedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value == OrganizationJobPosition.Status.PUBLISHED.value:
+            missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
+            if missing_fields:
+                raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Drafted to {new_status.value}")
+
+
+class PublishedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value in [
+            OrganizationJobPosition.Status.DRAFTED.value,
+            OrganizationJobPosition.Status.SUSPENDED.value,
+        ]:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Published to {new_status.value}")
+
+
+class CompletedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value == OrganizationJobPosition.Status.DRAFTED.value:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Completed to {new_status.value}")
+
+
+class SuspendedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value in [
+            OrganizationJobPosition.Status.DRAFTED.value,
+            OrganizationJobPosition.Status.PUBLISHED.value,
+        ]:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Suspended to {new_status.value}")
+
+
+class ExpiredState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value == OrganizationJobPosition.Status.DRAFTED.value:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Expired to {new_status.value}")
 
 
 class OrganizationJobPositionStatusHistory(models.Model):
