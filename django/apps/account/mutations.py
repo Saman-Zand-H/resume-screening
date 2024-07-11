@@ -106,7 +106,15 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
 
     @classmethod
     def after_mutate(cls, root, info, input, obj, return_data):
-        # TODO: send invitation email
+        template_name = "email/invitation.html"
+        context = {"email": obj.email, "organization": obj.organization, "role": obj.role, "token": obj.token}
+        content = render_to_string(template_name, context)
+        send_email_async.delay(
+            recipient_list=[obj.email],
+            from_email=None,
+            subject=_("Welcome to CPJ - You have been invited!"),
+            content=content,
+        )
         return super().after_mutate(root, info, input, obj, return_data)
 
 
