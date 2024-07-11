@@ -952,14 +952,28 @@ class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
             raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
         return super().validate(root, info, input, id, obj)
 
+
+class OrganizationJobPositionStatusUpdateMutation(DjangoPatchMutation):
+    class Meta:
+        model = OrganizationJobPosition
+        login_required = True
+        fields = [
+            OrganizationJobPosition._status.field.name,
+        ]
+        type_name = "OrganizationJobPositionStatusUpdateInput"
+
     @classmethod
-    def before_save(cls, root, info, input, id, obj):
-        if status := input.get(OrganizationJobPosition.status.field.name):
-            if status.value == OrganizationJobPosition.Status.PUBLISHED.value:
-                missing_fields = [field for field in obj.required_fields() if not getattr(obj, field)]
-                if missing_fields:
-                    raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
-        return super().before_save(root, info, input, id, obj)
+    def mutate(cls, root, info, input, id):
+        status = input.get(OrganizationJobPosition._status.field.name)
+        try:
+            obj = OrganizationJobPosition.objects.get(pk=id)
+        except OrganizationJobPosition.DoesNotExist:
+            raise GraphQLErrorBadRequest(_("Job position not found."))
+
+        obj.change_status(status)
+
+        return_data = {cls._meta.return_field_name: obj}
+        return cls(**return_data)
 
 
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
@@ -1048,6 +1062,7 @@ class OrganizationMutation(graphene.ObjectType):
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
     create_job_position = OrganizationJobPositionCreateMutation.Field()
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
+    update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
