@@ -947,6 +947,10 @@ class OrganizationJobPositionCreateMutation(DjangoCreateMutation):
             OrganizationJobPosition.organization.field.name,
         ]
 
+    @classmethod
+    def before_create_obj(cls, info, input, obj):
+        obj.full_clean()
+
 
 class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
     class Meta:
@@ -959,6 +963,12 @@ class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
         if obj.status != OrganizationJobPosition.Status.DRAFTED.value:
             raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
         return super().validate(root, info, input, id, obj)
+    
+    @classmethod
+    def update_obj(cls, *args, **kwargs):
+        obj = super().update_obj(*args, **kwargs)
+        obj.full_clean()
+        return obj
 
 
 class OrganizationJobPositionStatusUpdateMutation(DjangoPatchMutation):

@@ -1858,6 +1858,14 @@ class OrganizationJobPosition(models.Model):
     def set_status_history(self):
         OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
 
+    def clean(self):
+        if self.start_at and self.validity_date and self.start_at > self.validity_date:
+            raise ValidationError({"validity_date": _("Validity date must be after Start date")})
+        
+        if self.working_start_at and self.working_end_at and self.working_start_at > self.working_end_at:
+            raise ValidationError({"working_end_at": _("Working End At must be after Working Start At")})
+        return super().clean()
+
     @property
     def required_fields(self):
         return [
