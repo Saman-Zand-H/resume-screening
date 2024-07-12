@@ -182,12 +182,11 @@ class Register(graphql_auth_mutations.Register):
     @classmethod
     def add_to_organization(cls, *args, **kwargs):
         if organization_invitation_token := kwargs.pop(OrganizationInvitation.token.field.name, None):
-            try:
-                organization_invitation = OrganizationInvitation.objects.get(token=organization_invitation_token)
-                if organization_invitation.created_at + timedelta(minutes=10) < timezone.now():
-                    raise GraphQLErrorBadRequest(_("Organization invitation token is expired."))
-            except OrganizationInvitation.DoesNotExist:
+            organization_invitation = OrganizationInvitation.objects.filter(token=organization_invitation_token).first()
+            if not organization_invitation:
                 raise GraphQLErrorBadRequest(_("Organization invitation token is invalid."))
+            if organization_invitation.is_expired:
+                raise GraphQLErrorBadRequest(_("Organization invitation token is expired."))
 
             user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
             try:
@@ -963,7 +962,7 @@ class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
         if obj.status != OrganizationJobPosition.Status.DRAFTED.value:
             raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
         return super().validate(root, info, input, id, obj)
-    
+
     @classmethod
     def update_obj(cls, *args, **kwargs):
         obj = super().update_obj(*args, **kwargs)

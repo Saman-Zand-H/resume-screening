@@ -97,7 +97,7 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         return wrapper
 
     @classmethod
-    def register_resolver(cls, field_name, graphene_field, registered_field_resolvers):
+    def register_resolver(cls, field_name, graphene_field):
         resolver = getattr(
             cls,
             f"resolve_{field_name}",

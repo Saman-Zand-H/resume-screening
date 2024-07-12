@@ -1,15 +1,16 @@
-from abc import ABC, abstractmethod
 import base64
 import contextlib
 import random
 import re
 import string
 import uuid
+from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
+from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import HasDurationMixin
 from common.models import (
     Field,
@@ -49,18 +50,24 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from .choices import get_access_slugs, get_task_names_choices
 from .constants import (
     EARLY_USERS_COUNT,
+    ORGANIZATION_INVITATION_EXPIRY_DELTA,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
     SUPPORT_TICKET_SUBJECT_TEMPLATE,
 )
-from .managers import CertificateAndLicenseManager, UserManager
+from .managers import (
+    CertificateAndLicenseManager,
+    OrganizationMembershipManager,
+    UserManager,
+)
 from .mixins import EmailVerificationMixin
 from .validators import (
     BlocklistEmailDomainValidator,
@@ -1700,7 +1707,10 @@ class OrganizationMembership(models.Model):
         verbose_name=_("Organization"),
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="organization_memberships", verbose_name=_("User")
+        User,
+        on_delete=models.CASCADE,
+        related_name="organization_memberships",
+        verbose_name=_("User"),
     )
     invited_by = models.ForeignKey(
         User,
@@ -1711,6 +1721,8 @@ class OrganizationMembership(models.Model):
         related_name="invited_memberships",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    objects = OrganizationMembershipManager()
 
     class Meta:
         verbose_name = _("Organization Membership")
@@ -1730,10 +1742,19 @@ class OrganizationInvitation(models.Model):
         default=OrganizationMembership.UserRole.OTHER.value,
     )
     token = models.CharField(
-        max_length=15, verbose_name=_("Token"), unique=True, db_index=True, default=generate_invitation_token
+        max_length=15,
+        verbose_name=_("Token"),
+        unique=True,
+        db_index=True,
+        default=generate_invitation_token,
     )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
+
+    @property
+    def is_expired(self):
+        return self.created_at + ORGANIZATION_INVITATION_EXPIRY_DELTA < timezone.now()
 
     class Meta:
         verbose_name = _("Organization Invitation")
@@ -1881,7 +1902,7 @@ class OrganizationJobPosition(models.Model):
     def clean(self):
         if self.start_at and self.validity_date and self.start_at > self.validity_date:
             raise ValidationError({"validity_date": _("Validity date must be after Start date")})
-        
+
         if self.working_start_at and self.working_end_at and self.working_start_at > self.working_end_at:
             raise ValidationError({"working_end_at": _("Working End At must be after Working Start At")})
         return super().clean()

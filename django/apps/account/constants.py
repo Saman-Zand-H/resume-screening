@@ -1,4 +1,5 @@
 import json
+from datetime import timedelta
 from functools import partial
 from logging import getLogger
 from pathlib import Path
@@ -22,6 +23,8 @@ def get_extended_blocklist():
 
     return extended_blocklist
 
+
+ORGANIZATION_INVITATION_EXPIRY_DELTA = timedelta(days=1)
 
 EXTENDED_EMAIL_BLOCKLIST = get_extended_blocklist()
 
