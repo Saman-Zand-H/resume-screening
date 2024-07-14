@@ -37,7 +37,7 @@ class AccessRequiredMixin:
             cls.access_denied(accesses)
 
     @classmethod
-    def get_access_object(cls, info=None, *args, **kwargs) -> Any:
+    def get_access_object(cls, *args, **kwargs) -> Any:
         return None
 
     @classmethod
