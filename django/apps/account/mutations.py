@@ -1,9 +1,8 @@
 import contextlib
-from datetime import timedelta
 
 import graphene
 from account.utils import is_env
-from common.exceptions import GraphQLErrorBadRequest
+from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
     DocumentFilePermissionMixin,
@@ -40,6 +39,12 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from .accesses import (
+    JobPositionContainer,
+    OrganizationMembershipContainer,
+    OrganizationProfileContainer,
+)
+from .choices import DefaultRoles
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -48,6 +53,7 @@ from .mixins import (
     DocumentCUDMixin,
     DocumentUpdateMutationMixin,
     EmailVerificationMixin,
+    MutationAccessRequiredMixin,
     UpdateStatusMixin,
 )
 from .models import (
@@ -69,6 +75,7 @@ from .models import (
     Referral,
     ReferralUser,
     Resume,
+    Role,
     SupportTicket,
     User,
     WorkExperience,
@@ -83,7 +90,9 @@ from .types import UserNode
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
-class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
+class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, DjangoCreateMutation):
+    accesses = [OrganizationMembershipContainer.INVITOR, OrganizationMembershipContainer.ADMIN]
+
     class Meta:
         model = OrganizationInvitation
         fields = (
@@ -91,6 +100,17 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
             OrganizationInvitation.email.field.name,
             OrganizationInvitation.role.field.name,
         )
+
+    @classmethod
+    def get_access_object(cls, info=None, *args, **kwargs):
+        if not (
+            organization := Organization.objects.filter(
+                pk=kwargs.get("input", {}).get(OrganizationInvitation.organization.field.name)
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
 
     @classmethod
     def before_create_obj(cls, info, input, obj):
@@ -105,9 +125,9 @@ class OrganizationInviteMutation(DocumentCUDMixin, DjangoCreateMutation):
         return super().validate(root, info, input)
 
     @classmethod
-    def after_mutate(cls, root, info, input, obj, return_data):
+    def after_mutate(cls, root, info, input, obj: OrganizationInvitation, return_data):
         template_name = "email/invitation.html"
-        context = {"email": obj.email, "organization": obj.organization, "role": obj.role, "token": obj.token}
+        context = {"email": obj.email, "organization": obj.organization, "role": obj.role.title, "token": obj.token}
         content = render_to_string(template_name, context)
         send_email_async.delay(
             recipient_list=[obj.email],
@@ -185,6 +205,7 @@ class Register(graphql_auth_mutations.Register):
             organization_invitation = OrganizationInvitation.objects.filter(token=organization_invitation_token).first()
             if not organization_invitation:
                 raise GraphQLErrorBadRequest(_("Organization invitation token is invalid."))
+
             if organization_invitation.is_expired:
                 raise GraphQLErrorBadRequest(_("Organization invitation token is expired."))
 
@@ -193,7 +214,7 @@ class Register(graphql_auth_mutations.Register):
                 OrganizationMembership.objects.create(
                     user=user,
                     organization=organization_invitation.organization,
-                    role=organization_invitation.role,
+                    access_role=organization_invitation.role,
                     invited_by=organization_invitation.created_by,
                 )
             except IntegrityError:
@@ -208,24 +229,34 @@ class RegisterOrganization(Register):
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        result = super().mutate(*args, **kwargs)
-        if not result.success:
+        if not (result := super().mutate(*args, **kwargs)).success:
             return result
 
-        email = kwargs.get(User.EMAIL_FIELD)
-        user = User.objects.get(**{User.EMAIL_FIELD: email})
+        if not (access_role := Role.objecrs.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
+            raise GraphQLError(_("Owner role not found."))
+
+        user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
 
         organization_name = kwargs.get(Organization.name.field.name)
-        organization = Organization.objects.create(name=organization_name, user=user)
+        organization = Organization.objects.create(
+            **{
+                Organization.name.field.name: organization_name,
+                Organization.user.field.name: user,
+            }
+        )
+
         try:
             OrganizationMembership.objects.create(
-                user=user,
-                organization=organization,
-                role=OrganizationMembership.UserRole.CREATOR.value,
-                invited_by=user,
+                **{
+                    OrganizationMembership.user.field.name: user,
+                    OrganizationMembership.organization.field.name: organization,
+                    OrganizationMembership.access_role.field.name: access_role,
+                    OrganizationMembership.invited_by.field.name: user,
+                }
             )
         except IntegrityError:
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
+
         return cls(success=True, errors=None)
 
     @classmethod
@@ -348,7 +379,14 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class OrganizationUpdateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoPatchMutation):
+class OrganizationUpdateMutation(
+    MutationAccessRequiredMixin,
+    FilePermissionMixin,
+    DocumentCUDMixin,
+    DjangoPatchMutation,
+):
+    accesses = [OrganizationProfileContainer.COMPANY_EDITOR, OrganizationProfileContainer.ADMIN]
+
     class Meta:
         model = Organization
         fields = (
@@ -845,7 +883,11 @@ class OrganizationVerificationMethodInput(graphene.InputObjectType):
     communicateorganizationmethod = graphene.Field(CommunicateOrganizationMethodInput)
 
 
-class OrganizationSetVerificationMethodMutation(graphene.Mutation):
+class BaseOrganizationVerifierMutation(MutationAccessRequiredMixin):
+    accesses = [OrganizationProfileContainer.VERIFIER, OrganizationProfileContainer.ADMIN]
+
+
+class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
         input = OrganizationVerificationMethodInput(required=True)
@@ -857,22 +899,17 @@ class OrganizationSetVerificationMethodMutation(graphene.Mutation):
     @transaction.atomic
     @login_required
     def mutate(cls, root, info, id, input):
-        user = info.context.user
-
-        # Get the first verification method if multiple methods are provided
         method, input_data = next(((key, value) for key, value in input.items() if value is not None), (None, None))
 
         if method is None:
             raise GraphQLErrorBadRequest(_("No verification method provided."))
 
-        try:
-            organization = Organization.objects.get(pk=id)
-        except Organization.DoesNotExist:
+        if not (organization := Organization.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Organization not found."))
 
         # TODO: Check if user is authorized to set verification method
 
-        if organization.status in [Organization.Status.VERIFIED.value]:
+        if organization.status in Organization.get_verified_statuses():
             raise GraphQLErrorBadRequest(_("Organization verification method is already set."))
 
         if verification_method := organization.get_verification_method():
@@ -883,7 +920,7 @@ class OrganizationSetVerificationMethodMutation(graphene.Mutation):
         return cls(success=True, output=method_instance.get_output())
 
 
-class OrganizationCommunicationMethodVerify(graphene.Mutation):
+class OrganizationCommunicationMethodVerify(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
         organization = graphene.ID(required=True)
         otp = graphene.String(required=True, description="OTP sent to the phone number.")
@@ -893,10 +930,7 @@ class OrganizationCommunicationMethodVerify(graphene.Mutation):
     @classmethod
     @login_required
     def mutate(cls, root, info, organization, otp):
-        # TODO: check if the user is authorized
-        try:
-            organization = Organization.objects.get(pk=organization)
-        except Organization.DoesNotExist:
+        if not (organization := Organization.objects.get(pk=organization)):
             raise GraphQLErrorBadRequest(_("Organization not found."))
 
         try:
@@ -938,7 +972,9 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
 ]
 
 
-class OrganizationJobPositionCreateMutation(DjangoCreateMutation):
+class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, DjangoCreateMutation):
+    accesses = [JobPositionContainer.CREATEOR, JobPositionContainer.ADMIN]
+
     class Meta:
         model = OrganizationJobPosition
         login_required = True
@@ -951,7 +987,9 @@ class OrganizationJobPositionCreateMutation(DjangoCreateMutation):
         obj.full_clean()
 
 
-class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
+class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
+    accesses = [JobPositionContainer.EDITOR, JobPositionContainer.ADMIN]
+
     class Meta:
         model = OrganizationJobPosition
         login_required = True
@@ -970,7 +1008,9 @@ class OrganizationJobPositionUpdateMutation(DjangoPatchMutation):
         return obj
 
 
-class OrganizationJobPositionStatusUpdateMutation(DjangoPatchMutation):
+class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
+    accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
+
     class Meta:
         model = OrganizationJobPosition
         login_required = True
@@ -982,15 +1022,11 @@ class OrganizationJobPositionStatusUpdateMutation(DjangoPatchMutation):
     @classmethod
     def mutate(cls, root, info, input, id):
         status = input.get(OrganizationJobPosition._status.field.name)
-        try:
-            obj = OrganizationJobPosition.objects.get(pk=id)
-        except OrganizationJobPosition.DoesNotExist:
+        if not (obj := OrganizationJobPosition.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position not found."))
 
         obj.change_status(status)
-
-        return_data = {cls._meta.return_field_name: obj}
-        return cls(**return_data)
+        return cls(**{cls._meta.return_field_name: obj})
 
 
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):

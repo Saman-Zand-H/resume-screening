@@ -14,16 +14,17 @@ from django.template.loader import render_to_string
 
 from .accesses import AccessType
 from .constants import VERIFICATION_EMAIL_FROM, VERIFICATION_PHONE_FROM
+from .exceptions import AccessDenied
 from .tasks import send_email_async
 from .utils import IDLikeObject
 
 
 class AccessRequiredMixin:
     @classmethod
-    def has_item_access(cls, access_slug, info, **kwargs):
+    def has_item_access(cls, access_slug, info, *args, **kwargs):
         from .models import User
 
-        has_access_kwargs = cls.get_has_access_kwargs(access_slug, info, **kwargs)
+        has_access_kwargs = cls.get_has_access_kwargs(info, *args, **kwargs)
         user: User = has_access_kwargs.get("user")
         if not user:
             return
@@ -31,22 +32,25 @@ class AccessRequiredMixin:
         return user.has_access(access_slug) and test_rule(access_slug, has_access_kwargs)
 
     @classmethod
-    def has_access(cls, accesses: List[AccessType], info, **kwargs):
-        if not any(cls.has_item_access(access.slug, info, **kwargs) for access in accesses):
+    def has_access(cls, accesses: List[AccessType], info, *args, **kwargs):
+        if not any(cls.has_item_access(access.slug, info, *args, **kwargs) for access in accesses):
             cls.access_denied(accesses)
 
     @classmethod
-    def get_rule_object(cls, info=None, *args, **kwargs) -> Any:
+    def get_access_object(cls, info=None, *args, **kwargs) -> Any:
         return None
 
     @classmethod
     def access_denied(cls, access_slug: str):
         """Returns a value if access is denied."""
-        raise PermissionError()
+        raise AccessDenied()
 
     @classmethod
-    def get_has_access_kwargs(cls, access_slug: str, info, **kwargs):
-        return {"instance": cls.get_rule_object(info), "user": cls.get_user(info), "access_slug": access_slug, **kwargs}
+    def get_has_access_kwargs(cls, info, *args, **kwargs):
+        return {
+            "instance": cls.get_access_object(info, *args, **kwargs),
+            "user": cls.get_user(info),
+        }
 
     @classmethod
     def get_user(cls, info, *args, **kwargs):
@@ -64,10 +68,13 @@ class MutationAccessRequiredMixin(AccessRequiredMixin):
         @wraps(mutation)
         def wrapper(root, info, *args, **kwargs):
             try:
-                cls.has_access(cls.accesses, info)
-                return mutation(root, info, *args, **kwargs)
-            except PermissionError as e:
-                return e.args and e.args[0] or None
+                cls.has_access(cls.accesses, info, *args, **kwargs)
+            except AccessDenied as e:
+                if e.should_raise:
+                    raise PermissionError(e.error_content)
+
+                return e.error_content
+            return mutation(root, info, *args, **kwargs)
 
         return wrapper
 
@@ -87,10 +94,13 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
             @wraps(resolver)
             def inner_wrapper(root, info, *args, **kwargs):
                 try:
-                    cls.has_access(cls.accesses, info)
+                    cls.has_access(cls.accesses, info, *args, **kwargs)
                     return resolver(root, info, *args, **kwargs)
-                except PermissionError as e:
-                    return e.args and e.args[0] or None
+                except AccessDenied as e:
+                    if e.should_raise:
+                        raise PermissionError(e.error_content)
+
+                    return e.error_content
 
             return inner_wrapper
 

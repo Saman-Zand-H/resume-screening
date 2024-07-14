@@ -1555,6 +1555,10 @@ class Organization(DocumentAbstract):
     def get_verification_abstract_model(cls):
         return OrganizationVerificationMethodAbstract
 
+    @classmethod
+    def get_verified_statuses(cls):
+        return [cls.Status.VERIFIED]
+
     def get_membership(self, user: User) -> Optional["OrganizationMembership"]:
         if not (accessor := getattr(self, OrganizationMembership.organization.related_query_name(), None)):
             return
@@ -1735,11 +1739,11 @@ class OrganizationMembership(models.Model):
 class OrganizationInvitation(models.Model):
     email = models.EmailField(verbose_name=_("Email"))
     organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
-    role = models.CharField(
-        max_length=50,
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.RESTRICT,
+        related_name="organization_invitations",
         verbose_name=_("Role"),
-        choices=OrganizationMembership.UserRole.choices,
-        default=OrganizationMembership.UserRole.OTHER.value,
     )
     token = models.CharField(
         max_length=15,
