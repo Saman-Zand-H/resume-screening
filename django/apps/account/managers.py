@@ -1,5 +1,8 @@
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
+from django.db.models.functions import Now
+
+from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA
 
 
 class CertificateAndLicenseQueryset(models.QuerySet):
@@ -21,3 +24,20 @@ class UserManager(BaseUserManager):
     def create_superuser(self, **kwargs):
         kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
         return super().create_superuser(**kwargs)
+
+
+class OrganizationMembershipManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .annotate(
+                is_expired=models.Case(
+                    models.When(
+                        models.Q(created_at__lt=Now() - ORGANIZATION_INVITATION_EXPIRY_DELTA), then=models.Value(True)
+                    ),
+                    default=False,
+                    output_field=models.BooleanField(),
+                )
+            )
+        )

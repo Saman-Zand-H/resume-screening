@@ -12,6 +12,7 @@ from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
+from graphql_auth.exceptions import UserAlreadyVerifiedError
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -231,9 +232,12 @@ def auth_async_email(func_name, user_email, context, arg):
     if not func:
         raise ValueError(f"Function {func_name} not found in user.status.")
 
-    if arg is not None:
-        return func(info, arg)
-    return func(info)
+    try:
+        if arg is not None:
+            return func(info, arg)
+        return func(info)
+    except UserAlreadyVerifiedError:
+        pass
 
 
 def graphql_auth_async_email(func, args):

@@ -1,15 +1,32 @@
+import json
+from datetime import timedelta
 from functools import partial
+from logging import getLogger
+from pathlib import Path
 
 from ai.types import CachableVectorStore
 from common.models import Job, Skill
 from disposable_email_domains import blocklist
 
-EXTENDED_EMAIL_BLOCKLIST = blocklist.union(
-    {
-        "kisoq.com",
-        "myweblaw.com",
-    }
-)
+from django.conf import settings
+
+logger = getLogger("django")
+
+
+def get_extended_blocklist():
+    extended_blocklist = blocklist
+    if (blocklist_path := Path(settings.BASE_DIR / "fixtures" / "blocklist_domains.json")).exists():
+        with open(blocklist_path, "r") as f:
+            extended_blocklist |= set(json.load(f))
+    else:
+        logger.warning("Blocklist fixture file not found")
+
+    return extended_blocklist
+
+
+ORGANIZATION_INVITATION_EXPIRY_DELTA = timedelta(days=1)
+
+EXTENDED_EMAIL_BLOCKLIST = get_extended_blocklist()
 
 EARLY_USERS_COUNT = 1000
 

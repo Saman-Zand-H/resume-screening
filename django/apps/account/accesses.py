@@ -1,18 +1,18 @@
-from typing import Callable, List, Optional, Type, TypedDict
+from itertools import chain
+from operator import methodcaller
+from typing import Callable, List, Optional, Type
 
 from common.utils import get_all_subclasses
-from pydantic import BaseModel
+from pydantic import BaseModel, InstanceOf
 from rules import predicates
 from rules.rulesets import add_rule
 
-from django.db.models import Model
-from django.utils.functional import classproperty
+from django.db.models import Model, QuerySet
 
 
-class AccessPredicateArgument(TypedDict):
-    user: Model
-    access_slug: str
-    instance: Optional[Model]
+class AccessPredicateArgument(BaseModel):
+    user: Optional[InstanceOf[Model]] = None
+    instance: Optional[InstanceOf[Model]] = None
 
 
 class AccessType(BaseModel):
@@ -22,29 +22,67 @@ class AccessType(BaseModel):
 
 
 @predicates.predicate
-def check_user_ownership(kwargs: AccessPredicateArgument):
-    user = kwargs.get("user")
-    if not (instance := kwargs.get("instance")):
-        raise AttributeError("Instance is required for check_user_ownership predicate")
+def is_superuser(kwargs: dict):
+    from .models import User
 
-    assert hasattr(instance, "user"), f"{instance} of class {instance.__class__} does not have a user attribute"
-    return instance.user == user
+    parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
+    user = parsed_kwargs.user
+
+    assert isinstance(user, User), f"Invalid argument type: {user}; expected: {User}"
+    return user.is_superuser
+
+
+@predicates.predicate
+def is_organization_verified(kwargs: dict):
+    from .models import Organization, User
+
+    parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
+    user = parsed_kwargs.user
+    instance = parsed_kwargs.instance
+
+    if not instance:
+        return False
+
+    assert isinstance(user, User) and isinstance(
+        instance, Organization
+    ), f"Invalid argument types: {user}, {instance}; expected: {User}, {Organization}"
+
+    return instance.status in Organization.get_verified_statuses()
+
+
+@predicates.predicate
+def is_organization_member(kwargs: dict):
+    from .models import Organization, OrganizationMembership, User
+
+    parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
+    user = parsed_kwargs.user
+    instance = parsed_kwargs.instance
+
+    if not instance:
+        return False
+
+    assert isinstance(user, User) and isinstance(
+        instance, Organization
+    ), f"Invalid argument types {user}, {instance}; expected: {User}, {Organization}"
+
+    memberships: QuerySet[OrganizationMembership] = getattr(
+        user, OrganizationMembership.user.field.related_query_name()
+    )
+    return memberships.filter(**{OrganizationMembership.organization.field.name: instance}).exists()
 
 
 class AccessContainer:
     @classmethod
     def get_accesses(cls) -> List[Type[AccessType]]:
-        return list(
-            filter(
-                lambda access: isinstance(getattr(cls, access), AccessType),
-                dir(cls),
-            )
-        )
+        return [value for cls in cls.__mro__ for value in cls.__dict__.values() if isinstance(value, AccessType)]
+
+    @classmethod
+    def get_all_accesses(cls) -> List[AccessType]:
+        return list(chain.from_iterable(map(methodcaller("get_accesses"), get_all_subclasses(cls))))
 
     @classmethod
     def register_rules(cls) -> None:
-        for access_attr in cls.get_accesses():
-            access = getattr(cls, access_attr)
+        for access in cls.get_accesses():
             add_rule(access.slug, access.predicate)
 
     @classmethod
@@ -53,183 +91,85 @@ class AccessContainer:
             access.register_rules()
 
 
-class CRUDAccessContainer(AccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return None
-
-    @classproperty
-    def CREATOR(cls):
-        return AccessType(
-            slug=f"can_add_{(access_name:=cls.get_access_name())}",
-            description=f"Can add all {access_name}",
-            predicate=check_user_ownership,
-        )
-
-    @classproperty
-    def EDITOR(cls):
-        return AccessType(
-            slug=f"can_edit_{(access_name:=cls.get_access_name())}",
-            description=f"Can edit all {access_name}",
-            predicate=predicates.always_deny,
-        )
-
-    @classproperty
-    def VIEWER(cls):
-        return AccessType(
-            slug=f"can_view_{(access_name:=cls.get_access_name())}",
-            description=f"Can view all {access_name}",
-            predicate=check_user_ownership,
-        )
-
-    @classproperty
-    def DELETER(cls):
-        return AccessType(
-            slug=f"can_delete_{(access_name:=cls.get_access_name())}",
-            description=f"Can delete all {access_name}",
-            predicate=predicates.always_deny,
-        )
-
-    @classproperty
-    def ADMIN(cls):
-        return AccessType(
-            slug=f"can_admin_{(access_name:=cls.get_access_name())}",
-            description=f"Can manage all {access_name}",
-            predicate=predicates.always_deny,
-        )
+class OrganizationProfileContainer(AccessContainer):
+    COMPANY_EDITOR = AccessType(
+        slug="company-editor",
+        description="Can edit company information",
+        predicate=is_organization_member | is_superuser,
+    )
+    CONTACT_EDITOR = AccessType(
+        slug="contact-editor",
+        description="Can edit company contact information",
+        predicate=is_organization_member | is_superuser,
+    )
+    VERIFIER = AccessType(
+        slug="verifier",
+        description="Has access to company verification process",
+        predicate=is_organization_member | is_superuser,
+    )
+    ADMIN = AccessType(
+        slug="admin",
+        description="Can manage company profile",
+        predicate=is_organization_member | is_superuser,
+    )
 
 
-class VerificationAccessContainer(AccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return None
-
-    @classproperty
-    def VERIFIER(cls):
-        return AccessType(
-            slug=f"can_verify_{(access_name:=cls.get_access_name())}",
-            description=f"Can verify all {access_name} instances",
-            predicate=predicates.always_deny,
-        )
-
-    @classproperty
-    def EDITOR(cls):
-        return AccessType(
-            slug=f"can_edit_{(access_name:=cls.get_access_name())}_verification",
-            description=f"Can edit all {access_name} verifications",
-            predicate=predicates.always_deny,
-        )
-
-    @classproperty
-    def METHOD_CHANGER(cls):
-        return AccessType(
-            slug=f"can_change_verification_method_{(access_name:=cls.get_access_name())}",
-            description=f"Can change verification methods for all {access_name}",
-            predicate=check_user_ownership,
-        )
-
-    @classproperty
-    def DELETER(cls):
-        return AccessType(
-            slug=f"can_delete_{(access_name:=cls.get_access_name())}_verification",
-            description=f"Can delete all {access_name} verifications",
-            predicate=predicates.always_deny,
-        )
-
-    @classproperty
-    def ADMIN(cls):
-        return AccessType(
-            slug=f"can_admin_{(access_name:=cls.get_access_name())}_verification",
-            description=f"Can manage all {access_name} verifications",
-            predicate=predicates.always_deny,
-        )
+class OrganizationMembershipContainer(AccessContainer):
+    CREATOR = AccessType(
+        slug="create-organization-membership",
+        description="Can create organization memberships",
+        predicate=is_organization_member | is_superuser,
+    )
+    INVITOR = AccessType(
+        slug="invite-organization-membership",
+        description="Can invite users to organization",
+        predicate=is_organization_member | is_superuser,
+    )
+    EDITOR = AccessType(
+        slug="edit-organization-membership",
+        description="Can edit organization memberships",
+        predicate=is_organization_member | is_superuser,
+    )
+    VIEWER = AccessType(
+        slug="view-organization-membership",
+        description="Can view organization memberships",
+        predicate=is_organization_member | is_superuser,
+    )
+    ADMIN = AccessType(
+        slug="admin-organization-membership",
+        description="Can manage organization memberships",
+        predicate=is_organization_member | is_superuser,
+    )
 
 
-class EducationAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "education"
-
-
-class EducationVerificationAccess(VerificationAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "education"
-
-
-class WorkExperienceAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "work_experience"
-
-
-class WorkExperienceVerificationAccess(VerificationAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "work_experience"
-
-
-class LanguageCertificateAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "language_certificate"
-
-
-class LanguageCertificateVerificationAccess(VerificationAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "language_certificate"
-
-
-class CertificateAndLicenseAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "certificate_and_license"
-
-
-class CertificateAndLicenseVerificationAccess(VerificationAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "certificate_and_license"
-
-
-class CanadaVisaAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "canada_visa"
-
-
-class ContactAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "contact"
-
-
-class OrganizationAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "organization"
-
-
-class OrganizationVerificationAccess(VerificationAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "organization"
-
-
-class OrganizationMembershipAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "organization_membership"
-
-
-class OrganizationMembershipRoleAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "organization_membership_role"
-
-
-class OrganizationInvitationAccess(CRUDAccessContainer):
-    @staticmethod
-    def get_access_name() -> str:
-        return "organization_invitation"
+class JobPositionContainer(AccessContainer):
+    CREATEOR = AccessType(
+        slug="create-job-position",
+        description="Can create job positions",
+        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+    )
+    EDITOR = AccessType(
+        slug="edit-job-position",
+        description="Can edit job positions",
+        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+    )
+    VIEWER = AccessType(
+        slug="view-job-position",
+        description="Can view job positions",
+        predicate=is_organization_member | is_superuser,
+    )
+    STATUS_CHANGER = AccessType(
+        slug="change-job-position-status",
+        description="Can change job position status",
+        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+    )
+    HIRING_STATUS_CHANGER = AccessType(
+        slug="change-job-position-hiring-status",
+        description="Can change job position hiring status",
+        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+    )
+    ADMIN = AccessType(
+        slug="admin-job-position",
+        description="Can manage job positions",
+        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+    )

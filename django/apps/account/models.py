@@ -4,24 +4,24 @@ import random
 import re
 import string
 import uuid
+from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
-from markdownfield.models import MarkdownField
-from markdownfield.validators import VALIDATOR_STANDARD
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
+from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import HasDurationMixin
 from common.models import (
     Field,
     FileModel,
     Industry,
     Job,
+    JobBenefit,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
     University,
-    JobBenefit,
 )
 from common.utils import fields_join, get_all_subclasses
 from common.validators import (
@@ -31,9 +31,10 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
     ValidateFileSize,
 )
-from common.exceptions import GraphQLErrorBadRequest
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
+from markdownfield.models import MarkdownField
+from markdownfield.validators import VALIDATOR_STANDARD
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -49,18 +50,24 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from .choices import get_access_slugs, get_task_names_choices
 from .constants import (
     EARLY_USERS_COUNT,
+    ORGANIZATION_INVITATION_EXPIRY_DELTA,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
     SUPPORT_TICKET_SUBJECT_TEMPLATE,
 )
-from .managers import CertificateAndLicenseManager, UserManager
+from .managers import (
+    CertificateAndLicenseManager,
+    OrganizationMembershipManager,
+    UserManager,
+)
 from .mixins import EmailVerificationMixin
 from .validators import (
     BlocklistEmailDomainValidator,
@@ -230,9 +237,10 @@ class Access(models.Model):
 
 
 class Role(models.Model):
+    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name=_("Slug"))
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
-    accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), blank=True)
+    accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), through="RoleAccess", blank=True)
 
     managed_by_model = models.ForeignKey(
         ContentType,
@@ -256,6 +264,26 @@ class Role(models.Model):
         verbose_name = _("Role")
         verbose_name_plural = _("Roles")
         ordering = ["title"]
+
+
+class RoleAccess(models.Model):
+    role = models.ForeignKey(
+        Role,
+        to_field=Role.slug.field.name,
+        on_delete=models.CASCADE,
+        verbose_name=_("Role"),
+    )
+    access = models.ForeignKey(
+        Access,
+        to_field=Access.slug.field.name,
+        on_delete=models.CASCADE,
+        verbose_name=_("Access"),
+    )
+
+    class Meta:
+        verbose_name = _("Role Access")
+        verbose_name_plural = _("Role Accesses")
+        unique_together = ("role", "access")
 
 
 class UserFile(FileModel):
@@ -1527,6 +1555,10 @@ class Organization(DocumentAbstract):
     def get_verification_abstract_model(cls):
         return OrganizationVerificationMethodAbstract
 
+    @classmethod
+    def get_verified_statuses(cls):
+        return [cls.Status.VERIFIED]
+
     def get_membership(self, user: User) -> Optional["OrganizationMembership"]:
         if not (accessor := getattr(self, OrganizationMembership.organization.related_query_name(), None)):
             return
@@ -1679,7 +1711,10 @@ class OrganizationMembership(models.Model):
         verbose_name=_("Organization"),
     )
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="organization_memberships", verbose_name=_("User")
+        User,
+        on_delete=models.CASCADE,
+        related_name="organization_memberships",
+        verbose_name=_("User"),
     )
     invited_by = models.ForeignKey(
         User,
@@ -1690,6 +1725,8 @@ class OrganizationMembership(models.Model):
         related_name="invited_memberships",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    objects = OrganizationMembershipManager()
 
     class Meta:
         verbose_name = _("Organization Membership")
@@ -1702,17 +1739,26 @@ class OrganizationMembership(models.Model):
 class OrganizationInvitation(models.Model):
     email = models.EmailField(verbose_name=_("Email"))
     organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
-    role = models.CharField(
-        max_length=50,
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.RESTRICT,
+        related_name="organization_invitations",
         verbose_name=_("Role"),
-        choices=OrganizationMembership.UserRole.choices,
-        default=OrganizationMembership.UserRole.OTHER.value,
     )
     token = models.CharField(
-        max_length=15, verbose_name=_("Token"), unique=True, db_index=True, default=generate_invitation_token
+        max_length=15,
+        verbose_name=_("Token"),
+        unique=True,
+        db_index=True,
+        default=generate_invitation_token,
     )
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
+
+    @property
+    def is_expired(self):
+        return self.created_at + ORGANIZATION_INVITATION_EXPIRY_DELTA < timezone.now()
 
     class Meta:
         verbose_name = _("Organization Invitation")
@@ -1857,6 +1903,14 @@ class OrganizationJobPosition(models.Model):
     def set_status_history(self):
         OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
 
+    def clean(self):
+        if self.start_at and self.validity_date and self.start_at > self.validity_date:
+            raise ValidationError({"validity_date": _("Validity date must be after Start date")})
+
+        if self.working_start_at and self.working_end_at and self.working_start_at > self.working_end_at:
+            raise ValidationError({"working_end_at": _("Working End At must be after Working Start At")})
+        return super().clean()
+
     @property
     def required_fields(self):
         return [
@@ -1870,11 +1924,84 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.contract_type.field.name,
-        OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
             OrganizationJobPosition.city.field.name,
         ]
 
- 
+    def change_status(self, new_status):
+        state_mapping = {
+            self.Status.DRAFTED: DraftedState(),
+            self.Status.PUBLISHED: PublishedState(),
+            self.Status.COMPLETED: CompletedState(),
+            self.Status.SUSPENDED: SuspendedState(),
+            self.Status.EXPIRED: ExpiredState(),
+        }
+        current_state = state_mapping.get(self._status)
+        if not current_state:
+            raise ValueError(f"Invalid status: {self._status}")
+        current_state.change_status(self, new_status)
+        self.save(update_fields=[self.__class__._status.field.name])
+
+
+class OrganizationJobPositionState(ABC):
+    @abstractmethod
+    def change_status(self, job_position, new_status):
+        pass
+
+
+class DraftedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value == OrganizationJobPosition.Status.PUBLISHED.value:
+            missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
+            if missing_fields:
+                raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Drafted to {new_status.value}")
+
+
+class PublishedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value in [
+            OrganizationJobPosition.Status.DRAFTED.value,
+            OrganizationJobPosition.Status.SUSPENDED.value,
+        ]:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Published to {new_status.value}")
+
+
+class CompletedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value == OrganizationJobPosition.Status.DRAFTED.value:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Completed to {new_status.value}")
+
+
+class SuspendedState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value in [
+            OrganizationJobPosition.Status.DRAFTED.value,
+            OrganizationJobPosition.Status.PUBLISHED.value,
+        ]:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Suspended to {new_status.value}")
+
+
+class ExpiredState(OrganizationJobPositionState):
+    def change_status(self, job_position, new_status):
+        if new_status.value == OrganizationJobPosition.Status.DRAFTED.value:
+            job_position._status = new_status.value
+            job_position.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Expired to {new_status.value}")
+
 
 class OrganizationJobPositionStatusHistory(models.Model):
     job_position = models.ForeignKey(OrganizationJobPosition, on_delete=models.CASCADE, related_name="status_histories")

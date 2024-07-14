@@ -11,5 +11,5 @@ class Environment(Enum):
 class Assistants:
     JOB = "get-available-jobs"
     SKILL = "get-or-create-skills"
-    RESUME = "get-resume-json"
+    RESUME_JSON = "get-resume-json"
     GENERATE_RESUME = "get-resume-info"

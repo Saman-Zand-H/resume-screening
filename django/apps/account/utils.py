@@ -18,7 +18,7 @@ from .constants import VectorStores
 
 
 def extract_resume_json(file_bytes: bytes):
-    service = GoogleServices(Assistants.RESUME)
+    service = GoogleServices(Assistants.RESUME_JSON)
     mime_type = mimetypes.guess_type("file.pdf")[0]
     results = service.generate_text_content(
         [

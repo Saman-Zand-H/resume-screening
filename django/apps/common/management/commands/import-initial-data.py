@@ -11,6 +11,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         for populator_class in get_all_subclasses(BasePopulator):
-            self.stdout.write(f"Populating {populator_class.__name__}")
+            self.stdout.write(f"Populating {populator_class.__name__}", style_func=self.style.HTTP_NOT_FOUND)
             populator = populator_class()
             populator.populate()
+            self.stdout.write(f"Successfully populated {populator_class.__name__}", style_func=self.style.SUCCESS)
