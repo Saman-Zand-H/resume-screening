@@ -1,11 +1,11 @@
 import graphene
-from graphene import Field, String
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.models import GeneratedCV
+from graphene import Field, String
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -82,6 +82,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.score.field.name,
             Profile.contactable.field.name,
             Profile.raw_skills.field.name,
+            Profile.allow_notifications.field.name,
         )
 
     def resolve_contacts(self, info):
