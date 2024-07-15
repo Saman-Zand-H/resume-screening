@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 from typing import Tuple
@@ -106,21 +107,15 @@ class GeneratedCV(FileModel):
                 "additional_sections": instance.additional_sections,
             }, False
 
-        if not instance:
-            file_content = ContentFile(b"", name=f"cpj_resume_{user.first_name.lower()}_{user.last_name.lower()}.pdf")
-            instance = cls.objects.create(
-                user=user,
-                file=file_content,
-            )
-
         resume_info = extract_generated_resume_info(user)
-        cls.objects.filter(pk=instance.pk).update(
-            work_experiences=resume_info.get("work_experiences"),
-            educations=resume_info.get("educations"),
-            certifications=resume_info.get("certifications"),
-            input_json=input_json,
-            additional_sections=resume_info.get("additional_sections"),
-        )
+        if instance:
+            cls.objects.filter(pk=instance.pk).update(
+                work_experiences=resume_info.get("work_experiences"),
+                educations=resume_info.get("educations"),
+                certifications=resume_info.get("certifications"),
+                input_json=input_json,
+                additional_sections=resume_info.get("additional_sections"),
+            )
         return resume_info, True
 
     def __str__(self):
@@ -145,7 +140,8 @@ class GeneratedCV(FileModel):
 
         context, generated = cls.get_user_context(user)
         if generated:
-            return cls.objects.get(user=user).file.read()
+            with contextlib.suppress(GeneratedCV.DoesNotExist):
+                return cls.objects.get(user=user).file.read()
         return template.render_pdf(context)
 
     @classmethod

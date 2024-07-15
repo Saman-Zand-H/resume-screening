@@ -103,7 +103,7 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
         )
 
     @classmethod
-    def get_access_object(cls, info=None, *args, **kwargs):
+    def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
                 pk=kwargs.get("input", {}).get(OrganizationInvitation.organization.field.name)
