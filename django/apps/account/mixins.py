@@ -1,18 +1,18 @@
 import warnings
 from functools import wraps
 from operator import call
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
 from graphene_django_cud.mutations import DjangoPatchMutation
+from graphql_jwt.decorators import login_required
 from rules.rulesets import test_rule
 
 from django.template.loader import render_to_string
 
-from .accesses import AccessType
 from .constants import VERIFICATION_EMAIL_FROM, VERIFICATION_PHONE_FROM
 from .exceptions import AccessDenied
 from .tasks import send_email_async
@@ -32,7 +32,7 @@ class AccessRequiredMixin:
         return user.has_access(access_slug) and test_rule(access_slug, has_access_kwargs)
 
     @classmethod
-    def has_access(cls, accesses: List[AccessType], info, *args, **kwargs):
+    def has_access(cls, accesses, info, *args, **kwargs):
         if not any(cls.has_item_access(access.slug, info, *args, **kwargs) for access in accesses):
             cls.access_denied(accesses)
 
@@ -61,11 +61,12 @@ class AccessRequiredMixin:
 
 
 class MutationAccessRequiredMixin(AccessRequiredMixin):
-    accesses: List[AccessType] = []
+    accesses = []
 
     @classmethod
     def resolver_wrapper(cls, mutation: Callable):
         @wraps(mutation)
+        @login_required
         def wrapper(root, info, *args, **kwargs):
             try:
                 cls.has_access(cls.accesses, info, *args, **kwargs)
@@ -86,12 +87,13 @@ class MutationAccessRequiredMixin(AccessRequiredMixin):
 
 
 class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
-    fields_access: Dict[str, AccessType] = {}
+    fields_access = {}
 
     @classmethod
     def resolver_wrapper(cls, field_name: str) -> Callable:
         def wrapper(resolver: Callable):
             @wraps(resolver)
+            @login_required
             def inner_wrapper(root, info, *args, **kwargs):
                 try:
                     cls.has_access(cls.accesses, info, *args, **kwargs)

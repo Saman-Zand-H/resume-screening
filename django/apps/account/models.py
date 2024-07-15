@@ -50,14 +50,12 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from .choices import get_access_slugs, get_task_names_choices
+from .choices import get_task_names_choices
 from .constants import (
     EARLY_USERS_COUNT,
-    ORGANIZATION_INVITATION_EXPIRY_DELTA,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
@@ -65,7 +63,7 @@ from .constants import (
 )
 from .managers import (
     CertificateAndLicenseManager,
-    OrganizationMembershipManager,
+    OrganizationInvitationManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -202,7 +200,7 @@ class User(AbstractUser):
                 **{
                     fields_join(
                         OrganizationMembership.user.field.related_query_name(),
-                        OrganizationMembership.access_role,
+                        OrganizationMembership.role,
                         Role.accesses,
                         Access.slug,
                     ): access_slug
@@ -223,7 +221,6 @@ class Access(models.Model):
         unique=True,
         db_index=True,
         verbose_name=_("Slug"),
-        choices=get_access_slugs(),
     )
     description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
 
@@ -1666,7 +1663,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         return otp
 
     def send_otp(self):
-        otp = self.get_otp()
+        otp = self.get_otp()  # noqa
         # send_sms(self.phonenumber, otp)
 
     def verify_otp(self, input_otp: str) -> bool:
@@ -1680,29 +1677,11 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
 
 
 class OrganizationMembership(models.Model):
-    class UserRole(models.TextChoices):
-        CTO = "cto", _("CTO")
-        CFO = "cfo", _("CFO")
-        CEO = "ceo", _("CEO")
-        HR = "hr", _("HR")
-        OPERATIONS = "operations", _("Operations")
-        ASSOCIATE = "associate", _("Associate")
-        OTHER = "other", _("Other")
-        CREATOR = "creator", _("Creator")
-
-    role = models.CharField(
-        max_length=50,
-        verbose_name=_("Role"),
-        choices=UserRole.choices,
-        default=UserRole.OTHER.value,
-    )
-    access_role = models.ForeignKey(
+    role = models.ForeignKey(
         Role,
         on_delete=models.RESTRICT,
         related_name="organization_memberships",
         verbose_name=_("Access Role"),
-        null=True,
-        blank=True,
     )
     organization = models.ForeignKey(
         Organization,
@@ -1725,8 +1704,6 @@ class OrganizationMembership(models.Model):
         related_name="invited_memberships",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-
-    objects = OrganizationMembershipManager()
 
     class Meta:
         verbose_name = _("Organization Membership")
@@ -1752,13 +1729,10 @@ class OrganizationInvitation(models.Model):
         db_index=True,
         default=generate_invitation_token,
     )
-
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
 
-    @property
-    def is_expired(self):
-        return self.created_at + ORGANIZATION_INVITATION_EXPIRY_DELTA < timezone.now()
+    objects = OrganizationInvitationManager()
 
     class Meta:
         verbose_name = _("Organization Invitation")

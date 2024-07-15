@@ -565,10 +565,10 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
     list_display = (
         OrganizationMembership.user.field.name,
         OrganizationMembership.organization.field.name,
-        OrganizationMembership.access_role.field.name,
+        OrganizationMembership.role.field.name,
         OrganizationMembership.invited_by.field.name,
     )
-    list_filter = (OrganizationMembership.access_role.field.name, OrganizationMembership.created_at.field.name)
+    list_filter = (OrganizationMembership.role.field.name, OrganizationMembership.created_at.field.name)
     raw_id_fields = (
         OrganizationMembership.organization.field.name,
         OrganizationMembership.user.field.name,

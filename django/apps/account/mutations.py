@@ -203,10 +203,12 @@ class Register(graphql_auth_mutations.Register):
             user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
             try:
                 OrganizationMembership.objects.create(
-                    user=user,
-                    organization=organization_invitation.organization,
-                    access_role=organization_invitation.role,
-                    invited_by=organization_invitation.created_by,
+                    **{
+                        OrganizationMembership.user.field.name: user,
+                        OrganizationMembership.organization.field.name: organization_invitation.organization,
+                        OrganizationMembership.role.field.name: organization_invitation.role,
+                        OrganizationMembership.invited_by.field.name: organization_invitation.created_by,
+                    }
                 )
             except IntegrityError:
                 raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
@@ -223,7 +225,7 @@ class RegisterOrganization(Register):
         if not (result := super().mutate(*args, **kwargs)).success:
             return result
 
-        if not (access_role := Role.objecrs.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
+        if not (role := Role.objecrs.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
             raise GraphQLError(_("Owner role not found."))
 
         user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
@@ -241,7 +243,7 @@ class RegisterOrganization(Register):
                 **{
                     OrganizationMembership.user.field.name: user,
                     OrganizationMembership.organization.field.name: organization,
-                    OrganizationMembership.access_role.field.name: access_role,
+                    OrganizationMembership.role.field.name: role,
                     OrganizationMembership.invited_by.field.name: user,
                 }
             )

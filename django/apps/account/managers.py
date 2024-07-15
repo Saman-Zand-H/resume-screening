@@ -26,7 +26,7 @@ class UserManager(BaseUserManager):
         return super().create_superuser(**kwargs)
 
 
-class OrganizationMembershipManager(models.Manager):
+class OrganizationInvitationManager(models.Manager):
     def get_queryset(self):
         return (
             super()

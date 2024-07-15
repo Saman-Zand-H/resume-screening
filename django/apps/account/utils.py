@@ -175,7 +175,7 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
                 if (skill_name := new_skill.get("title"))
             ]
         )
-        existing_skills = (existing_skills | created_skills).system().distinct()
+        existing_skills = (existing_skills | created_skills).distinct()
 
         return existing_skills, created_skills.ai()
 
