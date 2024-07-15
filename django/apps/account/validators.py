@@ -1,8 +1,10 @@
 import contextlib
 import re
 
+from config.settings.constants import Environment
 from phonenumber_field.modelfields import PhoneNumberField
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator, RegexValidator
 from django.utils.regex_helper import _lazy_re_compile
@@ -35,7 +37,8 @@ class NameValidator(RegexValidator):
 class NoTagEmailValidator(EmailValidator):
     user_regex = _lazy_re_compile(
         # dot-atom
-        r"(^[-!#$%&'*/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*/=?^_`{}|~0-9A-Z]+)*\Z"
+        rf"(^[-!#$%&'*/=?^_`{{}}|~0-9A-Z]+(\.[-!#$%&'*/=?^_`|~0-9A-Z{'+' if settings.ENVIRONMENT_NAME == Environment.DEVELOPMENT else ''}]+)*\Z"
+        or ""
         # quoted-string
         r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])'
         r'*"\Z)',
