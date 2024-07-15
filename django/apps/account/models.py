@@ -497,6 +497,7 @@ class Profile(ComputedFieldsModel):
     raw_skills = ArrayField(models.CharField(max_length=64), verbose_name=_("Raw Skills"), blank=True, null=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", editable=False)
     available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
+    allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
