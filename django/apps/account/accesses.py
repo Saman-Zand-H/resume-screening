@@ -9,6 +9,8 @@ from rules.rulesets import add_rule
 
 from django.db.models import Model, QuerySet
 
+from .models import Organization, OrganizationMembership, User
+
 
 class AccessPredicateArgument(BaseModel):
     user: Optional[InstanceOf[Model]] = None
@@ -23,8 +25,6 @@ class AccessType(BaseModel):
 
 @predicates.predicate
 def is_superuser(kwargs: dict):
-    from .models import User
-
     parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
     user = parsed_kwargs.user
 
@@ -34,8 +34,6 @@ def is_superuser(kwargs: dict):
 
 @predicates.predicate
 def is_organization_verified(kwargs: dict):
-    from .models import Organization, User
-
     parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
     user = parsed_kwargs.user
     instance = parsed_kwargs.instance
@@ -52,8 +50,6 @@ def is_organization_verified(kwargs: dict):
 
 @predicates.predicate
 def is_organization_member(kwargs: dict):
-    from .models import Organization, OrganizationMembership, User
-
     parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
     user = parsed_kwargs.user
     instance = parsed_kwargs.instance
