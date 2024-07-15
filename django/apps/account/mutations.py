@@ -225,7 +225,7 @@ class RegisterOrganization(Register):
         if not (result := super().mutate(*args, **kwargs)).success:
             return result
 
-        if not (role := Role.objecrs.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
+        if not (role := Role.objects.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
             raise GraphQLError(_("Owner role not found."))
 
         user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
