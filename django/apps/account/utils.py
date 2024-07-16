@@ -60,6 +60,7 @@ def get_user_additional_information(user_id: int):
         user=user,
         status__in=CertificateAndLicense.get_verified_statuses(),
     ).values(
+        CertificateAndLicense.certificate_text.field.name,
         CertificateAndLicense.title.field.name,
         CertificateAndLicense.issued_at.field.name,
         CertificateAndLicense.certifier.field.name,
