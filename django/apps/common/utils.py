@@ -2,6 +2,7 @@ from functools import lru_cache, reduce
 from typing import Set
 
 import graphene
+from flex_blob.builders import BlobResponseBuilder
 from graphene_django.converter import convert_choice_field_to_enum
 
 import django.apps
@@ -9,6 +10,11 @@ from django.db.models.constants import LOOKUP_SEP
 
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
 from .models import FileModel
+
+
+def get_file_model_mimetype(file_model_instance: FileModel):
+    blob_builder = BlobResponseBuilder.get_response_builder()
+    return blob_builder.get_content_type(file_model_instance)
 
 
 def nested_getattr(obj, attr, delimeter="."):

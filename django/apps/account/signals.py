@@ -6,7 +6,15 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from .constants import JOB_AVAILABLE_MIN_PERCENT_TRIGGER_THRESHOLD, VectorStores
-from .models import Contactable, Organization, Profile, Referral, SupportTicket, User, CommunicateOrganizationMethod
+from .models import (
+    CommunicateOrganizationMethod,
+    Contactable,
+    Organization,
+    Profile,
+    Referral,
+    SupportTicket,
+    User,
+)
 from .tasks import find_available_jobs, user_task_runner
 
 

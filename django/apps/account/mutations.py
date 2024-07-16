@@ -60,6 +60,7 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
+    CertificateAndLicenseOfflineVerificationMethod,
     CommunicateOrganizationMethod,
     Contact,
     DocumentAbstract,
@@ -82,6 +83,7 @@ from .models import (
     WorkExperience,
 )
 from .tasks import (
+    get_certificate_text,
     send_email_async,
     set_user_resume_json,
     set_user_skills,
@@ -861,6 +863,22 @@ class CertificateAndLicenseSetVerificationMethodMutation(
 
     class Meta:
         model = CertificateAndLicense
+
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        super().after_mutate(root, info, id, input, obj, return_data)
+
+        if not isinstance(
+            obj.get_verification_method(),
+            CertificateAndLicenseOfflineVerificationMethod,
+        ):
+            return
+
+        user_task_runner(
+            get_certificate_text,
+            task_user_id=info.context.user.id,
+            certificate_id=obj.id,
+        )
 
 
 class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):

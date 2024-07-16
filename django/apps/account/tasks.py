@@ -21,6 +21,7 @@ from django.utils import timezone
 
 from .utils import (
     extract_available_jobs,
+    extract_certificate_text_content,
     extract_or_create_skills,
     extract_resume_json,
     get_user_additional_information,
@@ -102,6 +103,30 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
 
 @register_task([AccountSubscription.ASSISTANTS])
 @user_task_decorator
+def get_certificate_text(certificate_id: int) -> bool:
+    from .models import (
+        CertificateAndLicense,
+        CertificateAndLicenseOfflineVerificationMethod,
+    )
+
+    if not (
+        certificate_verification := CertificateAndLicenseOfflineVerificationMethod.objects.filter(
+            **{CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name: certificate_id}
+        ).first()
+    ):
+        raise ValueError(
+            f"CertificateAndLicenseOfflineVerificationMethod with certificate_id {certificate_id} not found."
+        )
+
+    certificate_text = extract_certificate_text_content(certificate_verification.certificate_file.pk)
+    CertificateAndLicense.objects.filter(pk=certificate_id).update(
+        **{CertificateAndLicense.certificate_text.field.name: certificate_text.get("text_content", "")}
+    )
+    return True
+
+
+@register_task([AccountSubscription.ASSISTANTS])
+@user_task_decorator
 def find_available_jobs(user_id: int) -> bool:
     if not (user := get_user_model().objects.filter(pk=user_id).first()):
         raise ValueError(f"User with id {user_id} not found.")
@@ -140,8 +165,7 @@ def set_user_resume_json(user_id: str) -> bool:
     resume = Resume.objects.get(user_id=user_id)
     user = resume.user
 
-    with resume.file.file.open() as f:
-        resume_json = extract_resume_json(f.read())
+    resume_json = extract_resume_json(resume.file.pk)
 
     if resume_json:
         Resume.objects.update_or_create(
@@ -247,6 +271,9 @@ def graphql_auth_async_email(func, args):
     arg = args[1] if len(args) == 2 else None
 
     serializable_context = SerializableContext(info.context)
+    context = json.dumps(serializable_context.to_dict())
+
+    auth_async_email.delay(func_name, user_email, context, arg)
     context = json.dumps(serializable_context.to_dict())
 
     auth_async_email.delay(func_name, user_email, context, arg)

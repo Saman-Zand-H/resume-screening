@@ -8,6 +8,7 @@ from django.contrib import admin
 from django.contrib.admin import register
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.contrib.contenttypes.admin import GenericStackedInline
+from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
 from ..forms import UserChangeForm
@@ -49,6 +50,7 @@ from ..models import (
     WorkExperience,
 )
 from ..scores import UserScorePack
+from ..tasks import get_certificate_text, user_task_runner
 from .resources import (
     CertificateAndLicenseResource,
     EducationResource,
@@ -414,6 +416,17 @@ class OnlineMethodAdmin(admin.ModelAdmin):
 
 @register(CertificateAndLicenseOfflineVerificationMethod)
 class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
+    @admin.action(description="Run Get Certificate Text Task")
+    def run_get_certificate_text_task(
+        self, request, queryset: QuerySet[CertificateAndLicenseOfflineVerificationMethod]
+    ):
+        for certificate_and_license_verification in queryset:
+            user_task_runner(
+                get_certificate_text,
+                certificate_id=certificate_and_license_verification.certificate_and_license.pk,
+                task_user_id=request.user.pk,
+            )
+
     list_display = (
         CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,
         CertificateAndLicenseOfflineVerificationMethod.verified_at.field.name,
@@ -431,6 +444,7 @@ class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
         CertificateAndLicenseOfflineVerificationMethod.created_at.field.name,
     )
     raw_id_fields = (CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,)
+    actions = (run_get_certificate_text_task.__name__,)
 
 
 @register(CertificateAndLicenseOnlineVerificationMethod)

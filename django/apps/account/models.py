@@ -1171,6 +1171,7 @@ class CertificateAndLicense(DocumentAbstract, HasDurationMixin):
     end_date_field = "expired_at"
 
     title = models.CharField(max_length=255, verbose_name=_("Title"))
+    certificate_text = models.TextField(verbose_name=_("Certificate Text"), blank=True, null=True)
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
