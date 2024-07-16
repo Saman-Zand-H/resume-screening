@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from account.utils import is_env
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -33,7 +34,6 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
-from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
@@ -472,6 +472,7 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
         for user_field in user_fields:
             if (user_field_value := input.get(user_field)) is not None:
                 setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
+
         user.full_clean()
         user.save()
 

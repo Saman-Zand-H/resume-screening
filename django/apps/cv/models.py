@@ -81,18 +81,20 @@ class CVTemplate(TimeStampedModel):
         verbose_name_plural = _("CV Templates")
 
 
-class GeneratedCV(FileModel):
-    user = models.OneToOneField(
+class GeneratedCVContent(models.Model):
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="cv",
+        related_name="cv_contents",
         verbose_name=_("User"),
     )
-    input_json = models.JSONField(verbose_name=_("Input JSON"), blank=True, null=True)
     work_experiences = models.JSONField(verbose_name=_("Work Experiences"), blank=True, null=True)
     educations = models.JSONField(verbose_name=_("Educations"), blank=True, null=True)
     certifications = models.JSONField(verbose_name=_("Certifications"), blank=True, null=True)
     additional_sections = models.JSONField(verbose_name=_("Additional Sections"), blank=True, null=True)
+    about_me = models.TextField(verbose_name=_("About Me"), blank=True, null=True)
+    headline = models.CharField(max_length=255, verbose_name=_("Headline"), blank=True, null=True)
+    input_json = models.JSONField(verbose_name=_("Input JSON"), blank=True, null=True)
 
     @classmethod
     def get_resume_info(cls, user: User) -> Tuple[dict, bool]:
@@ -105,18 +107,45 @@ class GeneratedCV(FileModel):
                 "educations": instance.educations,
                 "certifications": instance.certifications,
                 "additional_sections": instance.additional_sections,
+                "about_me": instance.about_me,
+                "headline": instance.headline,
             }, False
 
+        if not instance:
+            instance = cls.objects.create(user=user)
+
         resume_info = extract_generated_resume_info(user)
-        if instance:
-            cls.objects.filter(pk=instance.pk).update(
-                work_experiences=resume_info.get("work_experiences"),
-                educations=resume_info.get("educations"),
-                certifications=resume_info.get("certifications"),
-                input_json=input_json,
-                additional_sections=resume_info.get("additional_sections"),
-            )
+        cls.objects.filter(pk=instance.pk).update(
+            work_experiences=resume_info.get("work_experiences"),
+            educations=resume_info.get("educations"),
+            certifications=resume_info.get("certifications"),
+            input_json=input_json,
+            additional_sections=resume_info.get("additional_sections"),
+            about_me=resume_info.get("about_me"),
+            headline=resume_info.get("headline"),
+        )
         return resume_info, True
+
+    def __str__(self):
+        return f"{self.user}"
+
+    class Meta:
+        verbose_name = _("Generated CV Contents")
+        verbose_name_plural = _("Generated CV Contents")
+
+
+class GeneratedCV(FileModel):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="cv",
+        verbose_name=_("User"),
+    )
+    input_json = models.JSONField(verbose_name=_("Input JSON"), blank=True, null=True)
+    work_experiences = models.JSONField(verbose_name=_("Work Experiences"), blank=True, null=True)
+    educations = models.JSONField(verbose_name=_("Educations"), blank=True, null=True)
+    certifications = models.JSONField(verbose_name=_("Certifications"), blank=True, null=True)
+    additional_sections = models.JSONField(verbose_name=_("Additional Sections"), blank=True, null=True)
 
     def __str__(self):
         return f"{self.user}: {self.file.name}"
@@ -134,17 +163,6 @@ class GeneratedCV(FileModel):
         return request.user == self.user
 
     @classmethod
-    def generate(cls, user: User, template: CVTemplate = None):
-        if not template:
-            template = CVTemplate.objects.latest("created")
-
-        context, generated = cls.get_user_context(user)
-        if generated:
-            with contextlib.suppress(GeneratedCV.DoesNotExist):
-                return cls.objects.get(user=user).file.read()
-        return template.render_pdf(context)
-
-    @classmethod
     def get_user_context(cls, user: User) -> Tuple[dict, bool]:
         profile = user.profile
         contacts = Contact.objects.filter(
@@ -157,7 +175,7 @@ class GeneratedCV(FileModel):
             ],
         )
         skills = profile.skills.all()
-        asssistant_data, generated = cls.get_resume_info(user)
+        asssistant_data, generated = GeneratedCVContent.get_resume_info(user)
 
         return {
             "user": user,
@@ -166,6 +184,17 @@ class GeneratedCV(FileModel):
             "now": timezone.now(),
             **asssistant_data,
         }, generated
+
+    @classmethod
+    def generate(cls, user: User, template: CVTemplate = None):
+        if not template:
+            template = CVTemplate.objects.latest("created")
+
+        context, generated = cls.get_user_context(user)
+        if not generated and cls.objects.filter(user=user).exists():
+            with contextlib.suppress(GeneratedCV.DoesNotExist):
+                return cls.objects.get(user=user).file.read()
+        return template.render_pdf(context)
 
     @classmethod
     def from_user(cls, user, template: CVTemplate = None):
