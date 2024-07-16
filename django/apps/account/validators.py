@@ -38,7 +38,6 @@ class NoTagEmailValidator(EmailValidator):
     user_regex = _lazy_re_compile(
         # dot-atom
         rf"(^[-!#$%&'*/=?^_`{{}}|~0-9A-Z]+(\.[-!#$%&'*/=?^_`|~0-9A-Z{'+' if settings.ENVIRONMENT_NAME == Environment.DEVELOPMENT else ''}]+)*\Z"
-        or ""
         # quoted-string
         r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])'
         r'*"\Z)',
