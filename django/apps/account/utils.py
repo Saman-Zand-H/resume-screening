@@ -1,11 +1,11 @@
 import json
-import mimetypes
 from typing import Any, List, Optional
 
 from ai.google import GoogleServices
 from common.models import Job, Skill, University
-from common.utils import fields_join
+from common.utils import fields_join, get_file_model_mimetype
 from config.settings.constants import Assistants, Environment
+from flex_blob.models import FileModel
 from google.genai import types
 
 from django.conf import settings
@@ -17,12 +17,18 @@ from django.db.models.functions import JSONObject
 from .constants import VectorStores
 
 
-def extract_resume_json(file_bytes: bytes):
+def extract_resume_json(file_model_id: int):
+    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+        return
+
     service = GoogleServices(Assistants.RESUME_JSON)
-    mime_type = mimetypes.guess_type("file.pdf")[0]
+    mime_type = get_file_model_mimetype(file_model)
+    with file_model.file.open("rb") as file:
+        content = file.file.read()
+
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(file_bytes, mime_type),
+            types.Part.from_bytes(content, mime_type),
             types.Part.from_text(
                 "extract resume JSON",
             ),
@@ -54,6 +60,7 @@ def get_user_additional_information(user_id: int):
         user=user,
         status__in=CertificateAndLicense.get_verified_statuses(),
     ).values(
+        CertificateAndLicense.certificate_text.field.name,
         CertificateAndLicense.title.field.name,
         CertificateAndLicense.issued_at.field.name,
         CertificateAndLicense.certifier.field.name,
@@ -145,6 +152,27 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     return Job.objects.none()
 
 
+def extract_certificate_text_content(file_model_id: int):
+    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+        return ""
+
+    service = GoogleServices(Assistants.OCR)
+    mimetype = get_file_model_mimetype(file_model)
+    with file_model.file.open("rb") as file:
+        content = file.file.read()
+
+    results = service.generate_text_content(
+        [
+            types.Part.from_bytes(content, mimetype),
+            types.Part.from_text(
+                "extract text content",
+            ),
+        ]
+    )
+
+    return results and service.message_to_json(results) or ""
+
+
 @transaction.atomic
 def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_information) -> Optional[List[Skill]]:
     if not (raw_skills or resume_json):
@@ -194,5 +222,4 @@ class IDLikeObject:
         self.context = context
 
     def __repr__(self):
-        return repr(self._id)
         return repr(self._id)

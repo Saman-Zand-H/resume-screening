@@ -60,6 +60,7 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
+    CertificateAndLicenseOfflineVerificationMethod,
     CommunicateOrganizationMethod,
     Contact,
     DocumentAbstract,
@@ -82,6 +83,7 @@ from .models import (
     WorkExperience,
 )
 from .tasks import (
+    get_certificate_text,
     send_email_async,
     set_user_resume_json,
     set_user_skills,
@@ -225,7 +227,7 @@ class RegisterOrganization(Register):
         if not (result := super().mutate(*args, **kwargs)).success:
             return result
 
-        if not (role := Role.objecrs.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
+        if not (role := Role.objects.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
             raise GraphQLError(_("Owner role not found."))
 
         user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
@@ -456,6 +458,7 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
             Profile.job_cities.field.name,
             Profile.job_type.field.name,
             Profile.job_location_type.field.name,
+            Profile.allow_notifications.field.name,
         )
         custom_fields = USER_MUTATION_FIELDS
 
@@ -471,6 +474,7 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
         for user_field in user_fields:
             if (user_field_value := input.get(user_field)) is not None:
                 setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
+
         user.full_clean()
         user.save()
 
@@ -859,6 +863,22 @@ class CertificateAndLicenseSetVerificationMethodMutation(
 
     class Meta:
         model = CertificateAndLicense
+
+    @classmethod
+    def after_mutate(cls, root, info, id, input, obj, return_data):
+        super().after_mutate(root, info, id, input, obj, return_data)
+
+        if not isinstance(
+            obj.get_verification_method(),
+            CertificateAndLicenseOfflineVerificationMethod,
+        ):
+            return
+
+        user_task_runner(
+            get_certificate_text,
+            task_user_id=info.context.user.id,
+            certificate_id=obj.id,
+        )
 
 
 class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
