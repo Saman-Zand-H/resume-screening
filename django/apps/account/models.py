@@ -119,12 +119,6 @@ class Contactable(models.Model):
 
 
 class User(AbstractUser):
-    class Gender(models.TextChoices):
-        MALE = "male", _("Male")
-        FEMALE = "female", _("Female")
-        NOT_KNOWN = "not_known", _("Not Known")
-        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
-
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
@@ -1537,7 +1531,13 @@ class Organization(DocumentAbstract):
         blank=True,
         related_name="organizations",
     )
-    roles = GenericRelation(Role, verbose_name=_("Roles"), related_query_name="organization")
+    roles = GenericRelation(
+        Role,
+        verbose_name=_("Roles"),
+        related_query_name="organization",
+        content_type_field=Role.managed_by_model.field.name,
+        object_id_field=Role.managed_by_id.field.name,
+    )
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
