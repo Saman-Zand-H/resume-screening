@@ -1,7 +1,9 @@
 import json
+from operator import attrgetter
 from typing import Any, List, Optional
 
 from ai.google import GoogleServices
+from cities_light.models import City
 from common.models import Job, Skill, University
 from common.utils import fields_join, get_file_model_mimetype
 from config.settings.constants import Assistants, Environment
@@ -39,7 +41,7 @@ def extract_resume_json(file_model_id: int):
         return service.message_to_json(results)
 
 
-def get_user_additional_information(user_id: int):
+def get_user_additional_information(user_id: int, *, verified_work_experiences=True, verified_educations=True):
     from .models import (
         CertificateAndLicense,
         Education,
@@ -67,13 +69,15 @@ def get_user_additional_information(user_id: int):
     )
     work_experiences = WorkExperience.objects.filter(
         user=user,
-        status__in=WorkExperience.get_verified_statuses(),
+        status__in=WorkExperience.get_verified_statuses()
+        if verified_work_experiences
+        else map(attrgetter("value"), WorkExperience.Status),
     ).values(
         WorkExperience.job_title.field.name,
         WorkExperience.organization.field.name,
         WorkExperience.start.field.name,
         WorkExperience.end.field.name,
-        WorkExperience.city.field.name,
+        fields_join(WorkExperience.city.field.name, City.display_name.field.name),
     )
 
     language_certificates_values = Subquery(
@@ -100,7 +104,12 @@ def get_user_additional_information(user_id: int):
         scores=ArraySubquery(language_certificates_values),
     )
 
-    educations = Education.objects.filter(user=user, status__in=Education.get_verified_statuses()).values(
+    educations = Education.objects.filter(
+        user=user,
+        status__in=Education.get_verified_statuses()
+        if verified_educations
+        else map(attrgetter("value"), Education.Status),
+    ).values(
         Education.degree.field.name,
         fields_join(Education.university, University.name),
         Education.city.field.name,
