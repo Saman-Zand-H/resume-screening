@@ -35,12 +35,13 @@ class NameValidator(RegexValidator):
 
 
 class NoTagEmailValidator(EmailValidator):
-    user_regex = _lazy_re_compile(
-        rf"(^[-!#$%&'*/=?^_`{{}}|~0-9A-Z]+(\.[-!#$%&'*/=?^_`|~0-9A-Z{'+' if is_env(Environment.DEVELOPMENT, Environment.LOCAL) else ''}]+)*\Z"
-        r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])'
-        r'*"\Z)',
-        re.IGNORECASE,
-    )
+    if not is_env(Environment.LOCAL, Environment.DEVELOPMENT):
+        user_regex = _lazy_re_compile(
+            r"(^[-!#$%&'*/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*\Z"
+            r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])'
+            r'*"\Z)',
+            re.IGNORECASE,
+        )
 
 
 class BlocklistEmailDomainValidator(EmailValidator):
