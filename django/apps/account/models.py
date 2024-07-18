@@ -2024,7 +2024,7 @@ class JobPositionAssignment(models.Model):
 
     @property
     def status(self):
-        if self.interview:
+        if hasattr(self, "interview"):
             return self.interview.status
         return self._status
 
@@ -2048,8 +2048,15 @@ class JobPositionInterview(models.Model):
     status = models.CharField(
         max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.AWAITING_INTERVIEW_DATE
     )
-    interview_date = models.DateTimeField(verbose_name=_("Interview Date"))
-    result_date = models.DateTimeField(verbose_name=_("Result Date"))
+    interview_date = models.DateTimeField(verbose_name=_("Interview Date"), null=True, blank=True)
+    result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Job Position Interview")
+        verbose_name_plural = _("Job Position Interviews")
+
+    def __str__(self):
+        return f"{self.job_position_assignment.job_position.title} - {self.job_position_assignment.job_seeker.email}"
 
 
 class JobPositionAssignmentStatusHistory(models.Model):
