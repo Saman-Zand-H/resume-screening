@@ -64,19 +64,17 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
     fields_access = {}
 
     @classmethod
-    def resolver_wrapper(cls, field_name: str, *, is_all=False) -> Callable:
+    def resolver_wrapper(cls, accesses) -> Callable:
         def wrapper(resolver: Callable):
             @wraps(resolver)
             @login_required
-            def inner_wrapper(root, info, *args, **kwargs):
+            def inner_wrapper(*args, **kwargs):
                 try:
-                    resolved_value = resolver(root, info, *args, **kwargs)
+                    resolved_value = resolver(*args, **kwargs)
                     cls.has_access(
-                        cls.fields_access.get(is_all and "__all__" or field_name),
-                        info,
+                        accesses,
                         *args,
                         resolved_value=resolved_value,
-                        root=root,
                         **kwargs,
                     )
                     return resolved_value
@@ -91,7 +89,7 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         return wrapper
 
     @classmethod
-    def register_resolver(cls, field_name, graphene_field, *, is_all=False):
+    def register_resolver(cls, field_name, accesses, graphene_field):
         resolver = getattr(
             cls,
             f"resolve_{field_name}",
@@ -100,7 +98,7 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         if not resolver:
             return
 
-        wrapper = cls.resolver_wrapper(field_name, is_all=is_all)
+        wrapper = cls.resolver_wrapper(accesses)
         setattr(cls, f"resolve_{field_name}", wrapper(resolver))
 
     @classmethod
@@ -109,18 +107,31 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         registered_field_resolvers = set()
 
         if "__all__" in cls.fields_access:
+            accesses = cls.fields_access.get("__all__", [])
             for field_name, graphene_field in attr_fields.items():
-                cls.register_resolver(field_name, graphene_field, is_all=True)
+                cls.register_resolver(field_name, accesses, graphene_field)
                 registered_field_resolvers.add(field_name)
-            kwargs.update(default_resolver=cls.resolver_wrapper(kwargs.get("default_resolver", get_default_resolver())))
+
+            kwargs.update(
+                default_resolver=cls.resolver_wrapper(accesses)(
+                    kwargs.get("default_resolver", get_default_resolver()),
+                )
+            )
             return super().__init_subclass_with_meta__(*args, **kwargs)
 
         for field_name, graphene_field in attr_fields.items():
-            cls.register_resolver(field_name, graphene_field)
+            cls.register_resolver(field_name, cls.fields_access.get(field_name, []), graphene_field)
             registered_field_resolvers.add(field_name)
 
         if len(cls.fields_access) != len(registered_field_resolvers):
-            kwargs.update(default_resolver=cls.resolver_wrapper(kwargs.get("default_resolver", get_default_resolver())))
+            differences = set(cls.fields_access.keys()) - registered_field_resolvers
+            accesses = cls.fields_access.get(
+                differences and differences[0] or cls.fields_access.get("__default__"),
+                [],
+            )
+            kwargs.update(
+                default_resolver=cls.resolver_wrapper(accesses)(kwargs.get("default_resolver", get_default_resolver()))
+            )
 
         if abs(len(cls.fields_access) - len(registered_field_resolvers)) > 1:
             warnings.warn(

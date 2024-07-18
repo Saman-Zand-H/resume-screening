@@ -1,3 +1,5 @@
+import contextlib
+
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
@@ -14,9 +16,13 @@ from graphql_auth.settings import graphql_auth_settings
 
 from django.db.models import Case, IntegerField, QuerySet, Value, When
 
-from .accesses import JobPositionContainer
+from .accesses import (
+    JobPositionContainer,
+    OrganizationMembershipContainer,
+)
 from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
+    Access,
     CanadaVisa,
     CertificateAndLicense,
     CommunicationMethod,
@@ -35,6 +41,7 @@ from .models import (
     ReferenceCheckEmployer,
     Referral,
     Resume,
+    Role,
     SupportTicket,
     User,
     UserTask,
@@ -289,10 +296,56 @@ class SupportTicketType(DjangoObjectType):
         )
 
 
-class OrganizationMembershipType(DjangoObjectType):
+class OrganizationMembershipUserType(DjangoObjectType):
+    class Meta:
+        model = User
+        fields = (
+            User.id.field.name,
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.email.field.name,
+        )
+
+
+class AccessType(DjangoObjectType):
+    class Meta:
+        model = Access
+        fields = (
+            Access.id.field.name,
+            Access.slug.field.name,
+            Access.description.field.name,
+        )
+
+
+class RoleType(DjangoObjectType):
+    class Meta:
+        model = Role
+        fields = (
+            Role.id.field.name,
+            Role.title.field.name,
+            Role.description.field.name,
+            Role.accesses.field.name,
+        )
+
+
+class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": OrganizationMembershipContainer.get_accesses(),
+    }
+
+    user = graphene.Field(OrganizationMembershipUserType, source=OrganizationMembership.user.field.name)
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        membership: OrganizationMembership = args and args[2]
+        if not membership:
+            return None
+
+        return membership.organization
+
     class Meta:
         model = OrganizationMembership
-        fields = (OrganizationMembership.organization.field.name,)
+        fields = (OrganizationMembership.role.field.name, OrganizationMembership.organization.field.name)
 
 
 class UserTaskType(DjangoObjectType):
@@ -369,10 +422,27 @@ class OrganizationType(DjangoObjectType):
             Organization.size.field.name,
             Organization.about.field.name,
             Organization.user.field.name,
+            OrganizationInvitation.organization.field.related_query_name(),
+            OrganizationMembership.organization.field.related_query_name(),
         )
 
 
-class OrganizationInvitationType(DjangoObjectType):
+class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": [
+            OrganizationMembershipContainer.INVITOR,
+            OrganizationMembershipContainer.ADMIN,
+        ]
+    }
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        invitation: OrganizationInvitation = args and args[2]
+        if not invitation:
+            return None
+
+        return invitation.organization
+
     class Meta:
         model = OrganizationInvitation
         fields = (
@@ -387,10 +457,8 @@ class OrganizationInvitationType(DjangoObjectType):
     @classmethod
     def get_node_by_token(cls, info, token):
         model = cls._meta.model
-        try:
+        with contextlib.suppress(model.DoesNotExist):
             return model.objects.get(token=token)
-        except model.DoesNotExist:
-            return None
 
 
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
@@ -406,7 +474,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        job_position: OrganizationJobPosition = kwargs.get("root")
+        job_position: OrganizationJobPosition = args and args[2]
         if not job_position:
             return None
 

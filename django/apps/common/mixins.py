@@ -2,12 +2,11 @@ from datetime import date, datetime
 
 import graphene
 import graphene_django
-from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from graphene_django_cud.mutations.core import DjangoCudBaseOptions
 
+from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.fields.related import RelatedField
-from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from .models import FileModel
