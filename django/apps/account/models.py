@@ -178,8 +178,8 @@ class User(AbstractUser):
             CertificateAndLicense.user,
         )
 
-    def has_access(self, access_slug):
-        return self.__class__.objects.filter(
+    def has_access(self, access_slug: str):
+        return User.objects.filter(
             models.Q(
                 **{
                     fields_join(
@@ -1438,8 +1438,8 @@ class UserTask(models.Model):
         self.status_description = description
         self.save(
             update_fields=[
-                self.__class__.status.field.name,
-                self.__class__.status_description.field.name,
+                UserTask.status.field.name,
+                UserTask.status_description.field.name,
             ]
         )
 
@@ -1674,7 +1674,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
 
         cache.delete(self.get_otp_cache_key())
         self.is_phonenumber_verified = True
-        self.save(update_fields=[self.__class__.is_phonenumber_verified.field.name])
+        self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
         return True
 
 
@@ -1875,7 +1875,7 @@ class OrganizationJobPosition(models.Model):
     def status(self):
         if self.validity_date and self.validity_date < now().date():
             self._status = self.Status.EXPIRED
-            self.save(update_fields=[self.__class__._status.field.name])
+            self.save(update_fields=[OrganizationJobPosition._status.field.name])
             self.set_status_history()
         return self._status
 
@@ -1919,7 +1919,7 @@ class OrganizationJobPosition(models.Model):
         if not current_state:
             raise ValueError(f"Invalid status: {self._status}")
         current_state.change_status(self, new_status)
-        self.save(update_fields=[self.__class__._status.field.name])
+        self.save(update_fields=[OrganizationJobPosition._status.field.name])
 
 
 class OrganizationJobPositionState(ABC):

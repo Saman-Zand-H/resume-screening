@@ -1,7 +1,7 @@
 import graphene
+from graphene_django.filter import DjangoFilterConnectionField
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
-from graphene_django.filter import DjangoFilterConnectionField
 
 from .types import (
     CertificateAndLicenseNode,
