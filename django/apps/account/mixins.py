@@ -1,3 +1,4 @@
+import contextlib
 import warnings
 from functools import wraps
 from operator import call
@@ -21,15 +22,15 @@ from .utils import IDLikeObject
 
 class AccessRequiredMixin:
     @classmethod
-    def has_access(cls, accesses, info, *args, **kwargs):
-        if not any(cls.has_item_access(getattr(access, "slug", access), info, *args, **kwargs) for access in accesses):
+    def has_access(cls, accesses, *args, **kwargs):
+        if not any(cls.has_item_access(getattr(access, "slug", access), *args, **kwargs) for access in accesses):
             cls.access_denied(accesses)
 
     @classmethod
-    def has_item_access(cls, access_slug, info, *args, **kwargs):
+    def has_item_access(cls, access_slug, *args, **kwargs):
         from .models import User
 
-        has_access_kwargs = cls.get_has_access_kwargs(access_slug, info, *args, **kwargs)
+        has_access_kwargs = cls.get_has_access_kwargs(access_slug, *args, **kwargs)
         user: User = has_access_kwargs.get("user")
         if not user:
             return
@@ -42,26 +43,31 @@ class AccessRequiredMixin:
 
     @classmethod
     def access_denied(cls, access_slug: str):
-        """Returns a value if access is denied."""
         raise AccessDenied()
 
     @classmethod
-    def get_has_access_kwargs(cls, access_slug, info, *args, **kwargs):
+    def get_has_access_kwargs(cls, access_slug, *args, **kwargs):
         return {
-            "instance": cls.get_access_object(access_slug, *args, info=info, **kwargs),
-            "user": cls.get_user(info),
+            "instance": cls.get_access_object(access_slug, *args, **kwargs),
+            "user": cls.get_user(access_slug, *args, **kwargs),
         }
 
     @classmethod
-    def get_user(cls, info, *args, **kwargs):
-        if not getattr(info, "context", False):
-            return
-
-        return info.context.user
+    def get_user(cls, *args, **kwargs):
+        raise NotImplementedError("Method `get_user` must be implemented.")
 
 
 class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
     fields_access = {}
+
+    @classmethod
+    def get_user(cls, *args, **kwargs):
+        with contextlib.suppress(IndexError):
+            info = args[4]
+            if not getattr(info, "context", False):
+                return
+
+            return info.context.user
 
     @classmethod
     def resolver_wrapper(cls, accesses) -> Callable:
@@ -70,14 +76,12 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
             @login_required
             def inner_wrapper(*args, **kwargs):
                 try:
-                    resolved_value = resolver(*args, **kwargs)
                     cls.has_access(
                         accesses,
                         *args,
-                        resolved_value=resolved_value,
                         **kwargs,
                     )
-                    return resolved_value
+                    return resolver(*args, **kwargs)
                 except AccessDenied as e:
                     if e.should_raise:
                         raise PermissionError(e.error_content)
@@ -144,6 +148,15 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
 
 class MutationAccessRequiredMixin(AccessRequiredMixin):
     accesses = []
+
+    @classmethod
+    def get_user(cls, *args, **kwargs):
+        with contextlib.suppress(IndexError):
+            info = args[1]
+            if not getattr(info, "context", False):
+                return
+
+            return info.context.user
 
     @classmethod
     def resolver_wrapper(cls, mutation: Callable):
