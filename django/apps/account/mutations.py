@@ -251,6 +251,11 @@ class RegisterOrganization(RegisterBase):
                 Organization.user.field.name: user,
             }
         )
+        Contact.objects.create(
+            contactable=organization.contactable,
+            type=Contact.Type.WEBSITE.value,
+            value=kwargs.get("website"),
+        )
 
         try:
             OrganizationMembership.objects.create(

@@ -5,7 +5,6 @@ from common.types import JobNode
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.models import GeneratedCV
-from graphene import Field, String
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -393,9 +392,9 @@ class OrganizationInvitationType(DjangoObjectType):
 
 
 class OrganizationJobPositionNode(DjangoObjectType):
-    status = Field(String, description="The current status of the job position.")
-    age_range = Field(String, description="The age range of the job position.")
-    salary_range = Field(String, description="The salary range of the job position.")
+    status = graphene.Field(graphene.String, description="The current status of the job position.")
+    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
+    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
 
     class Meta:
         model = OrganizationJobPosition
@@ -439,7 +438,7 @@ class OrganizationJobPositionNode(DjangoObjectType):
         return self.status
 
     def resolve_age_range(self, info):
-        return self.age_range
+        return [self.age_range.lower, self.age_range.upper]
 
     def resolve_salary_range(self, info):
-        return self.salary_range
+        return [self.salary_range.lower, self.salary_range.upper]
