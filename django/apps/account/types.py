@@ -1,5 +1,5 @@
 import graphene
-from graphene import Field, String
+from graphene import Field, String, List, Int
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode
@@ -393,8 +393,8 @@ class OrganizationInvitationType(DjangoObjectType):
 
 class OrganizationJobPositionNode(DjangoObjectType):
     status = Field(String, description="The current status of the job position.")
-    age_range = Field(String, description="The age range of the job position.")
-    salary_range = Field(String, description="The salary range of the job position.")
+    age_range = List(Int, description="The age range of the job position.")
+    salary_range = List(Int, description="The salary range of the job position.")
 
     class Meta:
         model = OrganizationJobPosition
@@ -438,7 +438,7 @@ class OrganizationJobPositionNode(DjangoObjectType):
         return self.status
 
     def resolve_age_range(self, info):
-        return self.age_range
+        return [self.age_range.lower, self.age_range.upper]
 
     def resolve_salary_range(self, info):
-        return self.salary_range
+        return [self.salary_range.lower, self.salary_range.upper]
