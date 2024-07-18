@@ -14,7 +14,8 @@ from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
-from django.db.models import Case, IntegerField, QuerySet, Value, When
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
 
 from .accesses import (
     JobPositionContainer,
@@ -337,10 +338,20 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
     }
 
     user = graphene.Field(OrganizationMembershipUserType, source=OrganizationMembership.user.field.name)
+    accessed_roles = graphene.List(RoleType)
+
+    def resolve_accessed_roles(self, info):
+        return Role.objects.filter(
+            (
+                Q(managed_by_id=self.organization_id)
+                & Q(managed_by_model=ContentType.objects.get_for_model(Organization))
+            )
+            | (Q(managed_by_id__isnull=True) & Q(managed_by_model__isnull=True)),
+        ).distinct()
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        membership: OrganizationMembership = args and args[2]
+        membership: OrganizationMembership = args and args[1]
         if not membership:
             return None
 
@@ -440,7 +451,7 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        invitation: OrganizationInvitation = args and args[2]
+        invitation: OrganizationInvitation = args and args[1]
         if not invitation:
             return None
 
@@ -477,7 +488,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        job_position: OrganizationJobPosition = args and args[2]
+        job_position: OrganizationJobPosition = args and args[1]
         if not job_position:
             return None
 
@@ -544,6 +555,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
             }
         )
 
+
 class JobPositionInterviewType(DjangoObjectType):
     class Meta:
         model = JobPositionInterview
@@ -584,4 +596,3 @@ class JobPositionAssignmentNode(DjangoObjectType):
 
     def resolve_status_history(self, info):
         return self.status_histories.all()
-    

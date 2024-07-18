@@ -1,4 +1,3 @@
-import contextlib
 import warnings
 from functools import wraps
 from operator import call
@@ -9,6 +8,7 @@ from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
 from graphene_django_cud.mutations import DjangoPatchMutation
+from graphql import GraphQLResolveInfo
 from graphql_jwt.decorators import login_required
 from rules.rulesets import test_rule
 
@@ -53,21 +53,20 @@ class AccessRequiredMixin:
         }
 
     @classmethod
+    def get_info(cls, *args):
+        return next((arg for arg in args if isinstance(arg, GraphQLResolveInfo)), None)
+
+    @classmethod
     def get_user(cls, *args, **kwargs):
-        raise NotImplementedError("Method `get_user` must be implemented.")
+        info = cls.get_info(*args)
+        if not getattr(info, "context", False):
+            return
+
+        return info.context.user
 
 
 class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
     fields_access = {}
-
-    @classmethod
-    def get_user(cls, *args, **kwargs):
-        with contextlib.suppress(IndexError):
-            info = args[4]
-            if not getattr(info, "context", False):
-                return
-
-            return info.context.user
 
     @classmethod
     def resolver_wrapper(cls, accesses) -> Callable:
@@ -148,15 +147,6 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
 
 class MutationAccessRequiredMixin(AccessRequiredMixin):
     accesses = []
-
-    @classmethod
-    def get_user(cls, *args, **kwargs):
-        with contextlib.suppress(IndexError):
-            info = args[1]
-            if not getattr(info, "context", False):
-                return
-
-            return info.context.user
 
     @classmethod
     def resolver_wrapper(cls, mutation: Callable):
