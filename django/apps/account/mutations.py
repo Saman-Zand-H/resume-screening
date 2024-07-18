@@ -1,7 +1,6 @@
 import contextlib
 
 import graphene
-from account.utils import is_env
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -34,6 +33,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 
+from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
@@ -155,23 +155,28 @@ def set_template_context_variable(context, key, value):
     setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
 
 
-class Register(graphql_auth_mutations.Register):
-    form = PasswordLessRegisterForm
-    _args = graphql_auth_mutations.Register._args + [
-        "referral_code",
-        OrganizationInvitation.token.field.name,
-        EMAIL_CALLBACK_URL_VARIABLE,
-    ]
-
+class EmailCallbackUrlMixin:
     @classmethod
-    @transaction.atomic
     def mutate(cls, *args, **kwargs):
         set_template_context_variable(
             args[1].context,
             EMAIL_CALLBACK_URL_VARIABLE,
             kwargs.get(EMAIL_CALLBACK_URL_VARIABLE),
         )
+        return super().mutate(*args, **kwargs)
 
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._required_args += [EMAIL_CALLBACK_URL_VARIABLE]
+        return super().Field(*args, **kwargs)
+
+
+class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
+    form = PasswordLessRegisterForm
+
+    @classmethod
+    @transaction.atomic
+    def mutate(cls, *args, **kwargs):
         email = kwargs.get(User.EMAIL_FIELD)
         try:
             UserStatus.clean_email(email)
@@ -187,13 +192,25 @@ class Register(graphql_auth_mutations.Register):
         result = super().mutate(*args, **kwargs)
         if not result.success:
             return result
-
-        referral_registration(User.objects.get(**{User.EMAIL_FIELD: email}), kwargs.pop("referral_code", None))
-        cls.add_to_organization(*args, **kwargs)
+        cls.after_mutate(*args, **kwargs)
         return result
 
     @classmethod
-    def add_to_organization(cls, *args, **kwargs):
+    def after_mutate(cls, *args, **kwargs):
+        pass
+
+
+class UserRegister(RegisterBase):
+    _args = graphql_auth_mutations.Register._args + [
+        "referral_code",
+        OrganizationInvitation.token.field.name,
+    ]
+
+    @classmethod
+    def after_mutate(cls, *args, **kwargs):
+        referral_registration(
+            User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)}), kwargs.pop("referral_code", None)
+        )
         if organization_invitation_token := kwargs.pop(OrganizationInvitation.token.field.name, None):
             organization_invitation = OrganizationInvitation.objects.filter(token=organization_invitation_token).first()
             if not organization_invitation:
@@ -217,16 +234,11 @@ class Register(graphql_auth_mutations.Register):
             organization_invitation.delete()
 
 
-class RegisterOrganization(Register):
-    _args = [EMAIL_CALLBACK_URL_VARIABLE]
-    _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"] + _args
+class RegisterOrganization(RegisterBase):
+    _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
 
     @classmethod
-    @transaction.atomic
-    def mutate(cls, *args, **kwargs):
-        if not (result := super().mutate(*args, **kwargs)).success:
-            return result
-
+    def after_mutate(cls, *args, **kwargs):
         if not (role := Role.objects.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
             raise GraphQLError(_("Owner role not found."))
 
@@ -238,6 +250,11 @@ class RegisterOrganization(Register):
                 Organization.name.field.name: organization_name,
                 Organization.user.field.name: user,
             }
+        )
+        Contact.objects.create(
+            contactable=organization.contactable,
+            type=Contact.Type.WEBSITE.value,
+            value=kwargs.get("website"),
         )
 
         try:
@@ -251,14 +268,6 @@ class RegisterOrganization(Register):
             )
         except IntegrityError:
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
-
-        return cls(success=True, errors=None)
-
-    @classmethod
-    def add_to_organization(cls, *args, **kwargs):
-        # This method is intentionally left empty because the organization registration
-        # process is handled in the mutate method of the RegisterOrganization class.
-        pass
 
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
@@ -281,22 +290,11 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         return response
 
 
-class ResendActivationEmail(graphql_auth_mutations.ResendActivationEmail):
-    _args = [EMAIL_CALLBACK_URL_VARIABLE]
-    _required_args = ["email"] + _args
-
-    @classmethod
-    def mutate(cls, *args, **kwargs):
-        set_template_context_variable(
-            args[1].context, EMAIL_CALLBACK_URL_VARIABLE, kwargs.get(EMAIL_CALLBACK_URL_VARIABLE)
-        )
-        return super().mutate(*args, **kwargs)
+class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
+    pass
 
 
-class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
-    _args = [EMAIL_CALLBACK_URL_VARIABLE]
-    _required_args = ["email"] + _args
-
+class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
         user = get_user_by_email(kwargs.get("email"))
@@ -304,11 +302,6 @@ class SendPasswordResetEmail(graphql_auth_mutations.SendPasswordResetEmail):
             args[1].context,
             USER_FIRSTNAME_VARIABLE,
             user.first_name,
-        )
-        set_template_context_variable(
-            args[1].context,
-            EMAIL_CALLBACK_URL_VARIABLE,
-            kwargs.get(EMAIL_CALLBACK_URL_VARIABLE),
         )
         return super().mutate(*args, **kwargs)
 
@@ -1164,7 +1157,7 @@ class ProfileMutation(graphene.ObjectType):
     set_skills = UserSetSkillsMutation.Field()
     upload_resume = ResumeCreateMutation.Field()
 
-    if is_env(Environment.LOCAL) or is_env(Environment.DEVELOPMENT):
+    if is_env(Environment.LOCAL, Environment.DEVELOPMENT):
         delete = UserDeleteMutation.Field()
 
 
@@ -1220,7 +1213,7 @@ class SupportTicketMutation(graphene.ObjectType):
 
 
 class AccountMutation(graphene.ObjectType):
-    register = Register.Field()
+    register = UserRegister.Field()
     verify = VerifyAccount.Field()
     resend_activation_email = ResendActivationEmail.Field()
     send_password_reset_email = SendPasswordResetEmail.Field()

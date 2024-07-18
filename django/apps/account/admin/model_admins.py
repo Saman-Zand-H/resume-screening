@@ -26,6 +26,9 @@ from ..models import (
     Education,
     EmployerLetterMethod,
     IEEMethod,
+    JobPositionAssignment,
+    JobPositionAssignmentStatusHistory,
+    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     OfflineMethod,
@@ -737,3 +740,42 @@ class OrganizationJobPositionStatusHistoryAdmin(admin.ModelAdmin):
         OrganizationJobPositionStatusHistory.created_at.field.name,
     )
     raw_id_fields = (OrganizationJobPositionStatusHistory.job_position.field.name,)
+
+
+@register(JobPositionAssignment)
+class JobPositionAssignmentAdmin(admin.ModelAdmin):
+    list_display = (
+        JobPositionAssignment.id.field.name,
+        JobPositionAssignment.job_seeker.field.name,
+        JobPositionAssignment.job_position.field.name,
+        JobPositionAssignment._status.field.name,
+        JobPositionAssignment.created_at.field.name,
+    )
+    raw_id_fields = (JobPositionAssignment.job_position.field.name, JobPositionAssignment.job_seeker.field.name)
+
+
+@register(JobPositionInterview)
+class JobPositionInterviewAdmin(admin.ModelAdmin):
+    list_display = (
+        JobPositionInterview.id.field.name,
+        JobPositionInterview.job_position_assignment.field.name,
+        JobPositionInterview.status.field.name,
+        JobPositionInterview.interview_date.field.name,
+        JobPositionInterview.result_date.field.name,
+    )
+    raw_id_fields = (JobPositionInterview.job_position_assignment.field.name,)
+
+
+@register(JobPositionAssignmentStatusHistory)
+class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        JobPositionAssignmentStatusHistory.id.field.name,
+        JobPositionAssignmentStatusHistory.job_position_assignment.field.name,
+        JobPositionAssignmentStatusHistory.status.field.name,
+        JobPositionAssignmentStatusHistory.created_at.field.name,
+    )
+    list_filter = (
+        JobPositionAssignmentStatusHistory.status.field.name,
+        JobPositionAssignmentStatusHistory.created_at.field.name,
+    )
+    raw_id_fields = (JobPositionAssignmentStatusHistory.job_position_assignment.field.name,)

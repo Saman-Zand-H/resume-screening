@@ -245,6 +245,7 @@ GRAPHQL_AUTH = {
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=1),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
+    "EMAIL_ASYNC_TASK": "account.tasks.graphql_auth_async_email",
 }
 
 

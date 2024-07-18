@@ -119,12 +119,6 @@ class Contactable(models.Model):
 
 
 class User(AbstractUser):
-    class Gender(models.TextChoices):
-        MALE = "male", _("Male")
-        FEMALE = "female", _("Female")
-        NOT_KNOWN = "not_known", _("Not Known")
-        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
-
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
@@ -184,8 +178,8 @@ class User(AbstractUser):
             CertificateAndLicense.user,
         )
 
-    def has_access(self, access_slug):
-        return self.__class__.objects.filter(
+    def has_access(self, access_slug: str):
+        return User.objects.filter(
             models.Q(
                 **{
                     fields_join(
@@ -1444,8 +1438,8 @@ class UserTask(models.Model):
         self.status_description = description
         self.save(
             update_fields=[
-                self.__class__.status.field.name,
-                self.__class__.status_description.field.name,
+                UserTask.status.field.name,
+                UserTask.status_description.field.name,
             ]
         )
 
@@ -1537,7 +1531,13 @@ class Organization(DocumentAbstract):
         blank=True,
         related_name="organizations",
     )
-    roles = GenericRelation(Role, verbose_name=_("Roles"), related_query_name="organization")
+    roles = GenericRelation(
+        Role,
+        verbose_name=_("Roles"),
+        related_query_name="organization",
+        content_type_field=Role.managed_by_model.field.name,
+        object_id_field=Role.managed_by_id.field.name,
+    )
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
@@ -1674,7 +1674,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
 
         cache.delete(self.get_otp_cache_key())
         self.is_phonenumber_verified = True
-        self.save(update_fields=[self.__class__.is_phonenumber_verified.field.name])
+        self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
         return True
 
 
@@ -1858,6 +1858,9 @@ class OrganizationJobPosition(models.Model):
     )
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
+    job_seeker_assignment = models.ManyToManyField(
+        User, through="JobPositionAssignment", verbose_name=_("Job Seeker Assignment")
+    )
     _status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
@@ -1872,7 +1875,7 @@ class OrganizationJobPosition(models.Model):
     def status(self):
         if self.validity_date and self.validity_date < now().date():
             self._status = self.Status.EXPIRED
-            self.save(update_fields=[self.__class__._status.field.name])
+            self.save(update_fields=[OrganizationJobPosition._status.field.name])
             self.set_status_history()
         return self._status
 
@@ -1916,7 +1919,7 @@ class OrganizationJobPosition(models.Model):
         if not current_state:
             raise ValueError(f"Invalid status: {self._status}")
         current_state.change_status(self, new_status)
-        self.save(update_fields=[self.__class__._status.field.name])
+        self.save(update_fields=[OrganizationJobPosition._status.field.name])
 
 
 class OrganizationJobPositionState(ABC):
@@ -1990,3 +1993,79 @@ class OrganizationJobPositionStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.job_position.title} - {self.status}"
+
+
+class JobPositionAssignment(models.Model):
+    class Status(models.TextChoices):
+        NOT_REVIEWED = "not_reviewed", _("Not Reviewed")
+        REJECTED = "rejected", _("Rejected")
+        HIRED = "hired", _("Hired")
+
+    job_seeker = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_("Job Seeker"), related_name="job_position_assignments"
+    )
+    job_position = models.ForeignKey(
+        OrganizationJobPosition, on_delete=models.CASCADE, verbose_name=_("Job Position"), related_name="assignments"
+    )
+    _status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        verbose_name=_("Status"),
+        default=Status.NOT_REVIEWED.value,
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Job Position Assignment")
+        verbose_name_plural = _("Job Position Assignments")
+
+    def __str__(self):
+        return f"{self.job_position.title} - {self.job_seeker.email}"
+
+    @property
+    def status(self):
+        if self.interview:
+            return self.interview.status
+        return self._status
+
+    def set_status_history(self):
+        JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
+
+
+class JobPositionInterview(models.Model):
+    class Status(models.TextChoices):
+        AWAITING_INTERVIEW_DATE = "awaiting_interview_date", _("Awaiting Interview Date")
+        INTERVIEW_SCHEDULED = "interview_scheduled", _("Interview Scheduled")
+        INTERVIEWING = "interviewing", _("Interviewing")
+        AWAITING_INTERVIEW_RESULTS = "awaiting_interview_results", _("Awaiting Interview Results")
+        INTERVIEW_CANCELED_BY_JOBSEEKER = "interview_canceled_by_jobseeker", _("Interview Canceled By Jobseeker")
+        INTERVIEW_CANCELED_BY_EMPLOYER = "interview_canceled_by_employer", _("Interview Canceled By Employer")
+        REJECTED_AT_INTERVIEW = "rejected_at_interview", _("Rejected At Interview")
+
+    job_position_assignment = models.OneToOneField(
+        JobPositionAssignment, on_delete=models.CASCADE, related_name="interview"
+    )
+    status = models.CharField(
+        max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.AWAITING_INTERVIEW_DATE
+    )
+    interview_date = models.DateTimeField(verbose_name=_("Interview Date"))
+    result_date = models.DateTimeField(verbose_name=_("Result Date"))
+
+
+class JobPositionAssignmentStatusHistory(models.Model):
+    job_position_assignment = models.ForeignKey(
+        JobPositionAssignment, on_delete=models.CASCADE, related_name="status_histories"
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=JobPositionAssignment.Status.choices + JobPositionInterview.Status.choices,
+        verbose_name=_("Status"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Job Position Assignment Status History")
+        verbose_name_plural = _("Job Position Assignment Status Histories")
+
+    def __str__(self):
+        return f"{self.job_position_assignment}: {self.status}"

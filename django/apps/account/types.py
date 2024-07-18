@@ -2,19 +2,20 @@ import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode
+from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.models import GeneratedCV
-from graphene import Field, String
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, QuerySet, Value, When
 
-from .mixins import FilterQuerySetByUserMixin
+from .accesses import JobPositionContainer
+from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
@@ -98,7 +99,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
                     output_field=IntegerField(),
                 )
             )
-            .order_by("_priority", Job.order.field.name)
+            .order_by("_priority", Job.order.field.name, Job.title.field.name)
         )
 
 
@@ -392,10 +393,24 @@ class OrganizationInvitationType(DjangoObjectType):
             return None
 
 
-class OrganizationJobPositionNode(DjangoObjectType):
-    status = Field(String, description="The current status of the job position.")
-    age_range = Field(String, description="The age range of the job position.")
-    salary_range = Field(String, description="The salary range of the job position.")
+JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
+
+
+class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": JobPositionContainer.get_accesses(),
+    }
+    status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
+    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
+    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        job_position: OrganizationJobPosition = kwargs.get("root")
+        if not job_position:
+            return None
+
+        return job_position.organization
 
     class Meta:
         model = OrganizationJobPosition
@@ -439,7 +454,20 @@ class OrganizationJobPositionNode(DjangoObjectType):
         return self.status
 
     def resolve_age_range(self, info):
-        return self.age_range
+        return [self.age_range.lower, self.age_range.upper]
 
     def resolve_salary_range(self, info):
-        return self.salary_range
+        return [self.salary_range.lower, self.salary_range.upper]
+
+    @classmethod
+    def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fields_join(
+                    OrganizationJobPosition.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        )
