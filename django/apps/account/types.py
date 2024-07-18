@@ -98,7 +98,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
                     output_field=IntegerField(),
                 )
             )
-            .order_by("_priority", Job.order.field.name)
+            .order_by("_priority", Job.order.field.name, Job.title.field.name)
         )
 
 
