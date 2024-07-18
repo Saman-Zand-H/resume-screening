@@ -252,6 +252,7 @@ class RegisterOrganization(Register):
         except IntegrityError:
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
 
+        cls.after_mutate(*args, organization=organization, website=kwargs.get("website"))
         return cls(success=True, errors=None)
 
     @classmethod
@@ -259,6 +260,11 @@ class RegisterOrganization(Register):
         # This method is intentionally left empty because the organization registration
         # process is handled in the mutate method of the RegisterOrganization class.
         pass
+
+    @classmethod
+    @transaction.atomic
+    def after_mutate(cls, *args, organization, website):
+        Contact.objects.create(contactable=organization.contactable, type=Contact.Type.WEBSITE.value, value=website)
 
 
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
