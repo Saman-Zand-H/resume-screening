@@ -1164,7 +1164,7 @@ class ProfileMutation(graphene.ObjectType):
     set_skills = UserSetSkillsMutation.Field()
     upload_resume = ResumeCreateMutation.Field()
 
-    if is_env(Environment.LOCAL) or is_env(Environment.DEVELOPMENT):
+    if is_env(Environment.LOCAL, Environment.DEVELOPMENT):
         delete = UserDeleteMutation.Field()
 
 
