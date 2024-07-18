@@ -245,13 +245,6 @@ GRAPHQL_AUTH = {
     "REGISTER_MUTATION_FIELDS": ["email", "first_name", "last_name"],
     "EXPIRATION_ACTIVATION_TOKEN": timedelta(hours=1),
     "EXPIRATION_PASSWORD_RESET_TOKEN": timedelta(minutes=15),
-    "EMAIL_TEMPLATE_VARIABLES": {
-        "frontend_url": os.environ.get("FRONTEND_URL", "http://localhost:5173"),
-        "frontend_url_account_verify": os.environ.get("FRONTEND_URL_ACCOUNT_VERIFY", "/auth/verify"),
-        "frontend_url_password_reset": os.environ.get(
-            "FRONTEND_URL_PASSWORD_RESET", "/auth/reset-password/set-password"
-        ),
-    },
 }
 
 

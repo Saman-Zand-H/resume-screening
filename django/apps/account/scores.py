@@ -9,7 +9,8 @@ from pydantic import BaseModel
 from score.types import ExistingScore, Score, ScorePack
 from score.utils import register_pack, register_score
 
-from django.db.models import Count, DurationField, ExpressionWrapper, F, Sum
+from django.db.models import Case, Count, DurationField, ExpressionWrapper, F, Sum, When
+from django.db.models.functions import Now
 
 from .constants import EARLY_USERS_COUNT
 from .models import (
@@ -225,14 +226,17 @@ class WorkExperienceNewScore(Score):
 
     def calculate(self, user) -> int:
         years = (
-            WorkExperience.objects.filter(user=user, status__in=WorkExperience.get_verified_statuses())
+            WorkExperience.objects.filter(user=user)
             .annotate(
                 duration_years=ExpressionWrapper(
-                    (F(WorkExperience.end.field.name) - F(WorkExperience.start.field.name)),
+                    (
+                        Case(When(end__isnull=True, then=Now()), default=F(WorkExperience.end.field.name))
+                        - F(WorkExperience.start.field.name)
+                    ),
                     output_field=DurationField(),
                 )
             )
-            .aggregate(days=Sum("duration_years"))["days"]
+            .aggregate(days=Sum(ExpressionWrapper(F("duration_years"), output_field=DurationField())))["days"]
             or datetime.timedelta()
         ).days / 365.25
 

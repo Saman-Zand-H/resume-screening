@@ -3,6 +3,7 @@ from typing import List, NamedTuple
 from common.populators import BasePopulator
 
 from .accesses import AccessContainer, AccessType
+from .choices import DefaultRoles
 from .models import Access, Role
 
 
@@ -16,8 +17,8 @@ class AccessPopulator(BasePopulator):
         access_roles = [
             RoleAccess(
                 role=Role(
-                    slug="owner",
-                    title="Owner",
+                    slug=DefaultRoles.OWNER,
+                    title=DefaultRoles.OWNER.label,
                     description="Has access to everything",
                 ),
                 accesses=[

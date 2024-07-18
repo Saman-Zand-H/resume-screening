@@ -16,12 +16,12 @@ from .models import (
     FileModel,
     Industry,
     Job,
+    JobBenefit,
     JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
     University,
-    JobBenefit,
 )
 from .utils import get_file_models
 
@@ -201,10 +201,6 @@ class SkillNode(DjangoObjectType):
             Skill.id.field.name: ["exact"],
             Skill.title.field.name: ["icontains"],
         }
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        return queryset.system()
 
 
 UploadType = convert_choices_to_named_enum_with_descriptions(

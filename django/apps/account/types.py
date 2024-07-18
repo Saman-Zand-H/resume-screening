@@ -1,5 +1,4 @@
 import graphene
-from graphene import Field, String, List, Int
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode
@@ -82,6 +81,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.score.field.name,
             Profile.contactable.field.name,
             Profile.raw_skills.field.name,
+            Profile.allow_notifications.field.name,
         )
 
     def resolve_contacts(self, info):
@@ -97,7 +97,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
                     output_field=IntegerField(),
                 )
             )
-            .order_by("_priority", Job.order.field.name)
+            .order_by("_priority", Job.order.field.name, Job.title.field.name)
         )
 
 
@@ -392,9 +392,9 @@ class OrganizationInvitationType(DjangoObjectType):
 
 
 class OrganizationJobPositionNode(DjangoObjectType):
-    status = Field(String, description="The current status of the job position.")
-    age_range = List(Int, description="The age range of the job position.")
-    salary_range = List(Int, description="The salary range of the job position.")
+    status = graphene.Field(graphene.String, description="The current status of the job position.")
+    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
+    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
 
     class Meta:
         model = OrganizationJobPosition

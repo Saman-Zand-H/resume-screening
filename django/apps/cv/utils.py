@@ -79,7 +79,7 @@ def merge_pdf_pages_to_single_page(input_pdf_bytes: bytes):
 
 
 def get_resume_info_input(user) -> dict:
-    data = get_user_additional_information(user.id)
+    data = get_user_additional_information(user.id, verified_educations=False, verified_work_experiences=False)
 
     if hasattr(user, "resume"):
         data["resume_data"] = user.resume.resume_json

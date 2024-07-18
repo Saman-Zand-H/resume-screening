@@ -50,14 +50,12 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from django.utils import timezone
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from .choices import get_access_slugs, get_task_names_choices
+from .choices import get_task_names_choices
 from .constants import (
     EARLY_USERS_COUNT,
-    ORGANIZATION_INVITATION_EXPIRY_DELTA,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
@@ -65,7 +63,7 @@ from .constants import (
 )
 from .managers import (
     CertificateAndLicenseManager,
-    OrganizationMembershipManager,
+    OrganizationInvitationManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -121,12 +119,6 @@ class Contactable(models.Model):
 
 
 class User(AbstractUser):
-    class Gender(models.TextChoices):
-        MALE = "male", _("Male")
-        FEMALE = "female", _("Female")
-        NOT_KNOWN = "not_known", _("Not Known")
-        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
-
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
@@ -202,7 +194,7 @@ class User(AbstractUser):
                 **{
                     fields_join(
                         OrganizationMembership.user.field.related_query_name(),
-                        OrganizationMembership.access_role,
+                        OrganizationMembership.role,
                         Role.accesses,
                         Access.slug,
                     ): access_slug
@@ -223,7 +215,6 @@ class Access(models.Model):
         unique=True,
         db_index=True,
         verbose_name=_("Slug"),
-        choices=get_access_slugs(),
     )
     description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
 
@@ -500,6 +491,7 @@ class Profile(ComputedFieldsModel):
     raw_skills = ArrayField(models.CharField(max_length=64), verbose_name=_("Raw Skills"), blank=True, null=True)
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", editable=False)
     available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
+    allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
@@ -1173,6 +1165,7 @@ class CertificateAndLicense(DocumentAbstract, HasDurationMixin):
     end_date_field = "expired_at"
 
     title = models.CharField(max_length=255, verbose_name=_("Title"))
+    certificate_text = models.TextField(verbose_name=_("Certificate Text"), blank=True, null=True)
     certifier = models.CharField(max_length=255, verbose_name=_("Certifier"))
     issued_at = models.DateField(verbose_name=_("Issued At"))
     expired_at = models.DateField(verbose_name=_("Expired At"), null=True, blank=True)
@@ -1538,7 +1531,13 @@ class Organization(DocumentAbstract):
         blank=True,
         related_name="organizations",
     )
-    roles = GenericRelation(Role, verbose_name=_("Roles"), related_query_name="organization")
+    roles = GenericRelation(
+        Role,
+        verbose_name=_("Roles"),
+        related_query_name="organization",
+        content_type_field=Role.managed_by_model.field.name,
+        object_id_field=Role.managed_by_id.field.name,
+    )
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
@@ -1554,6 +1553,10 @@ class Organization(DocumentAbstract):
     @classmethod
     def get_verification_abstract_model(cls):
         return OrganizationVerificationMethodAbstract
+
+    @classmethod
+    def get_verified_statuses(cls):
+        return [cls.Status.VERIFIED]
 
     def get_membership(self, user: User) -> Optional["OrganizationMembership"]:
         if not (accessor := getattr(self, OrganizationMembership.organization.related_query_name(), None)):
@@ -1662,7 +1665,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         return otp
 
     def send_otp(self):
-        otp = self.get_otp()
+        otp = self.get_otp()  # noqa
         # send_sms(self.phonenumber, otp)
 
     def verify_otp(self, input_otp: str) -> bool:
@@ -1676,29 +1679,11 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
 
 
 class OrganizationMembership(models.Model):
-    class UserRole(models.TextChoices):
-        CTO = "cto", _("CTO")
-        CFO = "cfo", _("CFO")
-        CEO = "ceo", _("CEO")
-        HR = "hr", _("HR")
-        OPERATIONS = "operations", _("Operations")
-        ASSOCIATE = "associate", _("Associate")
-        OTHER = "other", _("Other")
-        CREATOR = "creator", _("Creator")
-
-    role = models.CharField(
-        max_length=50,
-        verbose_name=_("Role"),
-        choices=UserRole.choices,
-        default=UserRole.OTHER.value,
-    )
-    access_role = models.ForeignKey(
+    role = models.ForeignKey(
         Role,
         on_delete=models.RESTRICT,
         related_name="organization_memberships",
         verbose_name=_("Access Role"),
-        null=True,
-        blank=True,
     )
     organization = models.ForeignKey(
         Organization,
@@ -1722,8 +1707,6 @@ class OrganizationMembership(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
-    objects = OrganizationMembershipManager()
-
     class Meta:
         verbose_name = _("Organization Membership")
         verbose_name_plural = _("Organization Memberships")
@@ -1735,11 +1718,11 @@ class OrganizationMembership(models.Model):
 class OrganizationInvitation(models.Model):
     email = models.EmailField(verbose_name=_("Email"))
     organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
-    role = models.CharField(
-        max_length=50,
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.RESTRICT,
+        related_name="organization_invitations",
         verbose_name=_("Role"),
-        choices=OrganizationMembership.UserRole.choices,
-        default=OrganizationMembership.UserRole.OTHER.value,
     )
     token = models.CharField(
         max_length=15,
@@ -1748,13 +1731,10 @@ class OrganizationInvitation(models.Model):
         db_index=True,
         default=generate_invitation_token,
     )
-
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("Created By"))
 
-    @property
-    def is_expired(self):
-        return self.created_at + ORGANIZATION_INVITATION_EXPIRY_DELTA < timezone.now()
+    objects = OrganizationInvitationManager()
 
     class Meta:
         verbose_name = _("Organization Invitation")

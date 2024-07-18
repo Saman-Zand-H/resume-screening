@@ -7,10 +7,13 @@ from import_export.admin import ExportMixin
 from django.contrib import admin
 from django.contrib.admin import register
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
+from django.contrib.contenttypes.admin import GenericStackedInline
+from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
 from ..forms import UserChangeForm
 from ..models import (
+    Access,
     CanadaVisa,
     CertificateAndLicense,
     CertificateAndLicenseOfflineVerificationMethod,
@@ -38,6 +41,7 @@ from ..models import (
     Referral,
     ReferralUser,
     Resume,
+    Role,
     SupportTicket,
     UploadCompanyCertificateMethod,
     UploadFileToWebsiteMethod,
@@ -46,6 +50,7 @@ from ..models import (
     WorkExperience,
 )
 from ..scores import UserScorePack
+from ..tasks import get_certificate_text, user_task_runner
 from .resources import (
     CertificateAndLicenseResource,
     EducationResource,
@@ -53,6 +58,24 @@ from .resources import (
     ProfileResource,
     WorkExperienceResource,
 )
+
+
+class AccessInline(admin.StackedInline):
+    model = Access
+    extra = 1
+    fields = (Access.slug.field.name, Access.description.field.name)
+
+
+@register(Role)
+class RoleAdmin(admin.ModelAdmin):
+    list_display = (Role.slug.field.name, Role.title.field.name, Role.managed_by.name)
+    search_fields = (Role.slug.field.name, Role.title.field.name)
+
+
+@register(Access)
+class AccessAdmin(admin.ModelAdmin):
+    list_display = (Access.slug.field.name, Access.description.field.name)
+    search_fields = (Access.slug.field.name, Access.description.field.name)
 
 
 @register(User)
@@ -393,6 +416,17 @@ class OnlineMethodAdmin(admin.ModelAdmin):
 
 @register(CertificateAndLicenseOfflineVerificationMethod)
 class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
+    @admin.action(description="Run Get Certificate Text Task")
+    def run_get_certificate_text_task(
+        self, request, queryset: QuerySet[CertificateAndLicenseOfflineVerificationMethod]
+    ):
+        for certificate_and_license_verification in queryset:
+            user_task_runner(
+                get_certificate_text,
+                certificate_id=certificate_and_license_verification.certificate_and_license.pk,
+                task_user_id=request.user.pk,
+            )
+
     list_display = (
         CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,
         CertificateAndLicenseOfflineVerificationMethod.verified_at.field.name,
@@ -410,6 +444,7 @@ class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
         CertificateAndLicenseOfflineVerificationMethod.created_at.field.name,
     )
     raw_id_fields = (CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,)
+    actions = (run_get_certificate_text_task.__name__,)
 
 
 @register(CertificateAndLicenseOnlineVerificationMethod)
@@ -507,6 +542,14 @@ class UserTaskAdmin(admin.ModelAdmin):
     raw_id_fields = (UserTask.user.field.name,)
 
 
+class OrganizationRolesGenericInline(GenericStackedInline):
+    model = Role
+    ct_field = Role.managed_by_model.field.name
+    ct_fk_field = Role.managed_by_id.field.name
+    fields = (Role.slug.field.name, Role.title.field.name, Role.description.field.name)
+    extra = 1
+
+
 @register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = (
@@ -528,6 +571,7 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.established_at.field.name,
     )
     raw_id_fields = (Organization.industry.field.name,)
+    inlines = (OrganizationRolesGenericInline,)
 
 
 @register(OrganizationMembership)

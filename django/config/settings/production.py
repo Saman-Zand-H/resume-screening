@@ -18,9 +18,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 ALLOWED_HOSTS = [SITE_DOMAIN]  # noqa
 
-CORS_ALLOWED_ORIGIN_URLS = list(
-    set(filter(bool, os.environ.get("CORS_ALLOWED_ORIGIN_URLS", "").split(",") + [os.environ.get("FRONTEND_URL")]))
-)
+CORS_ALLOWED_ORIGIN_URLS = list(set(filter(bool, os.environ.get("CORS_ALLOWED_ORIGIN_URLS", "").split(","))))
 if CORS_ALLOWED_ORIGIN_URLS:
     CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGIN_URLS
 else:

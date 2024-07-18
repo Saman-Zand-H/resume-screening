@@ -1,11 +1,13 @@
 import json
-import mimetypes
+from operator import attrgetter
 from typing import Any, List, Optional
 
 from ai.google import GoogleServices
+from cities_light.models import City
 from common.models import Job, Skill, University
-from common.utils import fields_join
+from common.utils import fields_join, get_file_model_mimetype
 from config.settings.constants import Assistants, Environment
+from flex_blob.models import FileModel
 from google.genai import types
 
 from django.conf import settings
@@ -17,12 +19,18 @@ from django.db.models.functions import JSONObject
 from .constants import VectorStores
 
 
-def extract_resume_json(file_bytes: bytes):
+def extract_resume_json(file_model_id: int):
+    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+        return
+
     service = GoogleServices(Assistants.RESUME_JSON)
-    mime_type = mimetypes.guess_type("file.pdf")[0]
+    mime_type = get_file_model_mimetype(file_model)
+    with file_model.file.open("rb") as file:
+        content = file.file.read()
+
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(file_bytes, mime_type),
+            types.Part.from_bytes(content, mime_type),
             types.Part.from_text(
                 "extract resume JSON",
             ),
@@ -33,7 +41,7 @@ def extract_resume_json(file_bytes: bytes):
         return service.message_to_json(results)
 
 
-def get_user_additional_information(user_id: int):
+def get_user_additional_information(user_id: int, *, verified_work_experiences=True, verified_educations=True):
     from .models import (
         CertificateAndLicense,
         Education,
@@ -54,19 +62,22 @@ def get_user_additional_information(user_id: int):
         user=user,
         status__in=CertificateAndLicense.get_verified_statuses(),
     ).values(
+        CertificateAndLicense.certificate_text.field.name,
         CertificateAndLicense.title.field.name,
         CertificateAndLicense.issued_at.field.name,
         CertificateAndLicense.certifier.field.name,
     )
     work_experiences = WorkExperience.objects.filter(
         user=user,
-        status__in=WorkExperience.get_verified_statuses(),
+        status__in=WorkExperience.get_verified_statuses()
+        if verified_work_experiences
+        else map(attrgetter("value"), WorkExperience.Status),
     ).values(
         WorkExperience.job_title.field.name,
         WorkExperience.organization.field.name,
         WorkExperience.start.field.name,
         WorkExperience.end.field.name,
-        WorkExperience.city.field.name,
+        fields_join(WorkExperience.city.field.name, City.display_name.field.name),
     )
 
     language_certificates_values = Subquery(
@@ -93,7 +104,12 @@ def get_user_additional_information(user_id: int):
         scores=ArraySubquery(language_certificates_values),
     )
 
-    educations = Education.objects.filter(user=user, status__in=Education.get_verified_statuses()).values(
+    educations = Education.objects.filter(
+        user=user,
+        status__in=Education.get_verified_statuses()
+        if verified_educations
+        else map(attrgetter("value"), Education.Status),
+    ).values(
         Education.degree.field.name,
         fields_join(Education.university, University.name),
         Education.city.field.name,
@@ -145,6 +161,27 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     return Job.objects.none()
 
 
+def extract_certificate_text_content(file_model_id: int):
+    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+        return ""
+
+    service = GoogleServices(Assistants.OCR)
+    mimetype = get_file_model_mimetype(file_model)
+    with file_model.file.open("rb") as file:
+        content = file.file.read()
+
+    results = service.generate_text_content(
+        [
+            types.Part.from_bytes(content, mimetype),
+            types.Part.from_text(
+                "extract text content",
+            ),
+        ]
+    )
+
+    return results and service.message_to_json(results) or ""
+
+
 @transaction.atomic
 def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_information) -> Optional[List[Skill]]:
     if not (raw_skills or resume_json):
@@ -175,15 +212,15 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
                 if (skill_name := new_skill.get("title"))
             ]
         )
-        existing_skills = (existing_skills | created_skills).system().distinct()
+        existing_skills = (existing_skills | created_skills).distinct()
 
         return existing_skills, created_skills.ai()
 
     return Skill.objects.none()
 
 
-def is_env(env: Environment):
-    return settings.ENVIRONMENT_NAME.value == env.value
+def is_env(*envs: Environment) -> bool:
+    return settings.ENVIRONMENT_NAME.value in map(attrgetter("value"), envs)
 
 
 class IDLikeObject:
@@ -194,5 +231,4 @@ class IDLikeObject:
         self.context = context
 
     def __repr__(self):
-        return repr(self._id)
         return repr(self._id)
