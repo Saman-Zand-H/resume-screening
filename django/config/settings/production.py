@@ -39,8 +39,6 @@ CACHES = {
     }
 }
 
-GRAPHQL_AUTH["EMAIL_ASYNC_TASK"] = "account.tasks.graphql_auth_async_email"  # noqa
-
 GOOGLE_CLOUD_ERROR_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_ERROR_BUCKET_NAME")
 
 if GOOGLE_CLOUD_ERROR_BUCKET_NAME:

@@ -219,8 +219,8 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
     return Skill.objects.none()
 
 
-def is_env(env: Environment):
-    return settings.ENVIRONMENT_NAME.value == env.value
+def is_env(*envs: Environment) -> bool:
+    return settings.ENVIRONMENT_NAME.value in map(attrgetter("value"), envs)
 
 
 class IDLikeObject:

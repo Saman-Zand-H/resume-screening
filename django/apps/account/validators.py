@@ -4,13 +4,13 @@ import re
 from config.settings.constants import Environment
 from phonenumber_field.modelfields import PhoneNumberField
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator, RegexValidator
 from django.utils.regex_helper import _lazy_re_compile
 from django.utils.translation import gettext_lazy as _
 
 from .constants import EXTENDED_EMAIL_BLOCKLIST
+from .utils import is_env
 
 
 class LinkedInUsernameValidator(RegexValidator):
@@ -35,14 +35,13 @@ class NameValidator(RegexValidator):
 
 
 class NoTagEmailValidator(EmailValidator):
-    user_regex = _lazy_re_compile(
-        # dot-atom
-        rf"(^[-!#$%&'*/=?^_`{{}}|~0-9A-Z]+(\.[-!#$%&'*/=?^_`|~0-9A-Z{'+' if settings.ENVIRONMENT_NAME == Environment.DEVELOPMENT else ''}]+)*\Z"
-        # quoted-string
-        r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])'
-        r'*"\Z)',
-        re.IGNORECASE,
-    )
+    if not is_env(Environment.LOCAL, Environment.DEVELOPMENT):
+        user_regex = _lazy_re_compile(
+            r"(^[-!#$%&'*/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*\Z"
+            r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])'
+            r'*"\Z)',
+            re.IGNORECASE,
+        )
 
 
 class BlocklistEmailDomainValidator(EmailValidator):
