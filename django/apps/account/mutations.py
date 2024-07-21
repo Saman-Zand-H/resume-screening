@@ -66,6 +66,7 @@ from .models import (
     DocumentAbstract,
     Education,
     EmployerLetterMethod,
+    JobPositionAssignment,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -1109,6 +1110,25 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
         return cls(**{cls._meta.return_field_name: obj})
 
 
+class JobPositionAssignmentStatusUpdateMutation(ArrayChoiceTypeMixin, DjangoPatchMutation):
+    class Meta:
+        model = JobPositionAssignment
+        login_required = True
+        fields = [
+            JobPositionAssignment.status.field.name,
+        ]
+        type_name = "JobPositionAssignmentStatusUpdateInput"
+
+    @classmethod
+    def mutate(cls, root, info, input, id):
+        status = input.get(JobPositionAssignment.status.field.name)
+        if not (obj := JobPositionAssignment.objects.get(pk=id)):
+            raise GraphQLErrorBadRequest(_("Job position assignment not found."))
+
+        obj.change_status(status)
+        return cls(**{cls._meta.return_field_name: obj})
+
+
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
@@ -1197,6 +1217,7 @@ class OrganizationMutation(graphene.ObjectType):
     create_job_position = OrganizationJobPositionCreateMutation.Field()
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
+    update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):

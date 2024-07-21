@@ -2034,6 +2034,25 @@ class JobPositionAssignment(models.Model):
     def set_status_history(self):
         JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
 
+    def change_status(self, new_status):
+        state_mapping = {
+            self.Status.NOT_REVIEWED: NotReviewedState(),
+            self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
+            self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
+            self.Status.INTERVIEWING: InterviewingState(),
+            self.Status.AWAITING_INTERVIEW_RESULTS: AwaitingInterviewResultsState(),
+            self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER: InterviewCanceledByJobseekerState(),
+            self.Status.INTERVIEW_CANCELED_BY_EMPLOYER: InterviewCanceledByEmployerState(),
+            self.Status.REJECTED_AT_INTERVIEW: RejectedAtInterviewState(),
+            self.Status.REJECTED: RejectedState(),
+            self.Status.HIRED: HiredState(),
+        }
+        current_state = state_mapping.get(self.status)
+        if not current_state:
+            raise ValueError(f"Invalid status: {self.status}")
+        current_state.change_status(self, new_status)
+        self.save(update_fields=[JobPositionAssignment.status.field.name])
+
 
 class JobPositionAssignmentStatusHistory(models.Model):
     job_position_assignment = models.ForeignKey(
@@ -2052,3 +2071,107 @@ class JobPositionAssignmentStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.job_position_assignment}: {self.status}"
+
+
+class JobPositionAssignmentState(ABC):
+    @abstractmethod
+    def change_status(self, job_position_assignment, new_status):
+        pass
+
+
+class NotReviewedState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value in [
+            JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
+            JobPositionAssignment.Status.REJECTED.value,
+        ]:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Not Reviewed to {new_status.value}")
+
+
+class AwaitingInterviewDateState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value in [
+            JobPositionAssignment.Status.INTERVIEW_SCHEDULED.value,
+            JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
+            JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_JOBSEEKER.value,
+        ]:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Awaiting Interview Date to {new_status.value}")
+
+
+class InterviewScheduledState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value in [
+            JobPositionAssignment.Status.INTERVIEWING.value,
+            JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
+            JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_JOBSEEKER.value,
+        ]:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Interview Scheduled to {new_status.value}")
+
+
+class InterviewingState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value == JobPositionAssignment.Status.AWAITING_INTERVIEW_RESULTS.value:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Interviewing to {new_status.value}")
+
+
+class AwaitingInterviewResultsState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value in [
+            JobPositionAssignment.Status.REJECTED_AT_INTERVIEW.value,
+            JobPositionAssignment.Status.HIRED.value,
+        ]:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Awaiting Interview Results to {new_status.value}")
+
+
+class InterviewCanceledByJobseekerState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value in [
+            JobPositionAssignment.Status.REJECTED.value,
+            JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
+        ]:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Interview Canceled By Jobseeker to {new_status.value}")
+
+
+class InterviewCanceledByEmployerState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        if new_status.value in [
+            JobPositionAssignment.Status.REJECTED.value,
+            JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
+        ]:
+            job_position_assignment.status = new_status.value
+            job_position_assignment.set_status_history()
+        else:
+            raise ValueError(f"Cannot transition from Interview Canceled By Employer to {new_status.value}")
+
+
+class RejectedAtInterviewState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        raise ValueError(f"Cannot transition from Rejected At Interview to {new_status.value}")
+
+
+class RejectedState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        raise ValueError(f"Cannot transition from Rejected to {new_status.value}")
+
+
+class HiredState(JobPositionAssignmentState):
+    def change_status(self, job_position_assignment, new_status):
+        raise ValueError(f"Cannot transition from Hired to {new_status.value}")
