@@ -476,7 +476,7 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
 
 
-class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
     fields_access = {
         "__all__": JobPositionContainer.get_accesses(),
     }

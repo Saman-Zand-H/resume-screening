@@ -1020,7 +1020,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
 ]
 
 
-class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, DjangoCreateMutation):
+class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoCreateMutation):
     accesses = [JobPositionContainer.CREATEOR, JobPositionContainer.ADMIN]
 
     @classmethod
