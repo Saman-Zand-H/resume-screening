@@ -33,7 +33,6 @@ from .models import (
     IEEMethod,
     JobPositionAssignment,
     JobPositionAssignmentStatusHistory,
-    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -556,16 +555,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
         )
 
 
-class JobPositionInterviewType(DjangoObjectType):
-    class Meta:
-        model = JobPositionInterview
-        fields = (
-            JobPositionInterview.id.field.name,
-            JobPositionInterview.interview_date.field.name,
-            JobPositionInterview.result_date.field.name,
-        )
-
-
 class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
     class Meta:
         model = JobPositionAssignmentStatusHistory
@@ -576,8 +565,6 @@ class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
 
 
 class JobPositionAssignmentNode(DjangoObjectType):
-    interview = graphene.Field(JobPositionInterviewType)
-    status = graphene.Field(graphene.String, description="The current status of the job position assignment.")
     status_history = graphene.List(JobPositionAssignmentStatusHistoryType)
 
     class Meta:
@@ -585,14 +572,11 @@ class JobPositionAssignmentNode(DjangoObjectType):
         fields = (
             JobPositionAssignment.id.field.name,
             JobPositionAssignment.job_seeker.field.name,
+            JobPositionAssignment.status.field.name,
+            JobPositionAssignment.interview_date.field.name,
+            JobPositionAssignment.result_date.field.name,
             JobPositionAssignment.created_at.field.name,
         )
-
-    def resolve_interview(self, info):
-        return self.interview if hasattr(self, "interview") else None
-
-    def resolve_status(self, info):
-        return self.status
 
     def resolve_status_history(self, info):
         return self.status_histories.all()
