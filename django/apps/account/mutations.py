@@ -416,6 +416,56 @@ class OrganizationUpdateMutation(
         return obj
 
 
+class SetContactableMixin:
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        kwargs.update(
+            {
+                "model": Contact,
+                "fields": [Contact.type.field.name, Contact.value.field.name],
+                "login_required": True,
+            }
+        )
+        return super().__init_subclass_with_meta__(*args, **kwargs)
+
+    @classmethod
+    def before_mutate(cls, root, info, input):
+        if len(input) > len(set([c.get(Contact.type.field.name) for c in input])):
+            raise GraphQLErrorBadRequest("Contact types must be unique.")
+        return super().before_mutate(root, info, input)
+
+    @classmethod
+    def before_create_obj(cls, info, input, obj: Contact):
+        contactable = cls.get_contactable_object(info, input)
+        with contextlib.suppress(Contact.DoesNotExist):
+            obj.pk = Contact.objects.get(contactable=contactable, type=obj.type).pk
+        obj.contactable = contactable
+        obj.full_clean(validate_unique=False)
+
+    @classmethod
+    def after_mutate(cls, root, info, input, created_objs, return_data):
+        contactable = cls.get_contactable_object(info, input)
+        Contact.objects.filter(contactable=contactable).exclude(pk__in=[obj.pk for obj in created_objs]).delete()
+
+    @classmethod
+    def get_contactable_object(cls, info, input):
+        raise NotImplementedError
+
+
+class SetOrganizationContactsMutation(SetContactableMixin, DjangoBatchCreateMutation):
+    class Meta:
+        custom_fields = {"organization_id": graphene.ID(required=True)}
+        type_name = "SetOrganizationContactableInput"
+
+    @classmethod
+    def get_contactable_object(cls, info, input):
+        organization_id = input[0].get("organization_id") if type(input) is list else input.get("organization_id")
+        organization = Organization.objects.filter(pk=organization_id).first()
+        if not organization:
+            raise GraphQLErrorBadRequest("Organization not found.")
+        return organization.contactable
+
+
 USER_MUTATION_FIELDS = get_input_fields_for_model(
     User,
     fields=(
@@ -521,34 +571,10 @@ class UserSetSkillsMutation(graphene.Mutation):
         return UserSetSkillsMutation(user=user)
 
 
-class SetContactsMutation(DjangoBatchCreateMutation):
-    class Meta:
-        model = Contact
-        login_required = True
-        fields = (
-            Contact.type.field.name,
-            Contact.value.field.name,
-        )
-
+class SetUserContactsMutation(SetContactableMixin, DjangoBatchCreateMutation):
     @classmethod
-    def before_mutate(cls, root, info, input):
-        if len(input) > len(set([c.get(Contact.type.field.name) for c in input])):
-            raise GraphQLErrorBadRequest("Contact types must be unique.")
-        return super().before_mutate(root, info, input)
-
-    @classmethod
-    def before_create_obj(cls, info, input, obj: Contact):
-        user = info.context.user
-        with contextlib.suppress(Contact.DoesNotExist):
-            obj.pk = Contact.objects.get(contactable__profile__user=user, type=obj.type).pk
-        obj.contactable = user.profile.contactable
-        obj.full_clean(validate_unique=False)
-
-    @classmethod
-    def after_mutate(cls, root, info, input, created_objs, return_data):
-        Contact.objects.filter(contactable__profile__user=info.context.user).exclude(
-            pk__in=[obj.pk for obj in created_objs]
-        ).delete()
+    def get_contactable_object(cls, info, input):
+        return info.context.user.profile.contactable
 
 
 class DocumentCreateMutationBase(DocumentCUDFieldMixin, DocumentCUDMixin, DjangoCreateMutation):
@@ -1153,7 +1179,7 @@ class UserDeleteMutation(graphene.Mutation):
 
 class ProfileMutation(graphene.ObjectType):
     update = UserUpdateMutation.Field()
-    set_contacts = SetContactsMutation.Field()
+    set_contacts = SetUserContactsMutation.Field()
     set_skills = UserSetSkillsMutation.Field()
     upload_resume = ResumeCreateMutation.Field()
 
@@ -1165,6 +1191,7 @@ class OrganizationMutation(graphene.ObjectType):
     register = RegisterOrganization.Field()
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
+    set_contacts = SetOrganizationContactsMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
     create_job_position = OrganizationJobPositionCreateMutation.Field()
