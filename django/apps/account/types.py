@@ -483,6 +483,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
     age_range = graphene.List(graphene.Int, description="The age range of the job position.")
     salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
+    has_financial_data = graphene.Boolean()
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -539,6 +540,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_salary_range(self, info):
         return [self.salary_range.lower, self.salary_range.upper]
+
+    def resolve_has_financial_data(self, info):
+        return True
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
