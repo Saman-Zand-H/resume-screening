@@ -1,3 +1,5 @@
+import contextlib
+
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
@@ -12,11 +14,16 @@ from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
-from django.db.models import Case, IntegerField, QuerySet, Value, When
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
 
-from .accesses import JobPositionContainer
+from .accesses import (
+    JobPositionContainer,
+    OrganizationMembershipContainer,
+)
 from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
+    Access,
     CanadaVisa,
     CertificateAndLicense,
     CommunicationMethod,
@@ -24,6 +31,8 @@ from .models import (
     Education,
     EmployerLetterMethod,
     IEEMethod,
+    JobPositionAssignment,
+    JobPositionAssignmentStatusHistory,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -35,6 +44,7 @@ from .models import (
     ReferenceCheckEmployer,
     Referral,
     Resume,
+    Role,
     SupportTicket,
     User,
     UserTask,
@@ -289,10 +299,66 @@ class SupportTicketType(DjangoObjectType):
         )
 
 
-class OrganizationMembershipType(DjangoObjectType):
+class OrganizationMembershipUserType(DjangoObjectType):
+    class Meta:
+        model = User
+        fields = (
+            User.id.field.name,
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.email.field.name,
+        )
+
+
+class AccessType(DjangoObjectType):
+    class Meta:
+        model = Access
+        fields = (
+            Access.id.field.name,
+            Access.slug.field.name,
+            Access.description.field.name,
+        )
+
+
+class RoleType(DjangoObjectType):
+    class Meta:
+        model = Role
+        fields = (
+            Role.id.field.name,
+            Role.title.field.name,
+            Role.description.field.name,
+            Role.accesses.field.name,
+        )
+
+
+class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": OrganizationMembershipContainer.get_accesses(),
+    }
+
+    user = graphene.Field(OrganizationMembershipUserType, source=OrganizationMembership.user.field.name)
+    accessed_roles = graphene.List(RoleType)
+
+    def resolve_accessed_roles(self, info):
+        return Role.objects.filter(
+            (
+                Q(managed_by_id=self.organization_id)
+                & Q(managed_by_model=ContentType.objects.get_for_model(Organization))
+            )
+            | (Q(managed_by_id__isnull=True) & Q(managed_by_model__isnull=True)),
+        ).distinct()
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        membership: OrganizationMembership = args and args[3]
+        if not membership:
+            return None
+
+        return membership.organization
+
     class Meta:
         model = OrganizationMembership
-        fields = (OrganizationMembership.organization.field.name,)
+        fields = (OrganizationMembership.role.field.name, OrganizationMembership.organization.field.name)
 
 
 class UserTaskType(DjangoObjectType):
@@ -368,11 +434,27 @@ class OrganizationType(DjangoObjectType):
             Organization.established_at.field.name,
             Organization.size.field.name,
             Organization.about.field.name,
-            Organization.user.field.name,
+            OrganizationInvitation.organization.field.related_query_name(),
+            OrganizationMembership.organization.field.related_query_name(),
         )
 
 
-class OrganizationInvitationType(DjangoObjectType):
+class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": [
+            OrganizationMembershipContainer.INVITOR,
+            OrganizationMembershipContainer.ADMIN,
+        ]
+    }
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        invitation: OrganizationInvitation = args and args[3]
+        if not invitation:
+            return None
+
+        return invitation.organization
+
     class Meta:
         model = OrganizationInvitation
         fields = (
@@ -387,10 +469,8 @@ class OrganizationInvitationType(DjangoObjectType):
     @classmethod
     def get_node_by_token(cls, info, token):
         model = cls._meta.model
-        try:
+        with contextlib.suppress(model.DoesNotExist):
             return model.objects.get(token=token)
-        except model.DoesNotExist:
-            return None
 
 
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
@@ -406,7 +486,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        job_position: OrganizationJobPosition = kwargs.get("root")
+        job_position: OrganizationJobPosition = args and args[3]
         if not job_position:
             return None
 
@@ -441,6 +521,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
             OrganizationJobPosition.job_restrictions.field.name,
             OrganizationJobPosition.employer_questions.field.name,
             OrganizationJobPosition.city.field.name,
+            JobPositionAssignment.job_position.field.related_query_name(),
         )
         filter_fields = {
             OrganizationJobPosition.organization.field.name: ["exact"],
@@ -471,3 +552,30 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
                 ): user
             }
         )
+
+
+class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
+    class Meta:
+        model = JobPositionAssignmentStatusHistory
+        fields = (
+            JobPositionAssignmentStatusHistory.status.field.name,
+            JobPositionAssignmentStatusHistory.created_at.field.name,
+        )
+
+
+class JobPositionAssignmentNode(DjangoObjectType):
+    status_history = graphene.List(JobPositionAssignmentStatusHistoryType)
+
+    class Meta:
+        model = JobPositionAssignment
+        fields = (
+            JobPositionAssignment.id.field.name,
+            JobPositionAssignment.job_seeker.field.name,
+            JobPositionAssignment.status.field.name,
+            JobPositionAssignment.interview_date.field.name,
+            JobPositionAssignment.result_date.field.name,
+            JobPositionAssignment.created_at.field.name,
+        )
+
+    def resolve_status_history(self, info):
+        return self.status_histories.all()

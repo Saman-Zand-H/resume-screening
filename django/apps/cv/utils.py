@@ -88,7 +88,7 @@ def get_resume_info_input(user) -> dict:
 
 
 def extract_generated_resume_info(user):
-    data = get_user_additional_information(user.id)
+    data = get_user_additional_information(user.id, verified_educations=False, verified_work_experiences=False)
 
     if hasattr(user, "resume"):
         data["resume_data"] = user.resume.resume_json

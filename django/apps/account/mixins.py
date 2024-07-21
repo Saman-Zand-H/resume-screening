@@ -8,6 +8,7 @@ from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
 from graphene_django_cud.mutations import DjangoPatchMutation
+from graphql import GraphQLResolveInfo
 from graphql_jwt.decorators import login_required
 from rules.rulesets import test_rule
 
@@ -21,15 +22,15 @@ from .utils import IDLikeObject
 
 class AccessRequiredMixin:
     @classmethod
-    def has_access(cls, accesses, info, *args, **kwargs):
-        if not any(cls.has_item_access(getattr(access, "slug", access), info, *args, **kwargs) for access in accesses):
+    def has_access(cls, accesses, *args, **kwargs):
+        if not any(cls.has_item_access(getattr(access, "slug", access), *args, **kwargs) for access in accesses):
             cls.access_denied(accesses)
 
     @classmethod
-    def has_item_access(cls, access_slug, info, *args, **kwargs):
+    def has_item_access(cls, access_slug, *args, **kwargs):
         from .models import User
 
-        has_access_kwargs = cls.get_has_access_kwargs(access_slug, info, *args, **kwargs)
+        has_access_kwargs = cls.get_has_access_kwargs(access_slug, *args, **kwargs)
         user: User = has_access_kwargs.get("user")
         if not user:
             return
@@ -42,18 +43,22 @@ class AccessRequiredMixin:
 
     @classmethod
     def access_denied(cls, access_slug: str):
-        """Returns a value if access is denied."""
         raise AccessDenied()
 
     @classmethod
-    def get_has_access_kwargs(cls, access_slug, info, *args, **kwargs):
+    def get_has_access_kwargs(cls, access_slug, *args, **kwargs):
         return {
-            "instance": cls.get_access_object(access_slug, *args, info=info, **kwargs),
-            "user": cls.get_user(info),
+            "instance": cls.get_access_object(access_slug, *args, **kwargs),
+            "user": cls.get_user(access_slug, *args, **kwargs),
         }
 
     @classmethod
-    def get_user(cls, info, *args, **kwargs):
+    def get_info(cls, *args):
+        return next((arg for arg in args if isinstance(arg, GraphQLResolveInfo)), None)
+
+    @classmethod
+    def get_user(cls, *args, **kwargs):
+        info = cls.get_info(*args)
         if not getattr(info, "context", False):
             return
 
@@ -64,22 +69,18 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
     fields_access = {}
 
     @classmethod
-    def resolver_wrapper(cls, field_name: str, *, is_all=False) -> Callable:
+    def resolver_wrapper(cls, accesses) -> Callable:
         def wrapper(resolver: Callable):
             @wraps(resolver)
             @login_required
-            def inner_wrapper(root, info, *args, **kwargs):
+            def inner_wrapper(*args, **kwargs):
                 try:
-                    resolved_value = resolver(root, info, *args, **kwargs)
                     cls.has_access(
-                        cls.fields_access.get(is_all and "__all__" or field_name),
-                        info,
+                        accesses,
                         *args,
-                        resolved_value=resolved_value,
-                        root=root,
                         **kwargs,
                     )
-                    return resolved_value
+                    return resolver(*args, **kwargs)
                 except AccessDenied as e:
                     if e.should_raise:
                         raise PermissionError(e.error_content)
@@ -91,7 +92,7 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         return wrapper
 
     @classmethod
-    def register_resolver(cls, field_name, graphene_field, *, is_all=False):
+    def register_resolver(cls, field_name, accesses, graphene_field):
         resolver = getattr(
             cls,
             f"resolve_{field_name}",
@@ -100,7 +101,7 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         if not resolver:
             return
 
-        wrapper = cls.resolver_wrapper(field_name, is_all=is_all)
+        wrapper = cls.resolver_wrapper(accesses)
         setattr(cls, f"resolve_{field_name}", wrapper(resolver))
 
     @classmethod
@@ -109,18 +110,31 @@ class ObjectTypeAccessRequiredMixin(AccessRequiredMixin):
         registered_field_resolvers = set()
 
         if "__all__" in cls.fields_access:
+            accesses = cls.fields_access.get("__all__", [])
             for field_name, graphene_field in attr_fields.items():
-                cls.register_resolver(field_name, graphene_field, is_all=True)
+                cls.register_resolver(field_name, accesses, graphene_field)
                 registered_field_resolvers.add(field_name)
-            kwargs.update(default_resolver=cls.resolver_wrapper(kwargs.get("default_resolver", get_default_resolver())))
+
+            kwargs.update(
+                default_resolver=cls.resolver_wrapper(accesses)(
+                    kwargs.get("default_resolver", get_default_resolver()),
+                )
+            )
             return super().__init_subclass_with_meta__(*args, **kwargs)
 
         for field_name, graphene_field in attr_fields.items():
-            cls.register_resolver(field_name, graphene_field)
+            cls.register_resolver(field_name, cls.fields_access.get(field_name, []), graphene_field)
             registered_field_resolvers.add(field_name)
 
         if len(cls.fields_access) != len(registered_field_resolvers):
-            kwargs.update(default_resolver=cls.resolver_wrapper(kwargs.get("default_resolver", get_default_resolver())))
+            differences = set(cls.fields_access.keys()) - registered_field_resolvers
+            accesses = cls.fields_access.get(
+                differences and differences[0] or cls.fields_access.get("__default__"),
+                [],
+            )
+            kwargs.update(
+                default_resolver=cls.resolver_wrapper(accesses)(kwargs.get("default_resolver", get_default_resolver()))
+            )
 
         if abs(len(cls.fields_access) - len(registered_field_resolvers)) > 1:
             warnings.warn(
