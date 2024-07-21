@@ -1717,7 +1717,12 @@ class OrganizationMembership(models.Model):
 
 class OrganizationInvitation(models.Model):
     email = models.EmailField(verbose_name=_("Email"))
-    organization = models.ForeignKey("Organization", on_delete=models.CASCADE, verbose_name=_("Organization"))
+    organization = models.ForeignKey(
+        "Organization",
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization"),
+        related_name="invitations",
+    )
     role = models.ForeignKey(
         Role,
         on_delete=models.RESTRICT,
