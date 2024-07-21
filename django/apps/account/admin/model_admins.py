@@ -28,7 +28,6 @@ from ..models import (
     IEEMethod,
     JobPositionAssignment,
     JobPositionAssignmentStatusHistory,
-    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     OfflineMethod,
@@ -748,22 +747,10 @@ class JobPositionAssignmentAdmin(admin.ModelAdmin):
         JobPositionAssignment.id.field.name,
         JobPositionAssignment.job_seeker.field.name,
         JobPositionAssignment.job_position.field.name,
-        JobPositionAssignment._status.field.name,
+        JobPositionAssignment.status.field.name,
         JobPositionAssignment.created_at.field.name,
     )
     raw_id_fields = (JobPositionAssignment.job_position.field.name, JobPositionAssignment.job_seeker.field.name)
-
-
-@register(JobPositionInterview)
-class JobPositionInterviewAdmin(admin.ModelAdmin):
-    list_display = (
-        JobPositionInterview.id.field.name,
-        JobPositionInterview.job_position_assignment.field.name,
-        JobPositionInterview.status.field.name,
-        JobPositionInterview.interview_date.field.name,
-        JobPositionInterview.result_date.field.name,
-    )
-    raw_id_fields = (JobPositionInterview.job_position_assignment.field.name,)
 
 
 @register(JobPositionAssignmentStatusHistory)

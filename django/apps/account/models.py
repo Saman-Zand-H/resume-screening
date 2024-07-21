@@ -1998,6 +1998,13 @@ class OrganizationJobPositionStatusHistory(models.Model):
 class JobPositionAssignment(models.Model):
     class Status(models.TextChoices):
         NOT_REVIEWED = "not_reviewed", _("Not Reviewed")
+        AWAITING_INTERVIEW_DATE = "awaiting_interview_date", _("Awaiting Interview Date")
+        INTERVIEW_SCHEDULED = "interview_scheduled", _("Interview Scheduled")
+        INTERVIEWING = "interviewing", _("Interviewing")
+        AWAITING_INTERVIEW_RESULTS = "awaiting_interview_results", _("Awaiting Interview Results")
+        INTERVIEW_CANCELED_BY_JOBSEEKER = "interview_canceled_by_jobseeker", _("Interview Canceled By Jobseeker")
+        INTERVIEW_CANCELED_BY_EMPLOYER = "interview_canceled_by_employer", _("Interview Canceled By Employer")
+        REJECTED_AT_INTERVIEW = "rejected_at_interview", _("Rejected At Interview")
         REJECTED = "rejected", _("Rejected")
         HIRED = "hired", _("Hired")
 
@@ -2007,12 +2014,14 @@ class JobPositionAssignment(models.Model):
     job_position = models.ForeignKey(
         OrganizationJobPosition, on_delete=models.CASCADE, verbose_name=_("Job Position"), related_name="assignments"
     )
-    _status = models.CharField(
+    status = models.CharField(
         max_length=50,
         choices=Status.choices,
         verbose_name=_("Status"),
         default=Status.NOT_REVIEWED.value,
     )
+    interview_date = models.DateTimeField(verbose_name=_("Interview Date"), null=True, blank=True)
+    result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -2022,41 +2031,8 @@ class JobPositionAssignment(models.Model):
     def __str__(self):
         return f"{self.job_position.title} - {self.job_seeker.email}"
 
-    @property
-    def status(self):
-        if hasattr(self, "interview"):
-            return self.interview.status
-        return self._status
-
     def set_status_history(self):
         JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
-
-
-class JobPositionInterview(models.Model):
-    class Status(models.TextChoices):
-        AWAITING_INTERVIEW_DATE = "awaiting_interview_date", _("Awaiting Interview Date")
-        INTERVIEW_SCHEDULED = "interview_scheduled", _("Interview Scheduled")
-        INTERVIEWING = "interviewing", _("Interviewing")
-        AWAITING_INTERVIEW_RESULTS = "awaiting_interview_results", _("Awaiting Interview Results")
-        INTERVIEW_CANCELED_BY_JOBSEEKER = "interview_canceled_by_jobseeker", _("Interview Canceled By Jobseeker")
-        INTERVIEW_CANCELED_BY_EMPLOYER = "interview_canceled_by_employer", _("Interview Canceled By Employer")
-        REJECTED_AT_INTERVIEW = "rejected_at_interview", _("Rejected At Interview")
-
-    job_position_assignment = models.OneToOneField(
-        JobPositionAssignment, on_delete=models.CASCADE, related_name="interview"
-    )
-    status = models.CharField(
-        max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.AWAITING_INTERVIEW_DATE
-    )
-    interview_date = models.DateTimeField(verbose_name=_("Interview Date"), null=True, blank=True)
-    result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
-
-    class Meta:
-        verbose_name = _("Job Position Interview")
-        verbose_name_plural = _("Job Position Interviews")
-
-    def __str__(self):
-        return f"{self.job_position_assignment.job_position.title} - {self.job_position_assignment.job_seeker.email}"
 
 
 class JobPositionAssignmentStatusHistory(models.Model):
@@ -2065,7 +2041,7 @@ class JobPositionAssignmentStatusHistory(models.Model):
     )
     status = models.CharField(
         max_length=50,
-        choices=JobPositionAssignment.Status.choices + JobPositionInterview.Status.choices,
+        choices=JobPositionAssignment.Status.choices,
         verbose_name=_("Status"),
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
