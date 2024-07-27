@@ -453,10 +453,21 @@ class SetContactableMixin:
         raise NotImplementedError
 
 
-class SetOrganizationContactsMutation(SetContactableMixin, DjangoBatchCreateMutation):
+class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactableMixin, DjangoBatchCreateMutation):
+    accesses = [OrganizationProfileContainer.COMPANY_EDITOR, OrganizationProfileContainer.ADMIN]
+
     class Meta:
         custom_fields = {"organization_id": graphene.ID(required=True)}
         type_name = "SetOrganizationContactableInput"
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        input = kwargs.get("input")
+        organization_id = input[0].get("organization_id") if type(input) is list else input.get("organization_id")
+        if not (organization := Organization.objects.filter(pk=organization_id).first()):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
 
     @classmethod
     def get_contactable_object(cls, info, input):
@@ -950,7 +961,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
         if method is None:
             raise GraphQLErrorBadRequest(_("No verification method provided."))
 
-        organization = cls.get_access_object(input=input)
+        organization = cls.get_access_object(id=id)
         if organization.status in Organization.get_verified_statuses():
             raise GraphQLErrorBadRequest(_("Organization verification method is already set."))
 
@@ -1020,7 +1031,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
 ]
 
 
-class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, DjangoCreateMutation):
+class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoCreateMutation):
     accesses = [JobPositionContainer.CREATEOR, JobPositionContainer.ADMIN]
 
     @classmethod

@@ -44,6 +44,7 @@ from ..models import (
     ReferralUser,
     Resume,
     Role,
+    RoleAccess,
     SupportTicket,
     UploadCompanyCertificateMethod,
     UploadFileToWebsiteMethod,
@@ -78,6 +79,12 @@ class RoleAdmin(admin.ModelAdmin):
 class AccessAdmin(admin.ModelAdmin):
     list_display = (Access.slug.field.name, Access.title.field.name)
     search_fields = (Access.slug.field.name, Access.title.field.name)
+
+
+@register(RoleAccess)
+class RoleAccessAdmin(admin.ModelAdmin):
+    list_display = (RoleAccess.id.field.name, RoleAccess.role.field.name, RoleAccess.access.field.name)
+    raw_id_fields = (RoleAccess.role.field.name, RoleAccess.access.field.name)
 
 
 @register(User)
