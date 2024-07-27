@@ -46,6 +46,7 @@ from .models import (
     Resume,
     Role,
     SupportTicket,
+    SupportTicketCategory,
     User,
     UserTask,
     WorkExperience,
@@ -281,6 +282,18 @@ class ReferralType(DjangoObjectType):
         fields = (Referral.code.field.name,)
 
 
+class SupportTicketCategoryType(DjangoObjectType):
+    class Meta:
+        model = SupportTicketCategory
+        fields = (
+            SupportTicketCategory.id.field.name,
+            SupportTicketCategory.slug.field.name,
+            SupportTicketCategory.title.field.name,
+            SupportTicketCategory.is_organization.field.name,
+            SupportTicketCategory.is_job_seeker.field.name,
+        )
+
+
 class SupportTicketType(DjangoObjectType):
     class Meta:
         model = SupportTicket
@@ -294,8 +307,8 @@ class SupportTicketType(DjangoObjectType):
             SupportTicket.category.field.name,
             SupportTicket.contact_method.field.name,
             SupportTicket.contact_value.field.name,
-            SupportTicket.created_at.field.name,
-            SupportTicket.updated_at.field.name,
+            SupportTicket.created.field.name,
+            SupportTicket.modified.field.name,
         )
 
 
@@ -316,7 +329,7 @@ class AccessType(DjangoObjectType):
         fields = (
             Access.id.field.name,
             Access.slug.field.name,
-            Access.description.field.name,
+            Access.title.field.name,
         )
 
 

@@ -21,6 +21,7 @@ from common.models import (
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
+    SlugTitleAbstract,
     University,
 )
 from common.utils import fields_join, get_all_subclasses
@@ -35,6 +36,7 @@ from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
+from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -209,27 +211,14 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class Access(models.Model):
-    slug = models.SlugField(
-        max_length=255,
-        unique=True,
-        db_index=True,
-        verbose_name=_("Slug"),
-    )
-    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
-
-    def __str__(self):
-        return self.slug
-
+class Access(SlugTitleAbstract):
     class Meta:
         verbose_name = _("Access")
         verbose_name_plural = _("Accesses")
         ordering = ["slug"]
 
 
-class Role(models.Model):
-    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name=_("Slug"))
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+class Role(SlugTitleAbstract):
     description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
     accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), through="RoleAccess", blank=True)
 
@@ -1311,7 +1300,6 @@ class Resume(models.Model):
         related_name="resume",
         verbose_name=_("Resume"),
     )
-    text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True)
     resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict, blank=True, null=True)
 
     class Meta:
@@ -1348,7 +1336,26 @@ class ReferralUser(models.Model):
         return f"{self.referral.code} - {self.user.email}"
 
 
-class SupportTicket(models.Model):
+class SupportTicketCategory(SlugTitleAbstract):
+    is_organization = models.BooleanField(default=False, verbose_name=_("Is Organization"))
+    is_job_seeker = models.BooleanField(default=False, verbose_name=_("Is Job Seeker"))
+
+    def clean(self):
+        if not (self.is_organization or self.is_job_seeker):
+            error_message = _("Either 'Is Organization' or 'Is Job Seeker' must be selected")
+            raise ValidationError(
+                {
+                    SupportTicketCategory.is_job_seeker.field.name: error_message,
+                    SupportTicketCategory.is_organization.field.name: error_message,
+                }
+            )
+
+    class Meta:
+        verbose_name = _("Support Ticket Category")
+        verbose_name_plural = _("Support Ticket Categories")
+
+
+class SupportTicket(TimeStampedModel):
     class Status(models.TextChoices):
         OPEN = "open", _("Open")
         CLOSED = "closed", _("Closed")
@@ -1358,15 +1365,6 @@ class SupportTicket(models.Model):
         MEDIUM = "medium", _("Medium")
         HIGH = "high", _("High")
         URGENT = "urgent", _("Urgent")
-
-    class Category(models.TextChoices):
-        PROFILE = "profile", _("Profile")
-        RESUME = "resume", _("Resume")
-        JOB_INTEREST = "job_interest", _("Job Interest")
-        ACADEMY = "academy", _("Academy")
-        ASSESSMENT = "assessment", _("Assessment")
-        JOB_SUGGESTION = "job_suggestion", _("Job Suggestion")
-        AI_INTERVIEW = "ai_interview", _("AI Interview")
 
     class ContactMethod(models.TextChoices):
         EMAIL = "email", _("Email")
@@ -1379,11 +1377,14 @@ class SupportTicket(models.Model):
     description = models.TextField(max_length=1024)
     status = models.CharField(max_length=50, choices=Status.choices, default=Status.OPEN)
     priority = models.CharField(max_length=50, choices=Priority.choices)
-    category = models.CharField(max_length=50, choices=Category.choices)
+    category = models.ForeignKey(
+        SupportTicketCategory,
+        on_delete=models.CASCADE,
+        related_name="support_tickets",
+        verbose_name=_("Category"),
+    )
     contact_method = models.CharField(max_length=50, choices=ContactMethod.choices)
     contact_value = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def notify_open(self):
         from .tasks import send_email_async
