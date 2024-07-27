@@ -9,6 +9,7 @@ from .types import (
     LanguageCertificateNode,
     OrganizationInvitationType,
     OrganizationJobPositionNode,
+    SupportTicketCategoryType,
     UserNode,
     WorkExperienceNode,
 )
@@ -74,6 +75,7 @@ class Query(MeQuery, graphene.ObjectType):
     language_certificate = graphene.Field(LanguageCertificateQuery)
     certificate_and_license = graphene.Field(CertificateAndLicenseQuery)
     organization = graphene.Field(OrganizationQuery)
+    support_ticket_category = graphene.List(SupportTicketCategoryType)
 
     def resolve_education(self, info):
         return EducationQuery()
