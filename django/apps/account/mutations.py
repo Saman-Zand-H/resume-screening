@@ -1065,7 +1065,7 @@ class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, DjangoP
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                **{fields_join(OrganizationJobPosition.organization, "pk"): kwargs.get("id")}
+                **{fields_join(OrganizationJobPosition.organization.field.related_query_name(), "pk"): kwargs.get("id")}
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1097,7 +1097,7 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                **{fields_join(OrganizationJobPosition.organization, "pk"): kwargs.get("id")}
+                **{fields_join(OrganizationJobPosition.organization.field.related_query_name(), "pk"): kwargs.get("id")}
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1107,9 +1107,8 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
     class Meta:
         model = OrganizationJobPosition
         login_required = True
-        fields = [
-            OrganizationJobPosition._status.field.name,
-        ]
+        fields = [OrganizationJobPosition._status.field.name]
+        required_fields = [OrganizationJobPosition._status.field.name]
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
@@ -1122,13 +1121,31 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class JobPositionAssignmentStatusUpdateMutation(ArrayChoiceTypeMixin, DjangoPatchMutation):
+class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation):
+    accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (
+            organization := Organization.objects.filter(
+                **{
+                    fields_join(
+                        OrganizationJobPosition.organization.field.related_query_name(),
+                        JobPositionAssignment.job_position.field.related_query_name(),
+                        "pk",
+                    ): kwargs.get("id")
+                }
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
+
     class Meta:
         model = JobPositionAssignment
         login_required = True
-        fields = [
-            JobPositionAssignment.status.field.name,
-        ]
+        fields = [JobPositionAssignment.status.field.name]
+        required_fields = [JobPositionAssignment.status.field.name]
         type_name = "JobPositionAssignmentStatusUpdateInput"
 
     @classmethod
