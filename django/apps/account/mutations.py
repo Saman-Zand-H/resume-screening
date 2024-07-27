@@ -950,7 +950,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
         if method is None:
             raise GraphQLErrorBadRequest(_("No verification method provided."))
 
-        organization = cls.get_access_object(input=input)
+        organization = cls.get_access_object(id=id)
         if organization.status in Organization.get_verified_statuses():
             raise GraphQLErrorBadRequest(_("Organization verification method is already set."))
 
