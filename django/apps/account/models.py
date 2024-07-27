@@ -1300,7 +1300,6 @@ class Resume(models.Model):
         related_name="resume",
         verbose_name=_("Resume"),
     )
-    text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True)
     resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict, blank=True, null=True)
 
     class Meta:
