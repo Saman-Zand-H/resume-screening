@@ -492,6 +492,7 @@ class Profile(ComputedFieldsModel):
     skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", editable=False)
     available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
+    accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
