@@ -66,7 +66,7 @@ from .resources import (
 class AccessInline(admin.StackedInline):
     model = Access
     extra = 1
-    fields = (Access.slug.field.name, Access.description.field.name)
+    fields = (Access.slug.field.name, Access.title.field.name)
 
 
 @register(Role)
@@ -77,8 +77,8 @@ class RoleAdmin(admin.ModelAdmin):
 
 @register(Access)
 class AccessAdmin(admin.ModelAdmin):
-    list_display = (Access.slug.field.name, Access.description.field.name)
-    search_fields = (Access.slug.field.name, Access.description.field.name)
+    list_display = (Access.slug.field.name, Access.title.field.name)
+    search_fields = (Access.slug.field.name, Access.title.field.name)
 
 
 @register(RoleAccess)

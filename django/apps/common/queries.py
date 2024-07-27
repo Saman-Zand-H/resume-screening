@@ -1,20 +1,18 @@
 import graphene
 from graphene_django.filter import DjangoFilterConnectionField
 
-from common.choices import LANGUAGES
-
 from .types import (
     CityNode,
     CountryNode,
     ErrorType,
     FieldNode,
     IndustryNode,
+    JobBenefitNode,
     JobCategoryNode,
     JobNode,
     LanguageProficiencyTestNode,
     RegionNode,
     UniversityNode,
-    JobBenefitNode,
 )
 
 
