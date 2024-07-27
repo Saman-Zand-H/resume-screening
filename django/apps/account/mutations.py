@@ -1106,9 +1106,8 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
     class Meta:
         model = OrganizationJobPosition
         login_required = True
-        fields = [
-            OrganizationJobPosition._status.field.name,
-        ]
+        fields = [OrganizationJobPosition._status.field.name]
+        required_fields = [OrganizationJobPosition._status.field.name]
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
@@ -1144,9 +1143,8 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
     class Meta:
         model = JobPositionAssignment
         login_required = True
-        fields = [
-            JobPositionAssignment.status.field.name,
-        ]
+        fields = [JobPositionAssignment.status.field.name]
+        required_fields = [JobPositionAssignment.status.field.name]
         type_name = "JobPositionAssignmentStatusUpdateInput"
 
     @classmethod
