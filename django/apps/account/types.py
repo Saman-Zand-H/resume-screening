@@ -95,6 +95,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.contactable.field.name,
             Profile.raw_skills.field.name,
             Profile.allow_notifications.field.name,
+            Profile.accept_terms_and_conditions.field.name,
         )
 
     def resolve_contacts(self, info):
