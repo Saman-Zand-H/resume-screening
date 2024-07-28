@@ -553,7 +553,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_salary_range(self, info):
         return [self.salary_range.lower, self.salary_range.upper]
-
+    
     def resolve_has_financial_data(self, info):
         return True
 
