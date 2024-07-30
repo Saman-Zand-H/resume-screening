@@ -3,13 +3,14 @@ from graphene_django.filter import DjangoFilterConnectionField
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
 
+from .models import SupportTicketCategory
 from .types import (
     CertificateAndLicenseNode,
     EducationNode,
     LanguageCertificateNode,
     OrganizationInvitationType,
     OrganizationJobPositionNode,
-    SupportTicketCategoryType,
+    SupportTicketCategoryNode,
     UserNode,
     WorkExperienceNode,
 )
@@ -75,10 +76,7 @@ class Query(MeQuery, graphene.ObjectType):
     language_certificate = graphene.Field(LanguageCertificateQuery)
     certificate_and_license = graphene.Field(CertificateAndLicenseQuery)
     organization = graphene.Field(OrganizationQuery)
-    support_ticket_category = graphene.List(SupportTicketCategoryType)
-
-    def resolve_support_ticket_category(self, info):
-        return SupportTicketCategoryType.get_all()
+    support_ticket_category = DjangoFilterConnectionField(SupportTicketCategoryNode)
 
     def resolve_education(self, info):
         return EducationQuery()

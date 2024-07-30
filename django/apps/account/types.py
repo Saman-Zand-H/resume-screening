@@ -283,20 +283,18 @@ class ReferralType(DjangoObjectType):
         fields = (Referral.code.field.name,)
 
 
-class SupportTicketCategoryType(DjangoObjectType):
+class SupportTicketCategoryNode(ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = SupportTicketCategory
+        use_connection = True
         fields = (
             SupportTicketCategory.id.field.name,
-            SupportTicketCategory.slug.field.name,
             SupportTicketCategory.title.field.name,
-            SupportTicketCategory.is_organization.field.name,
-            SupportTicketCategory.is_job_seeker.field.name,
+            SupportTicketCategory.types.field.name,
         )
-
-    @classmethod
-    def get_all(cls):
-        return SupportTicketCategory.objects.all()
+        filter_fields = {
+            SupportTicketCategory.types.field.name: ["contains"],
+        }
 
 
 class SupportTicketType(DjangoObjectType):

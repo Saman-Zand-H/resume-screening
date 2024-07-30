@@ -71,46 +71,38 @@ class SupportTicketCategoryPopulator(BasePopulator):
     def populate(self):
         instance_dicts = [
             {
-                SupportTicketCategory.slug.field.name: "profile",
                 SupportTicketCategory.title.field.name: "Profile",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [
+                    SupportTicketCategory.Type.JOB_SEEKER,
+                    SupportTicketCategory.Type.ORGANIZATION,
+                ],
             },
             {
-                SupportTicketCategory.slug.field.name: "resume",
                 SupportTicketCategory.title.field.name: "Resume",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
-                SupportTicketCategory.slug.field.name: "job_interest",
                 SupportTicketCategory.title.field.name: "Job Interest",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
-                SupportTicketCategory.slug.field.name: "academy",
                 SupportTicketCategory.title.field.name: "Academy",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
-                SupportTicketCategory.slug.field.name: "assessment",
                 SupportTicketCategory.title.field.name: "Assessment",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
-                SupportTicketCategory.slug.field.name: "job_suggestion",
                 SupportTicketCategory.title.field.name: "Job Suggestion",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
-                SupportTicketCategory.slug.field.name: "ai_interview",
                 SupportTicketCategory.title.field.name: "AI Interview",
-                SupportTicketCategory.is_organization.field.name: False,
-                SupportTicketCategory.is_job_seeker.field.name: True,
+                SupportTicketCategory.types.field.name: [
+                    SupportTicketCategory.Type.JOB_SEEKER,
+                    SupportTicketCategory.Type.ORGANIZATION,
+                ],
             },
         ]
 
@@ -122,11 +114,7 @@ class SupportTicketCategoryPopulator(BasePopulator):
                 for instance_dict in instance_dicts
             ],
             update_conflicts=True,
-            update_fields=[
-                SupportTicketCategory.title.field.name,
-                SupportTicketCategory.is_job_seeker.field.name,
-                SupportTicketCategory.is_organization.field.name,
-            ],
-            unique_fields=[SupportTicketCategory.slug.field.name],
+            unique_fields=[SupportTicketCategory.title.field.name],
+            update_fields=[SupportTicketCategory.types.field.name],
             batch_size=10,
         )

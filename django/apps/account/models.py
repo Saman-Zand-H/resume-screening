@@ -1337,19 +1337,16 @@ class ReferralUser(models.Model):
         return f"{self.referral.code} - {self.user.email}"
 
 
-class SupportTicketCategory(SlugTitleAbstract):
-    is_organization = models.BooleanField(default=False, verbose_name=_("Is Organization"))
-    is_job_seeker = models.BooleanField(default=False, verbose_name=_("Is Job Seeker"))
+class SupportTicketCategory(models.Model):
+    class Type(models.TextChoices):
+        ORGANIZATION = "organization", _("Organization")
+        JOB_SEEKER = "job_seeker", _("Job Seeker")
 
-    def clean(self):
-        if not (self.is_organization or self.is_job_seeker):
-            error_message = _("Either 'Is Organization' or 'Is Job Seeker' must be selected")
-            raise ValidationError(
-                {
-                    SupportTicketCategory.is_job_seeker.field.name: error_message,
-                    SupportTicketCategory.is_organization.field.name: error_message,
-                }
-            )
+    title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
+    types = ArrayField(
+        models.CharField(max_length=50, choices=Type.choices),
+        verbose_name=_("Types"),
+    )
 
     class Meta:
         verbose_name = _("Support Ticket Category")
