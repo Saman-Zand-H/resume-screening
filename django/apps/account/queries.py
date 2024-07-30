@@ -77,6 +77,9 @@ class Query(MeQuery, graphene.ObjectType):
     organization = graphene.Field(OrganizationQuery)
     support_ticket_category = graphene.List(SupportTicketCategoryType)
 
+    def resolve_support_ticket_category(self, info):
+        return SupportTicketCategoryType.get_all()
+
     def resolve_education(self, info):
         return EducationQuery()
 
