@@ -3,7 +3,6 @@ from graphene_django.filter import DjangoFilterConnectionField
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
 
-from .models import SupportTicketCategory
 from .types import (
     CertificateAndLicenseNode,
     EducationNode,

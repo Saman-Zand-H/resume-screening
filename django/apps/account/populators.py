@@ -82,7 +82,14 @@ class SupportTicketCategoryPopulator(BasePopulator):
                 SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
-                SupportTicketCategory.title.field.name: "Job Interest",
+                SupportTicketCategory.title.field.name: "Verification",
+                SupportTicketCategory.types.field.name: [
+                    SupportTicketCategory.Type.JOB_SEEKER,
+                    SupportTicketCategory.Type.ORGANIZATION,
+                ],
+            },
+            {
+                SupportTicketCategory.title.field.name: "Visa",
                 SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
@@ -98,7 +105,30 @@ class SupportTicketCategoryPopulator(BasePopulator):
                 SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.JOB_SEEKER],
             },
             {
+                SupportTicketCategory.title.field.name: "Job Position",
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.ORGANIZATION],
+            },
+            {
+                SupportTicketCategory.title.field.name: "Hiring",
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.ORGANIZATION],
+            },
+            {
+                SupportTicketCategory.title.field.name: "Invitation & Memberships",
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.ORGANIZATION],
+            },
+            {
+                SupportTicketCategory.title.field.name: "Finances",
+                SupportTicketCategory.types.field.name: [SupportTicketCategory.Type.ORGANIZATION],
+            },
+            {
                 SupportTicketCategory.title.field.name: "AI Interview",
+                SupportTicketCategory.types.field.name: [
+                    SupportTicketCategory.Type.JOB_SEEKER,
+                    SupportTicketCategory.Type.ORGANIZATION,
+                ],
+            },
+            {
+                SupportTicketCategory.title.field.name: "Post Hiring",
                 SupportTicketCategory.types.field.name: [
                     SupportTicketCategory.Type.JOB_SEEKER,
                     SupportTicketCategory.Type.ORGANIZATION,
