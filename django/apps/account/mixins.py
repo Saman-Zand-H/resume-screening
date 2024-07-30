@@ -4,6 +4,7 @@ from operator import call
 from typing import Any, Callable
 
 import graphene
+from django.db import models
 from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
@@ -55,6 +56,10 @@ class AccessRequiredMixin:
     @classmethod
     def get_info(cls, *args):
         return next((arg for arg in args if isinstance(arg, GraphQLResolveInfo)), None)
+
+    @classmethod
+    def get_obj_from_args(cls, args):
+        return next((arg for arg in args if isinstance(arg, models.Model)), None)
 
     @classmethod
     def get_user(cls, *args, **kwargs):
