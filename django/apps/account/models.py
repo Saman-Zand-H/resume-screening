@@ -602,14 +602,6 @@ class Contact(models.Model):
         blank=True,
         null=True,
     )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name=_("User"),
-        related_name="contacts",
-        null=True,
-        blank=True,
-    )
     type = models.CharField(
         max_length=50,
         choices=Type.choices,
