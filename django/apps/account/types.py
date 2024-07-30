@@ -366,7 +366,7 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        membership: OrganizationMembership = args and args[3]
+        membership: OrganizationMembership = cls.get_obj_from_args(args)
         if not membership:
             return None
 
@@ -465,7 +465,7 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        invitation: OrganizationInvitation = args and args[3]
+        invitation: OrganizationInvitation = cls.get_obj_from_args(args)
         if not invitation:
             return None
 
@@ -503,7 +503,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        job_position: OrganizationJobPosition = args and args[3]
+        job_position: OrganizationJobPosition = cls.get_obj_from_args(args)
         if not job_position:
             return None
 

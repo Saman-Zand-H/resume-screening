@@ -602,14 +602,6 @@ class Contact(models.Model):
         blank=True,
         null=True,
     )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name=_("User"),
-        related_name="contacts",
-        null=True,
-        blank=True,
-    )
     type = models.CharField(
         max_length=50,
         choices=Type.choices,
@@ -661,7 +653,7 @@ class Contact(models.Model):
                 try:
                     self.VALIDATORS[self.type](self.value)
                 except ValidationError as e:
-                    raise ValidationError({self.type: next(iter(e.messages))}) from e
+                    raise ValidationError({Contact.value.field.name: next(iter(e.messages))}) from e
         else:
             raise NotImplementedError(f"Validation for {self.type} is not implemented")
 
