@@ -1012,7 +1012,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
     OrganizationJobPosition.skills.field.name,
     OrganizationJobPosition.fields.field.name,
     OrganizationJobPosition.degrees.field.name,
-    OrganizationJobPosition.work_experience_years.field.name,
+    OrganizationJobPosition.work_experience_years_range.field.name,
     OrganizationJobPosition.languages.field.name,
     OrganizationJobPosition.native_languages.field.name,
     OrganizationJobPosition.age_range.field.name,

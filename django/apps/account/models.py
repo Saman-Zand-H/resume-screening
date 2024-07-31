@@ -1795,7 +1795,7 @@ class OrganizationJobPosition(models.Model):
         null=True,
         blank=True,
     )
-    work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
+    work_experience_years_range = IntegerRangeField(verbose_name=_("Age Range"), null=True, blank=True)
     languages = ArrayField(
         models.CharField(choices=LANGUAGES, max_length=32),
         verbose_name=_("Languages"),
@@ -1898,7 +1898,7 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.validity_date.field.name,
             OrganizationJobPosition.description.field.name,
             OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.work_experience_years_range.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.contract_type.field.name,
