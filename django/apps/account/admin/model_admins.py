@@ -169,11 +169,13 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.skin_color.field.name,
         Profile.hair_color.field.name,
     )
-    raw_id_fields = (
-        Profile.user.field.name,
+    autocomplete_fields = (
         Profile.skills.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
+    )
+    raw_id_fields = (
+        Profile.user.field.name,
         Profile.avatar.field.name,
         Profile.full_body_image.field.name,
     )
@@ -181,7 +183,6 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
     readonly_fields = (
         Profile.scores.field.name,
         Profile.score.field.name,
-        Profile.skills.field.name,
         Profile.credits.field.name,
     )
 
