@@ -12,9 +12,16 @@ class CourseAdmin(admin.ModelAdmin):
         Course.name.field.name,
         Course.type.field.name,
         Course.external_id.field.name,
+        Course.is_required.field.name,
+        Course.is_active.field.name,
     ]
     search_fields = [Course.name.field.name, Course.external_id.field.name]
-    list_filter = [Course.type.field.name, Course.industries.field.name]
+    list_filter = [
+        Course.type.field.name,
+        Course.industries.field.name,
+        Course.is_required.field.name,
+        Course.is_active.field.name,
+    ]
 
 
 @admin.register(CourseResult)
