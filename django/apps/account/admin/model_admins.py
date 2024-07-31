@@ -46,6 +46,7 @@ from ..models import (
     Role,
     RoleAccess,
     SupportTicket,
+    SupportTicketCategory,
     UploadCompanyCertificateMethod,
     UploadFileToWebsiteMethod,
     User,
@@ -525,6 +526,15 @@ class ReferralAdmin(admin.ModelAdmin):
     search_fields = (fields_join(Referral.user, User.email), Referral.code.field.name)
     raw_id_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
+
+
+@register(SupportTicketCategory)
+class SupportTicketCategoryAdmin(admin.ModelAdmin):
+    list_display = (
+        SupportTicketCategory.title.field.name,
+        SupportTicketCategory.types.field.name,
+    )
+    search_fields = (SupportTicketCategory.title.field.name, SupportTicketCategory.types.field.name)
 
 
 @register(SupportTicket)
