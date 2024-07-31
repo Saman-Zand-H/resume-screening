@@ -499,6 +499,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
     age_range = graphene.List(graphene.Int, description="The age range of the job position.")
     salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
+    work_experience_years_range = graphene.List(
+        graphene.Int, description="The work experience years range of the job position."
+    )
     has_financial_data = graphene.Boolean()
 
     @classmethod
@@ -522,7 +525,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.skills.field.name,
             OrganizationJobPosition.fields.field.name,
             OrganizationJobPosition.degrees.field.name,
-            OrganizationJobPosition.work_experience_years.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.required_documents.field.name,
@@ -556,6 +558,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_salary_range(self, info):
         return [self.salary_range.lower, self.salary_range.upper]
+
+    def resolve_work_experience_years_range(self, info):
+        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
 
     def resolve_has_financial_data(self, info):
         return True
