@@ -544,9 +544,6 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
         user: User = info.context.user
         profile = user.profile
 
-        if not profile:
-            raise GraphQLErrorBadRequest("User has no profile.")
-
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
             if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
@@ -555,6 +552,11 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
                 if not (profile.has_appearance_related_data):
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
+
+        if (skills := input.get(Profile.skills.field.name)) and not profile.skills.filter(pk__in=skills).count() == len(
+            skills
+        ):
+            raise GraphQLErrorBadRequest(_("Skills must be selected from the list."))
 
         return super().validate(*args, **kwargs)
 
