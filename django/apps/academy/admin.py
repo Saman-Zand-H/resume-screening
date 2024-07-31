@@ -1,3 +1,6 @@
+from account.models import User
+from common.utils import fields_join
+
 from django.contrib import admin
 
 from .models import Course, CourseResult
@@ -24,5 +27,8 @@ class CourseResultAdmin(admin.ModelAdmin):
         CourseResult.created_at.field.name,
         CourseResult.updated_at.field.name,
     ]
-    search_fields = [CourseResult.course.field.name, CourseResult.user.field.name]
+    search_fields = [
+        fields_join(CourseResult.course.field.name, Course.name.field.name),
+        fields_join(CourseResult.user.field.name, User.email.field.name),
+    ]
     list_filter = [CourseResult.status.field.name]
