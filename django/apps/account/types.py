@@ -387,6 +387,7 @@ class UserTaskType(DjangoObjectType):
 
 
 class UserNode(BaseUserNode):
+    profile = graphene.Field(ProfileType)
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
     languagecertificates = graphene.List(LanguageCertificateNode)
@@ -405,7 +406,6 @@ class UserNode(BaseUserNode):
             User.first_name.field.name,
             User.last_name.field.name,
             User.email.field.name,
-            Profile.user.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
@@ -414,6 +414,9 @@ class UserNode(BaseUserNode):
             GeneratedCV.user.field.related_query_name(),
             OrganizationMembership.user.field.related_query_name(),
         )
+
+    def resolve_profile(self, info):
+        return self.profile
 
     def resolve_educations(self, info):
         return self.educations.all().order_by("-id")
