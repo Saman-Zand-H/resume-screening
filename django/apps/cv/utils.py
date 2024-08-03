@@ -2,8 +2,10 @@ import io
 import json
 import re
 
+from account.models import Contact, Profile
 from account.utils import get_user_additional_information
 from ai.google import GoogleServices
+from common.utils import fields_join
 from config.settings.constants import Assistants
 from PIL import Image, ImageChops
 
@@ -83,6 +85,20 @@ def get_resume_info_input(user) -> dict:
 
     if hasattr(user, "resume"):
         data["resume_data"] = user.resume.resume_json
+
+    data.update(
+        contacts=Contact.objects.filter(
+            **{
+                fields_join(
+                    Contact.contactable.field.name,
+                    Profile.contactable.field.related_query_name(),
+                    Profile.user.field.name,
+                ): user
+            }
+        ),
+        first_name=user.first_name,
+        last_name=user.last_name,
+    )
 
     return data
 

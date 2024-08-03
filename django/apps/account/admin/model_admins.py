@@ -544,10 +544,11 @@ class SupportTicketAdmin(admin.ModelAdmin):
         SupportTicket.user.field.name,
         SupportTicket.title.field.name,
         SupportTicket.status.field.name,
+        SupportTicket.category.field.name,
     )
     search_fields = (fields_join(SupportTicket.user, User.email), SupportTicket.title.field.name)
-    list_filter = (SupportTicket.status.field.name,)
-    raw_id_fields = (SupportTicket.user.field.name,)
+    list_filter = (SupportTicket.status.field.name, SupportTicket.category.field.name)
+    autocomplete_fields = (SupportTicket.user.field.name,)
 
 
 @register(UserTask)
