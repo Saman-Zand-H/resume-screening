@@ -1363,6 +1363,9 @@ class SupportTicketCategory(models.Model):
             "title",
         ]
 
+    def __str__(self):
+        return self.title
+
 
 class SupportTicket(TimeStampedModel):
     class Status(models.TextChoices):
