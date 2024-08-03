@@ -5,7 +5,7 @@ import re
 import string
 import uuid
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
@@ -24,7 +24,12 @@ from common.models import (
     SlugTitleAbstract,
     University,
 )
-from common.utils import fields_join, get_all_subclasses
+from common.utils import (
+    field_serializer,
+    fields_join,
+    get_all_subclasses,
+    seiralize_field_error,
+)
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -115,6 +120,16 @@ def get_phone_otp(length=6):
 
 
 class Contactable(models.Model):
+    def get_related_object(self) -> Union["Organization", "Profile"]:
+        return getattr(
+            self,
+            Profile.contactable.field.related_query_name(),
+            Organization.contactable.field.related_query_name(),
+        )
+
+    def __str__(self):
+        return str(self.get_related_object())
+
     class Meta:
         verbose_name = _("Contactable")
         verbose_name_plural = _("Contactables")
@@ -653,7 +668,9 @@ class Contact(models.Model):
                 try:
                     self.VALIDATORS[self.type](self.value)
                 except ValidationError as e:
-                    raise ValidationError({Contact.value.field.name: next(iter(e.messages))}) from e
+                    raise ValidationError(
+                        {Contact.value.field.name: next(map(field_serializer(self.type), e.messages))},
+                    ) from e
         else:
             raise NotImplementedError(f"Validation for {self.type} is not implemented")
 

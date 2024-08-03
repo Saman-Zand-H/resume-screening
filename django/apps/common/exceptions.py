@@ -1,6 +1,7 @@
 import traceback
 from dataclasses import asdict
-from typing import Optional
+from functools import wraps
+from typing import Callable, Dict, List, Optional
 
 from graphql import GraphQLError as BaseGraphQLError
 from rest_framework.exceptions import ValidationError as DRFValidationError
@@ -9,12 +10,27 @@ from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .errors import Error, Errors
+from .utils import deserialize_field_error
 
 
+def error_dict_deserializer(func: Callable[[DjangoValidationError], Dict[str, List[str]]]):
+    @wraps(func)
+    def wrapper(e: DjangoValidationError):
+        error_dict = func(e)
+
+        return {
+            field_name: [deserialize_field_error(error) for error in errors]
+            for field_name, errors in (error_dict.get("message") or error_dict.get("fields")).items()
+        }
+
+    return wrapper
+
+
+@error_dict_deserializer
 def django_validation_error_serializer(e: DjangoValidationError):
-    message_dict = getattr(e, "message_dict", None)
-    if message_dict:
+    if message_dict := getattr(e, "message_dict", None):
         return dict(fields=message_dict)
+
     return dict(message=e.message, fields={})
 
 
