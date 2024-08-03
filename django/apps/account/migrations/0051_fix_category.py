@@ -14,6 +14,7 @@ class Migration(migrations.Migration):
             name="category",
             field=models.ForeignKey(
                 on_delete=models.deletion.CASCADE,
+                null=True,
                 related_name="support_tickets",
                 to="auth_account.supportticketcategory",
                 verbose_name="Category",
