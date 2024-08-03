@@ -15,7 +15,7 @@ from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, IntegerField, Q, QuerySet, Value, When, Count
 
 from .accesses import (
     JobPositionContainer,
@@ -714,3 +714,29 @@ class JobPositionAssignmentNode(DjangoObjectType):
 
     def resolve_job_seeker(self, info):
         return self.job_seeker
+
+
+class JobPositionAssignmentStatusCountType(graphene.ObjectType):
+    status = graphene.String()
+    count = graphene.Int()
+
+
+class OrganizationJobPositionReportType(DjangoObjectType):
+    class Meta:
+        model = OrganizationJobPosition
+        fields = ()
+
+    assignment_status_counts = graphene.List(JobPositionAssignmentStatusCountType)
+
+    def resolve_assignment_status_counts(self, info, **kwargs):
+        status_counts = (
+            JobPositionAssignment.objects.filter(job_position=self)
+            .values(
+                JobPositionAssignment.status.field.name,
+            )
+            .annotate(count=Count(JobPositionAssignment.status.field.name))
+        )
+
+        return [
+            JobPositionAssignmentStatusCountType(status=item["status"], count=item["count"]) for item in status_counts
+        ]
