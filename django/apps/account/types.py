@@ -439,6 +439,8 @@ class UserNode(BaseUserNode):
 
 
 class OrganizationType(DjangoObjectType):
+    has_financial_data = graphene.Boolean()
+
     class Meta:
         model = Organization
         fields = (
@@ -453,9 +455,13 @@ class OrganizationType(DjangoObjectType):
             Organization.established_at.field.name,
             Organization.size.field.name,
             Organization.about.field.name,
+            Organization.status.field.name,
             OrganizationInvitation.organization.field.related_query_name(),
             OrganizationMembership.organization.field.related_query_name(),
         )
+
+    def resolve_has_financial_data(self, info):
+        return True
 
 
 class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
@@ -505,7 +511,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     work_experience_years_range = graphene.List(
         graphene.Int, description="The work experience years range of the job position."
     )
-    has_financial_data = graphene.Boolean()
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -564,9 +569,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_work_experience_years_range(self, info):
         return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
-
-    def resolve_has_financial_data(self, info):
-        return True
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
