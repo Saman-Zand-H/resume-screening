@@ -1061,7 +1061,7 @@ class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, ArrayCh
         obj.full_clean()
 
 
-class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
+class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation):
     accesses = [JobPositionContainer.EDITOR, JobPositionContainer.ADMIN]
 
     @classmethod
