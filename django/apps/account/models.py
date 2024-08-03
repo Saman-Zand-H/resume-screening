@@ -28,7 +28,6 @@ from common.utils import (
     field_serializer,
     fields_join,
     get_all_subclasses,
-    seiralize_field_error,
 )
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
