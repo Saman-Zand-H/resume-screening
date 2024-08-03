@@ -6,6 +6,7 @@ from graphql_jwt.decorators import login_required
 from .types import (
     CertificateAndLicenseNode,
     EducationNode,
+    JobPositionAssignmentNode,
     LanguageCertificateNode,
     OrganizationInvitationType,
     OrganizationJobPositionNode,
@@ -27,6 +28,7 @@ class OrganizationJobPositionQuery(graphene.ObjectType):
 class OrganizationQuery(graphene.ObjectType):
     invitation = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
     job_position = graphene.Field(OrganizationJobPositionQuery)
+    job_position_assignment = graphene.Field(JobPositionAssignmentNode, id=graphene.ID(required=True))
 
     @login_required
     def resolve_invitation(self, info, token):
@@ -34,6 +36,9 @@ class OrganizationQuery(graphene.ObjectType):
 
     def resolve_job_position(self, info):
         return OrganizationJobPositionQuery()
+
+    def resolve_job_position_assignment(self, info, id):
+        return JobPositionAssignmentNode.get_node(info, id)
 
 
 class EducationQuery(graphene.ObjectType):
