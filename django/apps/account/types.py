@@ -582,6 +582,111 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         )
 
 
+class JobSeekerEducationType(DjangoObjectType):
+    class Meta:
+        model = Education
+        fields = (
+            Education.id.field.name,
+            Education.field.field.name,
+            Education.degree.field.name,
+            Education.university.field.name,
+            Education.city.field.name,
+            Education.start.field.name,
+            Education.end.field.name,
+            Education.status.field.name,
+        )
+
+
+class JobSeekerWorkExperienceType(DjangoObjectType):
+    class Meta:
+        model = WorkExperience
+        fields = (
+            WorkExperience.id.field.name,
+            WorkExperience.job_title.field.name,
+            WorkExperience.grade.field.name,
+            WorkExperience.organization.field.name,
+            WorkExperience.city.field.name,
+            WorkExperience.start.field.name,
+            WorkExperience.end.field.name,
+            WorkExperience.status.field.name,
+        )
+
+
+class JobSeekerLanguageCertificateType(DjangoObjectType):
+    class Meta:
+        model = LanguageCertificate
+        fields = (
+            LanguageCertificate.id.field.name,
+            LanguageCertificate.language.field.name,
+            LanguageCertificate.test.field.name,
+            LanguageCertificate.issued_at.field.name,
+            LanguageCertificate.expired_at.field.name,
+            LanguageCertificate.status.field.name,
+        )
+
+
+class JobSeekerCertificateAndLicenseType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicense
+        fields = (
+            CertificateAndLicense.id.field.name,
+            CertificateAndLicense.title.field.name,
+            CertificateAndLicense.certifier.field.name,
+            CertificateAndLicense.issued_at.field.name,
+            CertificateAndLicense.expired_at.field.name,
+            CertificateAndLicense.status.field.name,
+        )
+
+
+class JobSeekerProfileType(DjangoObjectType):
+    contacts = graphene.List(ContactType)
+
+    class Meta:
+        model = Profile
+        fields = (
+            Profile.avatar.field.name,
+            Profile.full_body_image.field.name,
+            Profile.score.field.name,
+            Profile.contactable.field.name,
+        )
+
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
+
+
+class JobSeekerType(DjangoObjectType):
+    profile = graphene.Field(JobSeekerProfileType)
+    educations = graphene.List(JobSeekerEducationType)
+    workexperiences = graphene.List(JobSeekerWorkExperienceType)
+    languagecertificates = graphene.List(JobSeekerLanguageCertificateType)
+    certificateandlicenses = graphene.List(JobSeekerCertificateAndLicenseType)
+
+    class Meta:
+        model = User
+        fields = (
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.email.field.name,
+            Resume.user.field.related_query_name(),
+            GeneratedCV.user.field.related_query_name(),
+        )
+
+    def resolve_profile(self, info):
+        return self.profile
+
+    def resolve_educations(self, info):
+        return self.educations.all().order_by("-id")
+
+    def resolve_workexperiences(self, info):
+        return self.workexperiences.all().order_by("-id")
+
+    def resolve_languagecertificates(self, info):
+        return self.languagecertificates.all().order_by("-id")
+
+    def resolve_certificateandlicenses(self, info):
+        return self.certificateandlicenses.all().order_by("-id")
+
+
 class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
     class Meta:
         model = JobPositionAssignmentStatusHistory
@@ -592,18 +697,18 @@ class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
 
 
 class JobPositionAssignmentNode(DjangoObjectType):
-    status_history = graphene.List(JobPositionAssignmentStatusHistoryType)
+    job_seeker = graphene.Field(JobSeekerType)
 
     class Meta:
         model = JobPositionAssignment
         fields = (
             JobPositionAssignment.id.field.name,
-            JobPositionAssignment.job_seeker.field.name,
             JobPositionAssignment.status.field.name,
             JobPositionAssignment.interview_date.field.name,
             JobPositionAssignment.result_date.field.name,
             JobPositionAssignment.created_at.field.name,
+            JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
         )
 
-    def resolve_status_history(self, info):
-        return self.status_histories.all()
+    def resolve_job_seeker(self, info):
+        return self.job_seeker
