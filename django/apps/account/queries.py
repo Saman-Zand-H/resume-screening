@@ -10,7 +10,6 @@ from .types import (
     LanguageCertificateNode,
     OrganizationInvitationType,
     OrganizationJobPositionNode,
-    OrganizationJobPositionReportType,
     SupportTicketCategoryNode,
     UserNode,
     WorkExperienceNode,
@@ -20,15 +19,10 @@ from .types import (
 class OrganizationJobPositionQuery(graphene.ObjectType):
     get = graphene.Field(OrganizationJobPositionNode, id=graphene.ID(required=True))
     list = DjangoFilterConnectionField(OrganizationJobPositionNode)
-    report = graphene.Field(OrganizationJobPositionReportType, id=graphene.ID(required=True))
 
     @login_required
     def resolve_get(self, info, id):
         return OrganizationJobPositionNode.get_node(info, id)
-
-    @login_required
-    def resolve_report(self, info, id):
-        return OrganizationJobPositionReportType.get_node(info, id)
 
 
 class OrganizationQuery(graphene.ObjectType):

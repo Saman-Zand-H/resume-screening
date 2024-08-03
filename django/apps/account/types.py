@@ -498,6 +498,28 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
             return model.objects.get(token=token)
 
 
+class JobPositionAssignmentStatusCountType(graphene.ObjectType):
+    status = graphene.String()
+    count = graphene.Int()
+
+
+class OrganizationJobPositionReportType(graphene.ObjectType):
+    assignment_status_counts = graphene.List(JobPositionAssignmentStatusCountType)
+
+    def resolve_assignment_status_counts(self, info, **kwargs):
+        status_counts = (
+            JobPositionAssignment.objects.filter(job_position=self)
+            .values(
+                JobPositionAssignment.status.field.name,
+            )
+            .annotate(count=Count(JobPositionAssignment.status.field.name))
+        )
+
+        return [
+            JobPositionAssignmentStatusCountType(status=item["status"], count=item["count"]) for item in status_counts
+        ]
+
+
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
 
 
@@ -511,6 +533,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     work_experience_years_range = graphene.List(
         graphene.Int, description="The work experience years range of the job position."
     )
+    report = graphene.Field(OrganizationJobPositionReportType)
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -569,6 +592,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_work_experience_years_range(self, info):
         return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
+
+    def resolve_report(self, info):
+        return self
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
@@ -714,29 +740,3 @@ class JobPositionAssignmentNode(DjangoObjectType):
 
     def resolve_job_seeker(self, info):
         return self.job_seeker
-
-
-class JobPositionAssignmentStatusCountType(graphene.ObjectType):
-    status = graphene.String()
-    count = graphene.Int()
-
-
-class OrganizationJobPositionReportType(DjangoObjectType):
-    class Meta:
-        model = OrganizationJobPosition
-        fields = ()
-
-    assignment_status_counts = graphene.List(JobPositionAssignmentStatusCountType)
-
-    def resolve_assignment_status_counts(self, info, **kwargs):
-        status_counts = (
-            JobPositionAssignment.objects.filter(job_position=self)
-            .values(
-                JobPositionAssignment.status.field.name,
-            )
-            .annotate(count=Count(JobPositionAssignment.status.field.name))
-        )
-
-        return [
-            JobPositionAssignmentStatusCountType(status=item["status"], count=item["count"]) for item in status_counts
-        ]
