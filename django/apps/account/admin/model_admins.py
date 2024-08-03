@@ -44,7 +44,9 @@ from ..models import (
     ReferralUser,
     Resume,
     Role,
+    RoleAccess,
     SupportTicket,
+    SupportTicketCategory,
     UploadCompanyCertificateMethod,
     UploadFileToWebsiteMethod,
     User,
@@ -65,7 +67,7 @@ from .resources import (
 class AccessInline(admin.StackedInline):
     model = Access
     extra = 1
-    fields = (Access.slug.field.name, Access.description.field.name)
+    fields = (Access.slug.field.name, Access.title.field.name)
 
 
 @register(Role)
@@ -76,8 +78,14 @@ class RoleAdmin(admin.ModelAdmin):
 
 @register(Access)
 class AccessAdmin(admin.ModelAdmin):
-    list_display = (Access.slug.field.name, Access.description.field.name)
-    search_fields = (Access.slug.field.name, Access.description.field.name)
+    list_display = (Access.slug.field.name, Access.title.field.name)
+    search_fields = (Access.slug.field.name, Access.title.field.name)
+
+
+@register(RoleAccess)
+class RoleAccessAdmin(admin.ModelAdmin):
+    list_display = (RoleAccess.id.field.name, RoleAccess.role.field.name, RoleAccess.access.field.name)
+    raw_id_fields = (RoleAccess.role.field.name, RoleAccess.access.field.name)
 
 
 @register(User)
@@ -161,11 +169,13 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.skin_color.field.name,
         Profile.hair_color.field.name,
     )
-    raw_id_fields = (
-        Profile.user.field.name,
+    autocomplete_fields = (
         Profile.skills.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
+    )
+    raw_id_fields = (
+        Profile.user.field.name,
         Profile.avatar.field.name,
         Profile.full_body_image.field.name,
     )
@@ -173,7 +183,6 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
     readonly_fields = (
         Profile.scores.field.name,
         Profile.score.field.name,
-        Profile.skills.field.name,
         Profile.credits.field.name,
     )
 
@@ -518,6 +527,15 @@ class ReferralAdmin(admin.ModelAdmin):
     search_fields = (fields_join(Referral.user, User.email), Referral.code.field.name)
     raw_id_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
+
+
+@register(SupportTicketCategory)
+class SupportTicketCategoryAdmin(admin.ModelAdmin):
+    list_display = (
+        SupportTicketCategory.title.field.name,
+        SupportTicketCategory.types.field.name,
+    )
+    search_fields = (SupportTicketCategory.title.field.name, SupportTicketCategory.types.field.name)
 
 
 @register(SupportTicket)

@@ -1,20 +1,19 @@
 import graphene
 from graphene_django.filter import DjangoFilterConnectionField
 
-from common.choices import LANGUAGES
-
 from .types import (
     CityNode,
     CountryNode,
     ErrorType,
     FieldNode,
     IndustryNode,
+    JobBenefitNode,
     JobCategoryNode,
     JobNode,
     LanguageProficiencyTestNode,
     RegionNode,
+    SkillNode,
     UniversityNode,
-    JobBenefitNode,
 )
 
 
@@ -29,6 +28,7 @@ class CommonQuery(graphene.ObjectType):
     jobs = DjangoFilterConnectionField(JobNode)
     industries = DjangoFilterConnectionField(IndustryNode)
     job_benefits = DjangoFilterConnectionField(JobBenefitNode)
+    skills = DjangoFilterConnectionField(SkillNode)
 
 
 class MetaDataQuery(graphene.ObjectType):

@@ -5,7 +5,7 @@ import re
 import string
 import uuid
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
@@ -21,9 +21,14 @@ from common.models import (
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
+    SlugTitleAbstract,
     University,
 )
-from common.utils import fields_join, get_all_subclasses
+from common.utils import (
+    field_serializer,
+    fields_join,
+    get_all_subclasses,
+)
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -35,6 +40,7 @@ from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
+from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 from phonenumbers.phonenumberutil import NumberParseException
@@ -113,6 +119,16 @@ def get_phone_otp(length=6):
 
 
 class Contactable(models.Model):
+    def get_related_object(self) -> Union["Organization", "Profile"]:
+        return getattr(
+            self,
+            Profile.contactable.field.related_query_name(),
+            Organization.contactable.field.related_query_name(),
+        )
+
+    def __str__(self):
+        return str(self.get_related_object())
+
     class Meta:
         verbose_name = _("Contactable")
         verbose_name_plural = _("Contactables")
@@ -209,27 +225,14 @@ for field, properties in User.FIELDS_PROPERTIES.items():
         setattr(User._meta.get_field(field), key, value)
 
 
-class Access(models.Model):
-    slug = models.SlugField(
-        max_length=255,
-        unique=True,
-        db_index=True,
-        verbose_name=_("Slug"),
-    )
-    description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
-
-    def __str__(self):
-        return self.slug
-
+class Access(SlugTitleAbstract):
     class Meta:
         verbose_name = _("Access")
         verbose_name_plural = _("Accesses")
         ordering = ["slug"]
 
 
-class Role(models.Model):
-    slug = models.SlugField(max_length=255, unique=True, db_index=True, verbose_name=_("Slug"))
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+class Role(SlugTitleAbstract):
     description = models.TextField(verbose_name=_("Description"), blank=True, null=True)
     accesses = models.ManyToManyField(Access, verbose_name=_("Accesses"), through="RoleAccess", blank=True)
 
@@ -489,9 +492,10 @@ class Profile(ComputedFieldsModel):
     )
     birth_date = models.DateField(verbose_name=_("Birth Date"), null=True, blank=True)
     raw_skills = ArrayField(models.CharField(max_length=64), verbose_name=_("Raw Skills"), blank=True, null=True)
-    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", editable=False)
+    skills = models.ManyToManyField(Skill, verbose_name=_("Skills"), related_name="profiles", blank=True)
     available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
+    accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
@@ -612,14 +616,6 @@ class Contact(models.Model):
         blank=True,
         null=True,
     )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name=_("User"),
-        related_name="contacts",
-        null=True,
-        blank=True,
-    )
     type = models.CharField(
         max_length=50,
         choices=Type.choices,
@@ -671,7 +667,9 @@ class Contact(models.Model):
                 try:
                     self.VALIDATORS[self.type](self.value)
                 except ValidationError as e:
-                    raise ValidationError({self.type: next(iter(e.messages))}) from e
+                    raise ValidationError(
+                        {Contact.value.field.name: next(map(field_serializer(self.type), e.messages))},
+                    ) from e
         else:
             raise NotImplementedError(f"Validation for {self.type} is not implemented")
 
@@ -1311,7 +1309,6 @@ class Resume(models.Model):
         related_name="resume",
         verbose_name=_("Resume"),
     )
-    text = models.TextField(verbose_name=_("Resume Text"), blank=True, null=True)
     resume_json = models.JSONField(verbose_name=_("Resume JSON"), default=dict, blank=True, null=True)
 
     class Meta:
@@ -1348,7 +1345,26 @@ class ReferralUser(models.Model):
         return f"{self.referral.code} - {self.user.email}"
 
 
-class SupportTicket(models.Model):
+class SupportTicketCategory(models.Model):
+    class Type(models.TextChoices):
+        ORGANIZATION = "organization", _("Organization")
+        JOB_SEEKER = "job_seeker", _("Job Seeker")
+
+    title = models.CharField(max_length=255, verbose_name=_("Title"), unique=True)
+    types = ArrayField(
+        models.CharField(max_length=50, choices=Type.choices),
+        verbose_name=_("Types"),
+    )
+
+    class Meta:
+        verbose_name = _("Support Ticket Category")
+        verbose_name_plural = _("Support Ticket Categories")
+        ordering = [
+            "title",
+        ]
+
+
+class SupportTicket(TimeStampedModel):
     class Status(models.TextChoices):
         OPEN = "open", _("Open")
         CLOSED = "closed", _("Closed")
@@ -1358,15 +1374,6 @@ class SupportTicket(models.Model):
         MEDIUM = "medium", _("Medium")
         HIGH = "high", _("High")
         URGENT = "urgent", _("Urgent")
-
-    class Category(models.TextChoices):
-        PROFILE = "profile", _("Profile")
-        RESUME = "resume", _("Resume")
-        JOB_INTEREST = "job_interest", _("Job Interest")
-        ACADEMY = "academy", _("Academy")
-        ASSESSMENT = "assessment", _("Assessment")
-        JOB_SUGGESTION = "job_suggestion", _("Job Suggestion")
-        AI_INTERVIEW = "ai_interview", _("AI Interview")
 
     class ContactMethod(models.TextChoices):
         EMAIL = "email", _("Email")
@@ -1379,11 +1386,14 @@ class SupportTicket(models.Model):
     description = models.TextField(max_length=1024)
     status = models.CharField(max_length=50, choices=Status.choices, default=Status.OPEN)
     priority = models.CharField(max_length=50, choices=Priority.choices)
-    category = models.CharField(max_length=50, choices=Category.choices)
+    category = models.ForeignKey(
+        SupportTicketCategory,
+        on_delete=models.CASCADE,
+        related_name="support_tickets",
+        verbose_name=_("Category"),
+    )
     contact_method = models.CharField(max_length=50, choices=ContactMethod.choices)
     contact_value = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def notify_open(self):
         from .tasks import send_email_async
@@ -1801,7 +1811,7 @@ class OrganizationJobPosition(models.Model):
         null=True,
         blank=True,
     )
-    work_experience_years = models.PositiveIntegerField(verbose_name=_("Work Experience Years"), null=True, blank=True)
+    work_experience_years_range = IntegerRangeField(verbose_name=_("Age Range"), null=True, blank=True)
     languages = ArrayField(
         models.CharField(choices=LANGUAGES, max_length=32),
         verbose_name=_("Languages"),
@@ -1904,7 +1914,7 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.validity_date.field.name,
             OrganizationJobPosition.description.field.name,
             OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.work_experience_years.field.name,
+            OrganizationJobPosition.work_experience_years_range.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.contract_type.field.name,

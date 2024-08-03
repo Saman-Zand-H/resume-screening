@@ -145,7 +145,10 @@ class MobileScore(Score):
     @classmethod
     def test_func(cls, instance):
         with contextlib.suppress(Contactable.DoesNotExist):
-            return instance.type == Contact.Type.PHONE and instance.contactable
+            return (
+                instance.type == Contact.Type.PHONE
+                and hasattr(instance.contactable, "profile")
+            )
 
     def calculate(self, user) -> int:
         return (

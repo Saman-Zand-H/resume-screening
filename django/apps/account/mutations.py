@@ -453,10 +453,21 @@ class SetContactableMixin:
         raise NotImplementedError
 
 
-class SetOrganizationContactsMutation(SetContactableMixin, DjangoBatchCreateMutation):
+class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactableMixin, DjangoBatchCreateMutation):
+    accesses = [OrganizationProfileContainer.COMPANY_EDITOR, OrganizationProfileContainer.ADMIN]
+
     class Meta:
         custom_fields = {"organization_id": graphene.ID(required=True)}
         type_name = "SetOrganizationContactableInput"
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        input = kwargs.get("input")
+        organization_id = input[0].get("organization_id") if type(input) is list else input.get("organization_id")
+        if not (organization := Organization.objects.filter(pk=organization_id).first()):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
 
     @classmethod
     def get_contactable_object(cls, info, input):
@@ -503,6 +514,8 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
             Profile.job_type.field.name,
             Profile.job_location_type.field.name,
             Profile.allow_notifications.field.name,
+            Profile.accept_terms_and_conditions.field.name,
+            Profile.skills.field.name,
         )
         custom_fields = USER_MUTATION_FIELDS
 
@@ -531,9 +544,6 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
         user: User = info.context.user
         profile = user.profile
 
-        if not profile:
-            raise GraphQLErrorBadRequest("User has no profile.")
-
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
             if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
@@ -542,6 +552,11 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
                 if not (profile.has_appearance_related_data):
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
+
+        if (skills := input.get(Profile.skills.field.name)) and not profile.skills.filter(pk__in=skills).count() == len(
+            skills
+        ):
+            raise GraphQLErrorBadRequest(_("Skills must be selected from the list."))
 
         return super().validate(*args, **kwargs)
 
@@ -950,7 +965,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
         if method is None:
             raise GraphQLErrorBadRequest(_("No verification method provided."))
 
-        organization = cls.get_access_object(input=input)
+        organization = cls.get_access_object(id=id)
         if organization.status in Organization.get_verified_statuses():
             raise GraphQLErrorBadRequest(_("Organization verification method is already set."))
 
@@ -999,7 +1014,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
     OrganizationJobPosition.skills.field.name,
     OrganizationJobPosition.fields.field.name,
     OrganizationJobPosition.degrees.field.name,
-    OrganizationJobPosition.work_experience_years.field.name,
+    OrganizationJobPosition.work_experience_years_range.field.name,
     OrganizationJobPosition.languages.field.name,
     OrganizationJobPosition.native_languages.field.name,
     OrganizationJobPosition.age_range.field.name,
@@ -1020,7 +1035,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
 ]
 
 
-class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, DjangoCreateMutation):
+class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoCreateMutation):
     accesses = [JobPositionContainer.CREATEOR, JobPositionContainer.ADMIN]
 
     @classmethod
@@ -1053,7 +1068,7 @@ class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, DjangoP
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                **{fields_join(OrganizationJobPosition.organization, "pk"): kwargs.get("id")}
+                **{fields_join(OrganizationJobPosition.organization.field.related_query_name(), "pk"): kwargs.get("id")}
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1085,7 +1100,7 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                **{fields_join(OrganizationJobPosition.organization, "pk"): kwargs.get("id")}
+                **{fields_join(OrganizationJobPosition.organization.field.related_query_name(), "pk"): kwargs.get("id")}
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1095,9 +1110,8 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
     class Meta:
         model = OrganizationJobPosition
         login_required = True
-        fields = [
-            OrganizationJobPosition._status.field.name,
-        ]
+        fields = [OrganizationJobPosition._status.field.name]
+        required_fields = [OrganizationJobPosition._status.field.name]
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
@@ -1110,13 +1124,31 @@ class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, D
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class JobPositionAssignmentStatusUpdateMutation(ArrayChoiceTypeMixin, DjangoPatchMutation):
+class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation):
+    accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (
+            organization := Organization.objects.filter(
+                **{
+                    fields_join(
+                        OrganizationJobPosition.organization.field.related_query_name(),
+                        JobPositionAssignment.job_position.field.related_query_name(),
+                        "pk",
+                    ): kwargs.get("id")
+                }
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
+
     class Meta:
         model = JobPositionAssignment
         login_required = True
-        fields = [
-            JobPositionAssignment.status.field.name,
-        ]
+        fields = [JobPositionAssignment.status.field.name]
+        required_fields = [JobPositionAssignment.status.field.name]
         type_name = "JobPositionAssignmentStatusUpdateInput"
 
     @classmethod

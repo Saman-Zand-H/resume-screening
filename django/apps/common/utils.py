@@ -1,5 +1,5 @@
 from functools import lru_cache, reduce
-from typing import Set
+from typing import Dict, Set
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
@@ -8,8 +8,27 @@ from graphene_django.converter import convert_choice_field_to_enum
 import django.apps
 from django.db.models.constants import LOOKUP_SEP
 
+from .constants import GRAPHQL_ERROR_FIELD_SEP
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
 from .models import FileModel
+
+
+def seiralize_field_error(field_name: str, error_message: str) -> str:
+    return "".join([field_name, GRAPHQL_ERROR_FIELD_SEP, error_message])
+
+
+def field_serializer(field_name: str):
+    def inner(error_message: str):
+        return seiralize_field_error(field_name, error_message)
+
+    return inner
+
+
+def deserialize_field_error(field_error: str) -> Dict[str, str]:
+    if not ((splitted_error := field_error.split(GRAPHQL_ERROR_FIELD_SEP)) and len(splitted_error) == 2):
+        return field_error
+
+    return dict(zip(["field", "error_message"], splitted_error))
 
 
 def get_file_model_mimetype(file_model_instance: FileModel):

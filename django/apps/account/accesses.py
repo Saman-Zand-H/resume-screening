@@ -19,7 +19,7 @@ class AccessPredicateArgument(BaseModel):
 
 class AccessType(BaseModel):
     slug: str
-    description: Optional[str] = None
+    title: Optional[str] = None
     predicate: Optional[Callable[[AccessPredicateArgument], bool]] = predicates.always_allow
 
 
@@ -79,7 +79,7 @@ class AccessContainer:
     @classmethod
     def register_rules(cls) -> None:
         for access in cls.get_accesses():
-            add_rule(access.slug, access.predicate)
+            add_rule(access.slug, access.predicate | is_superuser)
 
     @classmethod
     def register_all_rules(cls) -> None:
@@ -90,82 +90,82 @@ class AccessContainer:
 class OrganizationProfileContainer(AccessContainer):
     COMPANY_EDITOR = AccessType(
         slug="company-editor",
-        description="Can edit company information",
-        predicate=is_organization_member | is_superuser,
+        title="Can edit company information",
+        predicate=is_organization_member,
     )
     CONTACT_EDITOR = AccessType(
         slug="contact-editor",
-        description="Can edit company contact information",
-        predicate=is_organization_member | is_superuser,
+        title="Can edit company contact information",
+        predicate=is_organization_member,
     )
     VERIFIER = AccessType(
         slug="verifier",
-        description="Has access to company verification process",
-        predicate=is_organization_member | is_superuser,
+        title="Has access to company verification process",
+        predicate=is_organization_member,
     )
     ADMIN = AccessType(
         slug="admin",
-        description="Can manage company profile",
-        predicate=is_organization_member | is_superuser,
+        title="Can manage company profile",
+        predicate=is_organization_member,
     )
 
 
 class OrganizationMembershipContainer(AccessContainer):
     CREATOR = AccessType(
         slug="create-organization-membership",
-        description="Can create organization memberships",
-        predicate=is_organization_member | is_superuser,
+        title="Can create organization memberships",
+        predicate=is_organization_member,
     )
     INVITOR = AccessType(
         slug="invite-organization-membership",
-        description="Can invite users to organization",
-        predicate=is_organization_member | is_superuser,
+        title="Can invite users to organization",
+        predicate=is_organization_member,
     )
     EDITOR = AccessType(
         slug="edit-organization-membership",
-        description="Can edit organization memberships",
-        predicate=is_organization_member | is_superuser,
+        title="Can edit organization memberships",
+        predicate=is_organization_member,
     )
     VIEWER = AccessType(
         slug="view-organization-membership",
-        description="Can view organization memberships",
-        predicate=is_organization_member | is_superuser,
+        title="Can view organization memberships",
+        predicate=is_organization_member,
     )
     ADMIN = AccessType(
         slug="admin-organization-membership",
-        description="Can manage organization memberships",
-        predicate=is_organization_member | is_superuser,
+        title="Can manage organization memberships",
+        predicate=is_organization_member,
     )
 
 
 class JobPositionContainer(AccessContainer):
     CREATEOR = AccessType(
         slug="create-job-position",
-        description="Can create job positions",
-        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+        title="Can create job positions",
+        predicate=(is_organization_member & is_organization_verified),
     )
     EDITOR = AccessType(
         slug="edit-job-position",
-        description="Can edit job positions",
-        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+        title="Can edit job positions",
+        predicate=(is_organization_member & is_organization_verified),
     )
     VIEWER = AccessType(
         slug="view-job-position",
-        description="Can view job positions",
-        predicate=is_organization_member | is_superuser,
+        title="Can view job positions",
+        predicate=is_organization_member,
     )
     STATUS_CHANGER = AccessType(
         slug="change-job-position-status",
-        description="Can change job position status",
-        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+        title="Can change job position status",
+        predicate=(is_organization_member & is_organization_verified),
     )
     HIRING_STATUS_CHANGER = AccessType(
         slug="change-job-position-hiring-status",
-        description="Can change job position hiring status",
-        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+        title="Can change job position hiring status",
+        predicate=(is_organization_member & is_organization_verified),
     )
     ADMIN = AccessType(
         slug="admin-job-position",
-        description="Can manage job positions",
-        predicate=(is_organization_member & is_organization_verified) | is_superuser,
+        title="Can manage job positions",
+        predicate=(is_organization_member & is_organization_verified),
     )

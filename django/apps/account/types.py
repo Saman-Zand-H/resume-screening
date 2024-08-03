@@ -46,6 +46,7 @@ from .models import (
     Resume,
     Role,
     SupportTicket,
+    SupportTicketCategory,
     User,
     UserTask,
     WorkExperience,
@@ -94,6 +95,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.contactable.field.name,
             Profile.raw_skills.field.name,
             Profile.allow_notifications.field.name,
+            Profile.accept_terms_and_conditions.field.name,
         )
 
     def resolve_contacts(self, info):
@@ -281,6 +283,20 @@ class ReferralType(DjangoObjectType):
         fields = (Referral.code.field.name,)
 
 
+class SupportTicketCategoryNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    class Meta:
+        model = SupportTicketCategory
+        use_connection = True
+        fields = (
+            SupportTicketCategory.id.field.name,
+            SupportTicketCategory.title.field.name,
+            SupportTicketCategory.types.field.name,
+        )
+        filter_fields = {
+            SupportTicketCategory.types.field.name: ["contains"],
+        }
+
+
 class SupportTicketType(DjangoObjectType):
     class Meta:
         model = SupportTicket
@@ -294,8 +310,8 @@ class SupportTicketType(DjangoObjectType):
             SupportTicket.category.field.name,
             SupportTicket.contact_method.field.name,
             SupportTicket.contact_value.field.name,
-            SupportTicket.created_at.field.name,
-            SupportTicket.updated_at.field.name,
+            SupportTicket.created.field.name,
+            SupportTicket.modified.field.name,
         )
 
 
@@ -316,7 +332,7 @@ class AccessType(DjangoObjectType):
         fields = (
             Access.id.field.name,
             Access.slug.field.name,
-            Access.description.field.name,
+            Access.title.field.name,
         )
 
 
@@ -350,7 +366,7 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        membership: OrganizationMembership = args and args[3]
+        membership: OrganizationMembership = cls.get_obj_from_args(args)
         if not membership:
             return None
 
@@ -449,7 +465,7 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        invitation: OrganizationInvitation = args and args[3]
+        invitation: OrganizationInvitation = cls.get_obj_from_args(args)
         if not invitation:
             return None
 
@@ -476,17 +492,21 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
 
 
-class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
     fields_access = {
         "__all__": JobPositionContainer.get_accesses(),
     }
     status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
     age_range = graphene.List(graphene.Int, description="The age range of the job position.")
     salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
+    work_experience_years_range = graphene.List(
+        graphene.Int, description="The work experience years range of the job position."
+    )
+    has_financial_data = graphene.Boolean()
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        job_position: OrganizationJobPosition = args and args[3]
+        job_position: OrganizationJobPosition = cls.get_obj_from_args(args)
         if not job_position:
             return None
 
@@ -505,7 +525,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
             OrganizationJobPosition.skills.field.name,
             OrganizationJobPosition.fields.field.name,
             OrganizationJobPosition.degrees.field.name,
-            OrganizationJobPosition.work_experience_years.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
             OrganizationJobPosition.required_documents.field.name,
@@ -539,6 +558,12 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, DjangoObjectTyp
 
     def resolve_salary_range(self, info):
         return [self.salary_range.lower, self.salary_range.upper]
+
+    def resolve_work_experience_years_range(self, info):
+        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
+
+    def resolve_has_financial_data(self, info):
+        return True
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
