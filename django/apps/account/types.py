@@ -3,7 +3,7 @@ import contextlib
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import JobNode
+from common.types import JobNode, JobBenefitType, SkillType, FieldType
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -639,6 +639,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         graphene.Int, description="The work experience years range of the job position."
     )
     report = graphene.Field(OrganizationJobPositionReportType)
+    skills = graphene.List(SkillType)
+    fields = graphene.List(FieldType)
+    benefits = graphene.List(JobBenefitType)
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -658,8 +661,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.start_at.field.name,
             OrganizationJobPosition.validity_date.field.name,
             OrganizationJobPosition.description.field.name,
-            OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.fields.field.name,
             OrganizationJobPosition.degrees.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
@@ -670,7 +671,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.payment_term.field.name,
             OrganizationJobPosition.working_start_at.field.name,
             OrganizationJobPosition.working_end_at.field.name,
-            OrganizationJobPosition.benefits.field.name,
             OrganizationJobPosition.other_benefits.field.name,
             OrganizationJobPosition.days_off.field.name,
             OrganizationJobPosition.job_restrictions.field.name,
@@ -700,6 +700,15 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_report(self, info):
         return self
+
+    def resolve_skills(self, info):
+        return self.skills.all()
+
+    def resolve_fields(self, info):
+        return self.fields.all()
+
+    def resolve_benefits(self, info):
+        return self.benefits.all()
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
