@@ -112,10 +112,11 @@ class Skill(models.Model):
     class InsertType(models.TextChoices):
         SYSTEM = "system", _("System")
         AI = "ai", _("AI")
+        ORGANIZATION = "organization", _("Organization")
 
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    title = models.CharField(max_length=255, verbose_name=_("Title"), db_index=True)
     insert_type = models.CharField(
-        max_length=10,
+        max_length=16,
         choices=InsertType.choices,
         default=InsertType.SYSTEM,
         verbose_name=_("Insert Type"),
