@@ -195,29 +195,32 @@ class User(AbstractUser):
         )
 
     def has_access(self, access_slug: str):
-        return User.objects.filter(
-            models.Q(
-                **{
-                    fields_join(
-                        Profile.user.field.related_query_name(),
-                        Profile.role,
-                        Role.accesses,
-                        Access.slug,
-                    ): access_slug
-                }
-            )
-            | models.Q(
-                **{
-                    fields_join(
-                        OrganizationMembership.user.field.related_query_name(),
-                        OrganizationMembership.role,
-                        Role.accesses,
-                        Access.slug,
-                    ): access_slug
-                }
-            ),
-            pk=self.pk,
-        ).exists()
+        return (
+            self.is_superuser
+            or User.objects.filter(
+                models.Q(
+                    **{
+                        fields_join(
+                            Profile.user.field.related_query_name(),
+                            Profile.role,
+                            Role.accesses,
+                            Access.slug,
+                        ): access_slug
+                    }
+                )
+                | models.Q(
+                    **{
+                        fields_join(
+                            OrganizationMembership.user.field.related_query_name(),
+                            OrganizationMembership.role,
+                            Role.accesses,
+                            Access.slug,
+                        ): access_slug
+                    }
+                ),
+                pk=self.pk,
+            ).exists()
+        )
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
