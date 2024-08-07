@@ -1915,17 +1915,6 @@ class OrganizationJobPosition(models.Model):
     def required_fields(self):
         return [
             OrganizationJobPosition.title.field.name,
-            OrganizationJobPosition.vaccancy.field.name,
-            OrganizationJobPosition.start_at.field.name,
-            OrganizationJobPosition.validity_date.field.name,
-            OrganizationJobPosition.description.field.name,
-            OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.work_experience_years_range.field.name,
-            OrganizationJobPosition.languages.field.name,
-            OrganizationJobPosition.native_languages.field.name,
-            OrganizationJobPosition.contract_type.field.name,
-            OrganizationJobPosition.location_type.field.name,
-            OrganizationJobPosition.city.field.name,
         ]
 
     def change_status(self, new_status):
