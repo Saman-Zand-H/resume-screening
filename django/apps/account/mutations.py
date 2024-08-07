@@ -4,13 +4,13 @@ import graphene
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
+    CUDOutputTypeMixin,
     DocumentFilePermissionMixin,
     FilePermissionMixin,
 )
 from common.models import Job, Skill
 from common.types import SkillType
 from common.utils import fields_join
-from common.mixins import CUDOutputTypeMixin
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
@@ -37,9 +37,9 @@ from graphql_jwt.decorators import (
 
 from account.utils import is_env
 from django.db import transaction
-from django.db.utils import IntegrityError
 from django.db.models import F
 from django.db.models.functions import Lower
+from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -95,12 +95,13 @@ from .tasks import (
     user_task_runner,
 )
 from .types import (
-    UserNode,
-    EducationNode,
-    WorkExperienceNode,
     CertificateAndLicenseNode,
+    EducationNode,
     LanguageCertificateNode,
     OrganizationJobPositionNode,
+    ProfileType,
+    UserNode,
+    WorkExperienceNode,
 )
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -505,7 +506,7 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 class UserUpdateMutation(
     CUDOutputTypeMixin, FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation
 ):
-    output_type = UserNode
+    output_type = ProfileType
 
     class Meta:
         model = Profile
@@ -1113,7 +1114,9 @@ class OrganizationJobPositionCreateMutation(
         obj.full_clean()
 
 
-class OrganizationJobPositionUpdateMutation(CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation):
+class OrganizationJobPositionUpdateMutation(
+    CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
+):
     output_type = OrganizationJobPositionNode
     accesses = [JobPositionContainer.EDITOR, JobPositionContainer.ADMIN]
 
