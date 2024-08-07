@@ -690,12 +690,18 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         return self.status
 
     def resolve_age_range(self, info):
+        if self.age_range is None:
+            return None
         return [self.age_range.lower, self.age_range.upper]
 
     def resolve_salary_range(self, info):
+        if self.salary_range is None:
+            return None
         return [self.salary_range.lower, self.salary_range.upper]
 
     def resolve_work_experience_years_range(self, info):
+        if self.work_experience_years_range is None:
+            return None
         return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
 
     def resolve_report(self, info):
