@@ -7,7 +7,8 @@ from common.mixins import (
     DocumentFilePermissionMixin,
     FilePermissionMixin,
 )
-from common.models import Job
+from common.models import Job, Skill
+from common.types import SkillType
 from common.utils import fields_join
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -36,6 +37,8 @@ from graphql_jwt.decorators import (
 from account.utils import is_env
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.db.models import F
+from django.db.models.functions import Lower
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -1161,6 +1164,37 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         return cls(**{cls._meta.return_field_name: obj})
 
 
+class SetOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
+    accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
+
+    class Arguments:
+        organization = graphene.ID(required=True)
+        skills = graphene.List(graphene.String, required=True)
+
+    skills = graphene.List(SkillType)
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (organization := Organization.objects.filter(pk=kwargs.get("organization")).first()):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+        return organization
+
+    @classmethod
+    @login_required
+    def mutate(cls, root, info, organization, skills):
+        normalized_titles = {skill.strip().lower() for skill in skills if skill.strip()}
+        existing_skills = Skill.objects.annotate(title_lower=Lower(F("title"))).filter(
+            title_lower__in=normalized_titles
+        )
+        existing_titles = set(existing_skills.values_list("title_lower", flat=True))
+        new_titles = normalized_titles - existing_titles
+        new_skills = Skill.objects.bulk_create(
+            [Skill(title=title, insert_type=Skill.InsertType.ORGANIZATION) for title in new_titles]
+        )
+        all_skills = list(existing_skills) + new_skills
+        return cls(skills=set(all_skills))
+
+
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
@@ -1244,6 +1278,7 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_contacts = SetOrganizationContactsMutation.Field()
+    set_skills = SetOrganizationSkillMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
     create_job_position = OrganizationJobPositionCreateMutation.Field()
