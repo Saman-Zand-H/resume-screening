@@ -1218,7 +1218,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class SetOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
+class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
     accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
 
     class Arguments:
@@ -1243,7 +1243,7 @@ class SetOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutatio
         existing_titles = set(existing_skills.values_list("title_lower", flat=True))
         new_titles = normalized_titles - existing_titles
         new_skills = Skill.objects.bulk_create(
-            [Skill(title=title, insert_type=Skill.InsertType.ORGANIZATION) for title in new_titles]
+            [Skill(title=title.title(), insert_type=Skill.InsertType.ORGANIZATION) for title in new_titles]
         )
         all_skills = list(existing_skills) + new_skills
         return cls(skills=set(all_skills))
@@ -1332,7 +1332,7 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_contacts = SetOrganizationContactsMutation.Field()
-    set_skills = SetOrganizationSkillMutation.Field()
+    set_skills = CreateOrganizationSkillMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
     create_job_position = OrganizationJobPositionCreateMutation.Field()
