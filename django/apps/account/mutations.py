@@ -1332,7 +1332,7 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_contacts = SetOrganizationContactsMutation.Field()
-    set_skills = CreateOrganizationSkillMutation.Field()
+    create_skills = CreateOrganizationSkillMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
     create_job_position = OrganizationJobPositionCreateMutation.Field()
