@@ -33,6 +33,7 @@ from .models import (
     IEEMethod,
     JobPositionAssignment,
     JobPositionAssignmentStatusHistory,
+    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -730,6 +731,16 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         )
 
 
+class JobPositionInterviewType(DjangoObjectType):
+    class Meta:
+        model = JobPositionInterview
+        fields = (
+            JobPositionInterview.id.field.name,
+            JobPositionInterview.interview_date.field.name,
+            JobPositionInterview.result_date.field.name,
+        )
+
+
 class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
     class Meta:
         model = JobPositionAssignmentStatusHistory
@@ -747,9 +758,8 @@ class JobPositionAssignmentNode(DjangoObjectType):
         fields = (
             JobPositionAssignment.id.field.name,
             JobPositionAssignment.status.field.name,
-            JobPositionAssignment.interview_date.field.name,
-            JobPositionAssignment.result_date.field.name,
             JobPositionAssignment.created_at.field.name,
+            JobPositionInterview.job_position_assignment.field.related_query_name(),
             JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
         )
 
