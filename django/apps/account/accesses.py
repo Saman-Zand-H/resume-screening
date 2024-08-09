@@ -76,7 +76,7 @@ def has_organization_membership(kwargs: dict):
         **{
             OrganizationMembership.user.field.name: user,
             fields_join(
-                OrganizationMembership.organization.field.related_query_name(), Organization.status
+                OrganizationMembership.organization, Organization.status, "in"
             ): Organization.get_verified_statuses(),
         }
     ).exists()
