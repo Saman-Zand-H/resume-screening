@@ -71,6 +71,7 @@ from .models import (
     Education,
     EmployerLetterMethod,
     JobPositionAssignment,
+    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -1206,15 +1207,23 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         login_required = True
         fields = [JobPositionAssignment.status.field.name]
         required_fields = [JobPositionAssignment.status.field.name]
+        custom_fields = {
+            JobPositionInterview.interview_date.field.name: graphene.DateTime(),
+            JobPositionInterview.result_date.field.name: graphene.DateTime(),
+        }
         type_name = "JobPositionAssignmentStatusUpdateInput"
 
     @classmethod
+    @transaction.atomic
     def mutate(cls, root, info, input, id):
         status = input.get(JobPositionAssignment.status.field.name)
         if not (obj := JobPositionAssignment.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position assignment not found."))
 
-        obj.change_status(status)
+        interview_date = input.get(JobPositionInterview.interview_date.field.name)
+        result_date = input.get(JobPositionInterview.result_date.field.name)
+
+        obj.change_status(status, interview_date=interview_date, result_date=result_date)
         return cls(**{cls._meta.return_field_name: obj})
 
 
