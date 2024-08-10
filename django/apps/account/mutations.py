@@ -553,8 +553,8 @@ class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutI
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
 
-        if (skills := input.get(Profile.skills.field.name)) and not profile.skills.filter(pk__in=skills).count() == len(
-            skills
+        if (skills := input.get(Profile.skills.field.name)) and not (
+            profile.skills.filter(pk__in=skills).count() == len(skills)
         ):
             raise GraphQLErrorBadRequest(_("Skills must be selected from the list."))
 
