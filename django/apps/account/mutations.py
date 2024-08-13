@@ -4,10 +4,12 @@ import graphene
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
+    CUDOutputTypeMixin,
     DocumentFilePermissionMixin,
     FilePermissionMixin,
 )
-from common.models import Job
+from common.models import Job, Skill
+from common.types import SkillType
 from common.utils import fields_join
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -35,6 +37,8 @@ from graphql_jwt.decorators import (
 
 from account.utils import is_env
 from django.db import transaction
+from django.db.models import F
+from django.db.models.functions import Lower
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -67,6 +71,7 @@ from .models import (
     Education,
     EmployerLetterMethod,
     JobPositionAssignment,
+    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -90,7 +95,15 @@ from .tasks import (
     set_user_skills,
     user_task_runner,
 )
-from .types import UserNode
+from .types import (
+    CertificateAndLicenseNode,
+    EducationNode,
+    LanguageCertificateNode,
+    OrganizationJobPositionNode,
+    ProfileType,
+    UserNode,
+    WorkExperienceNode,
+)
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -491,7 +504,11 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
 )
 
 
-class UserUpdateMutation(FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
+class UserUpdateMutation(
+    CUDOutputTypeMixin, FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation
+):
+    output_type = ProfileType
+
     class Meta:
         model = Profile
         login_required = True
@@ -672,13 +689,17 @@ EDUCATION_MUTATION_FIELDS = (
 )
 
 
-class EducationCreateMutation(DocumentCreateMutationBase):
+class EducationCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
+    output_type = EducationNode
+
     class Meta:
         model = Education
         fields = EDUCATION_MUTATION_FIELDS
 
 
-class EducationUpdateMutation(DocumentPatchMutationBase):
+class EducationUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
+    output_type = EducationNode
+
     class Meta:
         model = Education
         fields = EDUCATION_MUTATION_FIELDS
@@ -689,12 +710,18 @@ class EducationDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutatio
         model = Education
 
 
-class EducationSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+class EducationSetVerificationMethodMutation(
+    CUDOutputTypeMixin, DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
+):
+    output_type = EducationNode
+
     class Meta:
         model = Education
 
 
-class EducationUpdateStatusMutation(UpdateStatusMixin):
+class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
+    output_type = EducationNode
+
     class Meta:
         model = Education
 
@@ -711,13 +738,17 @@ WORK_EXPERIENCE_MUTATION_FIELDS = (
 )
 
 
-class WorkExperienceCreateMutation(DocumentCreateMutationBase):
+class WorkExperienceCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
+    output_type = WorkExperienceNode
+
     class Meta:
         model = WorkExperience
         fields = WORK_EXPERIENCE_MUTATION_FIELDS
 
 
-class WorkExperienceUpdateMutation(DocumentPatchMutationBase):
+class WorkExperienceUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
+    output_type = WorkExperienceNode
+
     class Meta:
         model = WorkExperience
         fields = WORK_EXPERIENCE_MUTATION_FIELDS
@@ -728,7 +759,11 @@ class WorkExperienceDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMu
         model = WorkExperience
 
 
-class WorkExperienceSetVerificationMethodMutation(DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation):
+class WorkExperienceSetVerificationMethodMutation(
+    CUDOutputTypeMixin, DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
+):
+    output_type = WorkExperienceNode
+
     @classmethod
     def after_mutate(cls, root, info, id, input, obj, return_data):
         return super().after_mutate(root, info, id, input, obj, return_data)
@@ -760,7 +795,9 @@ class WorkExperienceSetVerificationMethodMutation(DocumentFilePermissionMixin, D
         return super().validate(root, info, input, id, obj)
 
 
-class WorkExperienceUpdateStatusMutation(UpdateStatusMixin):
+class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
+    output_type = WorkExperienceNode
+
     class Meta:
         model = WorkExperience
 
@@ -784,7 +821,9 @@ def validate_language_certificate_skills(test, values):
         raise GraphQLErrorBadRequest(_("All skills must be provided."))
 
 
-class LanguageCertificateCreateMutation(DocumentCreateMutationBase):
+class LanguageCertificateCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
+    output_type = LanguageCertificateNode
+
     class Meta:
         model = LanguageCertificate
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
@@ -813,7 +852,9 @@ class LanguageCertificateCreateMutation(DocumentCreateMutationBase):
             validate_language_certificate_skills(obj.test, values)
 
 
-class LanguageCertificateUpdateMutation(DocumentPatchMutationBase):
+class LanguageCertificateUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
+    output_type = LanguageCertificateNode
+
     class Meta:
         model = LanguageCertificate
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
@@ -853,15 +894,18 @@ class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDel
 
 
 class LanguageCertificateSetVerificationMethodMutation(
-    DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
+    CUDOutputTypeMixin, DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
 ):
+    output_type = LanguageCertificateNode
     verification_new_status = DocumentAbstract.Status.SELF_VERIFIED
 
     class Meta:
         model = LanguageCertificate
 
 
-class LanguageCertificateUpdateStatusMutation(UpdateStatusMixin):
+class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
+    output_type = LanguageCertificateNode
+
     class Meta:
         model = LanguageCertificate
 
@@ -874,13 +918,17 @@ CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
 )
 
 
-class CertificateAndLicenseCreateMutation(DocumentCreateMutationBase):
+class CertificateAndLicenseCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
+    output_type = CertificateAndLicenseNode
+
     class Meta:
         model = CertificateAndLicense
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
 
 
-class CertificateAndLicenseUpdateMutation(DocumentPatchMutationBase):
+class CertificateAndLicenseUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
+    output_type = CertificateAndLicenseNode
+
     class Meta:
         model = CertificateAndLicense
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
@@ -892,8 +940,9 @@ class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoD
 
 
 class CertificateAndLicenseSetVerificationMethodMutation(
-    DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
+    CUDOutputTypeMixin, DocumentFilePermissionMixin, DocumentSetVerificationMethodMutation
 ):
+    output_type = CertificateAndLicenseNode
     verification_new_status = DocumentAbstract.Status.SELF_VERIFIED
 
     class Meta:
@@ -916,7 +965,9 @@ class CertificateAndLicenseSetVerificationMethodMutation(
         )
 
 
-class CertificateAndLicenseUpdateStatusMutation(UpdateStatusMixin):
+class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
+    output_type = CertificateAndLicenseNode
+
     class Meta:
         model = CertificateAndLicense
 
@@ -1035,7 +1086,10 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
 ]
 
 
-class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoCreateMutation):
+class OrganizationJobPositionCreateMutation(
+    CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoCreateMutation
+):
+    output_type = OrganizationJobPositionNode
     accesses = [JobPositionContainer.CREATEOR, JobPositionContainer.ADMIN]
 
     @classmethod
@@ -1061,7 +1115,10 @@ class OrganizationJobPositionCreateMutation(MutationAccessRequiredMixin, ArrayCh
         obj.full_clean()
 
 
-class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
+class OrganizationJobPositionUpdateMutation(
+    CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
+):
+    output_type = OrganizationJobPositionNode
     accesses = [JobPositionContainer.EDITOR, JobPositionContainer.ADMIN]
 
     @classmethod
@@ -1093,7 +1150,8 @@ class OrganizationJobPositionUpdateMutation(MutationAccessRequiredMixin, DjangoP
         return obj
 
 
-class OrganizationJobPositionStatusUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
+class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAccessRequiredMixin, DjangoPatchMutation):
+    output_type = OrganizationJobPositionNode
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
 
     @classmethod
@@ -1149,16 +1207,55 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         login_required = True
         fields = [JobPositionAssignment.status.field.name]
         required_fields = [JobPositionAssignment.status.field.name]
+        custom_fields = {
+            JobPositionInterview.interview_date.field.name: graphene.DateTime(),
+            JobPositionInterview.result_date.field.name: graphene.DateTime(),
+        }
         type_name = "JobPositionAssignmentStatusUpdateInput"
 
     @classmethod
+    @transaction.atomic
     def mutate(cls, root, info, input, id):
         status = input.get(JobPositionAssignment.status.field.name)
         if not (obj := JobPositionAssignment.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position assignment not found."))
 
-        obj.change_status(status)
+        interview_date = input.get(JobPositionInterview.interview_date.field.name)
+        result_date = input.get(JobPositionInterview.result_date.field.name)
+
+        obj.change_status(status, interview_date=interview_date, result_date=result_date)
         return cls(**{cls._meta.return_field_name: obj})
+
+
+class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
+    accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
+
+    class Arguments:
+        organization = graphene.ID(required=True)
+        skills = graphene.List(graphene.String, required=True)
+
+    skills = graphene.List(SkillType)
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (organization := Organization.objects.filter(pk=kwargs.get("organization")).first()):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+        return organization
+
+    @classmethod
+    @login_required
+    def mutate(cls, root, info, organization, skills):
+        normalized_titles = {skill.strip().lower() for skill in skills if skill.strip()}
+        existing_skills = Skill.objects.annotate(title_lower=Lower(F("title"))).filter(
+            title_lower__in=normalized_titles
+        )
+        existing_titles = set(existing_skills.values_list("title_lower", flat=True))
+        new_titles = normalized_titles - existing_titles
+        new_skills = Skill.objects.bulk_create(
+            [Skill(title=title.title(), insert_type=Skill.InsertType.ORGANIZATION) for title in new_titles]
+        )
+        all_skills = list(existing_skills) + new_skills
+        return cls(skills=set(all_skills))
 
 
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
@@ -1244,6 +1341,7 @@ class OrganizationMutation(graphene.ObjectType):
     invite = OrganizationInviteMutation.Field()
     update = OrganizationUpdateMutation.Field()
     set_contacts = SetOrganizationContactsMutation.Field()
+    create_skills = CreateOrganizationSkillMutation.Field()
     set_verification_method = OrganizationSetVerificationMethodMutation.Field()
     verify_communication_method = OrganizationCommunicationMethodVerify.Field()
     create_job_position = OrganizationJobPositionCreateMutation.Field()

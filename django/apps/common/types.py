@@ -43,6 +43,15 @@ class JobBenefitNode(DjangoObjectType):
         }
 
 
+class JobBenefitType(DjangoObjectType):
+    class Meta:
+        model = JobBenefit
+        fields = (
+            JobBenefit.id.field.name,
+            JobBenefit.name.field.name,
+        )
+
+
 class IndustryNode(DjangoObjectType):
     class Meta:
         model = Industry
@@ -115,6 +124,15 @@ class FieldNode(DjangoObjectType):
             Field.id.field.name: ["exact"],
             Field.name.field.name: ["icontains"],
         }
+
+
+class FieldType(DjangoObjectType):
+    class Meta:
+        model = Field
+        fields = (
+            Field.id.field.name,
+            Field.name.field.name,
+        )
 
 
 class CountryNode(DjangoObjectType):
@@ -201,6 +219,15 @@ class SkillNode(DjangoObjectType):
             Skill.id.field.name: ["exact"],
             Skill.title.field.name: ["icontains"],
         }
+
+
+class SkillType(DjangoObjectType):
+    class Meta:
+        model = Skill
+        fields = (
+            Skill.id.field.name,
+            Skill.title.field.name,
+        )
 
 
 UploadType = convert_choices_to_named_enum_with_descriptions(

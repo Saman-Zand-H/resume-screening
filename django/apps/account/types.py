@@ -3,7 +3,7 @@ import contextlib
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import JobNode
+from common.types import JobNode, JobBenefitType, SkillType, FieldType
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -15,7 +15,7 @@ from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, IntegerField, Q, QuerySet, Value, When, Count
 
 from .accesses import (
     JobPositionContainer,
@@ -33,6 +33,7 @@ from .models import (
     IEEMethod,
     JobPositionAssignment,
     JobPositionAssignmentStatusHistory,
+    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
@@ -61,6 +62,111 @@ class ContactType(DjangoObjectType):
             Contact.type.field.name,
             Contact.value.field.name,
         )
+
+
+class JobSeekerEducationType(DjangoObjectType):
+    class Meta:
+        model = Education
+        fields = (
+            Education.id.field.name,
+            Education.field.field.name,
+            Education.degree.field.name,
+            Education.university.field.name,
+            Education.city.field.name,
+            Education.start.field.name,
+            Education.end.field.name,
+            Education.status.field.name,
+        )
+
+
+class JobSeekerWorkExperienceType(DjangoObjectType):
+    class Meta:
+        model = WorkExperience
+        fields = (
+            WorkExperience.id.field.name,
+            WorkExperience.job_title.field.name,
+            WorkExperience.grade.field.name,
+            WorkExperience.organization.field.name,
+            WorkExperience.city.field.name,
+            WorkExperience.start.field.name,
+            WorkExperience.end.field.name,
+            WorkExperience.status.field.name,
+        )
+
+
+class JobSeekerLanguageCertificateType(DjangoObjectType):
+    class Meta:
+        model = LanguageCertificate
+        fields = (
+            LanguageCertificate.id.field.name,
+            LanguageCertificate.language.field.name,
+            LanguageCertificate.test.field.name,
+            LanguageCertificate.issued_at.field.name,
+            LanguageCertificate.expired_at.field.name,
+            LanguageCertificate.status.field.name,
+        )
+
+
+class JobSeekerCertificateAndLicenseType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicense
+        fields = (
+            CertificateAndLicense.id.field.name,
+            CertificateAndLicense.title.field.name,
+            CertificateAndLicense.certifier.field.name,
+            CertificateAndLicense.issued_at.field.name,
+            CertificateAndLicense.expired_at.field.name,
+            CertificateAndLicense.status.field.name,
+        )
+
+
+class JobSeekerProfileType(DjangoObjectType):
+    contacts = graphene.List(ContactType)
+
+    class Meta:
+        model = Profile
+        fields = (
+            Profile.avatar.field.name,
+            Profile.full_body_image.field.name,
+            Profile.score.field.name,
+            Profile.contactable.field.name,
+        )
+
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
+
+
+class JobSeekerType(DjangoObjectType):
+    profile = graphene.Field(JobSeekerProfileType)
+    educations = graphene.List(JobSeekerEducationType)
+    workexperiences = graphene.List(JobSeekerWorkExperienceType)
+    languagecertificates = graphene.List(JobSeekerLanguageCertificateType)
+    certificateandlicenses = graphene.List(JobSeekerCertificateAndLicenseType)
+
+    class Meta:
+        model = User
+        fields = (
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.email.field.name,
+            Resume.user.field.related_query_name(),
+            GeneratedCV.user.field.related_query_name(),
+        )
+
+    def resolve_profile(self, info):
+        return self.profile
+
+    def resolve_educations(self, info):
+        return self.educations.all().order_by("-id")
+
+    def resolve_workexperiences(self, info):
+        return self.workexperiences.all().order_by("-id")
+
+    def resolve_languagecertificates(self, info):
+        return self.languagecertificates.all().order_by("-id")
+
+    def resolve_certificateandlicenses(self, info):
+        return self.certificateandlicenses.all().order_by("-id")
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -387,6 +493,7 @@ class UserTaskType(DjangoObjectType):
 
 
 class UserNode(BaseUserNode):
+    profile = graphene.Field(ProfileType)
     educations = graphene.List(EducationNode)
     workexperiences = graphene.List(WorkExperienceNode)
     languagecertificates = graphene.List(LanguageCertificateNode)
@@ -405,7 +512,6 @@ class UserNode(BaseUserNode):
             User.first_name.field.name,
             User.last_name.field.name,
             User.email.field.name,
-            Profile.user.field.related_query_name(),
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
@@ -414,6 +520,9 @@ class UserNode(BaseUserNode):
             GeneratedCV.user.field.related_query_name(),
             OrganizationMembership.user.field.related_query_name(),
         )
+
+    def resolve_profile(self, info):
+        return self.profile
 
     def resolve_educations(self, info):
         return self.educations.all().order_by("-id")
@@ -436,6 +545,8 @@ class UserNode(BaseUserNode):
 
 
 class OrganizationType(DjangoObjectType):
+    has_financial_data = graphene.Boolean()
+
     class Meta:
         model = Organization
         fields = (
@@ -450,9 +561,13 @@ class OrganizationType(DjangoObjectType):
             Organization.established_at.field.name,
             Organization.size.field.name,
             Organization.about.field.name,
+            Organization.status.field.name,
             OrganizationInvitation.organization.field.related_query_name(),
             OrganizationMembership.organization.field.related_query_name(),
         )
+
+    def resolve_has_financial_data(self, info):
+        return True
 
 
 class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
@@ -489,6 +604,29 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
             return model.objects.get(token=token)
 
 
+class JobPositionAssignmentStatusCountType(graphene.ObjectType):
+    status = graphene.String()
+    count = graphene.Int()
+
+
+class OrganizationJobPositionReportType(graphene.ObjectType):
+    assignment_status_counts = graphene.List(JobPositionAssignmentStatusCountType)
+
+    def resolve_assignment_status_counts(self, info, **kwargs):
+        status_counts = (
+            JobPositionAssignment.objects.filter(job_position=self)
+            .values(
+                JobPositionAssignment.status.field.name,
+            )
+            .annotate(count=Count(JobPositionAssignment.status.field.name))
+        )
+
+        return [
+            JobPositionAssignmentStatusCountType(status=item["status"].upper(), count=item["count"])
+            for item in status_counts
+        ]
+
+
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
 
 
@@ -502,7 +640,10 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     work_experience_years_range = graphene.List(
         graphene.Int, description="The work experience years range of the job position."
     )
-    has_financial_data = graphene.Boolean()
+    report = graphene.Field(OrganizationJobPositionReportType)
+    skills = graphene.List(SkillType)
+    fields = graphene.List(FieldType)
+    benefits = graphene.List(JobBenefitType)
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -522,8 +663,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.start_at.field.name,
             OrganizationJobPosition.validity_date.field.name,
             OrganizationJobPosition.description.field.name,
-            OrganizationJobPosition.skills.field.name,
-            OrganizationJobPosition.fields.field.name,
             OrganizationJobPosition.degrees.field.name,
             OrganizationJobPosition.languages.field.name,
             OrganizationJobPosition.native_languages.field.name,
@@ -534,7 +673,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.payment_term.field.name,
             OrganizationJobPosition.working_start_at.field.name,
             OrganizationJobPosition.working_end_at.field.name,
-            OrganizationJobPosition.benefits.field.name,
             OrganizationJobPosition.other_benefits.field.name,
             OrganizationJobPosition.days_off.field.name,
             OrganizationJobPosition.job_restrictions.field.name,
@@ -554,16 +692,31 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         return self.status
 
     def resolve_age_range(self, info):
+        if self.age_range is None:
+            return None
         return [self.age_range.lower, self.age_range.upper]
 
     def resolve_salary_range(self, info):
+        if self.salary_range is None:
+            return None
         return [self.salary_range.lower, self.salary_range.upper]
 
     def resolve_work_experience_years_range(self, info):
+        if self.work_experience_years_range is None:
+            return None
         return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
 
-    def resolve_has_financial_data(self, info):
-        return True
+    def resolve_report(self, info):
+        return self
+
+    def resolve_skills(self, info):
+        return self.skills.all()
+
+    def resolve_fields(self, info):
+        return self.fields.all()
+
+    def resolve_benefits(self, info):
+        return self.benefits.all()
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
@@ -579,6 +732,16 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         )
 
 
+class JobPositionInterviewType(DjangoObjectType):
+    class Meta:
+        model = JobPositionInterview
+        fields = (
+            JobPositionInterview.id.field.name,
+            JobPositionInterview.interview_date.field.name,
+            JobPositionInterview.result_date.field.name,
+        )
+
+
 class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
     class Meta:
         model = JobPositionAssignmentStatusHistory
@@ -589,18 +752,17 @@ class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
 
 
 class JobPositionAssignmentNode(DjangoObjectType):
-    status_history = graphene.List(JobPositionAssignmentStatusHistoryType)
+    job_seeker = graphene.Field(JobSeekerType)
 
     class Meta:
         model = JobPositionAssignment
         fields = (
             JobPositionAssignment.id.field.name,
-            JobPositionAssignment.job_seeker.field.name,
             JobPositionAssignment.status.field.name,
-            JobPositionAssignment.interview_date.field.name,
-            JobPositionAssignment.result_date.field.name,
             JobPositionAssignment.created_at.field.name,
+            JobPositionInterview.job_position_assignment.field.related_query_name(),
+            JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
         )
 
-    def resolve_status_history(self, info):
-        return self.status_histories.all()
+    def resolve_job_seeker(self, info):
+        return self.job_seeker

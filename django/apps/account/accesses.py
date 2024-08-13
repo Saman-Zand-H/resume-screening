@@ -2,7 +2,7 @@ from itertools import chain
 from operator import methodcaller
 from typing import Callable, List, Optional, Type
 
-from common.utils import get_all_subclasses
+from common.utils import get_all_subclasses, fields_join
 from pydantic import BaseModel, InstanceOf
 from rules import predicates
 from rules.rulesets import add_rule
@@ -65,6 +65,21 @@ def is_organization_member(kwargs: dict):
         user, OrganizationMembership.user.field.related_query_name()
     )
     return memberships.filter(**{OrganizationMembership.organization.field.name: instance}).exists()
+
+
+@predicates.predicate
+def has_organization_membership(kwargs: dict):
+    parsed_kwargs = AccessPredicateArgument.model_validate(kwargs)
+    user = parsed_kwargs.user
+
+    return OrganizationMembership.objects.filter(
+        **{
+            OrganizationMembership.user.field.name: user,
+            fields_join(
+                OrganizationMembership.organization, Organization.status, "in"
+            ): Organization.get_verified_statuses(),
+        }
+    ).exists()
 
 
 class AccessContainer:
@@ -168,4 +183,10 @@ class JobPositionContainer(AccessContainer):
         slug="admin-job-position",
         title="Can manage job positions",
         predicate=(is_organization_member & is_organization_verified),
+    )
+
+    SKILL_CREATOR = AccessType(
+        slug="skill-creator",
+        title="Can create job position skills",
+        predicate=has_organization_membership,
     )
