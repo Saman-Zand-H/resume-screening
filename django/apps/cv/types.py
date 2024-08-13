@@ -1,6 +1,6 @@
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from .models import CVTemplate, GeneratedCV
+from .models import CVTemplate, GeneratedCV, GeneratedCVContent
 
 
 class CVTemplateNode(DjangoObjectType):
@@ -25,3 +25,18 @@ class GeneratedCVNode(DjangoObjectType):
         model = GeneratedCV
         use_connection = True
         fields = (GeneratedCV.file.field.name,)
+
+
+class GeneratedCVContentType(DjangoObjectType):
+    class Meta:
+        model = GeneratedCVContent
+        fields = (GeneratedCVContent.about_me.field.name,)
+
+
+class JobSeekerGeneratedCVType(DjangoObjectType):
+    class Meta:
+        model = GeneratedCV
+        fields = (
+            GeneratedCV.file.field.name,
+            GeneratedCV.modified.field.name,
+        )

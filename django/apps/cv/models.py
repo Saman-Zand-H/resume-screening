@@ -134,7 +134,7 @@ class GeneratedCVContent(models.Model):
         verbose_name_plural = _("Generated CV Contents")
 
 
-class GeneratedCV(FileModel):
+class GeneratedCV(TimeStampedModel, FileModel):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
