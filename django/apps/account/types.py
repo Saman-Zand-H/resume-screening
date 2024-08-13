@@ -622,7 +622,8 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
         )
 
         return [
-            JobPositionAssignmentStatusCountType(status=item["status"], count=item["count"]) for item in status_counts
+            JobPositionAssignmentStatusCountType(status=item["status"].upper(), count=item["count"])
+            for item in status_counts
         ]
 
 
