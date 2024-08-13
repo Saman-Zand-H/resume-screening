@@ -192,6 +192,11 @@ class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
         email = kwargs.get(User.EMAIL_FIELD)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_RECEIVER_NAME_VARIABLE,
+            kwargs.get(cls.EMAIL_RECEIVER_NAME),
+        )
         try:
             UserStatus.clean_email(email)
         except EmailAlreadyInUseError:
@@ -219,6 +224,8 @@ class UserRegister(RegisterBase):
         "referral_code",
         OrganizationInvitation.token.field.name,
     ]
+
+    EMAIL_RECEIVER_NAME = User.first_name.field.name
 
     @classmethod
     def after_mutate(cls, *args, **kwargs):
@@ -250,6 +257,8 @@ class UserRegister(RegisterBase):
 
 class RegisterOrganization(RegisterBase):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
+
+    EMAIL_RECEIVER_NAME = Organization.name.field.name
 
     @classmethod
     def after_mutate(cls, *args, **kwargs):
