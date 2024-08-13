@@ -159,7 +159,7 @@ def referral_registration(user, referral_code):
 
 
 EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
-USER_FIRSTNAME_VARIABLE = "user_firstname"
+EMAIL_RECEIVER_NAME_VARIABLE = "email_receiver_name"
 TEMPLATE_CONTEXT_VARIABLE = "template_context"
 
 
@@ -314,8 +314,8 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         user = get_user_by_email(kwargs.get("email"))
         set_template_context_variable(
             args[1].context,
-            USER_FIRSTNAME_VARIABLE,
-            user.first_name,
+            EMAIL_RECEIVER_NAME_VARIABLE,
+            user.first_name if user.first_name else user.email,
         )
         return super().mutate(*args, **kwargs)
 
