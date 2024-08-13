@@ -1776,15 +1776,21 @@ class OrganizationJobPosition(models.Model):
     class ContractType(models.TextChoices):
         FULL_TIME = "full_time", _("Full Time")
         PART_TIME = "part_time", _("Part Time")
-        TEMPORARY = "temporary", _("Temporary")
-        INTERNSHIP = "internship", _("Internship")
-        CONTRACT = "contract", _("Contract")
+        PERMANENT = "permanent", _("Permanent")
+        FIX_TERM_CONTRACT = "fix_term_contract", _("Fix Term Contract")
+        SEASONAL = "seasonal", _("Seasonal")
         FREELANCE = "freelance", _("Freelance")
+        APPRENTICESHIP = "apprenticeship", _("Apprenticeship")
+        PRINCE_EDWARD_ISLAND = "prince_edward_island", _("Prince Edward Island")
+        INTERNSHIP_CO_OP = "internship_co_op", _("Internship/Co-op")
 
     class LocationType(models.TextChoices):
-        ONSITE = "onsite", _("Onsite")
+        PRECISE_LOCATION = "precise_location", _("On-site (Precise Location)")
+        LIMITED_AREA = "limited_area", _("On-site (Within a Limited Area)")
         REMOTE = "remote", _("Remote")
         HYBRID = "hybrid", _("Hybrid")
+        ON_THE_ROAD = "on_the_road", _("On the road")
+        GLOBAL = "global", _("Global")
 
     class PaymentTerm(models.TextChoices):
         HOURLY = "hourly", _("Hourly")
