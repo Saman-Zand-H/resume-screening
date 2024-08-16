@@ -59,8 +59,8 @@ merge_tag_push() {
     echo "Switching to $target_branch for merge..."
     git checkout "$target_branch"
 
-    echo "Merging $source_branch into $target_branch..."
-    git merge --no-ff "$source_branch" -m "Merge $source_branch into $target_branch"
+    echo "Merging $source_branch into $target_branch with tag $tag..."
+    git merge --no-ff "$source_branch" -m "Merging $source_branch into $target_branch with tag $tag..."
 
     echo "Tagging with $tag..."
     git tag "$tag"
