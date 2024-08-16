@@ -28,6 +28,10 @@ class ProfileResource(ModelResource):
     birth_date = fields.Field(column_name=_("Birth Date"), default="_")
     last_login = fields.Field(column_name=_("Last Login"), default="_")
     date_joined = fields.Field(column_name=_("Date Joined"), default="_")
+    has_education = fields.Field(column_name=_("Has Education"))
+    has_work_experience = fields.Field(column_name=_("Has Work Experience"))
+    has_language_certificate = fields.Field(column_name=_("Has Language Certificate"))
+    has_certificate_and_license = fields.Field(column_name=_("Has Certificate and License"))
 
     def dehydrate_educations(self, obj: Profile):
         return "\n\n".join(
@@ -112,6 +116,18 @@ class ProfileResource(ModelResource):
     def dehydrate_date_joined(self, obj: Profile):
         return obj.user.date_joined.replace(tzinfo=None) if obj.user.date_joined else None
 
+    def dehydrate_has_education(self, obj: Profile):
+        return "✓" if obj.user.educations.exists() else "×"
+
+    def dehydrate_has_work_experience(self, obj: Profile):
+        return "✓" if obj.user.workexperiences.exists() else "×"
+
+    def dehydrate_has_language_certificate(self, obj: Profile):
+        return "✓" if obj.user.languagecertificates.exists() else "×"
+
+    def dehydrate_has_certificate_and_license(self, obj: Profile):
+        return "✓" if obj.user.certificateandlicenses.exists() else "×"
+
     class Meta:
         model = Profile
         fields = [
@@ -129,6 +145,10 @@ class ProfileResource(ModelResource):
             "certificate_and_licenses",
             "last_login",
             "date_joined",
+            "has_education",
+            "has_work_experience",
+            "has_language_certificate",
+            "has_certificate_and_license",
         ]
         widgets = {
             Profile.birth_date.field.name: {"format": "%Y-%m-%d"},
