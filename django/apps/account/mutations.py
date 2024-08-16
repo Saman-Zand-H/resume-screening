@@ -36,6 +36,7 @@ from graphql_jwt.decorators import (
 )
 
 from account.utils import is_env
+from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
 from django.db.models.functions import Lower
@@ -393,6 +394,16 @@ class LinkedInAuth(BaseSocialAuth):
             "data": {"code": code},
             "view": type("View", (LinkedInOAuth2View,), {"callback_url": kwargs.get("redirect_uri")}),
         }
+
+
+class ObtainJSONWebToken(graphql_auth_mutations.ObtainJSONWebToken):
+    @classmethod
+    def mutate(cls, root, info, **input):
+        output = super().mutate(root, info, **input)
+        if output.success:
+            user: User = output.user
+            user_logged_in.send(sender=user.__class__, request=None, user=user)
+        return output
 
 
 class OrganizationUpdateMutation(
@@ -1404,7 +1415,7 @@ class AccountMutation(graphene.ObjectType):
     resend_activation_email = ResendActivationEmail.Field()
     send_password_reset_email = SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
-    token_auth = graphql_auth_mutations.ObtainJSONWebToken.Field()
+    token_auth = ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
