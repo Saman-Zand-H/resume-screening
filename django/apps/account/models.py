@@ -463,6 +463,14 @@ class AvatarFile(UserUploadedImageFile):
     def get_validators(self):
         return [IMAGE_FILE_EXTENSION_VALIDATOR, ValidateFileSize(max=10)]
 
+    def check_auth(self, request):
+        return (
+            super().check_auth(request)
+            or self.uploaded_by.job_position_assignments.filter(
+                job_position__organization__memberships__user=request.user
+            ).exists()
+        )
+
     class Meta:
         verbose_name = _("Avatar Image")
         verbose_name_plural = _("Avatar Images")
@@ -1317,6 +1325,14 @@ class ResumeFile(UserUploadedDocumentFile):
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
+
+    def check_auth(self, request):
+        return (
+            super().check_auth(request)
+            or self.uploaded_by.job_position_assignments.filter(
+                job_position__organization__memberships__user=request.user
+            ).exists()
+        )
 
     class Meta:
         verbose_name = _("Resume File")

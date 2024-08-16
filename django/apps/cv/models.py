@@ -160,7 +160,12 @@ class GeneratedCV(TimeStampedModel, FileModel):
         ]
 
     def check_auth(self, request):
-        return request.user == self.user
+        return (
+            request.user == self.user
+            or self.user.job_position_assignments.filter(
+                job_position__organization__memberships__user=request.user
+            ).exists()
+        )
 
     @classmethod
     def get_user_context(cls, user: User) -> Tuple[dict, bool]:
