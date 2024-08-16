@@ -26,6 +26,8 @@ class ProfileResource(ModelResource):
     language_certificates = fields.Field(column_name=_("Language Certificates"))
     certificate_and_licenses = fields.Field(column_name=_("Certificates and Licenses"))
     birth_date = fields.Field(column_name=_("Birth Date"), default="_")
+    last_login = fields.Field(column_name=_("Last Login"), default="_")
+    date_joined = fields.Field(column_name=_("Date Joined"), default="_")
 
     def dehydrate_educations(self, obj: Profile):
         return "\n\n".join(
@@ -104,6 +106,12 @@ class ProfileResource(ModelResource):
     def dehydrate_email(self, obj: Profile):
         return obj.user.email
 
+    def dehydrate_last_login(self, obj: Profile):
+        return obj.user.last_login.replace(tzinfo=None) if obj.user.last_login else None
+
+    def dehydrate_date_joined(self, obj: Profile):
+        return obj.user.date_joined.replace(tzinfo=None) if obj.user.date_joined else None
+
     class Meta:
         model = Profile
         fields = [
@@ -119,6 +127,8 @@ class ProfileResource(ModelResource):
             "work_experiences",
             "language_certificates",
             "certificate_and_licenses",
+            "last_login",
+            "date_joined",
         ]
         widgets = {
             Profile.birth_date.field.name: {"format": "%Y-%m-%d"},
