@@ -5,7 +5,7 @@ import re
 import string
 import uuid
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
@@ -134,6 +134,104 @@ class Contactable(models.Model):
         verbose_name_plural = _("Contactables")
 
 
+class Contact(models.Model):
+    class Type(models.TextChoices):
+        WEBSITE = "website", _("Website")
+        ADDRESS = "address", _("Address")
+        LINKEDIN = "linkedin", _("LinkedIn")
+        WHATSAPP = "whatsapp", _("WhatsApp")
+        PHONE = "phone", _("Phone")
+
+    VALIDATORS = {
+        Type.WEBSITE: models.URLField().run_validators,
+        Type.ADDRESS: None,
+        Type.LINKEDIN: LinkedInUsernameValidator(),
+        Type.WHATSAPP: WhatsAppValidator(),
+        Type.PHONE: PhoneNumberField().run_validators,
+    }
+
+    VALUE_FIXERS = {
+        Type.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
+        Type.WHATSAPP: fix_whatsapp_value,
+    }
+
+    TYPE_ICON = {
+        Type.WEBSITE: static("img/icon/web.svg"),
+        Type.ADDRESS: static("img/icon/Building office.svg"),
+        Type.LINKEDIN: static("img/icon/linkedin.svg"),
+        Type.WHATSAPP: static("img/icon/whatsapp.svg"),
+        Type.PHONE: static("img/icon/Call.svg"),
+    }
+
+    contactable = models.ForeignKey(
+        Contactable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Contactable"),
+        related_name="contacts",
+        blank=True,
+        null=True,
+    )
+    type = models.CharField(
+        max_length=50,
+        choices=Type.choices,
+        verbose_name=_("Type"),
+        default=Type.WEBSITE.value,
+    )
+    value = models.CharField(max_length=255, verbose_name=_("Value"))
+
+    class Meta:
+        unique_together = ("contactable", "type")
+        verbose_name = _("Contact")
+        verbose_name_plural = _("Contacts")
+
+    def __str__(self):
+        return f"{self.contactable} - {self.type}: {self.value}"
+
+    def get_contact_icon(self):
+        return self.TYPE_ICON.get(self.type)
+
+    def get_display_name_and_link(self) -> Dict[str, Optional[str]]:
+        display_name, link = self.value, None
+
+        match self.type:
+            case Contact.Type.WEBSITE:
+                display_regex = re.compile(r"(?:https?://)?(?:www\.)?([^/]+)")
+                display_name = display_regex.match(self.value).group(1)
+                link = self.value
+
+            case Contact.Type.PHONE:
+                link = f"tel:{PhoneNumber.from_string(self.value).as_international}"
+
+            case Contact.Type.LINKEDIN:
+                display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/in/([^/]+)"
+                display_name = re.match(display_regex, self.value).group(1)
+                link = self.value
+
+            case Contact.Type.WHATSAPP:
+                link = f"https://wa.me/{self.value}"
+                display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
+                display_name = (
+                    (matched_value := re.match(display_regex, self.value)) and matched_value.group(1) or self.value
+                )
+
+        return {"display": display_name, "link": link}
+
+    def clean(self, *args, **kwargs):
+        if self.type in self.VALIDATORS:
+            with contextlib.suppress(TypeError):
+                try:
+                    self.VALIDATORS[self.type](self.value)
+                except ValidationError as e:
+                    raise ValidationError(
+                        {Contact.value.field.name: next(map(field_serializer(self.type), e.messages))},
+                    ) from e
+        else:
+            raise NotImplementedError(f"Validation for {self.type} is not implemented")
+
+        if self.type in self.VALUE_FIXERS:
+            self.value = self.VALUE_FIXERS[self.type](self.value)
+
+
 class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -221,6 +319,25 @@ class User(AbstractUser):
                 pk=self.pk,
             ).exists()
         )
+
+    def get_contacts_by_type(self, contact_type: Contact.Type) -> List[Contact]:
+        profile_contacts = getattr(
+            getattr(self.get_profile(), Profile.contactable.field.name),
+            Contact.contactable.field.related_query_name(),
+            Contact.objects.none(),
+        ).all()
+        organization_contacts = Contact.objects.filter(
+            **{
+                f"{Contact.contactable.field.name}__in": Contactable.objects.filter(
+                    **{
+                        f"{Organization.contactable.field.related_query_name()}__in": getattr(
+                            self, Organization.user.field.related_query_name()
+                        ).all()
+                    }
+                )
+            }
+        )
+        return (profile_contacts | organization_contacts).filter(type=contact_type).distinct()
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
@@ -345,6 +462,14 @@ class AvatarFile(UserUploadedImageFile):
 
     def get_validators(self):
         return [IMAGE_FILE_EXTENSION_VALIDATOR, ValidateFileSize(max=10)]
+
+    def check_auth(self, request):
+        return (
+            super().check_auth(request)
+            or self.uploaded_by.job_position_assignments.filter(
+                job_position__organization__memberships__user=request.user
+            ).exists()
+        )
 
     class Meta:
         verbose_name = _("Avatar Image")
@@ -580,104 +705,6 @@ class Profile(ComputedFieldsModel):
         return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
 
     has_appearance_related_data.fget.verbose_name = _("Has Appearance Related Data")
-
-
-class Contact(models.Model):
-    class Type(models.TextChoices):
-        WEBSITE = "website", _("Website")
-        ADDRESS = "address", _("Address")
-        LINKEDIN = "linkedin", _("LinkedIn")
-        WHATSAPP = "whatsapp", _("WhatsApp")
-        PHONE = "phone", _("Phone")
-
-    VALIDATORS = {
-        Type.WEBSITE: models.URLField().run_validators,
-        Type.ADDRESS: None,
-        Type.LINKEDIN: LinkedInUsernameValidator(),
-        Type.WHATSAPP: WhatsAppValidator(),
-        Type.PHONE: PhoneNumberField().run_validators,
-    }
-
-    VALUE_FIXERS = {
-        Type.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
-        Type.WHATSAPP: fix_whatsapp_value,
-    }
-
-    TYPE_ICON = {
-        Type.WEBSITE: static("img/icon/web.svg"),
-        Type.ADDRESS: static("img/icon/Building office.svg"),
-        Type.LINKEDIN: static("img/icon/linkedin.svg"),
-        Type.WHATSAPP: static("img/icon/whatsapp.svg"),
-        Type.PHONE: static("img/icon/Call.svg"),
-    }
-
-    contactable = models.ForeignKey(
-        Contactable,
-        on_delete=models.CASCADE,
-        verbose_name=_("Contactable"),
-        related_name="contacts",
-        blank=True,
-        null=True,
-    )
-    type = models.CharField(
-        max_length=50,
-        choices=Type.choices,
-        verbose_name=_("Type"),
-        default=Type.WEBSITE.value,
-    )
-    value = models.CharField(max_length=255, verbose_name=_("Value"))
-
-    class Meta:
-        unique_together = ("contactable", "type")
-        verbose_name = _("Contact")
-        verbose_name_plural = _("Contacts")
-
-    def __str__(self):
-        return f"{self.contactable} - {self.type}: {self.value}"
-
-    def get_contact_icon(self):
-        return self.TYPE_ICON.get(self.type)
-
-    def get_display_name_and_link(self) -> Dict[str, Optional[str]]:
-        display_name, link = self.value, None
-
-        match self.type:
-            case Contact.Type.WEBSITE:
-                display_regex = re.compile(r"(?:https?://)?(?:www\.)?([^/]+)")
-                display_name = display_regex.match(self.value).group(1)
-                link = self.value
-
-            case Contact.Type.PHONE:
-                link = f"tel:{PhoneNumber.from_string(self.value).as_international}"
-
-            case Contact.Type.LINKEDIN:
-                display_regex = r"(?:https?://)?(?:www\.)?linkedin\.com/in/([^/]+)"
-                display_name = re.match(display_regex, self.value).group(1)
-                link = self.value
-
-            case Contact.Type.WHATSAPP:
-                link = f"https://wa.me/{self.value}"
-                display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
-                display_name = (
-                    (matched_value := re.match(display_regex, self.value)) and matched_value.group(1) or self.value
-                )
-
-        return {"display": display_name, "link": link}
-
-    def clean(self, *args, **kwargs):
-        if self.type in self.VALIDATORS:
-            with contextlib.suppress(TypeError):
-                try:
-                    self.VALIDATORS[self.type](self.value)
-                except ValidationError as e:
-                    raise ValidationError(
-                        {Contact.value.field.name: next(map(field_serializer(self.type), e.messages))},
-                    ) from e
-        else:
-            raise NotImplementedError(f"Validation for {self.type} is not implemented")
-
-        if self.type in self.VALUE_FIXERS:
-            self.value = self.VALUE_FIXERS[self.type](self.value)
 
 
 class DocumentAbstract(models.Model):
@@ -1299,6 +1326,14 @@ class ResumeFile(UserUploadedDocumentFile):
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
 
+    def check_auth(self, request):
+        return (
+            super().check_auth(request)
+            or self.uploaded_by.job_position_assignments.filter(
+                job_position__organization__memberships__user=request.user
+            ).exists()
+        )
+
     class Meta:
         verbose_name = _("Resume File")
         verbose_name_plural = _("Resume Files")
@@ -1776,15 +1811,21 @@ class OrganizationJobPosition(models.Model):
     class ContractType(models.TextChoices):
         FULL_TIME = "full_time", _("Full Time")
         PART_TIME = "part_time", _("Part Time")
-        TEMPORARY = "temporary", _("Temporary")
-        INTERNSHIP = "internship", _("Internship")
-        CONTRACT = "contract", _("Contract")
+        PERMANENT = "permanent", _("Permanent")
+        FIX_TERM_CONTRACT = "fix_term_contract", _("Fix Term Contract")
+        SEASONAL = "seasonal", _("Seasonal")
         FREELANCE = "freelance", _("Freelance")
+        APPRENTICESHIP = "apprenticeship", _("Apprenticeship")
+        PRINCE_EDWARD_ISLAND = "prince_edward_island", _("Prince Edward Island")
+        INTERNSHIP_CO_OP = "internship_co_op", _("Internship/Co-op")
 
     class LocationType(models.TextChoices):
-        ONSITE = "onsite", _("Onsite")
+        PRECISE_LOCATION = "precise_location", _("On-site (Precise Location)")
+        LIMITED_AREA = "limited_area", _("On-site (Within a Limited Area)")
         REMOTE = "remote", _("Remote")
         HYBRID = "hybrid", _("Hybrid")
+        ON_THE_ROAD = "on_the_road", _("On the road")
+        GLOBAL = "global", _("Global")
 
     class PaymentTerm(models.TextChoices):
         HOURLY = "hourly", _("Hourly")

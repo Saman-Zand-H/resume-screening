@@ -7,7 +7,7 @@ from common.types import JobNode, JobBenefitType, SkillType, FieldType
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
-from cv.models import GeneratedCV
+from cv.types import GeneratedCVContentType, JobSeekerGeneratedCVType, GeneratedCVNode
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -130,6 +130,7 @@ class JobSeekerProfileType(DjangoObjectType):
             Profile.full_body_image.field.name,
             Profile.score.field.name,
             Profile.contactable.field.name,
+            Profile.city.field.name,
         )
 
     def resolve_contacts(self, info):
@@ -142,6 +143,8 @@ class JobSeekerType(DjangoObjectType):
     workexperiences = graphene.List(JobSeekerWorkExperienceType)
     languagecertificates = graphene.List(JobSeekerLanguageCertificateType)
     certificateandlicenses = graphene.List(JobSeekerCertificateAndLicenseType)
+    cv = graphene.Field(JobSeekerGeneratedCVType)
+    cv_content = graphene.Field(GeneratedCVContentType)
 
     class Meta:
         model = User
@@ -150,7 +153,6 @@ class JobSeekerType(DjangoObjectType):
             User.last_name.field.name,
             User.email.field.name,
             Resume.user.field.related_query_name(),
-            GeneratedCV.user.field.related_query_name(),
         )
 
     def resolve_profile(self, info):
@@ -167,6 +169,12 @@ class JobSeekerType(DjangoObjectType):
 
     def resolve_certificateandlicenses(self, info):
         return self.certificateandlicenses.all().order_by("-id")
+
+    def resolve_cv(self, info):
+        return self.cv if hasattr(self, "cv") else None
+
+    def resolve_cv_contents(self, info):
+        return self.cv_contents.latest("id")
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -502,6 +510,7 @@ class UserNode(BaseUserNode):
         JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
     )
     has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
+    cv = graphene.Field(GeneratedCVNode)
 
     class Meta:
         model = User
@@ -517,7 +526,6 @@ class UserNode(BaseUserNode):
             Resume.user.field.related_query_name(),
             SupportTicket.user.field.related_query_name(),
             UserTask.user.field.related_query_name(),
-            GeneratedCV.user.field.related_query_name(),
             OrganizationMembership.user.field.related_query_name(),
         )
 
@@ -542,6 +550,9 @@ class UserNode(BaseUserNode):
             if filters.required is not None:
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
+
+    def resolve_cv(self, info):
+        return self.cv if hasattr(self, "cv") else None
 
 
 class OrganizationType(DjangoObjectType):

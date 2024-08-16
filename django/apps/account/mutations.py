@@ -36,6 +36,7 @@ from graphql_jwt.decorators import (
 )
 
 from account.utils import is_env
+from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
 from django.db.models.functions import Lower
@@ -159,7 +160,7 @@ def referral_registration(user, referral_code):
 
 
 EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
-USER_FIRSTNAME_VARIABLE = "user_firstname"
+EMAIL_RECEIVER_NAME_VARIABLE = "email_receiver_name"
 TEMPLATE_CONTEXT_VARIABLE = "template_context"
 
 
@@ -192,6 +193,11 @@ class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
         email = kwargs.get(User.EMAIL_FIELD)
+        set_template_context_variable(
+            args[1].context,
+            EMAIL_RECEIVER_NAME_VARIABLE,
+            kwargs.get(cls.EMAIL_RECEIVER_NAME),
+        )
         try:
             UserStatus.clean_email(email)
         except EmailAlreadyInUseError:
@@ -219,6 +225,8 @@ class UserRegister(RegisterBase):
         "referral_code",
         OrganizationInvitation.token.field.name,
     ]
+
+    EMAIL_RECEIVER_NAME = User.first_name.field.name
 
     @classmethod
     def after_mutate(cls, *args, **kwargs):
@@ -250,6 +258,8 @@ class UserRegister(RegisterBase):
 
 class RegisterOrganization(RegisterBase):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
+
+    EMAIL_RECEIVER_NAME = Organization.name.field.name
 
     @classmethod
     def after_mutate(cls, *args, **kwargs):
@@ -314,8 +324,8 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         user = get_user_by_email(kwargs.get("email"))
         set_template_context_variable(
             args[1].context,
-            USER_FIRSTNAME_VARIABLE,
-            user.first_name,
+            EMAIL_RECEIVER_NAME_VARIABLE,
+            user.first_name if user.first_name else user.email,
         )
         return super().mutate(*args, **kwargs)
 
@@ -384,6 +394,16 @@ class LinkedInAuth(BaseSocialAuth):
             "data": {"code": code},
             "view": type("View", (LinkedInOAuth2View,), {"callback_url": kwargs.get("redirect_uri")}),
         }
+
+
+class ObtainJSONWebToken(graphql_auth_mutations.ObtainJSONWebToken):
+    @classmethod
+    def mutate(cls, root, info, **input):
+        output = super().mutate(root, info, **input)
+        if output.success:
+            user: User = output.user
+            user_logged_in.send(sender=user.__class__, request=None, user=user)
+        return output
 
 
 class OrganizationUpdateMutation(
@@ -1395,7 +1415,7 @@ class AccountMutation(graphene.ObjectType):
     resend_activation_email = ResendActivationEmail.Field()
     send_password_reset_email = SendPasswordResetEmail.Field()
     password_reset = graphql_auth_mutations.PasswordReset.Field()
-    token_auth = graphql_auth_mutations.ObtainJSONWebToken.Field()
+    token_auth = ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
