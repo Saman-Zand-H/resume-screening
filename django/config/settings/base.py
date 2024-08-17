@@ -34,7 +34,8 @@ GOOGLE_CLOUD_LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 
 if GOOGLE_APPLICATION_CREDENTIALS:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS
-
+else:
+    GOOGLE_APPLICATION_CREDENTIALS = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -87,6 +88,7 @@ INSTALLED_APPS += [
     "score",
     "academy",
     "account",
+    "notification",
 ]
 
 MIDDLEWARE = [
@@ -323,3 +325,10 @@ ACADEMY_SETTINGS = {
 }
 
 EXPORT_FORMATS = [XLSX]
+
+TWILIO = {
+    "ACCOUNT_SID": os.environ.get("TWILIO_ACCOUNT_SID"),
+    "AUTH_TOKEN": os.environ.get("TWILIO_AUTH_TOKEN"),
+    "PHONE_NUMBER": os.environ.get("TWILIO_PHONE_NUMBER"),
+}
+

@@ -3,6 +3,7 @@ from datetime import date, datetime
 import graphene
 import graphene_django
 from graphene_django_cud.mutations.core import DjangoCudBaseOptions
+from graphene_django_cud.util import to_snake_case
 
 from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
@@ -159,3 +160,17 @@ class DocumentFilePermissionMixin(FilePermissionMixin):
                 continue
 
             cls._check_file_permissions(file_obj, field, info)
+
+
+class CUDOutputTypeMixin:
+    output_type = None
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        assert cls.output_type, "output_type must be set."
+        model = kwargs.get("model")
+        base_field = graphene.List if any("Batch" in m.__name__ for m in cls.mro()) else graphene.Field
+        output_field_name = to_snake_case(model.__name__) + ("s" if base_field is graphene.List else "")
+
+        setattr(cls, output_field_name, base_field(cls.output_type))
+        return super().__init_subclass_with_meta__(*args, output=cls, return_field_name=output_field_name, **kwargs)

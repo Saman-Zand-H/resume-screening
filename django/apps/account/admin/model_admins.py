@@ -28,6 +28,7 @@ from ..models import (
     IEEMethod,
     JobPositionAssignment,
     JobPositionAssignmentStatusHistory,
+    JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
     OfflineMethod,
@@ -544,10 +545,11 @@ class SupportTicketAdmin(admin.ModelAdmin):
         SupportTicket.user.field.name,
         SupportTicket.title.field.name,
         SupportTicket.status.field.name,
+        SupportTicket.category.field.name,
     )
     search_fields = (fields_join(SupportTicket.user, User.email), SupportTicket.title.field.name)
-    list_filter = (SupportTicket.status.field.name,)
-    raw_id_fields = (SupportTicket.user.field.name,)
+    list_filter = (SupportTicket.status.field.name, SupportTicket.category.field.name)
+    autocomplete_fields = (SupportTicket.user.field.name,)
 
 
 @register(UserTask)
@@ -784,3 +786,21 @@ class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
         JobPositionAssignmentStatusHistory.created_at.field.name,
     )
     raw_id_fields = (JobPositionAssignmentStatusHistory.job_position_assignment.field.name,)
+
+
+
+@register(JobPositionInterview)
+class JobPositionInterviewAdmin(admin.ModelAdmin):
+    list_display = (
+        JobPositionInterview.id.field.name,
+        JobPositionInterview.job_position_assignment.field.name,
+        JobPositionInterview.interview_date.field.name,
+        JobPositionInterview.result_date.field.name,
+        JobPositionInterview.created_at.field.name,
+    )
+    list_filter = (
+        JobPositionInterview.interview_date.field.name,
+        JobPositionInterview.result_date.field.name,
+        JobPositionInterview.created_at.field.name,
+    )
+    raw_id_fields = (JobPositionInterview.job_position_assignment.field.name,)

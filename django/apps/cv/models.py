@@ -134,7 +134,7 @@ class GeneratedCVContent(models.Model):
         verbose_name_plural = _("Generated CV Contents")
 
 
-class GeneratedCV(FileModel):
+class GeneratedCV(TimeStampedModel, FileModel):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -160,7 +160,12 @@ class GeneratedCV(FileModel):
         ]
 
     def check_auth(self, request):
-        return request.user == self.user
+        return (
+            request.user == self.user
+            or self.user.job_position_assignments.filter(
+                job_position__organization__memberships__user=request.user
+            ).exists()
+        )
 
     @classmethod
     def get_user_context(cls, user: User) -> Tuple[dict, bool]:
