@@ -42,3 +42,5 @@ google-genai~=0.3
 disposable-email-domains~=0.0.112
 django-import-export~=4.3
 tablib[xlsx]~=3.7
+twilio~=9.4
+firebase-admin~=6.6
