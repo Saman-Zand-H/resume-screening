@@ -1992,9 +1992,9 @@ class DraftedState(OrganizationJobPositionState):
     @classmethod
     def change_status(cls, job_position, new_status):
         super().change_status(job_position, new_status)
-            missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
-            if missing_fields:
-                raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
+        missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
+        if missing_fields:
+            raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
 
         if job_position.organization.status not in Organization.get_verified_statuses():
             raise GraphQLErrorBadRequest(("Organization must be verified to publish job positions"))
@@ -2002,8 +2002,8 @@ class DraftedState(OrganizationJobPositionState):
 
 class PublishedState(OrganizationJobPositionState):
     new_statuses = [
-            OrganizationJobPosition.Status.DRAFTED.value,
-            OrganizationJobPosition.Status.SUSPENDED.value,
+        OrganizationJobPosition.Status.DRAFTED.value,
+        OrganizationJobPosition.Status.SUSPENDED.value,
     ]
 
 
@@ -2015,8 +2015,8 @@ class CompletedState(OrganizationJobPositionState):
 
 class SuspendedState(OrganizationJobPositionState):
     new_statuses = [
-            OrganizationJobPosition.Status.DRAFTED.value,
-            OrganizationJobPosition.Status.PUBLISHED.value,
+        OrganizationJobPosition.Status.DRAFTED.value,
+        OrganizationJobPosition.Status.PUBLISHED.value,
     ]
 
 
@@ -2074,7 +2074,7 @@ class JobPositionAssignment(models.Model):
         return f"{self.job_position.title} - {self.job_seeker.email}"
 
     def set_status_history(self):
-        JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
+        return JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
 
     def change_status(self, new_status, **kwargs):
         state_mapping = {
@@ -2146,7 +2146,7 @@ class JobPositionAssignmentState:
             raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
 
         job_position_assignment.status = new_status.value
-        job_position_assignment.set_status_history()
+        return job_position_assignment.set_status_history()
 
 
 class NotReviewedState(JobPositionAssignmentState):
@@ -2165,12 +2165,13 @@ class AwaitingInterviewDateState(JobPositionAssignmentState):
 
     @classmethod
     def change_status(cls, job_position_assignment, new_status, **kwargs):
-        super().change_status(job_position_assignment, new_status, **kwargs)
+        assignment_status_history = super().change_status(job_position_assignment, new_status, **kwargs)
         if new_status.value == JobPositionAssignment.Status.INTERVIEW_SCHEDULED.value:
             if interview_date := kwargs.get("interview_date"):
                 JobPositionInterview.objects.create(
                     job_position_assignment=job_position_assignment,
                     interview_date=interview_date,
+                    assignment_status_history=assignment_status_history,
                 )
             else:
                 raise ValueError(_("Interview date is required"))
