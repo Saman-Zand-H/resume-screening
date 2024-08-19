@@ -4,7 +4,6 @@ import random
 import re
 import string
 import uuid
-from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Union
 
 from cities_light.models import City, Country
@@ -1973,64 +1972,58 @@ class OrganizationJobPosition(models.Model):
         self.save(update_fields=[OrganizationJobPosition._status.field.name])
 
 
-class OrganizationJobPositionState(ABC):
-    @abstractmethod
-    def change_status(self, job_position, new_status):
-        pass
+class OrganizationJobPositionState:
+    new_statuses = []
+
+    @classmethod
+    def change_status(cls, job_position, new_status):
+        if new_status.value not in cls.new_statuses:
+            raise GraphQLErrorBadRequest(f"Cannot transition from {cls} to {new_status.value}")
+
+        job_position._status = new_status.value
+        job_position.set_status_history()
 
 
 class DraftedState(OrganizationJobPositionState):
-    def change_status(self, job_position, new_status):
-        if new_status.value == OrganizationJobPosition.Status.PUBLISHED.value:
+    new_statuses = [
+        OrganizationJobPosition.Status.PUBLISHED.value,
+    ]
+
+    @classmethod
+    def change_status(cls, job_position, new_status):
+        super().change_status(job_position, new_status)
             missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
             if missing_fields:
                 raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
-            job_position._status = new_status.value
-            job_position.set_status_history()
-        else:
-            raise ValueError(f"Cannot transition from Drafted to {new_status.value}")
+
+        if job_position.organization.status not in Organization.get_verified_statuses():
+            raise GraphQLErrorBadRequest(("Organization must be verified to publish job positions"))
 
 
 class PublishedState(OrganizationJobPositionState):
-    def change_status(self, job_position, new_status):
-        if new_status.value in [
+    new_statuses = [
             OrganizationJobPosition.Status.DRAFTED.value,
             OrganizationJobPosition.Status.SUSPENDED.value,
-        ]:
-            job_position._status = new_status.value
-            job_position.set_status_history()
-        else:
-            raise ValueError(f"Cannot transition from Published to {new_status.value}")
+    ]
 
 
 class CompletedState(OrganizationJobPositionState):
-    def change_status(self, job_position, new_status):
-        if new_status.value == OrganizationJobPosition.Status.DRAFTED.value:
-            job_position._status = new_status.value
-            job_position.set_status_history()
-        else:
-            raise ValueError(f"Cannot transition from Completed to {new_status.value}")
+    new_statuses = [
+        OrganizationJobPosition.Status.DRAFTED.value,
+    ]
 
 
 class SuspendedState(OrganizationJobPositionState):
-    def change_status(self, job_position, new_status):
-        if new_status.value in [
+    new_statuses = [
             OrganizationJobPosition.Status.DRAFTED.value,
             OrganizationJobPosition.Status.PUBLISHED.value,
-        ]:
-            job_position._status = new_status.value
-            job_position.set_status_history()
-        else:
-            raise ValueError(f"Cannot transition from Suspended to {new_status.value}")
+    ]
 
 
 class ExpiredState(OrganizationJobPositionState):
-    def change_status(self, job_position, new_status):
-        if new_status.value == OrganizationJobPosition.Status.DRAFTED.value:
-            job_position._status = new_status.value
-            job_position.set_status_history()
-        else:
-            raise ValueError(f"Cannot transition from Expired to {new_status.value}")
+    new_statuses = [
+        OrganizationJobPosition.Status.DRAFTED.value,
+    ]
 
 
 class OrganizationJobPositionStatusHistory(models.Model):
