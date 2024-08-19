@@ -2096,25 +2096,6 @@ class JobPositionAssignment(models.Model):
         self.save(update_fields=[JobPositionAssignment.status.field.name])
 
 
-class JobPositionInterview(models.Model):
-    job_position_assignment = models.ForeignKey(
-        JobPositionAssignment,
-        on_delete=models.CASCADE,
-        verbose_name=_("Job Position Assignment"),
-        related_name="interviews",
-    )
-    interview_date = models.DateTimeField(verbose_name=_("Interview Date"))
-    result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-
-    class Meta:
-        verbose_name = _("Job Position Interview")
-        verbose_name_plural = _("Job Position Interviews")
-
-    def __str__(self):
-        return f"{self.job_position_assignment} - Interview date: {self.interview_date}"
-
-
 class JobPositionAssignmentStatusHistory(models.Model):
     job_position_assignment = models.ForeignKey(
         JobPositionAssignment, on_delete=models.CASCADE, related_name="status_histories"
@@ -2132,6 +2113,28 @@ class JobPositionAssignmentStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.job_position_assignment}: {self.status}"
+
+
+class JobPositionInterview(models.Model):
+    job_position_assignment = models.ForeignKey(
+        JobPositionAssignment,
+        on_delete=models.CASCADE,
+        verbose_name=_("Job Position Assignment"),
+        related_name="interviews",
+    )
+    assignment_status_history = models.OneToOneField(
+        JobPositionAssignmentStatusHistory, on_delete=models.CASCADE, related_name="interview", null=True, blank=True
+    )
+    interview_date = models.DateTimeField(verbose_name=_("Interview Date"))
+    result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Job Position Interview")
+        verbose_name_plural = _("Job Position Interviews")
+
+    def __str__(self):
+        return f"{self.job_position_assignment} - Interview date: {self.interview_date}"
 
 
 class JobPositionAssignmentState:
