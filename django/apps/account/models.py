@@ -70,6 +70,7 @@ from .constants import (
 from .managers import (
     CertificateAndLicenseManager,
     OrganizationInvitationManager,
+    ProfileManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -625,6 +626,8 @@ class Profile(ComputedFieldsModel):
     available_jobs = models.ManyToManyField(Job, verbose_name=_("Available Jobs"), related_name="profiles", blank=True)
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
+
+    objects = ProfileManager()
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),

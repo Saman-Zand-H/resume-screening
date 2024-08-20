@@ -2,7 +2,26 @@ from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.db.models.functions import Now
 
-from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA
+from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA, AnnotationNames
+
+
+class ProfileManager(models.Manager):
+    def get_queryset(self):
+        from .models import OrganizationMembership
+
+        return (
+            super()
+            .get_queryset()
+            .annotate(
+                **{
+                    AnnotationNames.IS_ORGANIZATION_MEMBER: models.Exists(
+                        OrganizationMembership.objects.filter(
+                            **{OrganizationMembership.user.field.name: models.OuterRef("user")}
+                        )
+                    )
+                }
+            )
+        )
 
 
 class CertificateAndLicenseQueryset(models.QuerySet):
