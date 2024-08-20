@@ -131,7 +131,7 @@ class PushNotificationSender(NotificationSender):
                 title=notification.notification.title,
                 body=notification.notification.body,
             ),
-            token=notification.notification.device.device_token,
+            token=notification.notification.device_token,
         )
 
     def send(self, notification: NotificationContext[PushNotification]):

@@ -59,6 +59,17 @@ class SMSNotification(Notification):
         return self.phone_number.as_e164
 
 
+class PushNotification(NotificationTitle, Notification):
+    device_token = models.CharField(max_length=255, verbose_name=_("Device Token"))
+
+    class Meta:
+        verbose_name = _("Push Notification")
+        verbose_name_plural = _("Push Notifications")
+
+    def __str__(self):
+        return self.device_token
+
+
 class UserDevice(TimeStampedModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="devices", verbose_name=_("User"))
     device_token = models.CharField(max_length=255, verbose_name=_("Device Token"))
@@ -69,22 +80,6 @@ class UserDevice(TimeStampedModel):
 
     def __str__(self):
         return f"{self.device_token[:10]}...{self.device_token[-10:]}"
-
-
-class PushNotification(NotificationTitle, Notification):
-    device = models.ForeignKey(
-        UserDevice,
-        on_delete=models.CASCADE,
-        related_name="push_notifications",
-        verbose_name=_("Device"),
-    )
-
-    class Meta:
-        verbose_name = _("Push Notification")
-        verbose_name_plural = _("Push Notifications")
-
-    def __str__(self):
-        return self.device.device_token
 
 
 class InAppNotification(NotificationTitle, Notification):
