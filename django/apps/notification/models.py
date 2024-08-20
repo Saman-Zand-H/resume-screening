@@ -6,6 +6,10 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+def token_excerpt(token: str) -> str:
+    return f"{token[:10]}...{token[-10:]}"
+
+
 class NotificationTitle(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
 
@@ -67,7 +71,7 @@ class PushNotification(NotificationTitle, Notification):
         verbose_name_plural = _("Push Notifications")
 
     def __str__(self):
-        return self.device_token
+        return token_excerpt(self.device_token)
 
 
 class UserDevice(TimeStampedModel):
@@ -79,7 +83,7 @@ class UserDevice(TimeStampedModel):
         verbose_name_plural = _("User Devices")
 
     def __str__(self):
-        return f"{self.device_token[:10]}...{self.device_token[-10:]}"
+        return token_excerpt(self.device_token)
 
 
 class InAppNotification(NotificationTitle, Notification):
