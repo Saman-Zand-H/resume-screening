@@ -3,7 +3,7 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from typing import Generic, Optional, TypeVar
+from typing import Dict, Generic, Optional, Type, TypeVar
 
 import firebase_admin
 from firebase_admin import messaging
@@ -22,6 +22,7 @@ from .models import (
     Notification,
     PushNotification,
     SMSNotification,
+    UserDevice,
 )
 
 NT = TypeVar("NT", bound=Notification)
@@ -43,8 +44,11 @@ class NotificationSender(ABC):
     def send_bulk(self, *notifications: NotificationContext, **kwargs):
         pass
 
-    def handle_exception(self, exception: Exception) -> str:
+    def handle_exception(self, exception: Exception, notification: NotificationContext) -> str:
         return f"{exception}\n{traceback.format_exc()}"
+
+    def after_save(self, *notifications: NotificationContext):
+        pass
 
 
 class EmailNotificationSender(NotificationSender):
@@ -141,10 +145,19 @@ class PushNotificationSender(NotificationSender):
     def send_bulk(self, *notifications: NotificationContext[PushNotification], **kwargs):
         self.setup()
         messages = [self.get_message(notification) for notification in notifications]
-        messaging.send_each(messages)
+        responses = messaging.send_each(messages)
+
+        for response, notification in zip(responses.responses, notifications):
+            if not response.success and isinstance(response.exception, messaging.UnregisteredError):
+                UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+
+    def handle_exception(self, exception: Exception, notification: NotificationContext[PushNotification]):
+        if isinstance(exception, messaging.UnregisteredError):
+            UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+        return super().handle_exception(exception, notification)
 
 
-SENDERS = {
+SENDERS: Dict[str, Type[NotificationSender]] = {
     EmailNotification: EmailNotificationSender,
     SMSNotification: SMSNotificationSender,
     InAppNotification: InAppNotificationSender,
@@ -171,7 +184,7 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
             return True
         except Exception as e:
             for notification in notification_contexts:
-                notification.notification.error = sender.handle_exception(e)
+                notification.notification.error = sender.handle_exception(e, notification)
                 notification.notification.set_status(Notification.Status.FAILED)
             if settings.DEBUG:
                 raise e
@@ -179,4 +192,5 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
         finally:
             for notification in notification_contexts:
                 notification.notification.save()
+            sender.after_save(*notification_contexts)
     return False
