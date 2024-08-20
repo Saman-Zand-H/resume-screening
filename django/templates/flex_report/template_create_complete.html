@@ -1,0 +1,61 @@
+{% extends 'flex_report/upsert_base.html' %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+    <style>
+        .aligned, label {
+            display: block !important;
+            padding: 4px 10px 0 0 !important;
+            min-width: 160px !important;
+            width: 160px !important;
+            word-wrap: break-word !important;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            align-content: stretch;
+            width: 100%;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    <div class="content-main">
+        <form method="post" id="template_form">
+            {% csrf_token %}
+            <fieldset class="module_aligned">
+                {% for field in filter.form %}
+                    <div class="form-row field-title">
+                        <div>
+                            <div class="flex-container">
+                                <label for="{{ field.id_for_label }}" {% if field.field.required %}class="required"{% endif %}>
+                                    {{ field.label }}
+                                </label>
+                                
+                                <div class="form-field">
+                                    {{ field }}
+                                    <span>
+                                        {{ field.errors }}
+                                    </span>
+                                    
+                                    <span>
+                                        {% if field.help_text %}
+                                            <p class="help">{{ field.help_text|safe }}</p>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </fieldset>
+            <div class="submit-row">
+                <input type="submit" class="default" value="{% trans 'Save' %}">
+            </div>
+        </form>
+    </div>
+{% endblock %}

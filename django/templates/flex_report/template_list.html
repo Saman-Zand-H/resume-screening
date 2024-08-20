@@ -1,0 +1,119 @@
+{% extends 'flex_report/base.html' %}
+
+{% load i18n %}
+
+{% block title %}
+    {% trans 'Reports' %}
+    {{ block.super }}
+{% endblock %}
+
+{% block extrastyle %}
+    <style>
+        .report-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+        }
+    </style>
+{% endblock %}
+
+{% block content-scroll %}
+<table class="ui celled sortable single line table">
+    <thead>
+        <th>
+            #
+        </th>
+        <th>
+            {% trans 'Name' %}
+        </th>
+        <th>
+            {% trans 'Model' %}
+        </th>
+        <th>
+            {% trans 'Creator' %}
+        </th>
+        <th>
+            {% trans 'Status' %}
+        </th>
+        <th>
+            {% trans 'Page' %}
+        </th>
+        <th>
+            {% trans 'Creation Date' %}
+        </th>
+        <th>
+            {% trans 'Modification Date' %}
+        </th>
+        <th style="text-align: center;">
+            {% trans 'Columns Count' %}
+        </th>
+        <th style="text-align: center;">
+            {% trans 'Filters Count' %}
+        </th>
+        <th style="text-align: center;">{% trans 'Action' %}</th>
+    </thead>
+    <tbody>
+        {% for object in object_list %}
+            <tr>
+                <td>
+                    {{ forloop.counter }}
+                </td>
+                <td>
+                    {{ object.title }}
+                </td>
+                <td>
+                    {{ object.model }}
+                </td>
+                <td>
+                    {{ object.creator.first_name }} {{ object.creator.last_name }}
+                </td>
+                <td>
+                    {{ object.get_status_display }}
+                </td>
+                <td>
+                    {{ object.page.title|default:"&mdash;" }}
+                </td>
+                <td>
+                    {{ object.created_date|date:"Y/n/d"|safe }}
+                </td>
+                <td>
+                    {{ object.created_date|date:"Y/n/d"|safe }}
+                </td>
+                <td style="text-align: center;">
+                    {{ object.columns.count }}
+                </td>
+                <td style="text-align: center;">
+                    {{ object.filters_count }}
+                </td>
+                <td style="text-align: center;">
+                    <div class="buttons">
+                        {% if object.is_completed %}
+                            <a class="button" href="{% url 'admin:flex_report_template_report' object.pk %}" title="{% trans 'View' %}">
+                                <span class="material-icons font-small">visibility</span>
+                            </a>
+                            <a href="{% url 'admin:flex_report_template_filter' object.pk %}" class="button" title="{% trans 'Delete' %}" style="padding: 4px 5px">
+                                <span class="material-icons font-small">add</span>
+                            </a>
+                        {% else %}
+                            <a class="button" href="{% url 'admin:flex_report_template_wizard_complete' object.pk %}"
+                                title="{% trans 'Complete' %}">
+                                <span class="material-icons font-small">done</span>
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'admin:flex_report_template_delete' object.pk %}" class="button" title="{% trans 'Delete' %}" style="padding: 4px 5px">
+                            <span class="material-icons font-small">delete</span>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="11" style="text-align: center;">
+                    {% trans 'No template has been created yet.' %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -38,6 +38,7 @@ from common.validators import (
 )
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
+from flex_report import report_model
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
 from model_utils.models import TimeStampedModel
@@ -487,6 +488,7 @@ class FullBodyImageFile(UserUploadedImageFile):
         verbose_name_plural = _("Full Body Images")
 
 
+@report_model.register
 class Profile(ComputedFieldsModel):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
@@ -663,6 +665,14 @@ class Profile(ComputedFieldsModel):
 
     def __str__(self):
         return self.user.email
+
+    @classmethod
+    def flex_report_search_fields(cls):
+        return [
+            cls.skills.field.name,
+            cls.gender.field.name,
+            cls.birth_date.field.name,
+        ]
 
     @staticmethod
     def get_appearance_related_fields():

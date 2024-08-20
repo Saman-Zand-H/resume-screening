@@ -1,0 +1,55 @@
+{% load flex_report_filters i18n %}
+
+<div class="paginator" style="align-items: center;">
+    {% for i in qs.number|get_centered_range:paginator.num_pages %}
+        {% if qs.number == i %}
+            <span class="{% if qs.number == i %}this-page{% endif %}">
+                {{ i }}
+            </span>
+        {% else %}
+            <a href="?{% dynamic_query_transform 'pagination' page=i %}">
+                {{ i }}
+            </a>
+        {% endif %}
+    {% endfor %}
+    <div style="margin-left: auto; display: flex; align-items: center;">
+        <span>
+            <label>
+                Page {{ qs.number }} of {{ paginator.num_pages }}
+                ({{ paginator.count }} rows)
+            </label>
+        </span>
+        <span style="margin-right: 15px">
+            <label>
+                Page Size:
+                <select onchange="location = this.value;" name="requests_in_page"
+                    style="height:33px; width: 50px;margin-right: 5px">
+                    {% for i in pages %}
+                        <option 
+                            {% if paginator.per_page == i %}selected{% endif %}
+                            value="?{% dynamic_query_transform 'pagination' page=1 per_page=i %}"
+                        >
+                            {{ i }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+        </span>
+        {% if paginator.num_pages > 1 %}
+        <span style="margin-right: 15px">
+            <label> Go to:
+                <select onchange="location = this.value;" style="height:33px; width: 50px;margin-right: 5px">
+                    {% for i in paginator.page_range %}
+                    <option
+                        value="?{% dynamic_query_transform 'pagination' page=i %}" 
+                        {% if qs.number == i %}selected{% endif %}
+                    >
+                        {{ i }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+        </span>
+        {% endif %}
+    </div>
+</div>

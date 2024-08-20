@@ -1,0 +1,47 @@
+{% extends 'flex_report/base.html' %}
+{% load i18n static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+    <style>
+        .aligned, label {
+            display: block !important;
+            padding: 4px 10px 0 0 !important;
+            min-width: 160px !important;
+            width: 160px !important;
+            word-wrap: break-word !important;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    <div class="content-main">
+        <form method="post" id="template_form">
+            {% csrf_token %}
+            <fieldset class="module_aligned">
+                {% for field in form %}
+                    <div class="form-row field-title">
+                        <div>
+                            <div class="flex-container">
+                                <label for="{{ field.id_for_label }}" {% if field.field.required %}class="required"{% endif %}>
+                                    {{ field.label }}
+                                </label>
+                                
+                                {{ field }}
+                                {{ field.errors }}
+                                {% if field.help_text %}
+                                    <p class="help">{{ field.help_text|safe }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </fieldset>
+            <div class="submit-row">
+                <input type="submit" class="default" value="Create">
+            </div>
+        </form>
+    </div>
+{% endblock %}
