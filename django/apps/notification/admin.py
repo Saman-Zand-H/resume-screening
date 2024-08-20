@@ -59,7 +59,7 @@ class SMSNotificationAdmin(admin.ModelAdmin):
 @admin.register(PushNotification)
 class PushNotificationAdmin(admin.ModelAdmin):
     list_display = (
-        PushNotification.device_token.field.name,
+        PushNotification.short_token.fget.__name__,
         PushNotification.title.field.name,
         PushNotification.user.field.name,
         PushNotification.created.field.name,
