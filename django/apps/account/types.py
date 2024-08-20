@@ -759,6 +759,7 @@ class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
         fields = (
             JobPositionAssignmentStatusHistory.status.field.name,
             JobPositionAssignmentStatusHistory.created_at.field.name,
+            JobPositionInterview.assignment_status_history.field.related_query_name(),
         )
 
 

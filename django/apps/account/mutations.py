@@ -1192,6 +1192,7 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
+    @transaction.atomic
     def mutate(cls, root, info, input, id):
         status = input.get(OrganizationJobPosition._status.field.name)
         if not (obj := OrganizationJobPosition.objects.get(pk=id)):
