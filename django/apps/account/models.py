@@ -670,11 +670,11 @@ class Profile(ComputedFieldsModel):
 
     @classmethod
     def flex_report_search_fields(cls):
-        return [
-            cls.skills.field.name,
-            cls.gender.field.name,
-            cls.birth_date.field.name,
-        ]
+        return {
+            cls.skills.field.name: ["in"],
+            cls.birth_date.field.name: ["gte", "lte"],
+            cls.gender.field.name: ["iexact"],
+        }
 
     @staticmethod
     def get_appearance_related_fields():

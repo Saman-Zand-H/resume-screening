@@ -335,9 +335,9 @@ TWILIO = {
 }
 
 
-
 REPORT_BASE_VIEW = "common.views.FlexBaseView"
 REPORT_MODEL_ADMINS = {
     "Template": "common.admin.TemplateAdmin",
 }
 REPORT_VIEWS = {"TEMPLATE_DELETE": "common.views.flex_template_delete_view"}
+REPORT_FILTERSET_CLASS = "common.filterset.FilterSet"

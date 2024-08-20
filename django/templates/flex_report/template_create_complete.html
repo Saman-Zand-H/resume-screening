@@ -3,7 +3,11 @@
 
 {% block extrastyle %}
     {{ block.super }}
+    
+    <script src="{% url 'admin:jsi18n' %}"></script>
+    <script src="{% static 'admin/js/core.js' %}"></script>
     <link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+    {{ filter.form.media }}
     <style>
         .aligned, label {
             display: block !important;
@@ -27,32 +31,59 @@
     <div class="content-main">
         <form method="post" id="template_form">
             {% csrf_token %}
-            <fieldset class="module_aligned">
-                {% for field in filter.form %}
-                    <div class="form-row field-title">
-                        <div>
-                            <div class="flex-container">
-                                <label for="{{ field.id_for_label }}" {% if field.field.required %}class="required"{% endif %}>
-                                    {{ field.label }}
-                                </label>
-                                
-                                <div class="form-field">
-                                    {{ field }}
+            <fieldset class="module">
+                <div class="form-row field-title">
+                    <div>
+                        <div class="flex-container">
+                            <label for="{{ filter.form.columns.id_for_label }}" class="required">
+                                {{ filter.form.columns.label }}
+                            </label>
+
+                            <div class="form-field">
+                                {{ filter.form.columns }}
+                                <span>
+                                    {{ filter.form.columns.errors }}
+                                </span>
+                                {% if filter.form.columns.help_text %}
                                     <span>
-                                        {{ field.errors }}
+                                        <p class="help">{{ filter.form.columns.help_text|safe }}</p>
                                     </span>
-                                    
-                                    <span>
-                                        {% if field.help_text %}
-                                            <p class="help">{{ field.help_text|safe }}</p>
-                                        {% endif %}
-                                    </span>
-                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-                {% endfor %}
+                </div>
             </fieldset>
+
+            <h2 class="fieldset-heading">Filters</h2>
+            {% for field in filter.form %}
+                {% if field.name != 'columns' %}
+                    <fieldset class="module">
+                        <div class="form-row field-title">
+                            <div>
+                                <div class="flex-container">
+                                    <label for="{{ field.id_for_label }}" {% if field.field.required %}class="required"{% endif %}>
+                                        {{ field.label }}
+                                    </label>
+                                    
+                                    <div class="form-field">
+                                        {{ field }}
+                                        <span>
+                                            {{ field.errors }}
+                                        </span>
+                                        
+                                        <span>
+                                            {% if field.help_text %}
+                                                <p class="help">{{ field.help_text|safe }}</p>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                {% endif %}
+            {% endfor %}
             <div class="submit-row">
                 <input type="submit" class="default" value="{% trans 'Save' %}">
             </div>
