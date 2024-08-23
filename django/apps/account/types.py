@@ -1,6 +1,8 @@
 import contextlib
 
 import graphene
+from notification.types import InAppNotificationNode
+from notification.models import InAppNotification
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import JobNode, JobBenefitType, SkillType, FieldType
@@ -547,6 +549,7 @@ class UserNode(BaseUserNode):
     )
     has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
     cv = graphene.Field(GeneratedCVNode)
+    notifications = graphene.List(InAppNotificationNode)
 
     class Meta:
         model = User
@@ -589,6 +592,9 @@ class UserNode(BaseUserNode):
 
     def resolve_cv(self, info):
         return self.cv if hasattr(self, "cv") else None
+
+    def resolve_notifications(self, info):
+        return InAppNotification.objects.filter(user=self).order_by("-created")
 
 
 class OrganizationType(DjangoObjectType):
