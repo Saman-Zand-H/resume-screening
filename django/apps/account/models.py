@@ -465,6 +465,8 @@ class AvatarFile(UserUploadedImageFile):
         return [IMAGE_FILE_EXTENSION_VALIDATOR, ValidateFileSize(max=10)]
 
     def check_auth(self, request):
+        if not request.user.is_authenticated:
+            return False
         return (
             super().check_auth(request)
             or self.uploaded_by.job_position_assignments.filter(
@@ -1339,6 +1341,8 @@ class ResumeFile(UserUploadedDocumentFile):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
 
     def check_auth(self, request):
+        if not request.user.is_authenticated:
+            return False
         return (
             super().check_auth(request)
             or self.uploaded_by.job_position_assignments.filter(

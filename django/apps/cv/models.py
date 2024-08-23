@@ -160,6 +160,8 @@ class GeneratedCV(TimeStampedModel, FileModel):
         ]
 
     def check_auth(self, request):
+        if not request.user.is_authenticated:
+            return False
         return (
             request.user == self.user
             or self.user.job_position_assignments.filter(

@@ -59,7 +59,7 @@ class SMSNotificationAdmin(admin.ModelAdmin):
 @admin.register(PushNotification)
 class PushNotificationAdmin(admin.ModelAdmin):
     list_display = (
-        PushNotification.device.field.name,
+        PushNotification.short_token.fget.__name__,
         PushNotification.title.field.name,
         PushNotification.user.field.name,
         PushNotification.created.field.name,
@@ -67,11 +67,11 @@ class PushNotificationAdmin(admin.ModelAdmin):
     )
     list_filter = (PushNotification.status.field.name,)
     search_fields = (
-        PushNotification.device.field.name,
+        PushNotification.device_token.field.name,
         PushNotification.title.field.name,
         PushNotification.user.field.name,
     )
-    autocomplete_fields = (PushNotification.user.field.name, PushNotification.device.field.name)
+    autocomplete_fields = (PushNotification.user.field.name,)
 
 
 @admin.register(InAppNotification)
