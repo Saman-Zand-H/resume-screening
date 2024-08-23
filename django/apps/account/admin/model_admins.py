@@ -788,7 +788,6 @@ class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
     raw_id_fields = (JobPositionAssignmentStatusHistory.job_position_assignment.field.name,)
 
 
-
 @register(JobPositionInterview)
 class JobPositionInterviewAdmin(admin.ModelAdmin):
     list_display = (
@@ -803,4 +802,7 @@ class JobPositionInterviewAdmin(admin.ModelAdmin):
         JobPositionInterview.result_date.field.name,
         JobPositionInterview.created_at.field.name,
     )
-    raw_id_fields = (JobPositionInterview.job_position_assignment.field.name,)
+    raw_id_fields = (
+        JobPositionInterview.job_position_assignment.field.name,
+        JobPositionInterview.assignment_status_history.field.name,
+    )

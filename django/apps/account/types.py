@@ -120,6 +120,15 @@ class JobSeekerCertificateAndLicenseType(DjangoObjectType):
         )
 
 
+class JobSeekerProfilePrimitiveType(DjangoObjectType):
+    class Meta:
+        model = Profile
+        fields = (
+            Profile.avatar.field.name,
+            Profile.score.field.name,
+        )
+
+
 class JobSeekerProfileType(DjangoObjectType):
     contacts = graphene.List(ContactType)
 
@@ -135,6 +144,20 @@ class JobSeekerProfileType(DjangoObjectType):
 
     def resolve_contacts(self, info):
         return self.contactable.contacts.all()
+
+
+class JobSeekerPrimitiveType(DjangoObjectType):
+    profile = graphene.Field(JobSeekerProfilePrimitiveType)
+
+    class Meta:
+        model = User
+        fields = (
+            User.first_name.field.name,
+            User.last_name.field.name,
+        )
+
+    def resolve_profile(self, info):
+        return self.profile
 
 
 class JobSeekerType(DjangoObjectType):
@@ -175,6 +198,19 @@ class JobSeekerType(DjangoObjectType):
 
     def resolve_cv_contents(self, info):
         return self.cv_contents.latest("id")
+
+
+class JobSeekerUnionType(graphene.Union):
+    class Meta:
+        types = (JobSeekerType, JobSeekerPrimitiveType)
+
+    def resolve_type(self, info):
+        user = self
+        # TODO: Check if user has paid for the service, return JobSeekerType,
+        # Otherwise return JobSeekerPrimitiveType
+        if not user:
+            return JobSeekerPrimitiveType
+        return JobSeekerType
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -759,11 +795,24 @@ class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
         fields = (
             JobPositionAssignmentStatusHistory.status.field.name,
             JobPositionAssignmentStatusHistory.created_at.field.name,
+            JobPositionInterview.assignment_status_history.field.related_query_name(),
         )
 
 
-class JobPositionAssignmentNode(DjangoObjectType):
-    job_seeker = graphene.Field(JobSeekerType)
+class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": JobPositionContainer.get_accesses(),
+    }
+
+    job_seeker = graphene.Field(JobSeekerUnionType)
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        assignment: JobPositionAssignment = cls.get_obj_from_args(args)
+        if not assignment:
+            return None
+
+        return assignment.job_position.organization
 
     class Meta:
         model = JobPositionAssignment
