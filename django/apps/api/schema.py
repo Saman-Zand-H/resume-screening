@@ -8,13 +8,22 @@ from academy.queries import Query as AcademyQuery
 from academy.mutations import Mutation as AcademyMutation
 from cv.mutations import Mutation as CVMutation
 from cv.queries import Query as CVQuery
+from notification.mutations import Mutation as NotificationMutation
 
 
 class Query(AccountQuery, CommonQuery, AcademyQuery, CVQuery, graphene.ObjectType):
     pass
 
 
-class Mutation(AccountMutation, CriteriaMutation, AcademyMutation, CVMutation, CommonMutation, graphene.ObjectType):
+class Mutation(
+    AccountMutation,
+    CriteriaMutation,
+    AcademyMutation,
+    CVMutation,
+    NotificationMutation,
+    CommonMutation,
+    graphene.ObjectType,
+):
     pass
 
 
