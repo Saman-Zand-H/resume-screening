@@ -17,6 +17,7 @@ from .models import (
     PushNotification,
     SMSNotification,
     UserDevice,
+    WhatsAppNotification,
 )
 from .views import CampaignNotifyView, CampaignUserNotifyView
 
@@ -145,6 +146,22 @@ class SMSNotificationAdmin(admin.ModelAdmin):
         SMSNotification.user.field.name,
     )
     autocomplete_fields = (SMSNotification.user.field.name,)
+
+
+@admin.register(WhatsAppNotification)
+class WhatsAppNotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        WhatsAppNotification.phone_number.field.name,
+        WhatsAppNotification.user.field.name,
+        WhatsAppNotification.created.field.name,
+        WhatsAppNotification.status.field.name,
+    )
+    list_filter = (WhatsAppNotification.status.field.name,)
+    search_fields = (
+        WhatsAppNotification.phone_number.field.name,
+        WhatsAppNotification.user.field.name,
+    )
+    autocomplete_fields = (WhatsAppNotification.user.field.name,)
 
 
 @admin.register(PushNotification)

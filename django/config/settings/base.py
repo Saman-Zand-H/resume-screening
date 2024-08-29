@@ -332,8 +332,8 @@ TWILIO = {
     "ACCOUNT_SID": os.environ.get("TWILIO_ACCOUNT_SID"),
     "AUTH_TOKEN": os.environ.get("TWILIO_AUTH_TOKEN"),
     "PHONE_NUMBER": os.environ.get("TWILIO_PHONE_NUMBER"),
+    "WHATSAPP_NUMBER": os.environ.get("TWILIO_WHATSAPP_NUMBER"),
 }
-
 
 REPORT_BASE_VIEW = "common.views.FlexBaseView"
 REPORT_MODEL_ADMINS = {
