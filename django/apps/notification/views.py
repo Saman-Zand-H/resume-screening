@@ -5,7 +5,7 @@ from django.views import View
 from django.views.generic import FormView
 from django.views.generic.detail import SingleObjectMixin
 
-from .forms import CampaignNotifyConfirmForm
+from .forms import CampaignNotifyConfirmForm, CampaignNotifyUserForm
 from .models import Campaign
 from .senders import send_campaign_notifications
 
@@ -34,10 +34,33 @@ class BaseView(LoginRequiredMixin, UserPassesTestMixin, View):
         return context
 
 
+class CampaignUserNotifyView(BaseView, FormView, SingleObjectMixin):
+    model = Campaign
+    template_name = "notification/notify_user.html"
+    form_class = CampaignNotifyUserForm
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.object = self.get_object()
+
+    def get_form_kwargs(self):
+        return super().get_form_kwargs() | {"campaign": self.get_object()}
+
+    def get_success_url(self):
+        return reverse_lazy("admin:notification_campaign_changelist")
+
+    def form_valid(self, form=None):
+        users = form.cleaned_data.get("users")
+        campaign = self.get_object()
+        send_campaign_notifications(campaign, queryset=users)
+
+        return redirect(self.get_success_url())
+
+
 class CampaignNotifyView(BaseView, FormView, SingleObjectMixin):
     model = Campaign
-    template_name = "notification/campaign_send_confirm.html"
     form_class = CampaignNotifyConfirmForm
+    template_name = "notification/campaign_send_confirm.html"
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)

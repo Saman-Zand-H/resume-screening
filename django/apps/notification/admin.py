@@ -18,7 +18,7 @@ from .models import (
     SMSNotification,
     UserDevice,
 )
-from .views import CampaignNotifyView
+from .views import CampaignNotifyView, CampaignUserNotifyView
 
 
 @admin.register(NotificationTemplate)
@@ -92,6 +92,11 @@ class CampaignAdmin(admin.ModelAdmin):
                 "<int:pk>/notify",
                 self.admin_site.admin_view(CampaignNotifyView.as_view(admin_site=self.admin_site)),
                 name="notification_compaign_notify",
+            ),
+            path(
+                "<int:pk>/notify/user",
+                self.admin_site.admin_view(CampaignUserNotifyView.as_view(admin_site=self.admin_site)),
+                name="notification_compaign_notify_user",
             ),
         ]
 
