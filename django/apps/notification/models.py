@@ -21,7 +21,7 @@ def token_excerpt(token: str) -> str:
 
 def get_template_help_text():
     return "<br/><hr/><br/>".join(
-        f"<b>{model._meta.verbose_name}</b>: <br/><br/>{"<br/>".join(f"{{{{ {mapper.name} }}}}: {mapper.help}" for mapper in mappers)}"
+        f"<b>{model._meta.verbose_name}</b>: <br/><br/>{'<br/>'.join(f'{{{{ {mapper.name} }}}}: {mapper.help}' for mapper in mappers)}"
         for model, mappers in ContextMapperRegistry.registry().items()
     )
 
@@ -206,6 +206,19 @@ class SMSNotification(Notification):
     class Meta:
         verbose_name = _("SMS Notification")
         verbose_name_plural = _("SMS Notifications")
+
+    def __str__(self):
+        return self.phone_number.as_e164
+
+
+class WhatsAppNotification(Notification):
+    notification_type = NotificationTypes.WHATSAPP
+
+    phone_number = PhoneNumberField(verbose_name=_("Phone Number"))
+
+    class Meta:
+        verbose_name = _("WhatsApp Notification")
+        verbose_name_plural = _("WhatsApp Notifications")
 
     def __str__(self):
         return self.phone_number.as_e164

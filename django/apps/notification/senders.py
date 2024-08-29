@@ -3,8 +3,7 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from operator import attrgetter
-from typing import Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar, Union
 
 import firebase_admin
 from common.utils import get_all_subclasses
@@ -28,6 +27,7 @@ from .models import (
     PushNotification,
     SMSNotification,
     UserDevice,
+    WhatsAppNotification,
 )
 from .report_mapper import ReportMapper
 from .types import NotificationType
@@ -47,7 +47,11 @@ class NotificationSender(ABC):
 
     @classmethod
     def get_senders_dict(cls):
-        return {sender.notification_type: sender for sender in get_all_subclasses(cls)}
+        return {
+            sender.notification_type: sender
+            for sender in get_all_subclasses(cls)
+            if getattr(sender, "notification_type", None)
+        }
 
     @abstractmethod
     def send(self, notification: NotificationContext, **kwargs):
@@ -102,9 +106,7 @@ class EmailNotificationSender(NotificationSender):
         connection.send_messages(emails)
 
 
-class SMSNotificationSender(NotificationSender):
-    notification_type = NotificationTypes.SMS
-
+class TwilioSender(NotificationSender):
     @classmethod
     @lru_cache
     def get_setting(cls, key: str, default: Optional[str] = None) -> str:
@@ -115,21 +117,67 @@ class SMSNotificationSender(NotificationSender):
     def get_client(cls) -> Client:
         return Client(cls.get_setting("ACCOUNT_SID"), cls.get_setting("AUTH_TOKEN"))
 
-    def get_message(self, notification: NotificationContext[SMSNotification], from_number: Optional[str] = None):
+    @abstractmethod
+    @lru_cache
+    def serialize_phone_number(cls, phone_number: str) -> str:
+        pass
+
+    @abstractmethod
+    @lru_cache
+    def get_default_from_number(cls) -> str:
+        pass
+
+    def get_message(
+        self,
+        notification: NotificationContext[Union[SMSNotification, WhatsAppNotification]],
+        from_number: Optional[str] = None,
+    ):
         return {
             "body": notification.notification.body,
-            "from_": from_number or self.get_setting("PHONE_NUMBER"),
-            "to": notification.notification.phone_number.as_e164,
+            "from_": self.serialize_phone_number(from_number or self.get_default_from_number()),
+            "to": self.serialize_phone_number(notification.notification.phone_number.as_e164),
         }
 
-    def send(self, notification: NotificationContext[SMSNotification], from_number: Optional[str] = None):
+    def send(self, notification: Union[SMSNotification, WhatsAppNotification], from_number: Optional[str] = None):
         client = self.get_client()
         client.messages.create(**self.get_message(notification, from_number=from_number))
 
-    def send_bulk(self, *notifications: NotificationContext[SMSNotification], from_number: Optional[str] = None):
+    def send_bulk(
+        self,
+        *notifications: Union[SMSNotification, WhatsAppNotification],
+        from_number: Optional[str] = None,
+    ):
         client = self.get_client()
         for notification in notifications:
             client.messages.create(**self.get_message(notification, from_number=from_number))
+
+
+class SMSNotificationSender(TwilioSender):
+    notification_type = NotificationTypes.SMS
+
+    @classmethod
+    @lru_cache
+    def serialize_phone_number(cls, phone_number: str) -> str:
+        return phone_number
+
+    @classmethod
+    @lru_cache
+    def get_default_from_number(cls) -> str:
+        return cls.get_setting("PHONE_NUMBER")
+
+
+class WhatsAppNotificationSender(TwilioSender):
+    notification_type = NotificationTypes.WHATSAPP
+
+    @classmethod
+    @lru_cache
+    def serialize_phone_number(cls, phone_number: str) -> str:
+        return f"whatsapp:{phone_number}"
+
+    @classmethod
+    @lru_cache
+    def get_default_from_number(cls) -> str:
+        return cls.get_setting("WHATSAPP_NUMBER")
 
 
 class InAppNotificationSender(NotificationSender):
@@ -178,7 +226,7 @@ class PushNotificationSender(NotificationSender):
         return super().handle_exception(exception, notification)
 
 
-def send_notifications(*notifications: NotificationContext[Notification], **kwargs):
+def send_notifications(*notifications: NotificationContext[Notification], **kwargs) -> list[bool]:
     notification_types = groupby(notifications, lambda n: n.notification.notification_type.value)
     for notification_type, notification_group in notification_types:
         notification_contexts = list(notification_group)
@@ -206,7 +254,7 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
             for notification in notification_contexts:
                 notification.notification.save()
             sender.after_save(*notification_contexts)
-    return all(map(attrgetter("pk"), map(attrgetter("notification"), notifications)))
+    return map(lambda n: n.notification.status == Notification.Status.SENT, notifications)
 
 
 def send_campaign_notifications(campaign: Campaign, queryset=None):
