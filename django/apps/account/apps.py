@@ -12,6 +12,8 @@ class AccountConfig(AppConfig):
         from . import scores  # noqa
         from . import signals  # noqa
         from . import tasks  # noqa
+        from . import report_mapper  # noqa
+        from . import context_mappers  # noqa
         from . import types  # noqa
         from .accesses import AccessContainer
 

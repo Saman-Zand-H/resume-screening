@@ -66,6 +66,7 @@ from .constants import (
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
     SUPPORT_TICKET_SUBJECT_TEMPLATE,
+    ProfileAnnotationNames,
 )
 from .managers import (
     CertificateAndLicenseManager,
@@ -321,23 +322,29 @@ class User(AbstractUser):
             ).exists()
         )
 
-    def get_contacts_by_type(self, contact_type: Contact.Type) -> List[Contact]:
+    def get_contacts_by_type(self, contact_type: Contact.Type, *, include_organization: bool = False) -> List[Contact]:
         profile_contacts = getattr(
             getattr(self.get_profile(), Profile.contactable.field.name),
             Contact.contactable.field.related_query_name(),
             Contact.objects.none(),
         ).all()
-        organization_contacts = Contact.objects.filter(
-            **{
-                f"{Contact.contactable.field.name}__in": Contactable.objects.filter(
-                    **{
-                        f"{Organization.contactable.field.related_query_name()}__in": getattr(
-                            self, Organization.user.field.related_query_name()
-                        ).all()
-                    }
-                )
-            }
+
+        organization_contacts = (
+            Contact.objects.filter(
+                **{
+                    fields_join(Contact.contactable, suffix_lookups=["in"]): Contactable.objects.filter(
+                        **{
+                            fields_join(Organization.contactable, suffix_lookups=["in"]): getattr(
+                                self, Organization.user.field.related_query_name()
+                            ).all()
+                        }
+                    )
+                }
+            )
+            if include_organization
+            else Contact.objects.none()
         )
+
         return (profile_contacts | organization_contacts).filter(type=contact_type).distinct()
 
 
@@ -673,9 +680,20 @@ class Profile(ComputedFieldsModel):
     @classmethod
     def flex_report_search_fields(cls):
         return {
-            cls.skills.field.name: ["in"],
             cls.birth_date.field.name: ["gte", "lte"],
             cls.gender.field.name: ["iexact"],
+            fields_join(cls.city, City.country): ["in", "iexact"],
+            # fields_join(cls.user, User.date_joined): ["gte", "lte"],
+            # fields_join(cls.user, User.last_login): ["gte", "lte"],
+            ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["iexact"],
+            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["iexact"],
+            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["iexact"],
+            ProfileAnnotationNames.HAS_EDUCATION: ["iexact"],
+            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["iexact"],
+            ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["iexact"],
+            ProfileAnnotationNames.HAS_CANADA_VISA: ["iexact"],
+            cls.score.field.name: ["gte", "lte"],
+            cls.credits.field.name: ["gte", "lte"],
         }
 
     @staticmethod
@@ -1773,6 +1791,17 @@ class OrganizationMembership(models.Model):
         related_name="invited_memberships",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    @classmethod
+    def flex_report_search_fields(cls):
+        return [
+            fields_join(cls.user, User.email),
+            fields_join(
+                cls.user,
+                Profile.user.field.related_query_name(),
+                Profile.gender,
+            ),
+        ]
 
     class Meta:
         verbose_name = _("Organization Membership")

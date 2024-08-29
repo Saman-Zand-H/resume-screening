@@ -1,13 +1,99 @@
+from common.utils import fields_join
+from flex_report.mixins import TablePageMixin
+
 from django.contrib import admin
+from django.template.loader import get_template
+from django.urls import path
+from django.utils.translation import gettext_lazy as _
 
 from .models import (
+    Campaign,
+    CampaignNotification,
+    CampaignNotificationType,
     EmailNotification,
     InAppNotification,
     Notification,
+    NotificationTemplate,
     PushNotification,
     SMSNotification,
     UserDevice,
 )
+from .views import CampaignNotifyView
+
+
+@admin.register(NotificationTemplate)
+class NotificationTemplateAdmin(admin.ModelAdmin):
+    list_display = (
+        NotificationTemplate.title.field.name,
+        NotificationTemplate.created.field.name,
+        NotificationTemplate.modified.field.name,
+    )
+
+
+@admin.register(CampaignNotification)
+class CampaignNotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        CampaignNotification.campaign_notification_type.field.name,
+        CampaignNotification.notification.field.name,
+        CampaignNotification.created.field.name,
+        fields_join(CampaignNotification.notification, Notification.status),
+    )
+    list_filter = (
+        fields_join(CampaignNotification.notification, Notification.status),
+        fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+            Campaign.title,
+        ),
+    )
+
+
+@admin.register(CampaignNotificationType)
+class CampaignNotificationTypeAdmin(admin.ModelAdmin):
+    list_display = (
+        CampaignNotificationType.campaign.field.name,
+        CampaignNotificationType.notification_type.field.name,
+        CampaignNotificationType.notification_template.field.name,
+    )
+    list_filter = (
+        CampaignNotificationType.notification_type.field.name,
+        CampaignNotificationType.campaign.field.name,
+    )
+    search_fields = (
+        fields_join(CampaignNotificationType.campaign, Campaign.title),
+        fields_join(CampaignNotificationType.notification_template, NotificationTemplate.title),
+        CampaignNotificationType.notification_type.field.name,
+    )
+    autocomplete_fields = (CampaignNotificationType.campaign.field.name,)
+
+
+@admin.register(Campaign)
+class CampaignAdmin(admin.ModelAdmin):
+    @admin.display(description=_("Action"))
+    def action_buttons(self, obj):
+        return get_template("notification/action_buttons.html").render(
+            {
+                "obj": obj,
+                "saved_filter_keyword": TablePageMixin.saved_filter_keyword,
+            }
+        )
+
+    list_display = (
+        Campaign.title.field.name,
+        Campaign.modified.field.name,
+        Campaign.created.field.name,
+        action_buttons.__name__,
+    )
+    search_fields = (Campaign.title.field.name,)
+
+    def get_urls(self):
+        return super().get_urls() + [
+            path(
+                "<int:pk>/notify",
+                self.admin_site.admin_view(CampaignNotifyView.as_view(admin_site=self.admin_site)),
+                name="notification_compaign_notify",
+            ),
+        ]
 
 
 @admin.register(Notification)

@@ -14,8 +14,14 @@ from django.conf import settings
 logger = getLogger("django")
 
 
-class AnnotationNames(NamedTuple):
+class ProfileAnnotationNames(NamedTuple):
     IS_ORGANIZATION_MEMBER = "is_organization_member"
+    HAS_WORK_EXPERIENCE = "has_work_experience"
+    HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_EDUCATION = "has_education"
+    HAS_VERIFIED_EDUCATION = "has_verified_education"
+    HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
+    HAS_CANADA_VISA = "has_canada_visa"
 
 
 def get_extended_blocklist():

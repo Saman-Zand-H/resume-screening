@@ -3,9 +3,11 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from typing import Dict, Generic, Optional, Type, TypeVar
+from operator import attrgetter
+from typing import Generic, Optional, TypeVar
 
 import firebase_admin
+from common.utils import get_all_subclasses
 from firebase_admin import messaging
 from flex_blob.models import FileModel
 from flex_blob.views import BlobResponseBuilder
@@ -16,26 +18,37 @@ from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMessage
 
+from .constants import NotificationTypes
+from .context_mapper import ContextMapperRegistry
 from .models import (
+    Campaign,
+    CampaignNotification,
     EmailNotification,
-    InAppNotification,
     Notification,
     PushNotification,
     SMSNotification,
     UserDevice,
 )
+from .report_mapper import ReportMapper
+from .types import NotificationType
 
 NT = TypeVar("NT", bound=Notification)
 
 
 class NotificationContext(BaseModel, Generic[NT]):
     notification: NT
-    context: dict = {}
+    context: Optional[dict] = {}
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class NotificationSender(ABC):
+    notification_type: NotificationType
+
+    @classmethod
+    def get_senders_dict(cls):
+        return {sender.notification_type: sender for sender in get_all_subclasses(cls)}
+
     @abstractmethod
     def send(self, notification: NotificationContext, **kwargs):
         pass
@@ -52,6 +65,8 @@ class NotificationSender(ABC):
 
 
 class EmailNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.EMAIL
+
     def get_message(self, notification: NotificationContext[EmailNotification], from_email: str = None):
         email = EmailMessage(
             subject=notification.notification.title,
@@ -88,6 +103,8 @@ class EmailNotificationSender(NotificationSender):
 
 
 class SMSNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.SMS
+
     @classmethod
     @lru_cache
     def get_setting(cls, key: str, default: Optional[str] = None) -> str:
@@ -116,6 +133,8 @@ class SMSNotificationSender(NotificationSender):
 
 
 class InAppNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.IN_APP
+
     def send(self, *args, **kwargs):
         pass
 
@@ -124,6 +143,8 @@ class InAppNotificationSender(NotificationSender):
 
 
 class PushNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.PUSH
+
     @classmethod
     @lru_cache
     def setup(cls):
@@ -157,40 +178,66 @@ class PushNotificationSender(NotificationSender):
         return super().handle_exception(exception, notification)
 
 
-SENDERS: Dict[str, Type[NotificationSender]] = {
-    EmailNotification: EmailNotificationSender,
-    SMSNotification: SMSNotificationSender,
-    InAppNotification: InAppNotificationSender,
-    PushNotification: PushNotificationSender,
-}
-
-
 def send_notifications(*notifications: NotificationContext[Notification], **kwargs):
-    notification_types = groupby(notifications, lambda n: type(n.notification))
+    notification_types = groupby(notifications, lambda n: n.notification.notification_type.value)
     for notification_type, notification_group in notification_types:
         notification_contexts = list(notification_group)
-        sender_class = SENDERS.get(notification_type)
+        sender_class = NotificationSender.get_senders_dict().get(notification_type)
         if not sender_class:
             continue
 
         sender = sender_class()
         try:
-            if len(notification_contexts) == 1:
-                sender.send(notification_contexts[0], **kwargs)
-            else:
-                sender.send_bulk(*notification_contexts, **kwargs)
+            send_method = sender.send if len(notification_contexts) == 1 else sender.send_bulk
+            send_method(*notification_contexts, **kwargs)
+
             for notification in notification_contexts:
                 notification.notification.set_status(Notification.Status.SENT)
-            return True
+
         except Exception as e:
             for notification in notification_contexts:
                 notification.notification.error = sender.handle_exception(e, notification)
                 notification.notification.set_status(Notification.Status.FAILED)
-            if settings.DEBUG:
+
+            if not settings.DEBUG:
                 raise e
-            return False
+
         finally:
             for notification in notification_contexts:
                 notification.notification.save()
             sender.after_save(*notification_contexts)
-    return False
+    return all(map(attrgetter("pk"), map(attrgetter("notification"), notifications)))
+
+
+def send_campaign_notifications(campaign: Campaign, queryset=None):
+    campaign_notification_types = campaign.get_campaign_notification_types()
+    report_qs = queryset or campaign.saved_filter.get_queryset()
+    notification_contexts = []
+    campaign_notifications = []
+
+    notification_dict = Notification.get_notifications_dict()
+    for campaign_notification_type in campaign_notification_types:
+        notification_type = campaign_notification_type.notification_type
+        NotificationModel = notification_dict.get(notification_type)
+
+        notifications_kwargs = []
+        for instance in report_qs:
+            context = ContextMapperRegistry.get_context(instance)
+            body = campaign_notification_type.notification_template.render(context)
+            notifications_kwargs.extend(
+                notification_kwargs | {Notification.body.field.name: body}
+                for notification_kwargs in ReportMapper.map(instance, notification_type)
+            )
+
+        for kwargs in notifications_kwargs:
+            notification_context = NotificationContext(notification=NotificationModel(**kwargs))
+            notification_contexts.append(notification_context)
+            campaign_notifications.append(
+                CampaignNotification(
+                    campaign_notification_type=campaign_notification_type,
+                    notification=notification_context.notification,
+                )
+            )
+
+    send_notifications(*notification_contexts)
+    CampaignNotification.objects.bulk_create(campaign_notifications, batch_size=20)
