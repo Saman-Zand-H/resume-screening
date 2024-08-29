@@ -5,8 +5,11 @@
     >
         <span style="font-size: small" class="material-icons">visibility</span>
     </a>
-    <a class="button" href="{% url 'admin:notification_compaign_notify' obj.pk %}">
+    <a class="button" href="{% url 'admin:notification_compaign_notify' obj.pk %}" title="notify all">
         <span style="font-size: small" class="material-icons">notifications_active</span>
+    </a>
+    <a class="button" href="{% url 'admin:notification_compaign_notify_user' obj.pk %}" title="test notification">
+        <span style="font-size: small" class="material-icons">campaign</span>
     </a>
     <a href="{% url 'admin:notification_campaignnotification_changelist' %}?campaign_notification_type__campaign__title={{ obj.title }}" class="button">
         <span class="material-icons" style="font-size: small">receipt_long</span>

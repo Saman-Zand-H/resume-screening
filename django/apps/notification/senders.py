@@ -272,8 +272,14 @@ def send_campaign_notifications(campaign: Campaign, queryset=None):
         for instance in report_qs:
             context = ContextMapperRegistry.get_context(instance)
             body = campaign_notification_type.notification_template.render(context)
+            extra_dict = {Notification.body.field.name: body}
+            if campaign_notification_type.notification_type == NotificationTypes.EMAIL:
+                extra_dict[EmailNotification.title.field.name] = campaign_notification_type.notification_title.render(
+                    context
+                )
+
             notifications_kwargs.extend(
-                notification_kwargs | {Notification.body.field.name: body}
+                notification_kwargs | extra_dict
                 for notification_kwargs in ReportMapper.map(instance, notification_type)
             )
 
@@ -282,8 +288,10 @@ def send_campaign_notifications(campaign: Campaign, queryset=None):
             notification_contexts.append(notification_context)
             campaign_notifications.append(
                 CampaignNotification(
-                    campaign_notification_type=campaign_notification_type,
-                    notification=notification_context.notification,
+                    **{
+                        CampaignNotification.campaign_notification_type.field.name: campaign_notification_type,
+                        CampaignNotification.notification.field.name: notification_context.notification,
+                    }
                 )
             )
 
