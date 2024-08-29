@@ -247,8 +247,8 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
                 notification.notification.error = sender.handle_exception(e, notification)
                 notification.notification.set_status(Notification.Status.FAILED)
 
-            if not settings.DEBUG:
-                raise e
+            if settings.DEBUG:
+                print("".join(traceback.TracebackException.from_exception(e).format()))
 
         finally:
             for notification in notification_contexts:
