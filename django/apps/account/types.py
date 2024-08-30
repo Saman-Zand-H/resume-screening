@@ -166,6 +166,7 @@ class JobSeekerProfileType(DjangoObjectType):
 
 class JobSeekerPrimitiveType(DjangoObjectType):
     profile = graphene.Field(JobSeekerProfilePrimitiveType)
+    workexperiences = graphene.List(JobSeekerWorkExperienceType)
 
     class Meta:
         model = User
@@ -176,6 +177,9 @@ class JobSeekerPrimitiveType(DjangoObjectType):
 
     def resolve_profile(self, info):
         return self.profile
+
+    def resolve_workexperiences(self, info):
+        return self.workexperiences.all().order_by("-id")
 
 
 class JobSeekerType(DjangoObjectType):
