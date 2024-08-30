@@ -1,10 +1,65 @@
 from typing import List, NamedTuple
 
+from cities_light.models import City, Country
 from common.populators import BasePopulator
+from common.utils import fields_join
+from flex_report.models import Column
+
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Model
 
 from .accesses import AccessContainer, AccessType
 from .choices import DefaultRoles
-from .models import Access, Role, SupportTicketCategory
+from .models import Access, Profile, Role, SupportTicketCategory, User
+
+
+class ColumnInitialData(NamedTuple):
+    model: Model
+    columns: List[str]
+
+
+class ColumnPopulator(BasePopulator):
+    def populate(self):
+        initial_data = [
+            ColumnInitialData(
+                model=Profile,
+                columns=[
+                    fields_join(Profile.user, User.first_name),
+                    fields_join(Profile.user, User.last_name),
+                    fields_join(Profile.user, User.email),
+                    Profile.gender.field.name,
+                    Profile.avatar.field.name,
+                    Profile.employment_status.field.name,
+                    Profile.interested_jobs.field.name,
+                    Profile.skills.field.name,
+                    Profile.raw_skills.field.name,
+                    Profile.city.field.name,
+                    fields_join(Profile.city, City.country, Country.name),
+                    Profile.native_language.field.name,
+                    Profile.fluent_languages.field.name,
+                    Profile.score.field.name,
+                    Profile.credits.field.name,
+                    Profile.birth_date.field.name,
+                    Profile.accept_terms_and_conditions.field.name,
+                    Profile.allow_notifications.field.name,
+                ],
+            )
+        ]
+        for data in initial_data:
+            content_type = ContentType.objects.get_for_model(data.model)
+            Column.objects.bulk_create(
+                [
+                    Column(
+                        **{
+                            Column.model.field.name: content_type,
+                            Column.title.field.name: column_title,
+                        }
+                    )
+                    for column_title in data.columns
+                ],
+                batch_size=10,
+                ignore_conflicts=True,
+            )
 
 
 class RoleAccess(NamedTuple):

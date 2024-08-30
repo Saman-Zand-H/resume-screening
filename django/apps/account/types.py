@@ -1,23 +1,22 @@
 import contextlib
 
 import graphene
-from notification.types import InAppNotificationNode
-from notification.models import InAppNotification
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import JobNode, JobBenefitType, SkillType, FieldType
+from common.types import FieldType, JobBenefitType, JobNode, SkillType
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
-from cv.types import GeneratedCVContentType, JobSeekerGeneratedCVType, GeneratedCVNode
+from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
+from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, IntegerField, Q, QuerySet, Value, When, Count
+from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
 
 from .accesses import (
     JobPositionContainer,
@@ -54,6 +53,23 @@ from .models import (
     UserTask,
     WorkExperience,
 )
+
+
+class InAppNotificationNode(DjangoObjectType):
+    class Meta:
+        model = InAppNotification
+        use_connection = True
+        fields = (
+            InAppNotification.id.field.name,
+            InAppNotification.title.field.name,
+            InAppNotification.body.field.name,
+            InAppNotification.read_at.field.name,
+            InAppNotification.created.field.name,
+            InAppNotification.modified.field.name,
+        )
+        filter_fields = {
+            InAppNotification.read_at.field.name: ["isnull"],
+        }
 
 
 class ContactType(DjangoObjectType):

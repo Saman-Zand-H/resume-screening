@@ -1,0 +1,11 @@
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+  {% if has_add_permission %}
+  <li>
+    <a href="{% url 'admin:flex_report_template_wizard' %}" class="addlink" style="margin-left: 15px;">
+      {% blocktranslate with cl.opts.verbose_name as name %}Template Wizard{% endblocktranslate %}
+    </a>
+  </li>
+  {% endif %}
+{% endblock %}

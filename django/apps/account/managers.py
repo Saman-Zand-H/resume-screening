@@ -1,8 +1,117 @@
+from common.utils import fields_join
+
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.db.models.functions import Now
 
-from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA
+from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA, ProfileAnnotationNames
+
+
+class ProfileManager(models.Manager):
+    def get_queryset(self):
+        from .models import (
+            CanadaVisa,
+            Education,
+            LanguageCertificate,
+            OrganizationMembership,
+            Profile,
+            WorkExperience,
+        )
+
+        return (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                fields_join(Profile.user, OrganizationMembership.user.field.related_query_name()),
+                fields_join(Profile.user, WorkExperience.user.field.related_query_name()),
+                fields_join(Profile.user, Education.user.field.related_query_name()),
+                fields_join(Profile.user, LanguageCertificate.user.field.related_query_name()),
+                fields_join(Profile.user, CanadaVisa.user.field.related_query_name()),
+            )
+            .annotate(
+                **{
+                    ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: models.Exists(
+                        OrganizationMembership.objects.filter(
+                            **{
+                                fields_join(
+                                    OrganizationMembership.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_WORK_EXPERIENCE: models.Exists(
+                        WorkExperience.objects.filter(
+                            **{
+                                fields_join(
+                                    WorkExperience.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: models.Exists(
+                        WorkExperience.objects.filter(
+                            **{
+                                fields_join(
+                                    WorkExperience.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname),
+                                WorkExperience.status.field.name: WorkExperience.get_verified_statuses(),
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_EDUCATION: models.Exists(
+                        Education.objects.filter(
+                            **{
+                                fields_join(
+                                    Education.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: models.Exists(
+                        Education.objects.filter(
+                            **{
+                                fields_join(
+                                    Education.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname),
+                                Education.status.field.name: Education.get_verified_statuses(),
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: models.Exists(
+                        LanguageCertificate.objects.filter(
+                            **{
+                                fields_join(
+                                    LanguageCertificate.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_CANADA_VISA: models.Exists(
+                        CanadaVisa.objects.filter(
+                            **{
+                                fields_join(
+                                    CanadaVisa.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                }
+            )
+        )
 
 
 class CertificateAndLicenseQueryset(models.QuerySet):

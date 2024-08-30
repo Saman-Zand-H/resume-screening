@@ -3,9 +3,10 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from typing import Dict, Generic, Optional, Type, TypeVar
+from typing import Generic, Optional, TypeVar, Union
 
 import firebase_admin
+from common.utils import get_all_subclasses
 from firebase_admin import messaging
 from flex_blob.models import FileModel
 from flex_blob.views import BlobResponseBuilder
@@ -16,26 +17,42 @@ from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMessage
 
+from .constants import NotificationTypes
+from .context_mapper import ContextMapperRegistry
 from .models import (
+    Campaign,
+    CampaignNotification,
     EmailNotification,
-    InAppNotification,
     Notification,
     PushNotification,
     SMSNotification,
     UserDevice,
+    WhatsAppNotification,
 )
+from .report_mapper import ReportMapper
+from .types import NotificationType
 
 NT = TypeVar("NT", bound=Notification)
 
 
 class NotificationContext(BaseModel, Generic[NT]):
     notification: NT
-    context: dict = {}
+    context: Optional[dict] = {}
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class NotificationSender(ABC):
+    notification_type: NotificationType
+
+    @classmethod
+    def get_senders_dict(cls):
+        return {
+            sender.notification_type: sender
+            for sender in get_all_subclasses(cls)
+            if getattr(sender, "notification_type", None)
+        }
+
     @abstractmethod
     def send(self, notification: NotificationContext, **kwargs):
         pass
@@ -52,6 +69,8 @@ class NotificationSender(ABC):
 
 
 class EmailNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.EMAIL
+
     def get_message(self, notification: NotificationContext[EmailNotification], from_email: str = None):
         email = EmailMessage(
             subject=notification.notification.title,
@@ -87,7 +106,7 @@ class EmailNotificationSender(NotificationSender):
         connection.send_messages(emails)
 
 
-class SMSNotificationSender(NotificationSender):
+class TwilioSender(NotificationSender):
     @classmethod
     @lru_cache
     def get_setting(cls, key: str, default: Optional[str] = None) -> str:
@@ -98,24 +117,72 @@ class SMSNotificationSender(NotificationSender):
     def get_client(cls) -> Client:
         return Client(cls.get_setting("ACCOUNT_SID"), cls.get_setting("AUTH_TOKEN"))
 
-    def get_message(self, notification: NotificationContext[SMSNotification], from_number: Optional[str] = None):
+    @abstractmethod
+    @lru_cache
+    def serialize_phone_number(cls, phone_number: str) -> str:
+        pass
+
+    @abstractmethod
+    @lru_cache
+    def get_default_from_number(cls) -> str:
+        pass
+
+    def get_message(
+        self,
+        notification: NotificationContext[Union[SMSNotification, WhatsAppNotification]],
+        from_number: Optional[str] = None,
+    ):
         return {
             "body": notification.notification.body,
-            "from_": from_number or self.get_setting("PHONE_NUMBER"),
-            "to": notification.notification.phone_number.as_e164,
+            "from_": self.serialize_phone_number(from_number or self.get_default_from_number()),
+            "to": self.serialize_phone_number(notification.notification.phone_number.as_e164),
         }
 
-    def send(self, notification: NotificationContext[SMSNotification], from_number: Optional[str] = None):
+    def send(self, notification: Union[SMSNotification, WhatsAppNotification], from_number: Optional[str] = None):
         client = self.get_client()
         client.messages.create(**self.get_message(notification, from_number=from_number))
 
-    def send_bulk(self, *notifications: NotificationContext[SMSNotification], from_number: Optional[str] = None):
+    def send_bulk(
+        self,
+        *notifications: Union[SMSNotification, WhatsAppNotification],
+        from_number: Optional[str] = None,
+    ):
         client = self.get_client()
         for notification in notifications:
             client.messages.create(**self.get_message(notification, from_number=from_number))
 
 
+class SMSNotificationSender(TwilioSender):
+    notification_type = NotificationTypes.SMS
+
+    @classmethod
+    @lru_cache
+    def serialize_phone_number(cls, phone_number: str) -> str:
+        return phone_number
+
+    @classmethod
+    @lru_cache
+    def get_default_from_number(cls) -> str:
+        return cls.get_setting("PHONE_NUMBER")
+
+
+class WhatsAppNotificationSender(TwilioSender):
+    notification_type = NotificationTypes.WHATSAPP
+
+    @classmethod
+    @lru_cache
+    def serialize_phone_number(cls, phone_number: str) -> str:
+        return f"whatsapp:{phone_number}"
+
+    @classmethod
+    @lru_cache
+    def get_default_from_number(cls) -> str:
+        return cls.get_setting("WHATSAPP_NUMBER")
+
+
 class InAppNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.IN_APP
+
     def send(self, *args, **kwargs):
         pass
 
@@ -124,6 +191,8 @@ class InAppNotificationSender(NotificationSender):
 
 
 class PushNotificationSender(NotificationSender):
+    notification_type = NotificationTypes.PUSH
+
     @classmethod
     @lru_cache
     def setup(cls):
@@ -157,40 +226,74 @@ class PushNotificationSender(NotificationSender):
         return super().handle_exception(exception, notification)
 
 
-SENDERS: Dict[str, Type[NotificationSender]] = {
-    EmailNotification: EmailNotificationSender,
-    SMSNotification: SMSNotificationSender,
-    InAppNotification: InAppNotificationSender,
-    PushNotification: PushNotificationSender,
-}
-
-
-def send_notifications(*notifications: NotificationContext[Notification], **kwargs):
-    notification_types = groupby(notifications, lambda n: type(n.notification))
+def send_notifications(*notifications: NotificationContext[Notification], **kwargs) -> list[bool]:
+    notification_types = groupby(notifications, lambda n: n.notification.notification_type.value)
     for notification_type, notification_group in notification_types:
         notification_contexts = list(notification_group)
-        sender_class = SENDERS.get(notification_type)
+        sender_class = NotificationSender.get_senders_dict().get(notification_type)
         if not sender_class:
             continue
 
         sender = sender_class()
         try:
-            if len(notification_contexts) == 1:
-                sender.send(notification_contexts[0], **kwargs)
-            else:
-                sender.send_bulk(*notification_contexts, **kwargs)
+            send_method = sender.send if len(notification_contexts) == 1 else sender.send_bulk
+            send_method(*notification_contexts, **kwargs)
+
             for notification in notification_contexts:
                 notification.notification.set_status(Notification.Status.SENT)
-            return True
+
         except Exception as e:
             for notification in notification_contexts:
                 notification.notification.error = sender.handle_exception(e, notification)
                 notification.notification.set_status(Notification.Status.FAILED)
+
             if settings.DEBUG:
-                raise e
-            return False
+                print("".join(traceback.TracebackException.from_exception(e).format()))
+
         finally:
             for notification in notification_contexts:
                 notification.notification.save()
             sender.after_save(*notification_contexts)
-    return False
+    return map(lambda n: n.notification.status == Notification.Status.SENT, notifications)
+
+
+def send_campaign_notifications(campaign: Campaign, queryset=None):
+    campaign_notification_types = campaign.get_campaign_notification_types()
+    report_qs = queryset or campaign.saved_filter.get_queryset()
+    notification_contexts = []
+    campaign_notifications = []
+
+    notification_dict = Notification.get_notifications_dict()
+    for campaign_notification_type in campaign_notification_types:
+        notification_type = campaign_notification_type.notification_type
+        NotificationModel = notification_dict.get(notification_type)
+
+        notifications_kwargs = []
+        for instance in report_qs:
+            context = ContextMapperRegistry.get_context(instance)
+            body = campaign_notification_type.notification_template.render(context)
+            extra_dict = {Notification.body.field.name: body}
+            if campaign_notification_type.notification_type == NotificationTypes.EMAIL:
+                extra_dict[EmailNotification.title.field.name] = campaign_notification_type.notification_title.render(
+                    context
+                )
+
+            notifications_kwargs.extend(
+                notification_kwargs | extra_dict
+                for notification_kwargs in ReportMapper.map(instance, notification_type)
+            )
+
+        for kwargs in notifications_kwargs:
+            notification_context = NotificationContext(notification=NotificationModel(**kwargs))
+            notification_contexts.append(notification_context)
+            campaign_notifications.append(
+                CampaignNotification(
+                    **{
+                        CampaignNotification.campaign_notification_type.field.name: campaign_notification_type,
+                        CampaignNotification.notification.field.name: notification_context.notification,
+                    }
+                )
+            )
+
+    send_notifications(*notification_contexts)
+    CampaignNotification.objects.bulk_create(campaign_notifications, batch_size=20)

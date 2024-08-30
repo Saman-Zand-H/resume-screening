@@ -2,8 +2,28 @@ import contextlib
 import json
 import logging
 
+from flex_report.defaults.views import BaseView as BaseFlexBaseView
+from flex_report.defaults.views import (
+    ReportView as BaseReportView,
+)
+from flex_report.defaults.views import (
+    TemplateCreateCompleteView as BaseTemplateCreateCompleteView,
+)
+from flex_report.defaults.views import (
+    TemplateCreateInitView as BaseTemplateCreateInitView,
+)
+from flex_report.defaults.views import TemplateDeleteView
+from flex_report.defaults.views import (
+    TemplateSavedFilterCreateView as BaseTemplateSavedFilterCreateView,
+)
+
+from django.contrib.admin.sites import AdminSite
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.edit import FormView
 
@@ -11,6 +31,87 @@ from .forms import WebhookForm
 from .webhook import WebhookEvent, WebhookHandler
 
 logger = logging.getLogger(__name__)
+
+
+class FlexAdminBaseView:
+    admin_site = None
+    admin_title = None
+
+    def __init__(self, admin_site=None, *args, **kwargs):
+        self.admin_site = admin_site
+        super().__init__(*args, **kwargs)
+
+    def get_success_url(self):
+        return self.success_url
+
+    def get_admin_title(self):
+        return self.admin_title
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if not (admin_context := self.admin_site.each_context(self.request)):
+            return context
+
+        context.update(
+            **admin_context,
+            opts=self.model._meta,
+            title=self.get_admin_title(),
+            add=True,
+        )
+        return context
+
+
+class TemplateReportView(FlexAdminBaseView, BaseReportView):
+    def get_admin_title(self):
+        return self.get_template().title
+
+
+class TemplateCreateInitView(FlexAdminBaseView, BaseTemplateCreateInitView):
+    admin_title = _("Template Wizard")
+
+    def get_success_url(self):
+        return reverse_lazy("admin:flex_report_template_wizard_complete", kwargs={"pk": self.object.pk})
+
+
+class TemplateSavedFilterCreateView(FlexAdminBaseView, BaseTemplateSavedFilterCreateView):
+    admin_title = _("Create Filter")
+    success_url = reverse_lazy("admin:flex_report_template_changelist")
+
+    def get_success_url(self):
+        return self.success_url
+
+
+class TemplateCreateCompleteView(FlexAdminBaseView, BaseTemplateCreateCompleteView):
+    admin_title = _('Complete "%(template_name)s"')
+    success_url = reverse_lazy("admin:flex_report_template_changelist")
+
+    def get_admin_title(self):
+        return self.admin_title % {"template_name": self.object}
+
+
+class FlexBaseView(UserPassesTestMixin, BaseFlexBaseView, AdminSite):
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(
+            **kwargs,
+            is_popup=False,
+            is_nav_sidebar_enabled=True,
+            has_permission=True,
+            app_list=self.get_app_list(self.request),
+        )
+
+    def test_func(self):
+        return self.request.user.is_authenticated and self.request.user.is_superuser
+
+
+class FlexTemplateDeleteView(FlexBaseView, TemplateDeleteView):
+    success_url = reverse_lazy("admin:flex_report_template_changelist")
+
+    def get(self, *args, **kwargs):
+        self.get_object().delete()
+        return redirect(self.success_url)
+
+
+flex_template_delete_view = FlexTemplateDeleteView.as_view()
 
 
 class WebhookView(FormView):

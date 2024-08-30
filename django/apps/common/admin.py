@@ -1,4 +1,8 @@
+from flex_report.defaults.admin import TemplateAdmin as BaseTemplateAdmin
+from flex_report.defaults.views import TemplateDeleteView
+
 from django.contrib import admin
+from django.urls import path
 
 from .models import (
     Field,
@@ -13,6 +17,44 @@ from .models import (
     University,
 )
 from .utils import get_file_models
+from .views import (
+    TemplateCreateCompleteView,
+    TemplateCreateInitView,
+    TemplateReportView,
+    TemplateSavedFilterCreateView,
+)
+
+
+class TemplateAdmin(BaseTemplateAdmin):
+    def get_urls(self):
+        return [
+            path(
+                "add/wizard",
+                self.admin_site.admin_view(TemplateCreateInitView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_wizard",
+            ),
+            path(
+                "<int:pk>/complete",
+                self.admin_site.admin_view(TemplateCreateCompleteView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_wizard_complete",
+            ),
+            path(
+                "<int:pk>/filter",
+                self.admin_site.admin_view(TemplateSavedFilterCreateView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_filter",
+            ),
+            path(
+                "<int:pk>/report",
+                self.admin_site.admin_view(TemplateReportView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_report",
+            ),
+            path(
+                "<int:pk>/delete",
+                self.admin_site.admin_view(TemplateDeleteView.as_view()),
+                name="flex_report_template_delete",
+            ),
+            *super().get_urls(),
+        ]
 
 
 @admin.register(Industry)

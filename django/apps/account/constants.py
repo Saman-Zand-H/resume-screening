@@ -3,6 +3,7 @@ from datetime import timedelta
 from functools import partial
 from logging import getLogger
 from pathlib import Path
+from typing import NamedTuple
 
 from ai.types import CachableVectorStore
 from common.models import Job, Skill
@@ -11,6 +12,16 @@ from disposable_email_domains import blocklist
 from django.conf import settings
 
 logger = getLogger("django")
+
+
+class ProfileAnnotationNames(NamedTuple):
+    IS_ORGANIZATION_MEMBER = "is_organization_member"
+    HAS_WORK_EXPERIENCE = "has_work_experience"
+    HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_EDUCATION = "has_education"
+    HAS_VERIFIED_EDUCATION = "has_verified_education"
+    HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
+    HAS_CANADA_VISA = "has_canada_visa"
 
 
 def get_extended_blocklist():
