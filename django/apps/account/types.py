@@ -782,7 +782,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
                     OrganizationMembership.user,
                 ): user
             }
-        )
+        ).order_by("-id")
 
 
 class JobPositionInterviewType(DjangoObjectType):
