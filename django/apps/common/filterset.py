@@ -1,6 +1,6 @@
 import django_filters
+from flex_report.constants import FILTERSET_DATE_FILTERS
 from flex_report.filterset import (
-    FILTERSET_DATE_FILTERS,
     CustomModelMultipleChoiceFilter,
 )
 from flex_report.filterset import FilterSet as BaseFilterSet

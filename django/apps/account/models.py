@@ -680,18 +680,18 @@ class Profile(ComputedFieldsModel):
     @classmethod
     def flex_report_search_fields(cls):
         return {
-            cls.birth_date.field.name: ["gte", "lte"],
+            # cls.birth_date.field.name: ["gte", "lte"],
             cls.gender.field.name: ["iexact"],
             fields_join(cls.city, City.country): ["in", "iexact"],
             # fields_join(cls.user, User.date_joined): ["gte", "lte"],
             # fields_join(cls.user, User.last_login): ["gte", "lte"],
-            ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["iexact"],
-            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["iexact"],
-            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["iexact"],
-            ProfileAnnotationNames.HAS_EDUCATION: ["iexact"],
-            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["iexact"],
-            ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["iexact"],
-            ProfileAnnotationNames.HAS_CANADA_VISA: ["iexact"],
+            ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
+            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["exact"],
+            ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
             cls.score.field.name: ["gte", "lte"],
             cls.credits.field.name: ["gte", "lte"],
         }
