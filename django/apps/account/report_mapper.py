@@ -4,11 +4,23 @@ from notification.models import (
     PushNotification,
     SMSNotification,
     UserDevice,
+    WhatsAppNotification,
 )
 from notification.report_mapper import register
 from notification.types import NotificationTypes
 
 from .models import Contact, Profile
+
+
+@register(Profile, NotificationTypes.WHATSAPP)
+def profile_whatsapp_mapper(instance: Profile):
+    return [
+        {
+            WhatsAppNotification.user.field.name: instance.user,
+            WhatsAppNotification.phone_number.field.name: phone_number.get_display_name_and_link().get("display"),
+        }
+        for phone_number in instance.user.get_contacts_by_type(Contact.Type.WHATSAPP)
+    ]
 
 
 @register(Profile, NotificationTypes.EMAIL)

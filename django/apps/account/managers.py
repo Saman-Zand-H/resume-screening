@@ -15,6 +15,7 @@ class ProfileManager(models.Manager):
             LanguageCertificate,
             OrganizationMembership,
             Profile,
+            User,
             WorkExperience,
         )
 
@@ -107,6 +108,20 @@ class ProfileManager(models.Manager):
                                     Profile._meta.pk.attname,
                                 ): models.OuterRef(Profile._meta.pk.attname)
                             }
+                        )
+                    ),
+                    ProfileAnnotationNames.LAST_LOGIN: models.F(
+                        fields_join(
+                            Profile.user,
+                            User.last_login,
+                            suffix_lookups=["date"],
+                        )
+                    ),
+                    ProfileAnnotationNames.DATE_JOINED: models.F(
+                        fields_join(
+                            Profile.user,
+                            User.date_joined,
+                            suffix_lookups=["date"],
                         )
                     ),
                 }
