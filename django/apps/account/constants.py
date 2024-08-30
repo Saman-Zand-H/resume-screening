@@ -22,6 +22,8 @@ class ProfileAnnotationNames(NamedTuple):
     HAS_VERIFIED_EDUCATION = "has_verified_education"
     HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
     HAS_CANADA_VISA = "has_canada_visa"
+    LAST_LOGIN = "last_login"
+    DATE_JOINED = "date_joined"
 
 
 def get_extended_blocklist():
