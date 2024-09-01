@@ -19,6 +19,9 @@ from django.core.cache import cache
 from django.core.mail import EmailMessage
 from django.utils import timezone
 
+from notification.senders import send_notifications, NotificationContext
+from notification.models import EmailNotification
+
 from .utils import (
     extract_available_jobs,
     extract_certificate_text_content,
@@ -216,26 +219,24 @@ class SerializableContext:
 
 @register_task([AccountSubscription.EMAILING])
 def send_email_async(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
-    email = EmailMessage(
-        subject=subject,
-        from_email=from_email,
-        to=recipient_list,
+    notifications = []
+    recipient_list = list(recipient_list) # Ensure it's a list
+    for email in recipient_list:
+        email_notification = EmailNotification(
+            user=get_user_model().objects.get(email=email),
+            title=subject,
+            email=email,
         body=content,
     )
-    email.content_subtype = "html"
-
-    if file_model_ids:
-        blob_builder = BlobResponseBuilder.get_response_builder()
-        for file_model_id in file_model_ids:
-            attachment = FileModel.objects.get(pk=file_model_id)
-            file_name = os.path.basename(blob_builder.get_file_name(attachment))
-            email.attach(
-                file_name.split("/")[-1],
-                attachment.file.read(),
-                blob_builder.get_content_type(attachment),
+        notifications.append(
+            NotificationContext(
+                notification=email_notification,
+                context={
+                    "file_model_ids": file_model_ids,
+                },
             )
-
-    email.send()
+        )
+    send_notifications(*notifications, from_email=from_email)
 
 
 @register_task(subscriptions=[AccountSubscription.EMAILING])
