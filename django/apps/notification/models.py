@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.template.base import Template
 from django.template.context import Context
+from django.template.loader import get_template
 from django.utils.translation import gettext_lazy as _
 
 from .constants import NotificationTypes
@@ -30,8 +31,13 @@ class NotificationTemplate(TimeStampedModel):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     content_template = models.TextField(verbose_name=_("Content Template"), help_text=get_template_help_text)
 
-    def render(self, context: dict) -> str:
-        return Template(self.content_template).render(Context(context))
+    def render(self, context: dict, is_email=False) -> str:
+        content = Template(self.content_template).render(Context(context))
+        if not is_email:
+            return content
+
+        base_template: Template = get_template("notification/email_base.html").template
+        return Template(base_template.source.replace("REPLACE_ME", content))
 
     def __str__(self):
         return self.title
