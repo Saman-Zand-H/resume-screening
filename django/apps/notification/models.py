@@ -33,11 +33,10 @@ class NotificationTemplate(TimeStampedModel):
 
     def render(self, context: dict, is_email=False) -> str:
         content = Template(self.content_template).render(Context(context))
-        if not is_email:
-            return content
-
-        base_template: Template = get_template("notification/email_base.html").template
-        return Template(base_template.source.replace("REPLACE_ME", content))
+        if is_email:
+            base_template = get_template("notification/email_base.html").template
+            content = Template(base_template.source.replace("REPLACE_ME", content)).render(Context(context))
+        return content
 
     def __str__(self):
         return self.title
