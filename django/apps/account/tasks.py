@@ -1,6 +1,4 @@
-import json
 import traceback
-from collections import namedtuple
 from datetime import timedelta
 from functools import wraps
 from itertools import chain
@@ -9,7 +7,6 @@ from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from config.settings.subscriptions import AccountSubscription
 from flex_pubsub.tasks import register_task
-from graphql_auth.exceptions import UserAlreadyVerifiedError
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -25,6 +22,7 @@ from .utils import (
     extract_resume_json,
     get_user_additional_information,
 )
+
 
 logger = getLogger("django")
 
@@ -176,54 +174,17 @@ def set_user_resume_json(user_id: str) -> bool:
         return True
 
 
-class SerializableContext:
-    def __init__(self, context):
-        self._port = context.get_port()
-        self._is_secure = context.is_secure()
-        self._host = context.get_host()
-        self._template_context = getattr(context, "template_context", {})
-
-    def get_port(self):
-        return self._port
-
-    def is_secure(self):
-        return self._is_secure
-
-    def get_host(self):
-        return self._host
-
-    def template_context(self):
-        return self._template_context
-
-    def to_dict(self):
-        return {
-            "_port": self._port,
-            "_is_secure": self._is_secure,
-            "_host": self._host,
-            "_template_context": self._template_context,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        instance = cls.__new__(cls)
-        instance._port = data["_port"]
-        instance._is_secure = data["_is_secure"]
-        instance._host = data["_host"]
-        instance._template_context = data["_template_context"]
-        return instance
-
-
 @register_task([AccountSubscription.EMAILING])
 def send_email_async(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
     notifications = []
-    recipient_list = list(recipient_list) # Ensure it's a list
+    recipient_list = list(recipient_list)  # Ensure it's a list
     for email in recipient_list:
         email_notification = EmailNotification(
             user=get_user_model().objects.get(email=email),
             title=subject,
             email=email,
-        body=content,
-    )
+            body=content,
+        )
         notifications.append(
             NotificationContext(
                 notification=email_notification,
@@ -233,32 +194,6 @@ def send_email_async(recipient_list, from_email, subject, content, file_model_id
             )
         )
     send_notifications(*notifications, from_email=from_email)
-
-
-@register_task(subscriptions=[AccountSubscription.EMAILING])
-def auth_async_email(func_name, user_email, context, arg):
-    """
-    Task to send an e-mail for the graphql_auth package
-    """
-
-    Info = namedtuple("info", ["context"])
-    info = Info(context=SerializableContext.from_dict(json.loads(context)))
-
-    user = get_user_model().objects.filter(email=user_email).select_related("status").first()
-
-    if not user:
-        raise ValueError(f"User with email {user_email} not found.")
-
-    func = getattr(user.status, func_name, None)
-    if not func:
-        raise ValueError(f"Function {func_name} not found in user.status.")
-
-    try:
-        if arg is not None:
-            return func(info, arg)
-        return func(info)
-    except UserAlreadyVerifiedError:
-        pass
 
 
 def graphql_auth_async_email(func, args):
