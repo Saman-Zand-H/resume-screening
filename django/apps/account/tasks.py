@@ -1,5 +1,4 @@
 import json
-import os
 import traceback
 from collections import namedtuple
 from datetime import timedelta
@@ -9,14 +8,11 @@ from logging import getLogger
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from config.settings.subscriptions import AccountSubscription
-from flex_blob.builders import BlobResponseBuilder
-from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
 from graphql_auth.exceptions import UserAlreadyVerifiedError
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.mail import EmailMessage
 from django.utils import timezone
 
 from notification.senders import send_notifications, NotificationContext
@@ -267,11 +263,25 @@ def auth_async_email(func_name, user_email, context, arg):
 
 def graphql_auth_async_email(func, args):
     func_name = func.__name__
-    user_email = func.__self__.user.email
-    info = args[0]
-    arg = args[1] if len(args) == 2 else None
+    user = func.__self__.user
 
-    serializable_context = SerializableContext(info.context)
-    context = json.dumps(serializable_context.to_dict())
+    user.status.send = patched_send_email
+    func = getattr(user.status, func_name, None)
+    if func:
+        return func(*args)
 
-    auth_async_email.delay(func_name, user_email, context, arg)
+
+def patched_send_email(subject, template, context, recipient_list=None):
+    from graphql_auth.settings import graphql_auth_settings
+    from django.template.loader import render_to_string
+    from account.tasks import send_email_async
+
+    _subject = render_to_string(subject, context).replace("\n", " ").strip()
+    html_message = render_to_string(template, context)
+    recipient_list = recipient_list or [getattr(context.get("user"), get_user_model().EMAIL_FIELD)]
+    send_email_async.delay(
+        recipient_list=recipient_list,
+        from_email=graphql_auth_settings.EMAIL_FROM,
+        content=html_message,
+        subject=_subject,
+    )
