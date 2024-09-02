@@ -52,7 +52,7 @@ class CampaignUserNotifyView(BaseView, FormView, SingleObjectMixin):
     def form_valid(self, form=None):
         users = form.cleaned_data.get("users")
         campaign = self.get_object()
-        send_campaign_notifications(campaign.pk, queryset=users)
+        send_campaign_notifications(campaign_id=campaign.pk, queryset=users)
 
         return redirect(self.get_success_url())
 
