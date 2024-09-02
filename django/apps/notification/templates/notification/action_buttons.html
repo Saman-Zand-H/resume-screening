@@ -1,0 +1,17 @@
+<div style="display: flex; gap: .5rem; align-items: center;">
+    <a
+        class="button"
+        href="{% url 'admin:flex_report_template_report' obj.saved_filter.template.pk %}?{{ saved_filter_keyword }}={{ obj.saved_filter.pk }}"
+    >
+        Recipients
+    </a>
+    <a class="button" href="{% url 'admin:notification_compaign_notify' obj.pk %}" title="notify all">
+        Send All
+    </a>
+    <a class="button" href="{% url 'admin:notification_compaign_notify_user' obj.pk %}" title="test notification">
+        Test
+    </a>
+    <a href="{% url 'admin:notification_campaignnotification_changelist' %}?campaign_notification_type__campaign__title={{ obj.title }}" class="button">
+        Log
+    </a>
+</div>

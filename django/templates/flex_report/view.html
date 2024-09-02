@@ -1,0 +1,107 @@
+{% load flex_report_filters i18n static admin_list %}
+
+<div class="module" id="changelist">
+    <div class="changelist-form-container">
+        {% if report.have_template %}
+            <div id="changelist-form">
+                {% if report.template.saved_filters.exists %}
+                    <form method="get">
+                        {{ report.saved_filter_form.label_tag }}
+                        {{ report.saved_filter_form }}
+                        {{ report.saved_filter_form.errors }}
+                    </form>
+                {% endif %}
+                
+                <div class="results">
+                    <table id="result_list">
+                        <thead>
+                            <th class="action-checkbox-column">
+                                <div class="text">
+                                    <span>
+                                        <input 
+                                            type="checkbox" 
+                                            id="action-toggle" 
+                                            aria-label="Select all objects on this page for an action"
+                                        >
+                                    </span>
+                                </div>
+                                <div class="clear"></div>
+                            </th>
+                            {% for column in report.columns %}
+                                {% if column.column_type == 'model' %}
+                                    <th>{{ report.template.model.model_class|get_column_verbose_name:column.title }}</th>
+                                {% else %}
+                                    {% for dynamic_field in column.get_dynamic_obj.unpack_field %}
+                                        <th>
+                                            {{ dynamic_field.get_verbose_name }}
+                                        </th>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if report.buttons %}
+                                <th>{% trans 'Actions' %}</th>
+                            {% endif %}
+                        </thead>
+                        <tbody>
+                            {% for record in report.pagination.qs %}
+                                <tr>
+                                    <td class="action-checkbox">
+                                        <input type="checkbox" name="_selected_action" value="{{ object.pk }}" class="action-select" aria-label="Select this object for an action - admin: Can manage company profile">
+                                    </td>
+
+                                    {% for column in report.columns %}
+                                        {% if column.column_type == 'model' %}
+                                            <td>{{ record|get_row_value:column.title|default:"-" }}</td>
+                                        {% else %}
+                                            {% for dynamic_field in column.get_dynamic_obj.unpack_field %}
+                                                <td>
+                                                    {% call_method dynamic_field 'get_value' record %}
+                                                </td>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if report.buttons %}
+                                        <td>
+                                            <div class="ui icon buttons" x-data>
+                                                {% for button in report.buttons %}
+                                                    {% if not button.is_table %}
+                                                        <a 
+                                                            {% if button.url %}href="{% get_report_button_url record button %}"{% endif %} 
+                                                            @click="$dispatch('{{ button.event }}', {% get_report_button_fields record button %})" 
+                                                            class="{{ button.color.color }}" 
+                                                            {% if button.display_name %}title="{{ button.display_name }}"{% endif %}
+                                                        >
+                                                            {{ button.display_name }}
+                                                        </a>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td 
+                                        style="text-align: center;" 
+                                        {% if report.buttons.exists %}
+                                            colspan="{{ report.columns_count|add:1 }}"
+                                        {% else %}
+                                            colspan="{{ report.columns_count }}"
+                                        {% endif %}
+                                    >
+                                        {% trans 'No data has been submitted.' %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    {% show_pagination report.pagination %}
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-danger m-0">{% trans 'No template has been set for this page.' %}</div>
+        {% endif %}
+    </div>
+</div>

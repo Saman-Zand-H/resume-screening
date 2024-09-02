@@ -1,0 +1,47 @@
+{% extends "flex_report/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{% static 'libs/selectize/selectize.css' %}"
+    >
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{% static 'libs/jquery-ui/jquery-ui.css' %}"
+    >
+    <style>
+        .selectize-control {
+            width: 60%;
+        }
+
+        .form-row {
+            overflow: initial !important;
+        }
+    </style>
+{% endblock %}
+
+{% block extrascript %}
+    {{ block.super }}
+
+    <script src="{% static 'libs/jquery/jquery.min.js' %}"></script>
+    <script src="{% static 'libs/jquery-ui/jquery-ui.js' %}"></script>
+    <script src="{% static 'libs/alpinejs/cdn.min.js' %}"></script>
+    <script
+        type="text/javascript"
+        src="{% static 'libs/selectize/selectize.js' %}"
+    ></script>
+    <script>
+        const selectize = ($el) => {
+            $el.selectize({
+                plugins: ['remove_button', "drag_drop"],
+            })
+        }
+
+        selectize($(".selectize-field"))
+        selectize($(".content-main select[multiple]"))
+    </script>
+{% endblock %}

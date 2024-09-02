@@ -70,12 +70,14 @@ INSTALLED_APPS = [
     "rules.apps.AutodiscoverRulesConfig",
     "import_export",
     "colorfield",
+    "sortedm2m",
     "cities_light",
     "phonenumber_field",
     "computedfields",
     "flex_pubsub",
     "flex_blob",
     "flex_eav",
+    "flex_report",
     "flex_observer",
 ]
 
@@ -330,5 +332,12 @@ TWILIO = {
     "ACCOUNT_SID": os.environ.get("TWILIO_ACCOUNT_SID"),
     "AUTH_TOKEN": os.environ.get("TWILIO_AUTH_TOKEN"),
     "PHONE_NUMBER": os.environ.get("TWILIO_PHONE_NUMBER"),
+    "WHATSAPP_NUMBER": os.environ.get("TWILIO_WHATSAPP_NUMBER"),
 }
 
+REPORT_BASE_VIEW = "common.views.FlexBaseView"
+REPORT_MODEL_ADMINS = {
+    "Template": "common.admin.TemplateAdmin",
+}
+REPORT_VIEWS = {"TEMPLATE_DELETE": "common.views.flex_template_delete_view"}
+REPORT_FILTERSET_CLASS = "common.filterset.FilterSet"

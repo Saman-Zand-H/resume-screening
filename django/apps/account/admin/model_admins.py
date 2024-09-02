@@ -505,7 +505,7 @@ class ResumeAdmin(admin.ModelAdmin):
         Resume.user.field.name,
         Resume.file.field.name,
     )
-    search_fields = (fields_join(Resume.user, User.email), Resume.file.field.name)
+    search_fields = (fields_join(Resume.user, User.email),)
     raw_id_fields = (
         Resume.user.field.name,
         Resume.file.field.name,

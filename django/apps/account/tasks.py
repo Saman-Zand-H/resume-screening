@@ -1,7 +1,4 @@
-import json
-import os
 import traceback
-from collections import namedtuple
 from datetime import timedelta
 from functools import wraps
 from itertools import chain
@@ -9,15 +6,14 @@ from logging import getLogger
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from config.settings.subscriptions import AccountSubscription
-from flex_blob.builders import BlobResponseBuilder
-from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
-from graphql_auth.exceptions import UserAlreadyVerifiedError
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.mail import EmailMessage
 from django.utils import timezone
+
+from notification.senders import send_notifications, NotificationContext
+from notification.models import EmailNotification
 
 from .utils import (
     extract_available_jobs,
@@ -26,6 +22,7 @@ from .utils import (
     extract_resume_json,
     get_user_additional_information,
 )
+
 
 logger = getLogger("django")
 
@@ -177,100 +174,49 @@ def set_user_resume_json(user_id: str) -> bool:
         return True
 
 
-class SerializableContext:
-    def __init__(self, context):
-        self._port = context.get_port()
-        self._is_secure = context.is_secure()
-        self._host = context.get_host()
-        self._template_context = getattr(context, "template_context", {})
-
-    def get_port(self):
-        return self._port
-
-    def is_secure(self):
-        return self._is_secure
-
-    def get_host(self):
-        return self._host
-
-    def template_context(self):
-        return self._template_context
-
-    def to_dict(self):
-        return {
-            "_port": self._port,
-            "_is_secure": self._is_secure,
-            "_host": self._host,
-            "_template_context": self._template_context,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        instance = cls.__new__(cls)
-        instance._port = data["_port"]
-        instance._is_secure = data["_is_secure"]
-        instance._host = data["_host"]
-        instance._template_context = data["_template_context"]
-        return instance
-
-
 @register_task([AccountSubscription.EMAILING])
 def send_email_async(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
-    email = EmailMessage(
-        subject=subject,
-        from_email=from_email,
-        to=recipient_list,
-        body=content,
-    )
-    email.content_subtype = "html"
-
-    if file_model_ids:
-        blob_builder = BlobResponseBuilder.get_response_builder()
-        for file_model_id in file_model_ids:
-            attachment = FileModel.objects.get(pk=file_model_id)
-            file_name = os.path.basename(blob_builder.get_file_name(attachment))
-            email.attach(
-                file_name.split("/")[-1],
-                attachment.file.read(),
-                blob_builder.get_content_type(attachment),
+    notifications = []
+    recipient_list = list(recipient_list)  # Ensure it's a list
+    for email in recipient_list:
+        email_notification = EmailNotification(
+            user=get_user_model().objects.get(email=email),
+            title=subject,
+            email=email,
+            body=content,
+        )
+        notifications.append(
+            NotificationContext(
+                notification=email_notification,
+                context={
+                    "file_model_ids": file_model_ids,
+                },
             )
-
-    email.send()
-
-
-@register_task(subscriptions=[AccountSubscription.EMAILING])
-def auth_async_email(func_name, user_email, context, arg):
-    """
-    Task to send an e-mail for the graphql_auth package
-    """
-
-    Info = namedtuple("info", ["context"])
-    info = Info(context=SerializableContext.from_dict(json.loads(context)))
-
-    user = get_user_model().objects.filter(email=user_email).select_related("status").first()
-
-    if not user:
-        raise ValueError(f"User with email {user_email} not found.")
-
-    func = getattr(user.status, func_name, None)
-    if not func:
-        raise ValueError(f"Function {func_name} not found in user.status.")
-
-    try:
-        if arg is not None:
-            return func(info, arg)
-        return func(info)
-    except UserAlreadyVerifiedError:
-        pass
+        )
+    send_notifications(*notifications, from_email=from_email)
 
 
 def graphql_auth_async_email(func, args):
     func_name = func.__name__
-    user_email = func.__self__.user.email
-    info = args[0]
-    arg = args[1] if len(args) == 2 else None
+    user = func.__self__.user
 
-    serializable_context = SerializableContext(info.context)
-    context = json.dumps(serializable_context.to_dict())
+    user.status.send = patched_send_email
+    func = getattr(user.status, func_name, None)
+    if func:
+        return func(*args)
 
-    auth_async_email.delay(func_name, user_email, context, arg)
+
+def patched_send_email(subject, template, context, recipient_list=None):
+    from graphql_auth.settings import graphql_auth_settings
+    from django.template.loader import render_to_string
+    from account.tasks import send_email_async
+
+    _subject = render_to_string(subject, context).replace("\n", " ").strip()
+    html_message = render_to_string(template, context)
+    recipient_list = recipient_list or [getattr(context.get("user"), get_user_model().EMAIL_FIELD)]
+    send_email_async.delay(
+        recipient_list=recipient_list,
+        from_email=graphql_auth_settings.EMAIL_FROM,
+        content=html_message,
+        subject=_subject,
+    )

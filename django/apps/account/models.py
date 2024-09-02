@@ -37,6 +37,7 @@ from common.validators import (
 )
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
+from flex_report import report_model
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
 from model_utils.models import TimeStampedModel
@@ -65,9 +66,11 @@ from .constants import (
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
     SUPPORT_TICKET_SUBJECT_TEMPLATE,
+    ProfileAnnotationNames,
 )
 from .managers import (
     CertificateAndLicenseManager,
+    FlexReportProfileManager,
     OrganizationInvitationManager,
     UserManager,
 )
@@ -207,11 +210,11 @@ class Contact(models.Model):
                 link = self.value
 
             case Contact.Type.WHATSAPP:
-                link = f"https://wa.me/{self.value}"
+                link = f"https://wa.me/{self.value.strip("/")}"
                 display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
                 display_name = (
-                    (matched_value := re.match(display_regex, self.value)) and matched_value.group(1) or self.value
-                )
+                    (matched_value := re.match(display_regex, self.value)) and matched_value.group(1)
+                ) or self.value
 
         return {"display": display_name, "link": link}
 
@@ -319,23 +322,29 @@ class User(AbstractUser):
             ).exists()
         )
 
-    def get_contacts_by_type(self, contact_type: Contact.Type) -> List[Contact]:
+    def get_contacts_by_type(self, contact_type: Contact.Type, *, include_organization: bool = False) -> List[Contact]:
         profile_contacts = getattr(
             getattr(self.get_profile(), Profile.contactable.field.name),
             Contact.contactable.field.related_query_name(),
             Contact.objects.none(),
         ).all()
-        organization_contacts = Contact.objects.filter(
-            **{
-                f"{Contact.contactable.field.name}__in": Contactable.objects.filter(
-                    **{
-                        f"{Organization.contactable.field.related_query_name()}__in": getattr(
-                            self, Organization.user.field.related_query_name()
-                        ).all()
-                    }
-                )
-            }
+
+        organization_contacts = (
+            Contact.objects.filter(
+                **{
+                    fields_join(Contact.contactable, suffix_lookups=["in"]): Contactable.objects.filter(
+                        **{
+                            fields_join(Organization.contactable, suffix_lookups=["in"]): getattr(
+                                self, Organization.user.field.related_query_name()
+                            ).all()
+                        }
+                    )
+                }
+            )
+            if include_organization
+            else Contact.objects.none()
         )
+
         return (profile_contacts | organization_contacts).filter(type=contact_type).distinct()
 
 
@@ -488,6 +497,7 @@ class FullBodyImageFile(UserUploadedImageFile):
         verbose_name_plural = _("Full Body Images")
 
 
+@report_model.register
 class Profile(ComputedFieldsModel):
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
@@ -626,6 +636,9 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
+    flex_report_custom_manager = FlexReportProfileManager()
+    objects = models.Manager()
+
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
         depends=[
@@ -664,6 +677,24 @@ class Profile(ComputedFieldsModel):
 
     def __str__(self):
         return self.user.email
+
+    @classmethod
+    def flex_report_search_fields(cls):
+        return {
+            cls.birth_date.field.name: ["gte", "lte"],
+            cls.gender.field.name: ["iexact"],
+            fields_join(cls.city, City.country): ["in", "iexact"],
+            fields_join(cls.user, User.email): ["iexact"],
+            ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
+            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["exact"],
+            ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
+            ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],
+            ProfileAnnotationNames.LAST_LOGIN: ["gte", "lte"],
+        }
 
     @staticmethod
     def get_appearance_related_fields():
@@ -1760,6 +1791,17 @@ class OrganizationMembership(models.Model):
         related_name="invited_memberships",
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    @classmethod
+    def flex_report_search_fields(cls):
+        return [
+            fields_join(cls.user, User.email),
+            fields_join(
+                cls.user,
+                Profile.user.field.related_query_name(),
+                Profile.gender,
+            ),
+        ]
 
     class Meta:
         verbose_name = _("Organization Membership")

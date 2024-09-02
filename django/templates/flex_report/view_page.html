@@ -1,0 +1,50 @@
+{% extends 'flex_report/base.html' %}
+{% load flex_report_filters static %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static "admin/css/changelists.css" %}">
+    {% if cl.formset %}
+        <link rel="stylesheet" href="{% static "admin/css/forms.css" %}">
+    {% endif %}
+    {% if cl.formset or action_form %}
+        <script src="{% url 'admin:jsi18n' %}"></script>
+    {% endif %}
+    {{ media.css }}
+    {% if not actions_on_top and not actions_on_bottom %}
+        <style>
+        #changelist table thead th:first-child {width: inherit}
+        </style>
+    {% endif %}
+    
+    <style>
+        .aligned, label {
+            display: block !important;
+            padding: 4px 10px 0 0 !important;
+            min-width: 160px !important;
+            width: 160px !important;
+            word-wrap: break-word !important;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            align-content: stretch;
+            width: 100%;
+        }
+
+        .action-checkbox-column {
+            width: 3% !important;
+        }
+
+        .saved-filter-select {
+            width: 29%;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    {% show_page_report %}
+{% endblock %}

@@ -17,7 +17,6 @@ from django.template.loader import render_to_string
 
 from .constants import VERIFICATION_EMAIL_FROM, VERIFICATION_PHONE_FROM
 from .exceptions import AccessDenied
-from .tasks import send_email_async
 from .utils import IDLikeObject
 
 
@@ -210,6 +209,8 @@ class EmailVerificationMixin:
         return []
 
     def send_verification(self, *, is_async=True):
+        from .tasks import send_email_async
+
         email = self.get_verification_email()
         from_email = self.get_verification_email_from()
         subject = self.get_verification_subject()

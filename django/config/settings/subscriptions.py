@@ -9,3 +9,7 @@ class AccountSubscription(SubscriptionBase):
 
 class CVSubscription(SubscriptionBase):
     CV = "resume"
+
+
+class NotificationSubscription(SubscriptionBase):
+    CAMPAIGN = "campaign"
