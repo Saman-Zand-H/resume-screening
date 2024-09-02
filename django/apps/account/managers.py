@@ -7,7 +7,7 @@ from django.db.models.functions import Now
 from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA, ProfileAnnotationNames
 
 
-class ProfileManager(models.Manager):
+class FlexReportProfileManager(models.Manager):
     def get_queryset(self):
         from .models import (
             CanadaVisa,

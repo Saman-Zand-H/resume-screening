@@ -70,8 +70,8 @@ from .constants import (
 )
 from .managers import (
     CertificateAndLicenseManager,
+    FlexReportProfileManager,
     OrganizationInvitationManager,
-    ProfileManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -636,7 +636,8 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
-    objects = ProfileManager()
+    flex_report_custom_manager = FlexReportProfileManager()
+    objects = models.Manager()
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),

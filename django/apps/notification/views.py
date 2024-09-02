@@ -74,6 +74,6 @@ class CampaignNotifyView(BaseView, FormView, SingleObjectMixin):
 
     def form_valid(self, form=None):
         campaign = self.get_object()
-        send_campaign_notifications(campaign)
+        send_campaign_notifications.delay(campaign)
 
         return redirect(self.get_success_url())
