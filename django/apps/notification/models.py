@@ -111,8 +111,8 @@ class CampaignNotificationType(TimeStampedModel):
         return f"{self.campaign} - {self.notification_type}"
 
     class Meta:
-        verbose_name = _("Campaign Notification")
-        verbose_name_plural = _("Campaign Notifications")
+        verbose_name = _("Campaign Notification Type")
+        verbose_name_plural = _("Campaign Notification Types")
         unique_together = [
             ("notification_type", "campaign"),
         ]
@@ -186,8 +186,8 @@ class CampaignNotification(TimeStampedModel):
         return f"{self.campaign_notification_type} - {self.notification}"
 
     class Meta:
-        verbose_name = _("Campaign Notification Type")
-        verbose_name_plural = _("Campaign Notification Types")
+        verbose_name = _("Campaign Notification")
+        verbose_name_plural = _("Campaign Notification")
 
 
 class EmailNotification(NotificationTitle, Notification):
