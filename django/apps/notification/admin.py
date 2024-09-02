@@ -46,6 +46,10 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
             CampaignNotificationType.campaign,
             Campaign.title,
         ),
+        fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.notification_type,
+        ),
     )
 
 
@@ -68,6 +72,11 @@ class CampaignNotificationTypeAdmin(admin.ModelAdmin):
     autocomplete_fields = (CampaignNotificationType.campaign.field.name,)
 
 
+class CampaignNotificationTypeInline(admin.TabularInline):
+    model = CampaignNotificationType
+    extra = 0
+
+
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     @admin.display(description=_("Action"))
@@ -79,6 +88,7 @@ class CampaignAdmin(admin.ModelAdmin):
             }
         )
 
+    inlines = (CampaignNotificationTypeInline,)
     list_display = (
         Campaign.title.field.name,
         Campaign.modified.field.name,
