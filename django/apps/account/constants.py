@@ -16,12 +16,16 @@ logger = getLogger("django")
 
 class ProfileAnnotationNames(NamedTuple):
     IS_ORGANIZATION_MEMBER = "is_organization_member"
-    HAS_WORK_EXPERIENCE = "has_work_experience"
-    HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_PROFILE_INFORMATION = "has_profile_information"
     HAS_EDUCATION = "has_education"
     HAS_VERIFIED_EDUCATION = "has_verified_education"
+    HAS_WORK_EXPERIENCE = "has_work_experience"
+    HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_CERTIFICATE = "has_certificate"
     HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
+    HAS_SKILLS = "has_skills"
     HAS_CANADA_VISA = "has_canada_visa"
+    HAS_INTERESTED_JOBS = "has_interested_jobs"
     LAST_LOGIN = "last_login"
     DATE_JOINED = "date_joined"
 
