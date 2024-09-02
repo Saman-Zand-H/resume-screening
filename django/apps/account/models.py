@@ -683,6 +683,7 @@ class Profile(ComputedFieldsModel):
             cls.birth_date.field.name: ["gte", "lte"],
             cls.gender.field.name: ["iexact"],
             fields_join(cls.city, City.country): ["in", "iexact"],
+            fields_join(cls.user, User.email): ["iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
             ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
             ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],

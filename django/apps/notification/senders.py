@@ -271,7 +271,10 @@ def send_campaign_notifications(campaign: Campaign, queryset=None):
         notifications_kwargs = []
         for instance in report_qs:
             context = ContextMapperRegistry.get_context(instance)
-            body = campaign_notification_type.notification_template.render(context)
+            body = campaign_notification_type.notification_template.render(
+                context,
+                is_email=notification_type == NotificationTypes.EMAIL,
+            )
             extra_dict = {Notification.body.field.name: body}
             if campaign_notification_type.notification_type == NotificationTypes.EMAIL:
                 extra_dict[EmailNotification.title.field.name] = campaign_notification_type.notification_title.render(
