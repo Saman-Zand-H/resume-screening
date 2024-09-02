@@ -2,7 +2,7 @@ from common.utils import fields_join
 
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
-from django.db.models.functions import Length, Now
+from django.db.models.functions import Now
 
 from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA, ProfileAnnotationNames
 
