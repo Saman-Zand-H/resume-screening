@@ -14,8 +14,11 @@ class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
 
     @classmethod
     def before_mutate(cls, root, info, input):
+        ids = [item["id"] for item in input]
+        not_set_ids = InAppNotification.objects.filter(id__in=ids, read_at__isnull=True).values_list("id", flat=True)
         for item in input:
-            item["read_at"] = timezone.now()
+            if int(item["id"]) in not_set_ids:
+                item["read_at"] = timezone.now()
         return super().before_mutate(root, info, input)
 
 

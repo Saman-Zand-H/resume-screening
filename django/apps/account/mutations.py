@@ -11,6 +11,8 @@ from common.mixins import (
 from common.models import Job, Skill
 from common.types import SkillType
 from common.utils import fields_join
+from notification.models import InAppNotification
+from notification.senders import NotificationContext, send_notifications
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
@@ -310,6 +312,14 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
                 subject=_("Welcome to CPJ - Your Journey to Career Excellence Starts Here!"),
                 content=render_to_string("email/welcome.html", {"user": user}),
             )
+
+            in_app_notification = InAppNotification(
+                user=user,
+                title=_("Welcome to CPJ"),
+                body=_("Your Journey to Career Excellence Starts Here!"),
+            )
+            notification = NotificationContext(notification=in_app_notification)
+            send_notifications(notification)
 
         return response
 
