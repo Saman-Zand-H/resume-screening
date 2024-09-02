@@ -1464,7 +1464,19 @@ class AccountMutation(graphene.ObjectType):
         return SupportTicketMutation()
 
 
+class ErrMutation(graphene.Mutation):
+    class Arguments:
+        message = graphene.String(required=True)
+
+    result = graphene.String()
+
+    def mutate(self, info, message):
+        raise GraphQLErrorBadRequest(_(message))
+        return ErrMutation(result="Error")
+
+
 class Mutation(graphene.ObjectType):
+    error = ErrMutation.Field()
     account = graphene.Field(AccountMutation, required=True)
 
     def resolve_account(self, *args, **kwargs):
