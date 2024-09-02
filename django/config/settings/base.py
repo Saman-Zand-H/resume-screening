@@ -330,7 +330,8 @@ EXPORT_FORMATS = [XLSX]
 
 TWILIO = {
     "ACCOUNT_SID": os.environ.get("TWILIO_ACCOUNT_SID"),
-    "AUTH_TOKEN": os.environ.get("TWILIO_AUTH_TOKEN"),
+    "API_KEY": os.environ.get("TWILIO_API_KEY"),
+    "API_SECRET": os.environ.get("TWILIO_API_SECRET"),
     "PHONE_NUMBER": os.environ.get("TWILIO_PHONE_NUMBER"),
     "WHATSAPP_NUMBER": os.environ.get("TWILIO_WHATSAPP_NUMBER"),
 }
