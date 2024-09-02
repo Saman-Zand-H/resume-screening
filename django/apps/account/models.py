@@ -210,7 +210,7 @@ class Contact(models.Model):
                 link = self.value
 
             case Contact.Type.WHATSAPP:
-                link = f"https://wa.me/{self.value.strip("/")}"
+                link = f"https://wa.me/{self.value.strip('/')}"
                 display_regex = r"(?:https?://)?(?:www\.)?wa\.me/([^/]+)"
                 display_name = (
                     (matched_value := re.match(display_regex, self.value)) and matched_value.group(1)
@@ -686,10 +686,10 @@ class Profile(ComputedFieldsModel):
             fields_join(cls.city, City.country): ["in", "iexact"],
             fields_join(cls.user, User.email): ["iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
-            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
-            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],
             ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
             ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],
             ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["exact"],
             ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
             ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],

@@ -2,7 +2,7 @@ from common.utils import fields_join
 
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
-from django.db.models.functions import Now
+from django.db.models.functions import Length, Now
 
 from .constants import ORGANIZATION_INVITATION_EXPIRY_DELTA, ProfileAnnotationNames
 
@@ -11,6 +11,7 @@ class FlexReportProfileManager(models.Manager):
     def get_queryset(self):
         from .models import (
             CanadaVisa,
+            CertificateAndLicense,
             Education,
             LanguageCertificate,
             OrganizationMembership,
@@ -42,28 +43,13 @@ class FlexReportProfileManager(models.Manager):
                             }
                         )
                     ),
-                    ProfileAnnotationNames.HAS_WORK_EXPERIENCE: models.Exists(
-                        WorkExperience.objects.filter(
-                            **{
-                                fields_join(
-                                    WorkExperience.user,
-                                    Profile.user.field.related_query_name(),
-                                    Profile._meta.pk.attname,
-                                ): models.OuterRef(Profile._meta.pk.attname)
-                            }
-                        )
-                    ),
-                    ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: models.Exists(
-                        WorkExperience.objects.filter(
-                            **{
-                                fields_join(
-                                    WorkExperience.user,
-                                    Profile.user.field.related_query_name(),
-                                    Profile._meta.pk.attname,
-                                ): models.OuterRef(Profile._meta.pk.attname),
-                                WorkExperience.status.field.name: WorkExperience.get_verified_statuses(),
-                            }
-                        )
+                    ProfileAnnotationNames.HAS_PROFILE_INFORMATION: models.Case(
+                        models.When(
+                            models.Q(**{fields_join(Profile.gender, "isnull"): True}),
+                            then=models.Value(True),
+                        ),
+                        default=models.Value(False),
+                        output_field=models.BooleanField(),
                     ),
                     ProfileAnnotationNames.HAS_EDUCATION: models.Exists(
                         Education.objects.filter(
@@ -88,6 +74,29 @@ class FlexReportProfileManager(models.Manager):
                             }
                         )
                     ),
+                    ProfileAnnotationNames.HAS_WORK_EXPERIENCE: models.Exists(
+                        WorkExperience.objects.filter(
+                            **{
+                                fields_join(
+                                    WorkExperience.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: models.Exists(
+                        WorkExperience.objects.filter(
+                            **{
+                                fields_join(
+                                    WorkExperience.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname),
+                                WorkExperience.status.field.name: WorkExperience.get_verified_statuses(),
+                            }
+                        )
+                    ),
                     ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: models.Exists(
                         LanguageCertificate.objects.filter(
                             **{
@@ -99,12 +108,41 @@ class FlexReportProfileManager(models.Manager):
                             }
                         )
                     ),
+                    ProfileAnnotationNames.HAS_CERTIFICATE: models.Exists(
+                        CertificateAndLicense.objects.filter(
+                            **{
+                                fields_join(
+                                    CertificateAndLicense.user,
+                                    Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_SKILLS: models.Case(
+                        models.When(
+                            models.Q(**{fields_join(Profile.raw_skills, "len"): models.Value(0)}),
+                            then=models.Value(True),
+                        ),
+                        default=models.Value(False),
+                        output_field=models.BooleanField(),
+                    ),
                     ProfileAnnotationNames.HAS_CANADA_VISA: models.Exists(
                         CanadaVisa.objects.filter(
                             **{
                                 fields_join(
                                     CanadaVisa.user,
                                     Profile.user.field.related_query_name(),
+                                    Profile._meta.pk.attname,
+                                ): models.OuterRef(Profile._meta.pk.attname)
+                            }
+                        )
+                    ),
+                    ProfileAnnotationNames.HAS_INTERESTED_JOBS: models.Exists(
+                        Profile.interested_jobs.field.related_model.objects.filter(
+                            **{
+                                fields_join(
+                                    Profile.interested_jobs.field.related_query_name(),
                                     Profile._meta.pk.attname,
                                 ): models.OuterRef(Profile._meta.pk.attname)
                             }
