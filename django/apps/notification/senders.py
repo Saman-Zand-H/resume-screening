@@ -117,7 +117,7 @@ class TwilioSender(NotificationSender):
     @classmethod
     @lru_cache
     def get_client(cls) -> Client:
-        return Client(cls.get_setting("ACCOUNT_SID"), cls.get_setting("AUTH_TOKEN"))
+        return Client(cls.get_setting("API_KEY"), cls.get_setting("API_SECRET"), cls.get_setting("ACCOUNT_SID"))
 
     @abstractmethod
     @lru_cache
