@@ -260,7 +260,9 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
 
 
 @register_task([NotificationSubscription.CAMPAIGN])
-def send_campaign_notifications(campaign: Campaign, queryset=None):
+def send_campaign_notifications(campaign_id: int, queryset=None):
+    campaign: Campaign = Campaign.objects.filter(pk=campaign_id).first()
+
     campaign_notification_types = campaign.get_campaign_notification_types()
     report_qs = queryset or campaign.saved_filter.get_queryset()
     notification_contexts = []
