@@ -26,8 +26,8 @@ class ProfileAnnotationNames(NamedTuple):
     HAS_SKILLS = "has_skills"
     HAS_CANADA_VISA = "has_canada_visa"
     HAS_INTERESTED_JOBS = "has_interested_jobs"
-    LAST_LOGIN = "last_login"
-    DATE_JOINED = "date_joined"
+    LAST_LOGIN = "last_login_days"
+    DATE_JOINED = "date_joined_days"
 
 
 def get_extended_blocklist():

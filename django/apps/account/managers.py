@@ -152,14 +152,14 @@ class FlexReportProfileManager(models.Manager):
                         fields_join(
                             Profile.user,
                             User.last_login,
-                            suffix_lookups=["date"],
+                            suffix_lookups=["delta_days"],
                         )
                     ),
                     ProfileAnnotationNames.DATE_JOINED: models.F(
                         fields_join(
                             Profile.user,
                             User.date_joined,
-                            suffix_lookups=["date"],
+                            suffix_lookups=["delta_days"],
                         )
                     ),
                 }
