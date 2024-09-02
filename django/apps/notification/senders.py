@@ -7,9 +7,11 @@ from typing import Generic, Optional, TypeVar, Union
 
 import firebase_admin
 from common.utils import get_all_subclasses
+from config.settings.subscriptions import NotificationSubscription
 from firebase_admin import messaging
 from flex_blob.models import FileModel
 from flex_blob.views import BlobResponseBuilder
+from flex_pubsub.tasks import register_task
 from pydantic import BaseModel, ConfigDict
 from twilio.rest import Client
 
@@ -257,7 +259,10 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
     return map(lambda n: n.notification.status == Notification.Status.SENT, notifications)
 
 
-def send_campaign_notifications(campaign: Campaign, queryset=None):
+@register_task([NotificationSubscription.CAMPAIGN])
+def send_campaign_notifications(campaign_id: int, queryset=None):
+    campaign: Campaign = Campaign.objects.filter(pk=campaign_id).first()
+
     campaign_notification_types = campaign.get_campaign_notification_types()
     report_qs = queryset or campaign.saved_filter.get_queryset()
     notification_contexts = []

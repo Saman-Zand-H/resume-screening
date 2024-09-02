@@ -64,7 +64,7 @@
                         {% for result in object.saved_filter.get_queryset %}
                             <tr>
                                 <td class="action-checkbox">
-                                    <input type="checkbox" name="users" value="{{ result.user.pk }}" class="action-select" aria-label="Select this object for an action - admin: Can manage company profile">
+                                    <input type="checkbox" name="users" value="{{ result.pk }}" class="action-select" aria-label="Select this object for an action - admin: Can manage company profile">
                                 </td>
                                 <td>
                                     {{ result.user.first_name }}
