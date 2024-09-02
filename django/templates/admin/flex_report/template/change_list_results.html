@@ -89,20 +89,20 @@
                             <div class="buttons">
                                 {% if object.is_completed %}
                                     <a class="button" href="{% url 'admin:flex_report_template_report' object.pk %}" title="{% trans 'View' %}">
-                                        <span class="material-icons font-small">visibility</span>
+                                        View
                                     </a>
                                     <a href="{% url 'admin:flex_report_template_filter' object.pk %}" class="button" title="{% trans 'Delete' %}" style="padding: 4px 5px">
-                                        <span class="material-icons font-small">add</span>
+                                        Add Filter
                                     </a>
                                 {% else %}
                                     <a class="button" href="{% url 'admin:flex_report_template_wizard_complete' object.pk %}"
                                         title="{% trans 'Complete' %}">
-                                        <span class="material-icons font-small">done</span>
+                                        Complete
                                     </a>
                                 {% endif %}
                                 
                                 <a href="{% url 'admin:flex_report_template_delete' object.pk %}" class="button" title="{% trans 'Delete' %}" style="padding: 4px 5px">
-                                    <span class="material-icons font-small">delete</span>
+                                    Delete
                                 </a>
                             </div>
                         </td>

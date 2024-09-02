@@ -72,11 +72,7 @@
                                                             class="{{ button.color.color }}" 
                                                             {% if button.display_name %}title="{{ button.display_name }}"{% endif %}
                                                         >
-                                                            {% if button.icon %}
-                                                                <span class="material-icons">
-                                                                    {{ button.icon }}
-                                                                </span>
-                                                            {% endif %}
+                                                            {{ button.display_name }}
                                                         </a>
                                                     {% endif %}
                                                 {% endfor %}
