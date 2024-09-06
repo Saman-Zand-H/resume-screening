@@ -48,7 +48,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField, IntegerRangeField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField, DateRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -2278,3 +2278,33 @@ class RejectedState(JobPositionAssignmentState):
 
 class HiredState(JobPositionAssignmentState):
     new_statuses = []
+
+
+class OrganizationEmployee(models.Model):
+    class HiringStatus(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        SUSPENDED = "suspended", _("Suspended")
+        TERMINATED = "terminated", _("Terminated")
+        DISMISSED = "dismissed", _("Dismissed")
+
+    job_position_assignment = models.OneToOneField(
+        JobPositionAssignment,
+        on_delete=models.RESTRICT,
+        verbose_name=_("Job Position Assignment "),
+        related_name="organization_employee",
+    )
+    hiring_status = models.CharField(
+        max_length=50,
+        choices=HiringStatus.choices,
+        verbose_name=_("Status"),
+        default=HiringStatus.ACTIVE,
+    )
+    cooperation_range = DateRangeField(verbose_name=_("Start End Date"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee")
+        verbose_name_plural = _("Organization Employees")
+
+    def __str__(self):
+        return str(self.job_position_assignment)
