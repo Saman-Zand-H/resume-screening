@@ -2253,6 +2253,12 @@ class AwaitingInterviewResultsState(JobPositionAssignmentState):
         JobPositionAssignment.Status.HIRED.value,
     ]
 
+    @classmethod
+    def change_status(cls, job_position_assignment, new_status, **kwargs):
+        super().change_status(job_position_assignment, new_status, **kwargs)
+        if new_status.value == JobPositionAssignment.Status.HIRED.value:
+            OrganizationEmployee.objects.create(job_position_assignment=job_position_assignment)
+
 
 class InterviewCanceledByJobseekerState(JobPositionAssignmentState):
     new_statuses = [
