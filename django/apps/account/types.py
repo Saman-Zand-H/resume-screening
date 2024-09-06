@@ -23,6 +23,7 @@ from .accesses import (
     OrganizationMembershipContainer,
 )
 from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
+from .filterset import OrganizationEmployeeFilterset
 from .models import (
     Access,
     CanadaVisa,
@@ -38,6 +39,7 @@ from .models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
+    OrganizationEmployee,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -158,6 +160,7 @@ class JobSeekerProfileType(DjangoObjectType):
             Profile.score.field.name,
             Profile.contactable.field.name,
             Profile.city.field.name,
+            Profile.birth_date.field.name,
         )
 
     def resolve_contacts(self, info):
@@ -233,6 +236,56 @@ class JobSeekerUnionType(graphene.Union):
         if not user:
             return JobSeekerPrimitiveType
         return JobSeekerType
+
+
+class EmployeeType(DjangoObjectType):
+    profile = graphene.Field(JobSeekerProfileType)
+    educations = graphene.List(JobSeekerEducationType)
+    workexperiences = graphene.List(JobSeekerWorkExperienceType)
+    languagecertificates = graphene.List(JobSeekerLanguageCertificateType)
+    certificateandlicenses = graphene.List(JobSeekerCertificateAndLicenseType)
+    cv = graphene.Field(JobSeekerGeneratedCVType)
+    cv_content = graphene.Field(GeneratedCVContentType)
+    job_assessments = graphene.List(
+        JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.email.field.name,
+            Resume.user.field.related_query_name(),
+        )
+
+    def resolve_profile(self, info):
+        return self.profile
+
+    def resolve_educations(self, info):
+        return self.educations.all().order_by("-id")
+
+    def resolve_workexperiences(self, info):
+        return self.workexperiences.all().order_by("-id")
+
+    def resolve_languagecertificates(self, info):
+        return self.languagecertificates.all().order_by("-id")
+
+    def resolve_certificateandlicenses(self, info):
+        return self.certificateandlicenses.all().order_by("-id")
+
+    def resolve_cv(self, info):
+        return self.cv if hasattr(self, "cv") else None
+
+    def resolve_cv_contents(self, info):
+        return self.cv_contents.latest("id")
+
+    def resolve_job_assessments(self, info, filters=None):
+        qs = JobAssessment.objects.related_to_user(self)
+        if filters:
+            if filters.required is not None:
+                qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
+        return qs.order_by("-id")
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -852,3 +905,41 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
 
     def resolve_job_seeker(self, info):
         return self.job_seeker
+
+
+class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    job_position = graphene.Field(OrganizationJobPositionNode)
+    employee = graphene.Field(EmployeeType)
+    cooperation_range = graphene.List(graphene.Date, description="The cooperation range of the employee.")
+
+    class Meta:
+        model = OrganizationEmployee
+        use_connection = True
+        fields = (OrganizationEmployee.id.field.name, OrganizationEmployee.hiring_status.field.name)
+        filterset_class = OrganizationEmployeeFilterset
+
+    def resolve_job_position(self, info):
+        return self.job_position_assignment.job_position
+
+    def resolve_employee(self, info):
+        return self.job_position_assignment.job_seeker
+
+    def resolve_cooperation_range(self, info):
+        if self.cooperation_range is None:
+            return None
+        return [self.cooperation_range.lower, self.cooperation_range.upper]
+
+    @classmethod
+    def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fields_join(
+                    OrganizationEmployee.job_position_assignment,
+                    JobPositionAssignment.job_position,
+                    OrganizationJobPosition.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        ).order_by("-id")
