@@ -119,7 +119,7 @@ class CampaignNotificationType(TimeStampedModel):
 
 
 class NotificationTitle(models.Model):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    title = models.TextField(verbose_name=_("Title"))
 
     def __str__(self):
         return self.title
