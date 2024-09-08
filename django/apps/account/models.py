@@ -2087,6 +2087,8 @@ class OrganizationJobPositionStatusHistory(models.Model):
 
 class JobPositionAssignment(models.Model):
     class Status(models.TextChoices):
+        AWAITING_JOBSEEKER_APPROVAL = "awaiting_jobseeker_approval", _("Awaiting Jobseeker Approval")
+        REJECTED_BY_JOBSEEKER = "rejected_by_jobseeker", _("Rejected By Jobseeker")
         NOT_REVIEWED = "not_reviewed", _("Not Reviewed")
         AWAITING_INTERVIEW_DATE = "awaiting_interview_date", _("Awaiting Interview Date")
         INTERVIEW_SCHEDULED = "interview_scheduled", _("Interview Scheduled")
@@ -2108,7 +2110,7 @@ class JobPositionAssignment(models.Model):
         max_length=50,
         choices=Status.choices,
         verbose_name=_("Status"),
-        default=Status.NOT_REVIEWED.value,
+        default=Status.AWAITING_JOBSEEKER_APPROVAL.value,
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
@@ -2124,6 +2126,8 @@ class JobPositionAssignment(models.Model):
 
     def change_status(self, new_status, **kwargs):
         state_mapping = {
+            self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
+            self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
             self.Status.NOT_REVIEWED: NotReviewedState(),
             self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
             self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
@@ -2193,6 +2197,17 @@ class JobPositionAssignmentState:
 
         job_position_assignment.status = new_status.value
         return job_position_assignment.set_status_history()
+
+
+class AwaitingJobseekerApprovalState(JobPositionAssignmentState):
+    new_statuses = [
+        JobPositionAssignment.Status.REJECTED_BY_JOBSEEKER.value,
+        JobPositionAssignment.Status.NOT_REVIEWED.value,
+    ]
+
+
+class RejectedByJobseekerState(JobPositionAssignmentState):
+    new_statuses = []
 
 
 class NotReviewedState(JobPositionAssignmentState):
