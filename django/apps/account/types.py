@@ -7,6 +7,7 @@ from common.types import FieldType, JobBenefitType, JobNode, SkillType
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
+from academy.types import CourseNode
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
@@ -249,6 +250,7 @@ class EmployeeType(DjangoObjectType):
     job_assessments = graphene.List(
         JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
     )
+    courses = DjangoFilterConnectionField(CourseNode)
 
     class Meta:
         model = User
@@ -932,14 +934,18 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
         user = info.context.user
-        return queryset.filter(
-            **{
-                fields_join(
-                    OrganizationEmployee.job_position_assignment,
-                    JobPositionAssignment.job_position,
-                    OrganizationJobPosition.organization,
-                    OrganizationMembership.organization.field.related_query_name(),
-                    OrganizationMembership.user,
-                ): user
-            }
-        ).order_by("-id")
+        return (
+            queryset.filter(
+                **{
+                    fields_join(
+                        OrganizationEmployee.job_position_assignment,
+                        JobPositionAssignment.job_position,
+                        OrganizationJobPosition.organization,
+                        OrganizationMembership.organization.field.related_query_name(),
+                        OrganizationMembership.user,
+                    ): user
+                }
+            )
+            .distinct()
+            .order_by("-id")
+        )
