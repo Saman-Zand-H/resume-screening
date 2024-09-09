@@ -8,6 +8,7 @@ from .types import (
     EducationNode,
     JobPositionAssignmentNode,
     LanguageCertificateNode,
+    OrganizationEmployeeNode,
     OrganizationInvitationType,
     OrganizationJobPositionNode,
     SupportTicketCategoryNode,
@@ -25,10 +26,20 @@ class OrganizationJobPositionQuery(graphene.ObjectType):
         return OrganizationJobPositionNode.get_node(info, id)
 
 
+class OrganizationEmployeeQuery(graphene.ObjectType):
+    get = graphene.Field(OrganizationEmployeeNode, id=graphene.ID(required=True))
+    list = DjangoFilterConnectionField(OrganizationEmployeeNode)
+
+    @login_required
+    def resolve_get(self, info, id):
+        return OrganizationEmployeeNode.get_node(info, id)
+
+
 class OrganizationQuery(graphene.ObjectType):
     invitation = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
     job_position = graphene.Field(OrganizationJobPositionQuery)
     job_position_assignment = graphene.Field(JobPositionAssignmentNode, id=graphene.ID(required=True))
+    employee = graphene.Field(OrganizationEmployeeQuery)
 
     @login_required
     def resolve_invitation(self, info, token):
@@ -39,6 +50,9 @@ class OrganizationQuery(graphene.ObjectType):
 
     def resolve_job_position_assignment(self, info, id):
         return JobPositionAssignmentNode.get_node(info, id)
+
+    def resolve_employee(self, info):
+        return OrganizationEmployeeQuery()
 
 
 class EducationQuery(graphene.ObjectType):
