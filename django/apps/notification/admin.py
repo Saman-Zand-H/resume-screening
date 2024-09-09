@@ -48,9 +48,21 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
         ),
         fields_join(
             CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+            Campaign._meta.pk.attname,
+        ),
+        fields_join(
+            CampaignNotification.campaign_notification_type,
             CampaignNotificationType.notification_type,
         ),
     )
+    search_fields = [
+        fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+            Campaign.title,
+        ),
+    ]
 
 
 @admin.register(CampaignNotificationType)
