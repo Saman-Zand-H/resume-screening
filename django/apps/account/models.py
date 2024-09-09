@@ -323,11 +323,15 @@ class User(AbstractUser):
         )
 
     def get_contacts_by_type(self, contact_type: Contact.Type, *, include_organization: bool = False) -> List[Contact]:
-        profile_contacts = getattr(
-            getattr(self.get_profile(), Profile.contactable.field.name),
-            Contact.contactable.field.related_query_name(),
-            Contact.objects.none(),
-        ).all()
+        profile_contacts = Contact.objects.filter(
+            **{
+                fields_join(
+                    Contact.contactable,
+                    Profile.contactable.field.related_query_name(),
+                    Profile.user,
+                ): self
+            }
+        )
 
         organization_contacts = (
             Contact.objects.filter(
@@ -345,7 +349,11 @@ class User(AbstractUser):
             else Contact.objects.none()
         )
 
-        return (profile_contacts | organization_contacts).filter(type=contact_type).distinct()
+        return (
+            (profile_contacts | organization_contacts)
+            .filter(**{Contact.type.field.name: contact_type, fields_join(Contact.value, "isnull"): False})
+            .distinct()
+        )
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
