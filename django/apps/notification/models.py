@@ -97,12 +97,27 @@ class CampaignNotificationType(TimeStampedModel):
         verbose_name=_("Campaign"),
     )
 
+    SUBJECT_REQUIRED_TYPES = [
+        NotificationTypes.EMAIL,
+        NotificationTypes.PUSH,
+        NotificationTypes.IN_APP,
+    ]
+
     def clean(self):
-        if self.notification_type != NotificationTypes.SMS and not self.subject:
+        subject_required = self.notification_type in self.SUBJECT_REQUIRED_TYPES
+        if subject_required and not self.subject:
             raise ValidationError(
                 {
                     CampaignNotificationType.subject.field.name: _(
                         "Notification Title is required for the selected notification type."
+                    )
+                }
+            )
+        elif not subject_required and self.subject:
+            raise ValidationError(
+                {
+                    CampaignNotificationType.subject.field.name: _(
+                        "Notification Title is not required for the selected notification type."
                     )
                 }
             )
