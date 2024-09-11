@@ -70,7 +70,7 @@ class CampaignNotificationTypeAdmin(admin.ModelAdmin):
     list_display = (
         CampaignNotificationType.campaign.field.name,
         CampaignNotificationType.notification_type.field.name,
-        CampaignNotificationType.notification_template.field.name,
+        CampaignNotificationType.body.field.name,
     )
     list_filter = (
         CampaignNotificationType.notification_type.field.name,
@@ -78,7 +78,7 @@ class CampaignNotificationTypeAdmin(admin.ModelAdmin):
     )
     search_fields = (
         fields_join(CampaignNotificationType.campaign, Campaign.title),
-        fields_join(CampaignNotificationType.notification_template, NotificationTemplate.title),
+        fields_join(CampaignNotificationType.body, NotificationTemplate.title),
         CampaignNotificationType.notification_type.field.name,
     )
     autocomplete_fields = (CampaignNotificationType.campaign.field.name,)
