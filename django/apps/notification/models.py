@@ -47,7 +47,7 @@ class NotificationTemplate(TimeStampedModel):
 
 
 class Campaign(TimeStampedModel):
-    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    title = models.CharField(max_length=255, verbose_name=_("Notification Subject"))
     saved_filter = models.ForeignKey(
         TemplateSavedFilter,
         on_delete=models.CASCADE,

@@ -3,7 +3,7 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from typing import Generic, Optional, TypeVar, Union
+from typing import Generic, List, Optional, Tuple, TypeVar, Union
 
 import firebase_admin
 from common.utils import get_all_subclasses
@@ -56,11 +56,11 @@ class NotificationSender(ABC):
         }
 
     @abstractmethod
-    def send(self, notification: NotificationContext, **kwargs):
+    def send(self, notification: NotificationContext, **kwargs) -> Optional[Exception]:
         pass
 
     @abstractmethod
-    def send_bulk(self, *notifications: NotificationContext, **kwargs):
+    def send_bulk(self, *notifications: NotificationContext, **kwargs) -> List[Optional[Exception]]:
         pass
 
     def handle_exception(self, exception: Exception, notification: NotificationContext) -> str:
@@ -73,7 +73,7 @@ class NotificationSender(ABC):
 class EmailNotificationSender(NotificationSender):
     notification_type = NotificationTypes.EMAIL
 
-    def get_message(self, notification: NotificationContext[EmailNotification], from_email: str = None):
+    def get_message(self, notification: NotificationContext[EmailNotification], from_email: str = None) -> EmailMessage:
         email = EmailMessage(
             subject=notification.notification.title,
             from_email=from_email,
@@ -83,11 +83,13 @@ class EmailNotificationSender(NotificationSender):
         email.content_subtype = "html"
 
         file_model_ids = notification.context.get("file_model_ids")
-
         if file_model_ids:
             blob_builder = BlobResponseBuilder.get_response_builder()
             for file_model_id in file_model_ids:
-                attachment = FileModel.objects.get(pk=file_model_id)
+                try:
+                    attachment = FileModel.objects.get(pk=file_model_id)
+                except FileModel.DoesNotExist:
+                    continue
                 file_name = os.path.basename(blob_builder.get_file_name(attachment))
                 email.attach(
                     file_name.split("/")[-1],
@@ -120,12 +122,10 @@ class TwilioSender(NotificationSender):
         return Client(cls.get_setting("API_KEY"), cls.get_setting("API_SECRET"), cls.get_setting("ACCOUNT_SID"))
 
     @abstractmethod
-    @lru_cache
     def serialize_phone_number(cls, phone_number: str) -> str:
         pass
 
     @abstractmethod
-    @lru_cache
     def get_default_from_number(cls) -> str:
         pass
 
@@ -133,7 +133,7 @@ class TwilioSender(NotificationSender):
         self,
         notification: NotificationContext[Union[SMSNotification, WhatsAppNotification]],
         from_number: Optional[str] = None,
-    ):
+    ) -> dict:
         return {
             "body": notification.notification.body,
             "from_": self.serialize_phone_number(from_number or self.get_default_from_number()),
@@ -149,21 +149,23 @@ class TwilioSender(NotificationSender):
         *notifications: Union[SMSNotification, WhatsAppNotification],
         from_number: Optional[str] = None,
     ):
-        client = self.get_client()
+        results = []
         for notification in notifications:
-            client.messages.create(**self.get_message(notification, from_number=from_number))
+            try:
+                results.append(self.send(notification, from_number=from_number))
+            except Exception as e:
+                results.append(e)
+        return results
 
 
 class SMSNotificationSender(TwilioSender):
     notification_type = NotificationTypes.SMS
 
     @classmethod
-    @lru_cache
     def serialize_phone_number(cls, phone_number: str) -> str:
         return phone_number
 
     @classmethod
-    @lru_cache
     def get_default_from_number(cls) -> str:
         return cls.get_setting("PHONE_NUMBER")
 
@@ -172,12 +174,10 @@ class WhatsAppNotificationSender(TwilioSender):
     notification_type = NotificationTypes.WHATSAPP
 
     @classmethod
-    @lru_cache
     def serialize_phone_number(cls, phone_number: str) -> str:
         return f"whatsapp:{phone_number}"
 
     @classmethod
-    @lru_cache
     def get_default_from_number(cls) -> str:
         return cls.get_setting("WHATSAPP_NUMBER")
 
@@ -198,9 +198,10 @@ class PushNotificationSender(NotificationSender):
     @classmethod
     @lru_cache
     def setup(cls):
-        firebase_admin.initialize_app()
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app()
 
-    def get_message(self, notification: NotificationContext[PushNotification]):
+    def get_message(self, notification: NotificationContext[PushNotification]) -> messaging.Message:
         return messaging.Message(
             notification=messaging.Notification(
                 title=notification.notification.title,
@@ -217,10 +218,10 @@ class PushNotificationSender(NotificationSender):
         self.setup()
         messages = [self.get_message(notification) for notification in notifications]
         responses = messaging.send_each(messages)
-
         for response, notification in zip(responses.responses, notifications):
             if not response.success and isinstance(response.exception, messaging.UnregisteredError):
                 UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+        return [response.exception for response in responses]
 
     def handle_exception(self, exception: Exception, notification: NotificationContext[PushNotification]):
         if isinstance(exception, messaging.UnregisteredError):
@@ -228,8 +229,18 @@ class PushNotificationSender(NotificationSender):
         return super().handle_exception(exception, notification)
 
 
+def handle_notification_error(notification, error, sender):
+    """Handle notification error and set its status accordingly."""
+    notification.notification.error = sender.handle_exception(error, notification) if error else None
+    notification.notification.set_status(Notification.Status.FAILED if error else Notification.Status.SENT)
+
+    if settings.DEBUG and error:
+        print("".join(traceback.TracebackException.from_exception(error).format()))
+
+
 def send_notifications(*notifications: NotificationContext[Notification], **kwargs) -> list[bool]:
     notification_types = groupby(notifications, lambda n: n.notification.notification_type.value)
+
     for notification_type, notification_group in notification_types:
         notification_contexts = list(notification_group)
         sender_class = NotificationSender.get_senders_dict().get(notification_type)
@@ -237,31 +248,36 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
             continue
 
         sender = sender_class()
+        result = []
         try:
-            send_method = sender.send if len(notification_contexts) == 1 else sender.send_bulk
-            send_method(*notification_contexts, **kwargs)
+            if len(notification_contexts) == 1:
+                result.append(sender.send(notification_contexts[0], **kwargs))
+            else:
+                result.extend(
+                    sender.send_bulk(*notification_contexts, **kwargs) or (None,) * len(notification_contexts)
+                )
 
-            for notification in notification_contexts:
-                notification.notification.set_status(Notification.Status.SENT)
+            for notification, error in zip(notification_contexts, result):
+                handle_notification_error(notification, error, sender)
 
         except Exception as e:
             for notification in notification_contexts:
-                notification.notification.error = sender.handle_exception(e, notification)
-                notification.notification.set_status(Notification.Status.FAILED)
-
-            if settings.DEBUG:
-                print("".join(traceback.TracebackException.from_exception(e).format()))
+                handle_notification_error(notification, e, sender)
 
         finally:
             for notification in notification_contexts:
                 notification.notification.save()
             sender.after_save(*notification_contexts)
-    return map(lambda n: n.notification.status == Notification.Status.SENT, notifications)
+
+    return [n.notification.status == Notification.Status.SENT for n in notifications]
 
 
 @register_task([NotificationSubscription.CAMPAIGN])
 def send_campaign_notifications(campaign_id: int, queryset=None):
-    campaign: Campaign = Campaign.objects.filter(pk=campaign_id).first()
+    campaign = Campaign.objects.filter(pk=campaign_id).first()
+
+    if not campaign:
+        return
 
     campaign_notification_types = campaign.get_campaign_notification_types()
     report_qs = queryset or campaign.saved_filter.get_queryset()
@@ -277,11 +293,10 @@ def send_campaign_notifications(campaign_id: int, queryset=None):
         for instance in report_qs:
             context = ContextMapperRegistry.get_context(instance)
             body = campaign_notification_type.notification_template.render(
-                context,
-                is_email=notification_type == NotificationTypes.EMAIL,
+                context, is_email=notification_type == NotificationTypes.EMAIL
             )
             extra_dict = {Notification.body.field.name: body}
-            if campaign_notification_type.notification_type == NotificationTypes.EMAIL:
+            if notification_type == NotificationTypes.EMAIL:
                 extra_dict[EmailNotification.title.field.name] = campaign_notification_type.notification_title.render(
                     context
                 )

@@ -53,27 +53,6 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-row field-title">
-                    <div>
-                        <div class="flex-container">
-                            <label for="{{ filter.form.title.id_for_label }}" class="required">
-                                {{ filter.form.slug.label }}
-                            </label>
-
-                            <div class="form-field">
-                                {{ filter.form.slug }}
-                                <span>
-                                    {{ filter.form.slug.errors }}
-                                </span>
-                                {% if filter.form.slug.help_text %}
-                                    <span>
-                                        <p class="help">{{ filter.form.slug.help_text|safe }}</p>
-                                    </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </fieldset>
 
             <h2 class="fieldset-heading">Filters</h2>

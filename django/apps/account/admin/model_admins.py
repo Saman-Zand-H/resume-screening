@@ -34,6 +34,7 @@ from ..models import (
     OfflineMethod,
     OnlineMethod,
     Organization,
+    OrganizationEmployee,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationJobPositionStatusHistory,
@@ -806,3 +807,23 @@ class JobPositionInterviewAdmin(admin.ModelAdmin):
         JobPositionInterview.job_position_assignment.field.name,
         JobPositionInterview.assignment_status_history.field.name,
     )
+
+
+@register(OrganizationEmployee)
+class OrganizationEmployeeAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationEmployee.id.field.name,
+        OrganizationEmployee.job_position_assignment.field.name,
+        OrganizationEmployee.hiring_status.field.name,
+        OrganizationEmployee.cooperation_range.field.name,
+        OrganizationEmployee.created_at.field.name,
+    )
+    search_fields = (
+        fields_join(OrganizationEmployee.job_position_assignment, JobPositionAssignment.job_seeker, User.email),
+    )
+    list_filter = (
+        OrganizationEmployee.hiring_status.field.name,
+        OrganizationEmployee.cooperation_range.field.name,
+        OrganizationEmployee.created_at.field.name,
+    )
+    raw_id_fields = (OrganizationEmployee.job_position_assignment.field.name,)

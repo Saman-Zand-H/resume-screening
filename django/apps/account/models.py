@@ -48,7 +48,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField, IntegerRangeField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField, DateRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -323,11 +323,15 @@ class User(AbstractUser):
         )
 
     def get_contacts_by_type(self, contact_type: Contact.Type, *, include_organization: bool = False) -> List[Contact]:
-        profile_contacts = getattr(
-            getattr(self.get_profile(), Profile.contactable.field.name),
-            Contact.contactable.field.related_query_name(),
-            Contact.objects.none(),
-        ).all()
+        profile_contacts = Contact.objects.filter(
+            **{
+                fields_join(
+                    Contact.contactable,
+                    Profile.contactable.field.related_query_name(),
+                    Profile.user,
+                ): self
+            }
+        )
 
         organization_contacts = (
             Contact.objects.filter(
@@ -345,7 +349,11 @@ class User(AbstractUser):
             else Contact.objects.none()
         )
 
-        return (profile_contacts | organization_contacts).filter(type=contact_type).distinct()
+        return (
+            (profile_contacts | organization_contacts)
+            .filter(**{Contact.type.field.name: contact_type, fields_join(Contact.value, "isnull"): False})
+            .distinct()
+        )
 
 
 for field, properties in User.FIELDS_PROPERTIES.items():
@@ -2087,6 +2095,8 @@ class OrganizationJobPositionStatusHistory(models.Model):
 
 class JobPositionAssignment(models.Model):
     class Status(models.TextChoices):
+        AWAITING_JOBSEEKER_APPROVAL = "awaiting_jobseeker_approval", _("Awaiting Jobseeker Approval")
+        REJECTED_BY_JOBSEEKER = "rejected_by_jobseeker", _("Rejected By Jobseeker")
         NOT_REVIEWED = "not_reviewed", _("Not Reviewed")
         AWAITING_INTERVIEW_DATE = "awaiting_interview_date", _("Awaiting Interview Date")
         INTERVIEW_SCHEDULED = "interview_scheduled", _("Interview Scheduled")
@@ -2108,7 +2118,7 @@ class JobPositionAssignment(models.Model):
         max_length=50,
         choices=Status.choices,
         verbose_name=_("Status"),
-        default=Status.NOT_REVIEWED.value,
+        default=Status.AWAITING_JOBSEEKER_APPROVAL.value,
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
@@ -2124,6 +2134,8 @@ class JobPositionAssignment(models.Model):
 
     def change_status(self, new_status, **kwargs):
         state_mapping = {
+            self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
+            self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
             self.Status.NOT_REVIEWED: NotReviewedState(),
             self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
             self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
@@ -2195,6 +2207,17 @@ class JobPositionAssignmentState:
         return job_position_assignment.set_status_history()
 
 
+class AwaitingJobseekerApprovalState(JobPositionAssignmentState):
+    new_statuses = [
+        JobPositionAssignment.Status.REJECTED_BY_JOBSEEKER.value,
+        JobPositionAssignment.Status.NOT_REVIEWED.value,
+    ]
+
+
+class RejectedByJobseekerState(JobPositionAssignmentState):
+    new_statuses = []
+
+
 class NotReviewedState(JobPositionAssignmentState):
     new_statuses = [
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
@@ -2253,6 +2276,12 @@ class AwaitingInterviewResultsState(JobPositionAssignmentState):
         JobPositionAssignment.Status.HIRED.value,
     ]
 
+    @classmethod
+    def change_status(cls, job_position_assignment, new_status, **kwargs):
+        super().change_status(job_position_assignment, new_status, **kwargs)
+        if new_status.value == JobPositionAssignment.Status.HIRED.value:
+            OrganizationEmployee.objects.create(job_position_assignment=job_position_assignment)
+
 
 class InterviewCanceledByJobseekerState(JobPositionAssignmentState):
     new_statuses = [
@@ -2278,3 +2307,33 @@ class RejectedState(JobPositionAssignmentState):
 
 class HiredState(JobPositionAssignmentState):
     new_statuses = []
+
+
+class OrganizationEmployee(models.Model):
+    class HiringStatus(models.TextChoices):
+        ACTIVE = "active", _("Active")
+        SUSPENDED = "suspended", _("Suspended")
+        TERMINATED = "terminated", _("Terminated")
+        DISMISSED = "dismissed", _("Dismissed")
+
+    job_position_assignment = models.OneToOneField(
+        JobPositionAssignment,
+        on_delete=models.RESTRICT,
+        verbose_name=_("Job Position Assignment "),
+        related_name="organization_employee",
+    )
+    hiring_status = models.CharField(
+        max_length=50,
+        choices=HiringStatus.choices,
+        verbose_name=_("Status"),
+        default=HiringStatus.ACTIVE,
+    )
+    cooperation_range = DateRangeField(verbose_name=_("Start End Date"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee")
+        verbose_name_plural = _("Organization Employees")
+
+    def __str__(self):
+        return str(self.job_position_assignment)
