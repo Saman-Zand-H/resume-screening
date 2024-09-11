@@ -38,19 +38,13 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
         CampaignNotification.notification.field.name,
         CampaignNotification.created.field.name,
         fields_join(CampaignNotification.notification, Notification.status),
+        fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+        ),
     )
     list_filter = (
         fields_join(CampaignNotification.notification, Notification.status),
-        fields_join(
-            CampaignNotification.campaign_notification_type,
-            CampaignNotificationType.campaign,
-            Campaign.title,
-        ),
-        fields_join(
-            CampaignNotification.campaign_notification_type,
-            CampaignNotificationType.campaign,
-            Campaign._meta.pk.attname,
-        ),
         fields_join(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.notification_type,
@@ -63,6 +57,15 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
             Campaign.title,
         ),
     ]
+
+    def lookup_allowed(self, lookup, value, request=None):
+        if lookup == fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+            Campaign._meta.pk.attname,
+        ):
+            return True
+        return super().lookup_allowed(lookup, value)
 
 
 @admin.register(CampaignNotificationType)
