@@ -11,7 +11,7 @@
     <a class="button" href="{% url 'admin:notification_compaign_notify_user' obj.pk %}" title="test notification">
         Test
     </a>
-    <a href="{% url 'admin:notification_campaignnotification_changelist' %}?campaign_notification_type__campaign__pk={{ obj.pk }}" class="button">
+    <a href="{% url 'admin:notification_campaignnotification_changelist' %}?campaign_notification_type__campaign__id={{ obj.pk }}" class="button">
         Log
     </a>
 </div>
