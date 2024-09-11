@@ -38,19 +38,13 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
         CampaignNotification.notification.field.name,
         CampaignNotification.created.field.name,
         fields_join(CampaignNotification.notification, Notification.status),
+        fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+        ),
     )
     list_filter = (
         fields_join(CampaignNotification.notification, Notification.status),
-        fields_join(
-            CampaignNotification.campaign_notification_type,
-            CampaignNotificationType.campaign,
-            Campaign.title,
-        ),
-        fields_join(
-            CampaignNotification.campaign_notification_type,
-            CampaignNotificationType.campaign,
-            Campaign._meta.pk.attname,
-        ),
         fields_join(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.notification_type,
@@ -64,13 +58,22 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
         ),
     ]
 
+    def lookup_allowed(self, lookup, value, request=None):
+        if lookup == fields_join(
+            CampaignNotification.campaign_notification_type,
+            CampaignNotificationType.campaign,
+            Campaign._meta.pk.attname,
+        ):
+            return True
+        return super().lookup_allowed(lookup, value)
+
 
 @admin.register(CampaignNotificationType)
 class CampaignNotificationTypeAdmin(admin.ModelAdmin):
     list_display = (
         CampaignNotificationType.campaign.field.name,
         CampaignNotificationType.notification_type.field.name,
-        CampaignNotificationType.notification_template.field.name,
+        CampaignNotificationType.body.field.name,
     )
     list_filter = (
         CampaignNotificationType.notification_type.field.name,
@@ -78,7 +81,7 @@ class CampaignNotificationTypeAdmin(admin.ModelAdmin):
     )
     search_fields = (
         fields_join(CampaignNotificationType.campaign, Campaign.title),
-        fields_join(CampaignNotificationType.notification_template, NotificationTemplate.title),
+        fields_join(CampaignNotificationType.body, NotificationTemplate.title),
         CampaignNotificationType.notification_type.field.name,
     )
     autocomplete_fields = (CampaignNotificationType.campaign.field.name,)

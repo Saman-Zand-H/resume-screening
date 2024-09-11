@@ -47,7 +47,7 @@ class NotificationTemplate(TimeStampedModel):
 
 
 class Campaign(TimeStampedModel):
-    title = models.CharField(max_length=255, verbose_name=_("Notification Subject"))
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
     saved_filter = models.ForeignKey(
         TemplateSavedFilter,
         on_delete=models.CASCADE,
@@ -76,19 +76,19 @@ class CampaignNotificationType(TimeStampedModel):
         choices=NotificationTypes.choices,
         verbose_name=_("Notification Type"),
     )
-    notification_title = models.ForeignKey(
+    subject = models.ForeignKey(
         NotificationTemplate,
         on_delete=models.CASCADE,
-        related_name="campaign_notification_types",
-        verbose_name=_("Notification Title"),
+        related_name="campaign_notification_subjects",
+        verbose_name=_("Subject"),
         null=True,
         blank=True,
     )
-    notification_template = models.ForeignKey(
+    body = models.ForeignKey(
         NotificationTemplate,
         on_delete=models.CASCADE,
-        related_name="campaign_notifications",
-        verbose_name=_("Template"),
+        related_name="campaign_notification_bodies",
+        verbose_name=_("Body"),
     )
     campaign = models.ForeignKey(
         Campaign,
@@ -97,12 +97,27 @@ class CampaignNotificationType(TimeStampedModel):
         verbose_name=_("Campaign"),
     )
 
+    SUBJECT_REQUIRED_TYPES = [
+        NotificationTypes.EMAIL,
+        NotificationTypes.PUSH,
+        NotificationTypes.IN_APP,
+    ]
+
     def clean(self):
-        if self.notification_type != NotificationTypes.SMS and not self.notification_title:
+        subject_required = self.notification_type in self.SUBJECT_REQUIRED_TYPES
+        if subject_required and not self.subject:
             raise ValidationError(
                 {
-                    CampaignNotificationType.notification_title.field.name: _(
+                    CampaignNotificationType.subject.field.name: _(
                         "Notification Title is required for the selected notification type."
+                    )
+                }
+            )
+        elif not subject_required and self.subject:
+            raise ValidationError(
+                {
+                    CampaignNotificationType.subject.field.name: _(
+                        "Notification Title is not required for the selected notification type."
                     )
                 }
             )
