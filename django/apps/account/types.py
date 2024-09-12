@@ -1,5 +1,6 @@
 import contextlib
 
+import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import FieldType, JobBenefitType, JobNode, SkillType
