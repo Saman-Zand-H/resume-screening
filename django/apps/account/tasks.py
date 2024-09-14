@@ -2,7 +2,6 @@ import traceback
 from datetime import timedelta
 from functools import wraps
 from itertools import chain
-from logging import getLogger
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from config.settings.subscriptions import AccountSubscription
@@ -24,7 +23,9 @@ from .utils import (
 )
 
 
-logger = getLogger("django")
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 @register_task([AccountSubscription.DOCUMENT_VERIFICATION], schedule={"schedule": "0 0 * * *"})

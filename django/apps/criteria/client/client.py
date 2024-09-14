@@ -1,5 +1,3 @@
-import logging
-
 from ._client import BaseCriteriaClient
 from .types import (
     CreateOrderRequest,
@@ -11,7 +9,9 @@ from .types import (
     PackagesResponse,
 )
 
-logger = logging.getLogger(__name__)
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 class CriteriaClient(BaseCriteriaClient):

@@ -1,6 +1,5 @@
 import contextlib
 import json
-import logging
 
 from flex_report.defaults.views import BaseView as BaseFlexBaseView
 from flex_report.defaults.views import (
@@ -30,7 +29,9 @@ from django.views.generic.edit import FormView
 from .forms import WebhookForm
 from .webhook import WebhookEvent, WebhookHandler
 
-logger = logging.getLogger(__name__)
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 class FlexAdminBaseView:

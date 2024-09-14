@@ -34,6 +34,10 @@ from .models import (
 from .report_mapper import ReportMapper
 from .types import NotificationType
 
+from common.logging import get_logger
+
+logger = get_logger()
+
 NT = TypeVar("NT", bound=Notification)
 
 
@@ -235,7 +239,7 @@ def handle_notification_error(notification, error, sender):
     notification.notification.set_status(Notification.Status.FAILED if error else Notification.Status.SENT)
 
     if settings.DEBUG and error:
-        print("".join(traceback.TracebackException.from_exception(error).format()))
+        logger.info("".join(traceback.TracebackException.from_exception(error).format()))
 
 
 def send_notifications(*notifications: NotificationContext[Notification], **kwargs) -> list[bool]:
