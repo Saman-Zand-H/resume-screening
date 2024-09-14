@@ -843,10 +843,10 @@ class Education(DocumentAbstract, HasDurationMixin):
         DIPLOMA = "diploma", _("Diploma")
         CERTIFICATE = "certificate", _("Certificate")
 
-    field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
+    field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
-    university = models.ForeignKey(University, on_delete=models.CASCADE, verbose_name=_("University"))
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"))
+    university = models.ForeignKey(University, on_delete=models.RESTRICT, verbose_name=_("University"))
+    city = models.ForeignKey(City, on_delete=models.RESTRICT, verbose_name=_("City"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
 
@@ -980,8 +980,8 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
-    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, verbose_name=_("Industry"))
+    city = models.ForeignKey(City, on_delete=models.RESTRICT, verbose_name=_("City"), related_name="work_experiences")
+    industry = models.ForeignKey(Industry, on_delete=models.RESTRICT, verbose_name=_("Industry"))
     skills = models.CharField(max_length=250, verbose_name=_("Skills"), blank=True, null=True)
 
     class Meta:
@@ -1108,7 +1108,7 @@ class LanguageCertificate(DocumentAbstract, HasDurationMixin):
     language = models.CharField(choices=LANGUAGES, max_length=32, verbose_name=_("Language"))
     test = models.ForeignKey(
         LanguageProficiencyTest,
-        on_delete=models.CASCADE,
+        on_delete=models.RESTRICT,
         verbose_name=_("Test"),
         related_name="certificates",
     )
@@ -1340,7 +1340,7 @@ class CanadaVisa(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="canada_visa")
     nationality = models.ForeignKey(
-        Country, on_delete=models.CASCADE, verbose_name=_("Nationality"), related_name="canada_visas"
+        Country, on_delete=models.RESTRICT, verbose_name=_("Nationality"), related_name="canada_visas"
     )
     status = models.CharField(
         max_length=50,
@@ -1618,7 +1618,7 @@ class Organization(DocumentAbstract):
     )
     industry = models.ForeignKey(
         Industry,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name=_("Industry"),
         null=True,
         blank=True,
@@ -1793,7 +1793,7 @@ class OrganizationMembership(models.Model):
     invited_by = models.ForeignKey(
         User,
         verbose_name=_("Invited By"),
-        on_delete=models.RESTRICT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="invited_memberships",
@@ -1969,7 +1969,7 @@ class OrganizationJobPosition(models.Model):
         blank=True,
     )
     city = models.ForeignKey(
-        City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="job_positions", null=True, blank=True
+        City, on_delete=models.SET_NULL, verbose_name=_("City"), related_name="job_positions", null=True, blank=True
     )
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
@@ -2181,7 +2181,7 @@ class JobPositionInterview(models.Model):
         related_name="interviews",
     )
     assignment_status_history = models.OneToOneField(
-        JobPositionAssignmentStatusHistory, on_delete=models.CASCADE, related_name="interview", null=True, blank=True
+        JobPositionAssignmentStatusHistory, on_delete=models.RESTRICT, related_name="interview", null=True, blank=True
     )
     interview_date = models.DateTimeField(verbose_name=_("Interview Date"))
     result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
