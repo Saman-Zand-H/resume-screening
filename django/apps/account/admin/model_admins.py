@@ -36,6 +36,7 @@ from ..models import (
     OnlineMethod,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeHiringStatusHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationJobPositionStatusHistory,
@@ -861,3 +862,18 @@ class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
     search_fields = (OrganizationPlatformMessage.title.field.name,)
     list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
     raw_id_fields = (OrganizationPlatformMessage.employee.field.name,)
+
+
+@register(OrganizationEmployeeHiringStatusHistory)
+class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationEmployeeHiringStatusHistory.id.field.name,
+        OrganizationEmployeeHiringStatusHistory.organization_employee.field.name,
+        OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
+        OrganizationEmployeeHiringStatusHistory.created_at.field.name,
+    )
+    list_filter = (
+        OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
+        OrganizationEmployeeHiringStatusHistory.created_at.field.name,
+    )
+    raw_id_fields = (OrganizationEmployeeHiringStatusHistory.organization_employee.field.name,)
