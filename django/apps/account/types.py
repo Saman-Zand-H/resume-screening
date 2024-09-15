@@ -928,13 +928,17 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
     employee = graphene.Field(EmployeeType)
-    cooperation_range = graphene.List(graphene.Date, description="The cooperation range of the employee.")
     platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
         model = OrganizationEmployee
         use_connection = True
-        fields = (OrganizationEmployee.id.field.name, OrganizationEmployee.hiring_status.field.name)
+        fields = (
+            OrganizationEmployee.id.field.name,
+            OrganizationEmployee.hiring_status.field.name,
+            OrganizationEmployee.cooperation_start_at.field.name,
+            OrganizationEmployee.cooperation_end_at.field.name,
+        )
         filterset_class = OrganizationEmployeeFilterset
 
     def resolve_job_position(self, info):
@@ -942,11 +946,6 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
 
     def resolve_employee(self, info):
         return self.job_position_assignment.job_seeker
-
-    def resolve_cooperation_range(self, info):
-        if self.cooperation_range is None:
-            return None
-        return [self.cooperation_range.lower, self.cooperation_range.upper]
 
     def resolve_platform_messages(self, info):
         return self.organizationplatformmessage.all()
