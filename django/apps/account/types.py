@@ -8,13 +8,14 @@ from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from academy.types import CourseNode
+from notification.models import InAppNotification
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
 from graphene_django.filter import DjangoFilterConnectionField
+from graphene_django.fields import DjangoConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
-from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
@@ -44,6 +45,7 @@ from .models import (
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
+    OrganizationPlatformMessage,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -909,10 +911,25 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         return self.job_seeker
 
 
+class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    class Meta:
+        model = OrganizationPlatformMessage
+        use_connection = True
+        fields = (
+            OrganizationPlatformMessage.id.field.name,
+            OrganizationPlatformMessage.source.field.name,
+            OrganizationPlatformMessage.title.field.name,
+            OrganizationPlatformMessage.text.field.name,
+            OrganizationPlatformMessage.read_at.field.name,
+            OrganizationPlatformMessage.created_at.field.name,
+        )
+
+
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
     employee = graphene.Field(EmployeeType)
     cooperation_range = graphene.List(graphene.Date, description="The cooperation range of the employee.")
+    platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
         model = OrganizationEmployee
@@ -930,6 +947,9 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
         if self.cooperation_range is None:
             return None
         return [self.cooperation_range.lower, self.cooperation_range.upper]
+
+    def resolve_platform_messages(self, info):
+        return self.organizationplatformmessage.all()
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
