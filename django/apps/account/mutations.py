@@ -78,6 +78,7 @@ from .models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
+    OrganizationEmployee,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -1257,6 +1258,46 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         return cls(**{cls._meta.return_field_name: obj})
 
 
+class OrganizationEmployeeHiringStatusUpdateMutation(
+    MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
+):
+    accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (
+            organization := Organization.objects.filter(
+                **{
+                    fields_join(
+                        OrganizationJobPosition.organization.field.related_query_name(),
+                        JobPositionAssignment.job_position.field.related_query_name(),
+                        OrganizationEmployee.job_position_assignment.field.related_query_name(),
+                        "pk",
+                    ): kwargs.get("id")
+                }
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
+
+    class Meta:
+        model = OrganizationEmployee
+        login_required = True
+        fields = [OrganizationEmployee.hiring_status.field.name]
+        required_fields = [OrganizationEmployee.hiring_status.field.name]
+        type_name = "OrganizationEmployeeHiringStatusUpdateInput"
+
+    @classmethod
+    @transaction.atomic
+    def mutate(cls, root, info, input, id):
+        status = input.get(OrganizationEmployee.hiring_status.field.name)
+        if not (obj := OrganizationEmployee.objects.get(pk=id)):
+            raise GraphQLErrorBadRequest(_("Organization employee not found."))
+        obj.change_hiring_status(status)
+        return cls(**{cls._meta.return_field_name: obj})
+
+
 class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
     accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
 
@@ -1378,6 +1419,7 @@ class OrganizationMutation(graphene.ObjectType):
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
     update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
+    update_employee_hiring_status = OrganizationEmployeeHiringStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
