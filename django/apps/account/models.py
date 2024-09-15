@@ -2337,3 +2337,47 @@ class OrganizationEmployee(models.Model):
 
     def __str__(self):
         return str(self.job_position_assignment)
+
+
+class PlatformMessage(models.Model):
+    class Source(models.TextChoices):
+        AI = "ai", _("AI")
+        HUMAN = "human", _("Human")
+
+    source = models.CharField(
+        max_length=8,
+        choices=Source.choices,
+        verbose_name=_("Source"),
+        default=Source.HUMAN,
+    )
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    text = models.TextField(verbose_name=_("Text"))
+    employee = models.ForeignKey(
+        OrganizationEmployee,
+        on_delete=models.CASCADE,
+        verbose_name=_("Employee"),
+        related_name="%(class)s",
+    )
+    read_at = models.DateTimeField(verbose_name=_("Read At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        abstract = True
+
+
+class OrganizationPlatformMessage(PlatformMessage):
+    class Meta:
+        verbose_name = _("Organization Platform Message")
+        verbose_name_plural = _("Organization Platform Messages")
+
+    def __str__(self):
+        return f"{self.employee} - {self.title}"
+
+
+class EmployeePlatformMessage(PlatformMessage):
+    class Meta:
+        verbose_name = _("Employee Platform Message")
+        verbose_name_plural = _("Employee Platform Messages")
+
+    def __str__(self):
+        return f"{self.employee} - {self.title}"
