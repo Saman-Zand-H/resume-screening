@@ -18,6 +18,7 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
                 JobPositionAssignment.job_position,
             ): ["exact"],
             OrganizationEmployee.hiring_status.field.name: ["exact"],
+            OrganizationEmployee.cooperation_start_at.field.name: ["exact", "lt", "gt"],
         }
 
     def filter_full_name(self, queryset, name, value):
