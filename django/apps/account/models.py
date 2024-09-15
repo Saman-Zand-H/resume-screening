@@ -2340,6 +2340,81 @@ class OrganizationEmployee(models.Model):
     def __str__(self):
         return str(self.job_position_assignment)
 
+    def set_hiring_status_history(self):
+        OrganizationEmployeeHiringStatusHistory.objects.create(
+            organization_employee=self, hiring_status=self.hiring_status
+        )
+
+    def change_hiring_status(self, new_status, **kwargs):
+        state_mapping = {
+            self.HiringStatus.AWAITING: HiringAwaitingState(),
+            self.HiringStatus.ACTIVE: HiringActiveState(),
+            self.HiringStatus.SUSPENDED: HiringSuspendedState(),
+            self.HiringStatus.FINISHED: HiringFinishedState(),
+            self.HiringStatus.FIRED: HiringFiredState(),
+        }
+        current_state = state_mapping.get(self.hiring_status)
+        if not current_state:
+            raise ValueError(f"Invalid status: {self.hiring_status}")
+        current_state.change_status(self, new_status, **kwargs)
+        self.save(update_fields=[OrganizationEmployee.hiring_status.field.name])
+
+
+class OrganizationEmployeeHiringState:
+    new_statuses = []
+
+    @classmethod
+    def change_status(cls, organization_employee, new_status, **kwargs):
+        if new_status.value not in cls.new_statuses:
+            raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
+
+        organization_employee.hiring_status = new_status.value
+        organization_employee.set_hiring_status_history()
+
+
+class HiringAwaitingState(OrganizationEmployeeHiringState):
+    new_statuses = [
+        OrganizationEmployee.HiringStatus.ACTIVE.value,
+    ]
+
+    @classmethod
+    def change_status(cls, organization_employee, new_status, **kwargs):
+        super().change_status(organization_employee, new_status, **kwargs)
+        organization_employee.cooperation_start_at = now().date()
+        organization_employee.save(update_fields=[OrganizationEmployee.cooperation_start_at.field.name])
+
+
+class HiringActiveState(OrganizationEmployeeHiringState):
+    new_statuses = [
+        OrganizationEmployee.HiringStatus.SUSPENDED.value,
+        OrganizationEmployee.HiringStatus.FIRED.value,
+        OrganizationEmployee.HiringStatus.FINISHED.value,
+    ]
+
+    @classmethod
+    def change_status(cls, organization_employee, new_status, **kwargs):
+        super().change_status(organization_employee, new_status, **kwargs)
+        if new_status.value in [
+            OrganizationEmployee.HiringStatus.FIRED.value,
+            OrganizationEmployee.HiringStatus.FINISHED.value,
+        ]:
+            organization_employee.cooperation_end_at = now().date()
+            organization_employee.save(update_fields=[OrganizationEmployee.cooperation_end_at.field.name])
+
+
+class HiringSuspendedState(OrganizationEmployeeHiringState):
+    new_statuses = [
+        OrganizationEmployee.HiringStatus.ACTIVE.value,
+    ]
+
+
+class HiringFinishedState(OrganizationEmployeeHiringState):
+    new_statuses = []
+
+
+class HiringFiredState(OrganizationEmployeeHiringState):
+    new_statuses = []
+
 
 class OrganizationEmployeeHiringStatusHistory(models.Model):
     organization_employee = models.ForeignKey(
