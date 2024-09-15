@@ -817,7 +817,8 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
         OrganizationEmployee.id.field.name,
         OrganizationEmployee.job_position_assignment.field.name,
         OrganizationEmployee.hiring_status.field.name,
-        OrganizationEmployee.cooperation_range.field.name,
+        OrganizationEmployee.cooperation_start_at.field.name,
+        OrganizationEmployee.cooperation_end_at.field.name,
         OrganizationEmployee.created_at.field.name,
     )
     search_fields = (
@@ -825,7 +826,8 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
     )
     list_filter = (
         OrganizationEmployee.hiring_status.field.name,
-        OrganizationEmployee.cooperation_range.field.name,
+        OrganizationEmployee.cooperation_start_at.field.name,
+        OrganizationEmployee.cooperation_end_at.field.name,
         OrganizationEmployee.created_at.field.name,
     )
     raw_id_fields = (OrganizationEmployee.job_position_assignment.field.name,)

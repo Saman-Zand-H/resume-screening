@@ -48,7 +48,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField, IntegerRangeField, DateRangeField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -2311,10 +2311,11 @@ class HiredState(JobPositionAssignmentState):
 
 class OrganizationEmployee(models.Model):
     class HiringStatus(models.TextChoices):
+        AWAITING = "awaiting", _("Awaiting")
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
-        TERMINATED = "terminated", _("Terminated")
-        DISMISSED = "dismissed", _("Dismissed")
+        FIRED = "fired", _("Fired")
+        FINISHED = "finished", _("Finished")
 
     job_position_assignment = models.OneToOneField(
         JobPositionAssignment,
@@ -2326,9 +2327,10 @@ class OrganizationEmployee(models.Model):
         max_length=50,
         choices=HiringStatus.choices,
         verbose_name=_("Status"),
-        default=HiringStatus.ACTIVE,
+        default=HiringStatus.AWAITING,
     )
-    cooperation_range = DateRangeField(verbose_name=_("Start End Date"), null=True, blank=True)
+    cooperation_start_at = models.DateField(verbose_name=_("Cooperation Start At"), null=True, blank=True)
+    cooperation_end_at = models.DateField(verbose_name=_("Cooperation End At"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -2337,6 +2339,28 @@ class OrganizationEmployee(models.Model):
 
     def __str__(self):
         return str(self.job_position_assignment)
+
+
+class OrganizationEmployeeHiringStatusHistory(models.Model):
+    organization_employee = models.ForeignKey(
+        OrganizationEmployee,
+        on_delete=models.CASCADE,
+        related_name="status_histories",
+        verbose_name=_("Organization Employee"),
+    )
+    hiring_status = models.CharField(
+        max_length=50,
+        choices=OrganizationEmployee.HiringStatus.choices,
+        verbose_name=_("Status"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Hiring Status History")
+        verbose_name_plural = _("Organization Employee Hiring Status Histories")
+
+    def __str__(self):
+        return f"{self.organization_employee} - {self.hiring_status}"
 
 
 class PlatformMessage(models.Model):
