@@ -24,6 +24,7 @@ from ..models import (
     Contactable,
     DNSTXTRecordMethod,
     Education,
+    EmployeePlatformMessage,
     EmployerLetterMethod,
     IEEMethod,
     JobPositionAssignment,
@@ -39,6 +40,7 @@ from ..models import (
     OrganizationJobPosition,
     OrganizationJobPositionStatusHistory,
     OrganizationMembership,
+    OrganizationPlatformMessage,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -827,3 +829,33 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
         OrganizationEmployee.created_at.field.name,
     )
     raw_id_fields = (OrganizationEmployee.job_position_assignment.field.name,)
+
+
+@register(EmployeePlatformMessage)
+class EmployeePlatformMessageAdmin(admin.ModelAdmin):
+    list_display = (
+        EmployeePlatformMessage.id.field.name,
+        EmployeePlatformMessage.source.field.name,
+        EmployeePlatformMessage.title.field.name,
+        EmployeePlatformMessage.employee.field.name,
+        EmployeePlatformMessage.read_at.field.name,
+        EmployeePlatformMessage.created_at.field.name,
+    )
+    search_fields = (EmployeePlatformMessage.title.field.name,)
+    list_filter = (EmployeePlatformMessage.created_at.field.name, EmployeePlatformMessage.read_at.field.name)
+    raw_id_fields = (EmployeePlatformMessage.employee.field.name,)
+
+
+@register(OrganizationPlatformMessage)
+class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationPlatformMessage.id.field.name,
+        OrganizationPlatformMessage.source.field.name,
+        OrganizationPlatformMessage.title.field.name,
+        OrganizationPlatformMessage.employee.field.name,
+        OrganizationPlatformMessage.read_at.field.name,
+        OrganizationPlatformMessage.created_at.field.name,
+    )
+    search_fields = (OrganizationPlatformMessage.title.field.name,)
+    list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
+    raw_id_fields = (OrganizationPlatformMessage.employee.field.name,)
