@@ -795,6 +795,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     class Meta:
         model = OrganizationJobPosition
         use_connection = True
+        connection_class = CountableConnection
         fields = (
             OrganizationJobPosition.id.field.name,
             OrganizationJobPosition.title.field.name,
@@ -825,6 +826,10 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition._status.field.name: ["exact"],
             OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
             OrganizationJobPosition.city.field.name: ["exact"],
+            fields_join(
+                JobPositionAssignment.job_position.field.related_query_name(),
+                JobPositionAssignment.status.field.name,
+            ): ["exact"],
         }
 
     def resolve_status(self, info):
