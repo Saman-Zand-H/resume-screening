@@ -676,6 +676,7 @@ class UserNode(BaseUserNode):
 
 class OrganizationType(DjangoObjectType):
     email = graphene.String()
+    contacts = graphene.List(ContactType)
     has_financial_data = graphene.Boolean()
 
     class Meta:
@@ -700,6 +701,9 @@ class OrganizationType(DjangoObjectType):
 
     def resolve_email(self, info):
         return self.user.email
+
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
 
     def resolve_has_financial_data(self, info):
         return True
