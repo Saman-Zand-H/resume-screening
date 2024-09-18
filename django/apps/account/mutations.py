@@ -1167,8 +1167,8 @@ class OrganizationJobPositionUpdateMutation(
 
     @classmethod
     def validate(cls, root, info, input, id, obj):
-        if obj.status != OrganizationJobPosition.Status.DRAFTED.value:
-            raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
+        if not obj.is_editable:
+            raise GraphQLErrorBadRequest(_("Cannot modify the job position."))
         return super().validate(root, info, input, id, obj)
 
     @classmethod

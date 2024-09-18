@@ -783,6 +783,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     skills = graphene.List(SkillType)
     fields = graphene.List(FieldType)
     benefits = graphene.List(JobBenefitType)
+    is_editable = graphene.Boolean()
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -861,6 +862,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_benefits(self, info):
         return self.benefits.all()
+
+    def resolve_is_editable(self, info):
+        return self.is_editable
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):

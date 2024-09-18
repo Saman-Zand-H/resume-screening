@@ -1997,6 +1997,10 @@ class OrganizationJobPosition(models.Model):
             self.set_status_history()
         return self._status
 
+    @property
+    def is_editable(self):
+        return self.status == OrganizationJobPosition.Status.DRAFTED.value and self.assignments.count() == 0
+
     def set_status_history(self):
         OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
 
