@@ -583,6 +583,7 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.type.field.name,
         Organization.established_at.field.name,
         Organization.size.field.name,
+        Organization.city.field.name,
         Organization.user.field.name,
     )
     search_fields = (
@@ -596,7 +597,12 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.size.field.name,
         Organization.established_at.field.name,
     )
-    raw_id_fields = (Organization.industry.field.name,)
+    raw_id_fields = (
+        Organization.industry.field.name,
+        Organization.city.field.name,
+        Organization.contactable.field.name,
+        Organization.user.field.name,
+    )
     inlines = (OrganizationRolesGenericInline,)
 
 

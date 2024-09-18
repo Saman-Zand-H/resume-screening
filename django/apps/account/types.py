@@ -690,6 +690,7 @@ class OrganizationType(DjangoObjectType):
             Organization.industry.field.name,
             Organization.established_at.field.name,
             Organization.size.field.name,
+            Organization.city.field.name,
             Organization.about.field.name,
             Organization.status.field.name,
             OrganizationInvitation.organization.field.related_query_name(),

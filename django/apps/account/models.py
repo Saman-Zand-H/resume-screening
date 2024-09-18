@@ -1632,6 +1632,9 @@ class Organization(DocumentAbstract):
         object_id_field=Role.managed_by_id.field.name,
     )
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
+    city = models.ForeignKey(
+        City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True, related_name="organizations"
+    )
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
     allow_self_verification = None

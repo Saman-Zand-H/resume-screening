@@ -444,6 +444,7 @@ class OrganizationUpdateMutation(
             Organization.industry.field.name,
             Organization.established_at.field.name,
             Organization.size.field.name,
+            Organization.city.field.name,
             Organization.about.field.name,
         )
 
