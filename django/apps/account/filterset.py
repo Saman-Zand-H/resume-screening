@@ -4,7 +4,7 @@ import django_filters
 
 from common.utils import fields_join
 
-from .models import OrganizationEmployee, JobPositionAssignment, User
+from .models import OrganizationJobPosition, OrganizationEmployee, JobPositionAssignment, User
 
 
 class OrganizationEmployeeFilterset(django_filters.FilterSet):
@@ -13,6 +13,11 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
     class Meta:
         model = OrganizationEmployee
         fields = {
+            fields_join(
+                OrganizationEmployee.job_position_assignment,
+                JobPositionAssignment.job_position,
+                OrganizationJobPosition.organization,
+            ): ["exact"],
             fields_join(
                 OrganizationEmployee.job_position_assignment,
                 JobPositionAssignment.job_position,
