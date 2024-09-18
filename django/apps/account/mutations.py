@@ -516,10 +516,7 @@ class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactabl
 
     @classmethod
     def get_contactable_object(cls, info, input):
-        organization_id = input[0].get("organization_id") if type(input) is list else input.get("organization_id")
-        organization = Organization.objects.filter(pk=organization_id).first()
-        if not organization:
-            raise GraphQLErrorBadRequest("Organization not found.")
+        organization = cls.get_access_object(info, input=input)
         return organization.contactable
 
 
