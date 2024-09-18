@@ -675,6 +675,7 @@ class UserNode(BaseUserNode):
 
 
 class OrganizationType(DjangoObjectType):
+    email = graphene.String()
     has_financial_data = graphene.Boolean()
 
     class Meta:
@@ -696,6 +697,9 @@ class OrganizationType(DjangoObjectType):
             OrganizationInvitation.organization.field.related_query_name(),
             OrganizationMembership.organization.field.related_query_name(),
         )
+
+    def resolve_email(self, info):
+        return self.user.email
 
     def resolve_has_financial_data(self, info):
         return True
