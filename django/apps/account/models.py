@@ -2136,6 +2136,30 @@ class JobPositionAssignment(models.Model):
     def __str__(self):
         return f"{self.job_position.title} - {self.job_seeker.email}"
 
+    @property
+    def organization_related_statuses(self):
+        return [
+            self.Status.NOT_REVIEWED,
+            self.Status.AWAITING_INTERVIEW_DATE,
+            self.Status.INTERVIEW_SCHEDULED,
+            self.Status.INTERVIEWING,
+            self.Status.AWAITING_INTERVIEW_RESULTS,
+            self.Status.INTERVIEW_CANCELED_BY_EMPLOYER,
+            self.Status.REJECTED_AT_INTERVIEW,
+            self.Status.REJECTED,
+            self.Status.HIRED,
+        ]
+
+    @property
+    def jobseeker_related_statuses(self):
+        return [
+            self.Status.AWAITING_JOBSEEKER_APPROVAL,
+            self.Status.REJECTED_BY_JOBSEEKER,
+            self.Status.AWAITING_INTERVIEW_DATE,
+            self.Status.INTERVIEW_SCHEDULED,
+            self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER,
+        ]
+
     def set_status_history(self):
         return JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
 

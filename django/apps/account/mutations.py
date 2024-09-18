@@ -1249,6 +1249,9 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         if not (obj := JobPositionAssignment.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position assignment not found."))
 
+        if obj.status not in obj.organization_related_statuses:
+            raise GraphQLErrorBadRequest(_("Cannot modify status of the job position assignment."))
+
         interview_date = input.get(JobPositionInterview.interview_date.field.name)
         result_date = input.get(JobPositionInterview.result_date.field.name)
 
