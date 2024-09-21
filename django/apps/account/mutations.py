@@ -1196,14 +1196,14 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
     class Meta:
         model = OrganizationJobPosition
         login_required = True
-        fields = [OrganizationJobPosition._status.field.name]
-        required_fields = [OrganizationJobPosition._status.field.name]
+        fields = [OrganizationJobPosition.status.field.name]
+        required_fields = [OrganizationJobPosition.status.field.name]
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
     @transaction.atomic
     def mutate(cls, root, info, input, id):
-        status = input.get(OrganizationJobPosition._status.field.name)
+        status = input.get(OrganizationJobPosition.status.field.name)
         if not (obj := OrganizationJobPosition.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position not found."))
 

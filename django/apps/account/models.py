@@ -1979,7 +1979,7 @@ class OrganizationJobPosition(models.Model):
     job_seeker_assignment = models.ManyToManyField(
         User, through="JobPositionAssignment", verbose_name=_("Job Seeker Assignment")
     )
-    _status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
+    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -1989,20 +1989,14 @@ class OrganizationJobPosition(models.Model):
     def __str__(self):
         return f"{self.title} - {self.organization.name}"
 
-    @property
-    def status(self):
-        if self.validity_date and self.validity_date < now().date():
-            self._status = self.Status.EXPIRED
-            self.save(update_fields=[OrganizationJobPosition._status.field.name])
-            self.set_status_history()
-        return self._status
+
 
     @property
     def is_editable(self):
         return self.status == OrganizationJobPosition.Status.DRAFTED.value and self.assignments.count() == 0
 
     def set_status_history(self):
-        OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
+        OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self.status)
 
     def clean(self):
         if self.start_at and self.validity_date and self.start_at > self.validity_date:
@@ -2026,11 +2020,11 @@ class OrganizationJobPosition(models.Model):
             self.Status.SUSPENDED: SuspendedState(),
             self.Status.EXPIRED: ExpiredState(),
         }
-        current_state = state_mapping.get(self._status)
+        current_state = state_mapping.get(self.status)
         if not current_state:
-            raise ValueError(f"Invalid status: {self._status}")
+            raise ValueError(f"Invalid status: {self.status}")
         current_state.change_status(self, new_status)
-        self.save(update_fields=[OrganizationJobPosition._status.field.name])
+        self.save(update_fields=[OrganizationJobPosition.status.field.name])
 
 
 class OrganizationJobPositionState:
@@ -2041,7 +2035,7 @@ class OrganizationJobPositionState:
         if new_status.value not in cls.new_statuses:
             raise GraphQLErrorBadRequest(f"Cannot transition from {cls} to {new_status.value}")
 
-        job_position._status = new_status.value
+        job_position.status = new_status.value
         job_position.set_status_history()
 
 

@@ -824,7 +824,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         filter_fields = {
             OrganizationJobPosition.organization.field.name: ["exact"],
             OrganizationJobPosition.title.field.name: ["icontains"],
-            OrganizationJobPosition._status.field.name: ["exact"],
+            OrganizationJobPosition.status.field.name: ["exact"],
             OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
             OrganizationJobPosition.city.field.name: ["exact"],
             fields_join(

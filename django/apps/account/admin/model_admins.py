@@ -741,13 +741,13 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
     list_display = (
         OrganizationJobPosition.id.field.name,
         OrganizationJobPosition.title.field.name,
-        OrganizationJobPosition._status.field.name,
+        OrganizationJobPosition.status.field.name,
         OrganizationJobPosition.organization.field.name,
         OrganizationJobPosition.created_at.field.name,
     )
     search_fields = (OrganizationJobPosition.title.field.name,)
     list_filter = (
-        OrganizationJobPosition._status.field.name,
+        OrganizationJobPosition.status.field.name,
         OrganizationJobPosition.age_range.field.name,
         OrganizationJobPosition.contract_type.field.name,
         OrganizationJobPosition.location_type.field.name,
