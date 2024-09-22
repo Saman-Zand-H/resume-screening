@@ -42,6 +42,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeCooperationHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -943,9 +944,20 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
 
+class OrganizationEmployeeCooperationHistoryType(DjangoObjectType):
+    class Meta:
+        model = OrganizationEmployeeCooperationHistory
+        fields = (
+            OrganizationEmployeeCooperationHistory.id.field.name,
+            OrganizationEmployeeCooperationHistory.start_at.field.name,
+            OrganizationEmployeeCooperationHistory.end_at.field.name,
+        )
+
+
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
     employee = graphene.Field(EmployeeType)
+    cooperation_histories = graphene.List(OrganizationEmployeeCooperationHistoryType)
     platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
@@ -954,8 +966,6 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
         fields = (
             OrganizationEmployee.id.field.name,
             OrganizationEmployee.hiring_status.field.name,
-            OrganizationEmployee.cooperation_start_at.field.name,
-            OrganizationEmployee.cooperation_end_at.field.name,
         )
         filterset_class = OrganizationEmployeeFilterset
 
@@ -964,6 +974,9 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
 
     def resolve_employee(self, info):
         return self.job_position_assignment.job_seeker
+
+    def resolve_cooperation_histories(self, info):
+        return self.cooperation_histories.all()
 
     def resolve_platform_messages(self, info):
         return self.organizationplatformmessage.all()
