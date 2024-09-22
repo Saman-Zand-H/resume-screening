@@ -912,4 +912,3 @@ class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
         OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
         OrganizationEmployeeHiringStatusHistory.created_at.field.name,
     )
-    raw_id_fields = (OrganizationEmployeeHiringStatusHistory.organization_employee.field.name,)
