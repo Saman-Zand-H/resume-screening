@@ -1,7 +1,6 @@
 import json
 from datetime import timedelta
 from functools import partial
-from logging import getLogger
 from pathlib import Path
 from typing import NamedTuple
 
@@ -11,7 +10,9 @@ from disposable_email_domains import blocklist
 
 from django.conf import settings
 
-logger = getLogger("django")
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 class ProfileAnnotationNames(NamedTuple):

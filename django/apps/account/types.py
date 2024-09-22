@@ -8,13 +8,14 @@ from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from academy.types import CourseNode
+from notification.models import InAppNotification
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
 from graphene_django.filter import DjangoFilterConnectionField
+from graphene_django.fields import DjangoConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
-from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
@@ -41,9 +42,11 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeCooperationHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
+    OrganizationPlatformMessage,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -231,10 +234,10 @@ class JobSeekerUnionType(graphene.Union):
         types = (JobSeekerType, JobSeekerPrimitiveType)
 
     def resolve_type(self, info):
-        user = self
         # TODO: Check if user has paid for the service, return JobSeekerType,
         # Otherwise return JobSeekerPrimitiveType
-        if not user:
+        status = getattr(info.context, "assignment_status", None)
+        if status in JobPositionAssignment.get_job_seeker_specific_statuses():
             return JobSeekerPrimitiveType
         return JobSeekerType
 
@@ -673,6 +676,8 @@ class UserNode(BaseUserNode):
 
 
 class OrganizationType(DjangoObjectType):
+    email = graphene.String()
+    contacts = graphene.List(ContactType)
     has_financial_data = graphene.Boolean()
 
     class Meta:
@@ -688,11 +693,18 @@ class OrganizationType(DjangoObjectType):
             Organization.industry.field.name,
             Organization.established_at.field.name,
             Organization.size.field.name,
+            Organization.city.field.name,
             Organization.about.field.name,
             Organization.status.field.name,
             OrganizationInvitation.organization.field.related_query_name(),
             OrganizationMembership.organization.field.related_query_name(),
         )
+
+    def resolve_email(self, info):
+        return self.user.email
+
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
 
     def resolve_has_financial_data(self, info):
         return True
@@ -772,6 +784,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     skills = graphene.List(SkillType)
     fields = graphene.List(FieldType)
     benefits = graphene.List(JobBenefitType)
+    is_editable = graphene.Boolean()
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
@@ -784,6 +797,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
     class Meta:
         model = OrganizationJobPosition
         use_connection = True
+        connection_class = CountableConnection
         fields = (
             OrganizationJobPosition.id.field.name,
             OrganizationJobPosition.title.field.name,
@@ -811,9 +825,13 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         filter_fields = {
             OrganizationJobPosition.organization.field.name: ["exact"],
             OrganizationJobPosition.title.field.name: ["icontains"],
-            OrganizationJobPosition._status.field.name: ["exact"],
+            OrganizationJobPosition.status.field.name: ["exact"],
             OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
             OrganizationJobPosition.city.field.name: ["exact"],
+            fields_join(
+                JobPositionAssignment.job_position.field.related_query_name(),
+                JobPositionAssignment.status.field.name,
+            ): ["exact"],
         }
 
     def resolve_status(self, info):
@@ -845,6 +863,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
     def resolve_benefits(self, info):
         return self.benefits.all()
+
+    def resolve_is_editable(self, info):
+        return self.is_editable
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
@@ -906,18 +927,47 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         )
 
     def resolve_job_seeker(self, info):
+        info.context.assignment_status = self.status
         return self.job_seeker
+
+
+class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    class Meta:
+        model = OrganizationPlatformMessage
+        use_connection = True
+        fields = (
+            OrganizationPlatformMessage.id.field.name,
+            OrganizationPlatformMessage.source.field.name,
+            OrganizationPlatformMessage.title.field.name,
+            OrganizationPlatformMessage.text.field.name,
+            OrganizationPlatformMessage.read_at.field.name,
+            OrganizationPlatformMessage.created_at.field.name,
+        )
+
+
+class OrganizationEmployeeCooperationHistoryType(DjangoObjectType):
+    class Meta:
+        model = OrganizationEmployeeCooperationHistory
+        fields = (
+            OrganizationEmployeeCooperationHistory.id.field.name,
+            OrganizationEmployeeCooperationHistory.start_at.field.name,
+            OrganizationEmployeeCooperationHistory.end_at.field.name,
+        )
 
 
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
     employee = graphene.Field(EmployeeType)
-    cooperation_range = graphene.List(graphene.Date, description="The cooperation range of the employee.")
+    cooperation_histories = graphene.List(OrganizationEmployeeCooperationHistoryType)
+    platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
         model = OrganizationEmployee
         use_connection = True
-        fields = (OrganizationEmployee.id.field.name, OrganizationEmployee.hiring_status.field.name)
+        fields = (
+            OrganizationEmployee.id.field.name,
+            OrganizationEmployee.hiring_status.field.name,
+        )
         filterset_class = OrganizationEmployeeFilterset
 
     def resolve_job_position(self, info):
@@ -926,10 +976,11 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     def resolve_employee(self, info):
         return self.job_position_assignment.job_seeker
 
-    def resolve_cooperation_range(self, info):
-        if self.cooperation_range is None:
-            return None
-        return [self.cooperation_range.lower, self.cooperation_range.upper]
+    def resolve_cooperation_histories(self, info):
+        return self.cooperation_histories.all()
+
+    def resolve_platform_messages(self, info):
+        return self.organizationplatformmessage.all()
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
