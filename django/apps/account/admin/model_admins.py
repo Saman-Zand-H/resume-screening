@@ -36,6 +36,7 @@ from ..models import (
     OnlineMethod,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeCooperationHistory,
     OrganizationEmployeeHiringStatusHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
@@ -832,8 +833,6 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
         OrganizationEmployee.id.field.name,
         OrganizationEmployee.job_position_assignment.field.name,
         OrganizationEmployee.hiring_status.field.name,
-        OrganizationEmployee.cooperation_start_at.field.name,
-        OrganizationEmployee.cooperation_end_at.field.name,
         OrganizationEmployee.created_at.field.name,
     )
     search_fields = (
@@ -841,8 +840,6 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
     )
     list_filter = (
         OrganizationEmployee.hiring_status.field.name,
-        OrganizationEmployee.cooperation_start_at.field.name,
-        OrganizationEmployee.cooperation_end_at.field.name,
         OrganizationEmployee.created_at.field.name,
     )
     raw_id_fields = (OrganizationEmployee.job_position_assignment.field.name,)
@@ -875,14 +872,39 @@ class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
     )
     search_fields = (OrganizationPlatformMessage.title.field.name,)
     list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
-    raw_id_fields = (OrganizationPlatformMessage.employee.field.name,)
+
+
+@register(OrganizationEmployeeCooperationHistory)
+class OrganizationEmployeeCooperationHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationEmployeeCooperationHistory.id.field.name,
+        OrganizationEmployeeCooperationHistory.employee.field.name,
+        OrganizationEmployeeCooperationHistory.start_at.field.name,
+        OrganizationEmployeeCooperationHistory.end_at.field.name,
+        OrganizationEmployeeCooperationHistory.created_at.field.name,
+    )
+    search_fields = (
+        fields_join(
+            OrganizationEmployeeCooperationHistory.employee,
+            OrganizationEmployee.job_position_assignment,
+            JobPositionAssignment.job_seeker,
+            User.email,
+        ),
+        fields_join(
+            OrganizationEmployeeCooperationHistory.employee,
+            OrganizationEmployee.job_position_assignment,
+            JobPositionAssignment.job_position,
+            OrganizationJobPosition.title,
+        ),
+    )
+    list_filter = (OrganizationEmployeeCooperationHistory.created_at.field.name,)
 
 
 @register(OrganizationEmployeeHiringStatusHistory)
 class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
     list_display = (
         OrganizationEmployeeHiringStatusHistory.id.field.name,
-        OrganizationEmployeeHiringStatusHistory.organization_employee.field.name,
+        OrganizationEmployeeHiringStatusHistory.cooperation_history.field.name,
         OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
         OrganizationEmployeeHiringStatusHistory.created_at.field.name,
     )

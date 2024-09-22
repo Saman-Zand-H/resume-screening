@@ -2126,6 +2126,7 @@ class JobPositionAssignment(models.Model):
     class Meta:
         verbose_name = _("Job Position Assignment")
         verbose_name_plural = _("Job Position Assignments")
+        unique_together = [("job_seeker", "job_position")]
 
     def __str__(self):
         return f"{self.job_position.title} - {self.job_seeker.email}"
@@ -2354,8 +2355,6 @@ class OrganizationEmployee(models.Model):
         verbose_name=_("Status"),
         default=HiringStatus.AWAITING,
     )
-    cooperation_start_at = models.DateField(verbose_name=_("Cooperation Start At"), null=True, blank=True)
-    cooperation_end_at = models.DateField(verbose_name=_("Cooperation End At"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -2367,7 +2366,7 @@ class OrganizationEmployee(models.Model):
 
     def set_hiring_status_history(self):
         OrganizationEmployeeHiringStatusHistory.objects.create(
-            organization_employee=self, hiring_status=self.hiring_status
+            cooperation_history=self.cooperation_histories.first(), hiring_status=self.hiring_status
         )
 
     def change_hiring_status(self, new_status, **kwargs):
@@ -2383,6 +2382,26 @@ class OrganizationEmployee(models.Model):
             raise ValueError(f"Invalid status: {self.hiring_status}")
         current_state.change_status(self, new_status, **kwargs)
         self.save(update_fields=[OrganizationEmployee.hiring_status.field.name])
+
+
+class OrganizationEmployeeCooperationHistory(models.Model):
+    employee = models.ForeignKey(
+        OrganizationEmployee,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Employee"),
+        related_name="cooperation_histories",
+    )
+    start_at = models.DateField(verbose_name=_("Start At"))
+    end_at = models.DateField(verbose_name=_("End At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Cooperation History")
+        verbose_name_plural = _("Organization Employee Cooperation Histories")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.id}: {self.employee} - {self.start_at} - {self.end_at or ''}"
 
 
 class OrganizationEmployeeHiringState:
@@ -2404,9 +2423,8 @@ class HiringAwaitingState(OrganizationEmployeeHiringState):
 
     @classmethod
     def change_status(cls, organization_employee, new_status, **kwargs):
+        OrganizationEmployeeCooperationHistory.objects.create(employee=organization_employee, start_at=now().date())
         super().change_status(organization_employee, new_status, **kwargs)
-        organization_employee.cooperation_start_at = now().date()
-        organization_employee.save(update_fields=[OrganizationEmployee.cooperation_start_at.field.name])
 
 
 class HiringActiveState(OrganizationEmployeeHiringState):
@@ -2423,8 +2441,9 @@ class HiringActiveState(OrganizationEmployeeHiringState):
             OrganizationEmployee.HiringStatus.FIRED.value,
             OrganizationEmployee.HiringStatus.FINISHED.value,
         ]:
-            organization_employee.cooperation_end_at = now().date()
-            organization_employee.save(update_fields=[OrganizationEmployee.cooperation_end_at.field.name])
+            cooperation = organization_employee.cooperation_histories.first()
+            cooperation.end_at = now().date()
+            cooperation.save(update_fields=[OrganizationEmployeeCooperationHistory.end_at.field.name])
 
 
 class HiringSuspendedState(OrganizationEmployeeHiringState):
@@ -2442,11 +2461,11 @@ class HiringFiredState(OrganizationEmployeeHiringState):
 
 
 class OrganizationEmployeeHiringStatusHistory(models.Model):
-    organization_employee = models.ForeignKey(
-        OrganizationEmployee,
+    cooperation_history = models.ForeignKey(
+        OrganizationEmployeeCooperationHistory,
         on_delete=models.CASCADE,
-        related_name="status_histories",
-        verbose_name=_("Organization Employee"),
+        verbose_name=_("Cooperation History"),
+        related_name="hiring_status_histories",
     )
     hiring_status = models.CharField(
         max_length=50,
@@ -2460,7 +2479,7 @@ class OrganizationEmployeeHiringStatusHistory(models.Model):
         verbose_name_plural = _("Organization Employee Hiring Status Histories")
 
     def __str__(self):
-        return f"{self.organization_employee} - {self.hiring_status}"
+        return f"{self.cooperation_history} - {self.hiring_status}"
 
 
 class PlatformMessage(models.Model):
