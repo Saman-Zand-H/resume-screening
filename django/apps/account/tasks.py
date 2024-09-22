@@ -1,3 +1,4 @@
+import os
 import traceback
 from datetime import timedelta
 from functools import wraps
@@ -5,10 +6,13 @@ from itertools import chain
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from config.settings.subscriptions import AccountSubscription
+from flex_blob.builders import BlobResponseBuilder
+from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.mail import EmailMessage
 from django.utils import timezone
 
 from notification.senders import send_notifications, NotificationContext
@@ -173,6 +177,30 @@ def set_user_resume_json(user_id: str) -> bool:
             },
         )
         return True
+
+
+@register_task([AccountSubscription.EMAILING])
+def send_email_async_non_existing_user(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
+    email = EmailMessage(
+        subject=subject,
+        from_email=from_email,
+        to=recipient_list,
+        body=content,
+    )
+    email.content_subtype = "html"
+
+    if file_model_ids:
+        blob_builder = BlobResponseBuilder.get_response_builder()
+        for file_model_id in file_model_ids:
+            attachment = FileModel.objects.get(pk=file_model_id)
+            file_name = os.path.basename(blob_builder.get_file_name(attachment))
+            email.attach(
+                file_name.split("/")[-1],
+                attachment.file.read(),
+                blob_builder.get_content_type(attachment),
+            )
+
+    email.send()
 
 
 @register_task([AccountSubscription.EMAILING])
