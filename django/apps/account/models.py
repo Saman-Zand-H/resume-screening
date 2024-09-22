@@ -1993,7 +1993,7 @@ class OrganizationJobPosition(models.Model):
 
     @property
     def is_editable(self):
-        return self.status == OrganizationJobPosition.Status.DRAFTED.value and self.assignments.count() == 0
+        return self.status == OrganizationJobPosition.Status.DRAFTED.value and not self.assignments.count()
 
     def set_status_history(self):
         OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self.status)
@@ -2087,8 +2087,8 @@ class OrganizationJobPositionStatusHistory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Status History")
-        verbose_name_plural = _("Status Histories")
+        verbose_name = _("Organization Job Position Status History")
+        verbose_name_plural = _("Organization Job Position Status Histories")
 
     def __str__(self):
         return f"{self.job_position.title} - {self.status}"
