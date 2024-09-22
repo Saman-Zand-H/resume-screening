@@ -6,13 +6,12 @@ from typing import Callable, Dict, List, Optional
 from graphql import GraphQLError as BaseGraphQLError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
+from common.logging import get_logger
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .errors import Error, Errors
 from .utils import deserialize_field_error
-
-from common.logging import get_logger
 
 logger = get_logger()
 
@@ -64,7 +63,7 @@ class GraphQLError(BaseGraphQLError):
 
         if settings.DEBUG and exception:
             extensions.update({"details": str(exception)})
-            logger.info("".join(traceback.TracebackException.from_exception(exception).format()))
+            logger.error("".join(traceback.TracebackException.from_exception(exception).format()))
 
         if (exception_class := type(exception)) in EXCEPTION_SERIALIZERS:
             extensions.update(EXCEPTION_SERIALIZERS[exception_class](exception))
