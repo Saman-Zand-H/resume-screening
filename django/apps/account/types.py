@@ -234,10 +234,10 @@ class JobSeekerUnionType(graphene.Union):
         types = (JobSeekerType, JobSeekerPrimitiveType)
 
     def resolve_type(self, info):
-        user = self
         # TODO: Check if user has paid for the service, return JobSeekerType,
         # Otherwise return JobSeekerPrimitiveType
-        if not user:
+        status = getattr(info.context, "assignment_status", None)
+        if status in JobPositionAssignment.get_job_seeker_specific_statuses():
             return JobSeekerPrimitiveType
         return JobSeekerType
 
@@ -927,6 +927,7 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         )
 
     def resolve_job_seeker(self, info):
+        info.context.assignment_status = self.status
         return self.job_seeker
 
 

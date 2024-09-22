@@ -2155,6 +2155,13 @@ class JobPositionAssignment(models.Model):
             self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER,
         ]
 
+    @staticmethod
+    def get_job_seeker_specific_statuses():
+        return [
+            JobPositionAssignment.Status.AWAITING_JOBSEEKER_APPROVAL,
+            JobPositionAssignment.Status.REJECTED_BY_JOBSEEKER,
+        ]
+
     def set_status_history(self):
         return JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
 
