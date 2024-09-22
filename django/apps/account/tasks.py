@@ -5,18 +5,18 @@ from functools import wraps
 from itertools import chain
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
+from common.logging import get_logger
 from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
+from notification.models import EmailNotification
+from notification.senders import NotificationContext, send_notifications
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.mail import EmailMessage
 from django.utils import timezone
-
-from notification.senders import send_notifications, NotificationContext
-from notification.models import EmailNotification
 
 from .utils import (
     extract_available_jobs,
@@ -25,9 +25,6 @@ from .utils import (
     extract_resume_json,
     get_user_additional_information,
 )
-
-
-from common.logging import get_logger
 
 logger = get_logger()
 
@@ -208,12 +205,16 @@ def send_email_async(recipient_list, from_email, subject, content, file_model_id
     notifications = []
     recipient_list = list(recipient_list)  # Ensure it's a list
     for email in recipient_list:
-        email_notification = EmailNotification(
-            user=get_user_model().objects.get(email=email),
-            title=subject,
-            email=email,
-            body=content,
-        )
+        try:
+            email_notification = EmailNotification(
+                user=get_user_model().objects.get(email=email),
+                title=subject,
+                email=email,
+                body=content,
+            )
+        except get_user_model().DoesNotExist:
+            send_email_async_non_existing_user(recipient_list, from_email, subject, content, file_model_ids)
+            continue
         notifications.append(
             NotificationContext(
                 notification=email_notification,
@@ -237,8 +238,9 @@ def graphql_auth_async_email(func, args):
 
 def patched_send_email(subject, template, context, recipient_list=None):
     from graphql_auth.settings import graphql_auth_settings
-    from django.template.loader import render_to_string
+
     from account.tasks import send_email_async
+    from django.template.loader import render_to_string
 
     _subject = render_to_string(subject, context).replace("\n", " ").strip()
     html_message = render_to_string(template, context)
