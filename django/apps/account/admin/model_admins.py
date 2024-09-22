@@ -91,7 +91,7 @@ class AccessAdmin(admin.ModelAdmin):
 @register(RoleAccess)
 class RoleAccessAdmin(admin.ModelAdmin):
     list_display = (RoleAccess.id.field.name, RoleAccess.role.field.name, RoleAccess.access.field.name)
-    raw_id_fields = (RoleAccess.role.field.name, RoleAccess.access.field.name)
+    autocomplete_fields = (RoleAccess.role.field.name, RoleAccess.access.field.name)
 
 
 @register(User)
@@ -112,6 +112,7 @@ class UserAdmin(UserAdminBase):
         User.last_name.field.name,
         User.is_staff.field.name,
     )
+    search_fields = (User.EMAIL_FIELD, User.first_name.field.name, User.last_name.field.name)
 
     def __init__(self, model, admin_site):
         super().__init__(model, admin_site)
@@ -146,7 +147,7 @@ class UserStatusAdmin(admin.ModelAdmin):
         UserStatus.verified.field.name,
         UserStatus.archived.field.name,
     )
-    raw_id_fields = (UserStatus.user.field.name,)
+    autocomplete_fields = (UserStatus.user.field.name,)
 
 
 class ProfileInterestedJobsInline(admin.TabularInline):
@@ -176,12 +177,12 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.hair_color.field.name,
     )
     autocomplete_fields = (
+        Profile.user.field.name,
         Profile.skills.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
     )
     raw_id_fields = (
-        Profile.user.field.name,
         Profile.avatar.field.name,
         Profile.full_body_image.field.name,
     )
@@ -239,7 +240,7 @@ class EducationAdmin(ExportMixin, admin.ModelAdmin):
         Education.degree.field.name,
         Education.status.field.name,
     )
-    raw_id_fields = (
+    autocomplete_fields = (
         Education.user.field.name,
         Education.field.field.name,
         Education.university.field.name,
@@ -259,10 +260,8 @@ class IEEMethodAdmin(admin.ModelAdmin):
         IEEMethod.evaluator.field.name,
     )
     list_filter = (IEEMethod.evaluator.field.name,)
-    raw_id_fields = (
-        IEEMethod.education.field.name,
-        IEEMethod.education_evaluation_document.field.name,
-    )
+    autocomplete_fields = (IEEMethod.education.field.name,)
+    raw_id_fields = (IEEMethod.education_evaluation_document.field.name,)
 
 
 @register(CommunicationMethod)
@@ -283,10 +282,8 @@ class CommunicationMethodAdmin(admin.ModelAdmin):
         CommunicationMethod.person.field.name,
     )
     list_filter = (CommunicationMethod.department.field.name,)
-    raw_id_fields = (
-        CommunicationMethod.education.field.name,
-        CommunicationMethod.degree_file.field.name,
-    )
+    autocomplete_fields = (CommunicationMethod.education.field.name,)
+    raw_id_fields = (CommunicationMethod.degree_file.field.name,)
 
 
 @register(WorkExperience)
@@ -304,7 +301,7 @@ class WorkExperienceAdmin(ExportMixin, admin.ModelAdmin):
         fields_join(WorkExperience.user, User.email),
         WorkExperience.organization.field.name,
     )
-    raw_id_fields = (
+    autocomplete_fields = (
         WorkExperience.user.field.name,
         WorkExperience.city.field.name,
     )
@@ -319,10 +316,8 @@ class EmployerLetterMethodAdmin(admin.ModelAdmin):
         EmployerLetterMethod.created_at.field.name,
     )
     search_fields = (fields_join(EmployerLetterMethod.work_experience, WorkExperience.user, User.email),)
-    raw_id_fields = (
-        EmployerLetterMethod.work_experience.field.name,
-        EmployerLetterMethod.employer_letter.field.name,
-    )
+    raw_id_fields = (EmployerLetterMethod.employer_letter.field.name,)
+    autocomplete_fields = (EmployerLetterMethod.work_experience.field.name,)
 
 
 @register(PaystubsMethod)
@@ -334,10 +329,8 @@ class PaystubsMethodAdmin(admin.ModelAdmin):
         PaystubsMethod.created_at.field.name,
     )
     search_fields = (fields_join(PaystubsMethod.work_experience, WorkExperience.user, User.email),)
-    raw_id_fields = (
-        PaystubsMethod.work_experience.field.name,
-        PaystubsMethod.paystubs.field.name,
-    )
+    raw_id_fields = (PaystubsMethod.paystubs.field.name,)
+    autocomplete_fields = (PaystubsMethod.work_experience.field.name,)
 
 
 @register(ReferenceCheckEmployer)
@@ -361,7 +354,7 @@ class LanguageCertificateAdmin(ExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageCertificateResource]
     list_display = (LanguageCertificate.user.field.name,)
     search_fields = (fields_join(LanguageCertificate.user, User.email),)
-    raw_id_fields = (LanguageCertificate.user.field.name,)
+    autocomplete_fields = (LanguageCertificate.user.field.name,)
 
 
 @register(LanguageCertificateValue)
@@ -375,7 +368,7 @@ class LanguageCertificateValueAdmin(admin.ModelAdmin):
         fields_join(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
         LanguageCertificateValue.value.field.name,
     )
-    raw_id_fields = (LanguageCertificateValue.language_certificate.field.name,)
+    autocomplete_fields = (LanguageCertificateValue.language_certificate.field.name,)
 
 
 @register(CertificateAndLicense)
@@ -398,7 +391,7 @@ class CertificateAndLicenseAdmin(ExportMixin, admin.ModelAdmin):
         CertificateAndLicense.issued_at.field.name,
         CertificateAndLicense.expired_at.field.name,
     )
-    raw_id_fields = (CertificateAndLicense.user.field.name,)
+    autocomplete_fields = (CertificateAndLicense.user.field.name,)
 
 
 @register(OfflineMethod)
@@ -413,7 +406,7 @@ class OfflineMethodAdmin(admin.ModelAdmin):
         OfflineMethod.verified_at.field.name,
         OfflineMethod.created_at.field.name,
     )
-    raw_id_fields = (OfflineMethod.language_certificate.field.name,)
+    autocomplete_fields = (OfflineMethod.language_certificate.field.name,)
 
 
 @register(OnlineMethod)
@@ -428,7 +421,7 @@ class OnlineMethodAdmin(admin.ModelAdmin):
         OnlineMethod.verified_at.field.name,
         OnlineMethod.created_at.field.name,
     )
-    raw_id_fields = (OnlineMethod.language_certificate.field.name,)
+    autocomplete_fields = (OnlineMethod.language_certificate.field.name,)
 
 
 @register(CertificateAndLicenseOfflineVerificationMethod)
@@ -460,7 +453,7 @@ class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
         CertificateAndLicenseOfflineVerificationMethod.verified_at.field.name,
         CertificateAndLicenseOfflineVerificationMethod.created_at.field.name,
     )
-    raw_id_fields = (CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,)
+    autocomplete_fields = (CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.name,)
     actions = (run_get_certificate_text_task.__name__,)
 
 
@@ -482,7 +475,7 @@ class CertificateAndLicenseOnlineVerificationMethodAdmin(admin.ModelAdmin):
         CertificateAndLicenseOnlineVerificationMethod.verified_at.field.name,
         CertificateAndLicenseOnlineVerificationMethod.created_at.field.name,
     )
-    raw_id_fields = (CertificateAndLicenseOnlineVerificationMethod.certificate_and_license.field.name,)
+    autocomplete_fields = (CertificateAndLicenseOnlineVerificationMethod.certificate_and_license.field.name,)
 
 
 @register(CanadaVisa)
@@ -497,10 +490,10 @@ class CanadaVisaAdmin(admin.ModelAdmin):
         CanadaVisa.nationality.field.name,
     )
     list_filter = (CanadaVisa.status.field.name,)
-    raw_id_fields = (
+    raw_id_fields = (CanadaVisa.citizenship_document.field.name,)
+    autocomplete_fields = (
         CanadaVisa.user.field.name,
         CanadaVisa.nationality.field.name,
-        CanadaVisa.citizenship_document.field.name,
     )
 
 
@@ -511,17 +504,15 @@ class ResumeAdmin(admin.ModelAdmin):
         Resume.file.field.name,
     )
     search_fields = (fields_join(Resume.user, User.email),)
-    raw_id_fields = (
-        Resume.user.field.name,
-        Resume.file.field.name,
-    )
+    raw_id_fields = (Resume.file.field.name,)
+    autocomplete_fields = (Resume.user.field.name,)
 
 
 class ReferralUserInline(admin.TabularInline):
     model = ReferralUser
     extra = 1
     readonly_fields = (ReferralUser.referred_at.field.name,)
-    raw_id_fields = (ReferralUser.user.field.name,)
+    autocomplete_fields = (ReferralUser.user.field.name,)
 
 
 @register(Referral)
@@ -531,7 +522,7 @@ class ReferralAdmin(admin.ModelAdmin):
         Referral.code.field.name,
     )
     search_fields = (fields_join(Referral.user, User.email), Referral.code.field.name)
-    raw_id_fields = (Referral.user.field.name,)
+    autocomplete_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
 
 
@@ -566,7 +557,7 @@ class UserTaskAdmin(admin.ModelAdmin):
     )
     search_fields = (fields_join(UserTask.user, User.email), UserTask.task_name.field.name)
     list_filter = (UserTask.status.field.name,)
-    raw_id_fields = (UserTask.user.field.name,)
+    autocomplete_fields = (UserTask.user.field.name,)
 
 
 class OrganizationRolesGenericInline(GenericStackedInline):
@@ -598,10 +589,10 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.size.field.name,
         Organization.established_at.field.name,
     )
-    raw_id_fields = (
+    raw_id_fields = (Organization.contactable.field.name,)
+    autocomplete_fields = (
         Organization.industry.field.name,
         Organization.city.field.name,
-        Organization.contactable.field.name,
         Organization.user.field.name,
     )
     inlines = (OrganizationRolesGenericInline,)
@@ -616,7 +607,7 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
         OrganizationMembership.invited_by.field.name,
     )
     list_filter = (OrganizationMembership.role.field.name, OrganizationMembership.created_at.field.name)
-    raw_id_fields = (
+    autocomplete_fields = (
         OrganizationMembership.organization.field.name,
         OrganizationMembership.user.field.name,
         OrganizationMembership.invited_by.field.name,
@@ -632,7 +623,7 @@ class OrganizationInvitationAdmin(admin.ModelAdmin):
         OrganizationInvitation.created_at.field.name,
         OrganizationInvitation.created_by.field.name,
     )
-    raw_id_fields = (
+    autocomplete_fields = (
         OrganizationInvitation.organization.field.name,
         OrganizationInvitation.created_by.field.name,
     )
@@ -677,7 +668,7 @@ class DNSTXTRecordMethodAdmin(admin.ModelAdmin):
         DNSTXTRecordMethod.verified_at.field.name,
         DNSTXTRecordMethod.created_at.field.name,
     )
-    raw_id_fields = (DNSTXTRecordMethod.organization.field.name,)
+    autocomplete_fields = (DNSTXTRecordMethod.organization.field.name,)
 
 
 @register(UploadFileToWebsiteMethod)
@@ -693,7 +684,7 @@ class UploadFileToWebsiteMethodAdmin(admin.ModelAdmin):
         UploadFileToWebsiteMethod.verified_at.field.name,
         UploadFileToWebsiteMethod.created_at.field.name,
     )
-    raw_id_fields = (UploadFileToWebsiteMethod.organization.field.name,)
+    autocomplete_fields = (UploadFileToWebsiteMethod.organization.field.name,)
 
 
 @register(CommunicateOrganizationMethod)
@@ -709,7 +700,7 @@ class CommunicateOrganizationMethodAdmin(admin.ModelAdmin):
         CommunicateOrganizationMethod.verified_at.field.name,
         CommunicateOrganizationMethod.created_at.field.name,
     )
-    raw_id_fields = (CommunicateOrganizationMethod.organization.field.name,)
+    autocomplete_fields = (CommunicateOrganizationMethod.organization.field.name,)
 
     def get_otp(self, obj):
         from django.core.cache import cache
@@ -731,10 +722,8 @@ class UploadCompanyCertificateMethodAdmin(admin.ModelAdmin):
         UploadCompanyCertificateMethod.verified_at.field.name,
         UploadCompanyCertificateMethod.created_at.field.name,
     )
-    raw_id_fields = (
-        UploadCompanyCertificateMethod.organization.field.name,
-        UploadCompanyCertificateMethod.organization_certificate_file.field.name,
-    )
+    raw_id_fields = (UploadCompanyCertificateMethod.organization_certificate_file.field.name,)
+    autocomplete_fields = (UploadCompanyCertificateMethod.organization.field.name,)
 
 
 @register(OrganizationJobPosition)
@@ -746,7 +735,10 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
         OrganizationJobPosition.organization.field.name,
         OrganizationJobPosition.created_at.field.name,
     )
-    search_fields = (OrganizationJobPosition.title.field.name,)
+    search_fields = (
+        OrganizationJobPosition.title.field.name,
+        fields_join(OrganizationJobPosition.organization, Organization.name),
+    )
     list_filter = (
         OrganizationJobPosition.status.field.name,
         OrganizationJobPosition.age_range.field.name,
@@ -757,7 +749,7 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
         OrganizationJobPosition.validity_date.field.name,
         OrganizationJobPosition.created_at.field.name,
     )
-    raw_id_fields = (
+    autocomplete_fields = (
         OrganizationJobPosition.organization.field.name,
         OrganizationJobPosition.skills.field.name,
         OrganizationJobPosition.fields.field.name,
@@ -777,7 +769,7 @@ class OrganizationJobPositionStatusHistoryAdmin(admin.ModelAdmin):
         OrganizationJobPositionStatusHistory.status.field.name,
         OrganizationJobPositionStatusHistory.created_at.field.name,
     )
-    raw_id_fields = (OrganizationJobPositionStatusHistory.job_position.field.name,)
+    autocomplete_fields = (OrganizationJobPositionStatusHistory.job_position.field.name,)
 
 
 @register(JobPositionAssignment)
@@ -789,7 +781,11 @@ class JobPositionAssignmentAdmin(admin.ModelAdmin):
         JobPositionAssignment.status.field.name,
         JobPositionAssignment.created_at.field.name,
     )
-    raw_id_fields = (JobPositionAssignment.job_position.field.name, JobPositionAssignment.job_seeker.field.name)
+    search_fields = (
+        fields_join(JobPositionAssignment.job_seeker, User.email),
+        fields_join(JobPositionAssignment.job_position, OrganizationJobPosition.title),
+    )
+    autocomplete_fields = (JobPositionAssignment.job_position.field.name, JobPositionAssignment.job_seeker.field.name)
 
 
 @register(JobPositionAssignmentStatusHistory)
@@ -804,7 +800,19 @@ class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
         JobPositionAssignmentStatusHistory.status.field.name,
         JobPositionAssignmentStatusHistory.created_at.field.name,
     )
-    raw_id_fields = (JobPositionAssignmentStatusHistory.job_position_assignment.field.name,)
+    search_fields = (
+        fields_join(
+            JobPositionAssignmentStatusHistory.job_position_assignment,
+            JobPositionAssignment.job_seeker,
+            User.email,
+        ),
+        fields_join(
+            JobPositionAssignmentStatusHistory.job_position_assignment,
+            JobPositionAssignment.job_position,
+            OrganizationJobPosition.title,
+        ),
+    )
+    autocomplete_fields = (JobPositionAssignmentStatusHistory.job_position_assignment.field.name,)
 
 
 @register(JobPositionInterview)
@@ -821,7 +829,7 @@ class JobPositionInterviewAdmin(admin.ModelAdmin):
         JobPositionInterview.result_date.field.name,
         JobPositionInterview.created_at.field.name,
     )
-    raw_id_fields = (
+    autocomplete_fields = (
         JobPositionInterview.job_position_assignment.field.name,
         JobPositionInterview.assignment_status_history.field.name,
     )
@@ -837,12 +845,17 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
     )
     search_fields = (
         fields_join(OrganizationEmployee.job_position_assignment, JobPositionAssignment.job_seeker, User.email),
+        fields_join(
+            OrganizationEmployee.job_position_assignment,
+            JobPositionAssignment.job_position,
+            OrganizationJobPosition.title,
+        ),
     )
     list_filter = (
         OrganizationEmployee.hiring_status.field.name,
         OrganizationEmployee.created_at.field.name,
     )
-    raw_id_fields = (OrganizationEmployee.job_position_assignment.field.name,)
+    autocomplete_fields = (OrganizationEmployee.job_position_assignment.field.name,)
 
 
 @register(EmployeePlatformMessage)
@@ -857,7 +870,7 @@ class EmployeePlatformMessageAdmin(admin.ModelAdmin):
     )
     search_fields = (EmployeePlatformMessage.title.field.name,)
     list_filter = (EmployeePlatformMessage.created_at.field.name, EmployeePlatformMessage.read_at.field.name)
-    raw_id_fields = (EmployeePlatformMessage.employee.field.name,)
+    autocomplete_fields = (EmployeePlatformMessage.employee.field.name,)
 
 
 @register(OrganizationPlatformMessage)
@@ -872,6 +885,7 @@ class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
     )
     search_fields = (OrganizationPlatformMessage.title.field.name,)
     list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
+    autocomplete_fields = (OrganizationPlatformMessage.employee.field.name,)
 
 
 @register(OrganizationEmployeeCooperationHistory)
@@ -898,6 +912,7 @@ class OrganizationEmployeeCooperationHistoryAdmin(admin.ModelAdmin):
         ),
     )
     list_filter = (OrganizationEmployeeCooperationHistory.created_at.field.name,)
+    autocomplete_fields = (OrganizationEmployeeCooperationHistory.employee.field.name,)
 
 
 @register(OrganizationEmployeeHiringStatusHistory)
@@ -912,3 +927,4 @@ class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
         OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
         OrganizationEmployeeHiringStatusHistory.created_at.field.name,
     )
+    autocomplete_fields = (OrganizationEmployeeHiringStatusHistory.cooperation_history.field.name,)
