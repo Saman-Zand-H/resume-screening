@@ -997,6 +997,15 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
                     ): user
                 }
             )
+            .annotate(
+                status_order=Case(
+                    *[
+                        When(hiring_status=status, then=Value(order))
+                        for status, order in OrganizationEmployee.get_hiring_status_order().items()
+                    ],
+                    output_field=IntegerField(),
+                )
+            )
             .distinct()
-            .order_by("-id")
+            .order_by("status_order", "-created_at")
         )

@@ -2395,6 +2395,16 @@ class OrganizationEmployee(models.Model):
         current_state.change_status(self, new_status, **kwargs)
         self.save(update_fields=[OrganizationEmployee.hiring_status.field.name])
 
+    @classmethod
+    def get_hiring_status_order(cls):
+        return {
+            cls.HiringStatus.AWAITING: 1,
+            cls.HiringStatus.ACTIVE: 2,
+            cls.HiringStatus.SUSPENDED: 3,
+            cls.HiringStatus.FINISHED: 4,
+            cls.HiringStatus.FIRED: 5,
+        }
+
 
 class OrganizationEmployeeCooperationHistory(models.Model):
     employee = models.ForeignKey(
