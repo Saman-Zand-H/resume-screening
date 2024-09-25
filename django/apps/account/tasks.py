@@ -1,4 +1,3 @@
-import os
 import traceback
 from datetime import timedelta
 from functools import wraps
@@ -32,7 +31,7 @@ from common.logging import get_logger
 logger = get_logger()
 
 
-@register_task([AccountSubscription.DOCUMENT_VERIFICATION], schedule={"schedule": "0 0 * * *"})
+@register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "0 0 * * *"})
 def self_verify_documents():
     from .models import DocumentAbstract, Education, WorkExperience
 
@@ -44,6 +43,13 @@ def self_verify_documents():
             updated_at__lte=timezone.now() - timedelta(days=7),
             allow_self_verification=True,
         ).update(status=DocumentAbstract.Status.SELF_VERIFIED)
+
+
+@register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "0 0 * * *"})
+def set_expiry():
+    from .models import OrganizationJobPosition
+
+    OrganizationJobPosition.set_expiry()
 
 
 class Task(Protocol):

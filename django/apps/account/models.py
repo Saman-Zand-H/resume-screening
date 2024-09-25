@@ -1989,7 +1989,12 @@ class OrganizationJobPosition(models.Model):
     def __str__(self):
         return f"{self.title} - {self.organization.name}"
 
-
+    @classmethod
+    def set_expiry(cls):
+        expired_job_positions = cls.objects.filter(validity_date__lt=now().date()).exclude(status=cls.Status.EXPIRED)
+        expired_job_positions.update(status=cls.Status.EXPIRED)
+        for job_position in expired_job_positions:
+            job_position.set_status_history()
 
     @property
     def is_editable(self):
