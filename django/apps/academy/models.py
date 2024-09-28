@@ -32,7 +32,7 @@ class CourseQuerySet(models.QuerySet):
                     Q(is_required=True)
                     | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
                     | Q(
-                        industries__in=Industry.objects.filter(jobcategory__job__in=user.profile.interested_jobs.all())
+                        industries__in=Industry.objects.filter(job__in=user.profile.interested_jobs.all())
                         .distinct()
                         .values_list("id", flat=True)
                     )

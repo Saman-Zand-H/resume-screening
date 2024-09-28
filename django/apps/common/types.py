@@ -17,7 +17,6 @@ from .models import (
     Industry,
     Job,
     JobBenefit,
-    JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
@@ -66,20 +65,6 @@ class IndustryNode(DjangoObjectType):
         }
 
 
-class JobCategoryNode(DjangoObjectType):
-    class Meta:
-        model = JobCategory
-        use_connection = True
-        fields = (
-            JobCategory.id.field.name,
-            JobCategory.title.field.name,
-        )
-        filter_fields = {
-            JobCategory.id.field.name: ["exact"],
-            JobCategory.title.field.name: ["icontains"],
-        }
-
-
 class JobNode(DjangoObjectType):
     class Meta:
         model = Job
@@ -87,13 +72,13 @@ class JobNode(DjangoObjectType):
         fields = (
             Job.id.field.name,
             Job.title.field.name,
-            Job.category.field.name,
+            Job.industry.field.name,
             Job.require_appearance_data.field.name,
         )
         filter_fields = {
             Job.id.field.name: ["exact"],
             Job.title.field.name: ["icontains"],
-            Job.category.field.name: ["exact"],
+            Job.industry.field.name: ["exact"],
         }
 
 

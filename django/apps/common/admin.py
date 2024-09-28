@@ -9,7 +9,6 @@ from .models import (
     Industry,
     Job,
     JobBenefit,
-    JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
@@ -63,20 +62,12 @@ class IndustryAdmin(admin.ModelAdmin):
     search_fields = (Industry.title.field.name,)
 
 
-@admin.register(JobCategory)
-class JobCategoryAdmin(admin.ModelAdmin):
-    list_display = (JobCategory.title.field.name, JobCategory.industry.field.name)
-    search_fields = (JobCategory.title.field.name,)
-    list_filter = (JobCategory.industry.field.name,)
-    autocomplete_fields = (JobCategory.industry.field.name,)
-
-
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = (Job.title.field.name, Job.category.field.name, Job.order.field.name)
+    list_display = (Job.title.field.name, Job.industry.field.name, Job.order.field.name)
     search_fields = (Job.title.field.name,)
-    list_filter = (Job.category.field.name,)
-    autocomplete_fields = (Job.category.field.name,)
+    list_filter = (Job.industry.field.name,)
+    autocomplete_fields = (Job.industry.field.name,)
 
 
 @admin.register(Field)
