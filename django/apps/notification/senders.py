@@ -3,7 +3,7 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from typing import Generic, List, Optional, Tuple, TypeVar, Union
+from typing import Generic, List, Optional, TypeVar, Union
 
 import firebase_admin
 from common.utils import get_all_subclasses

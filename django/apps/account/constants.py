@@ -28,6 +28,21 @@ class ProfileAnnotationNames(NamedTuple):
     HAS_INTERESTED_JOBS = "has_interested_jobs"
     LAST_LOGIN = "last_login_days"
     DATE_JOINED = "date_joined_days"
+    STAGE_DATA = "stage_data"
+    COMPLETED_STAGES = "completed_stages"
+    INCOMPLETE_STAGES = "incomplete_stages"
+    HAS_INCOMPLETE_STAGES = "has_incomplete_stages"
+
+
+STAGE_ANNOTATIONS = [
+    ProfileAnnotationNames.HAS_PROFILE_INFORMATION,
+    ProfileAnnotationNames.HAS_WORK_EXPERIENCE,
+    ProfileAnnotationNames.HAS_EDUCATION,
+    ProfileAnnotationNames.HAS_CERTIFICATE,
+    ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE,
+    ProfileAnnotationNames.HAS_SKILLS,
+    ProfileAnnotationNames.HAS_CANADA_VISA,
+]
 
 
 def get_extended_blocklist():

@@ -1,5 +1,5 @@
 from functools import lru_cache, reduce
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
@@ -62,10 +62,8 @@ def map_exception_to_error(exception_class: type, exception_text: str = None) ->
     return Errors.INTERNAL_SERVER_ERROR
 
 
-def fields_join(*fields, suffix_lookups: List[str] = []):
-    return LOOKUP_SEP.join(
-        [(hasattr(field, "field") and field.field.name) or field for field in fields] + suffix_lookups
-    )
+def fields_join(*fields):
+    return LOOKUP_SEP.join((hasattr(field, "field") and field.field.name) or field for field in fields)
 
 
 def fix_array_choice_type(field):

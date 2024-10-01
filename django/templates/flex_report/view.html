@@ -7,7 +7,16 @@
                 {% if report.template.saved_filters.exists %}
                     <form method="get">
                         {{ report.saved_filter_form.label_tag }}
-                        {{ report.saved_filter_form }}
+                        <div style="display: flex; gap: .5rem; align-items: center;">
+                            {{ report.saved_filter_form }}
+                            {% if report.saved_filter_form.data.saved_filter %}
+                                <span style="margin-top: 9px;">
+                                    <a class="button" href="{% url 'admin:flex_report_template_filter_update' report.template.pk report.saved_filter_form.data.saved_filter %}">
+                                        Edit Filter
+                                    </a>
+                                </span>
+                            {% endif %}
+                        </div>
                         {{ report.saved_filter_form.errors }}
                     </form>
                 {% endif %}

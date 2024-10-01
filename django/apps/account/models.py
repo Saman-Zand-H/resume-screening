@@ -48,7 +48,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField, IntegerRangeField, DateRangeField
+from django.contrib.postgres.fields import ArrayField, DateRangeField, IntegerRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -336,9 +336,9 @@ class User(AbstractUser):
         organization_contacts = (
             Contact.objects.filter(
                 **{
-                    fields_join(Contact.contactable, suffix_lookups=["in"]): Contactable.objects.filter(
+                    fields_join(Contact.contactable, "in"): Contactable.objects.filter(
                         **{
-                            fields_join(Organization.contactable, suffix_lookups=["in"]): getattr(
+                            fields_join(Organization.contactable, "in"): getattr(
                                 self, Organization.user.field.related_query_name()
                             ).all()
                         }
@@ -690,9 +690,8 @@ class Profile(ComputedFieldsModel):
     def flex_report_search_fields(cls):
         return {
             cls.birth_date.field.name: ["gte", "lte"],
-            cls.gender.field.name: ["iexact"],
+            cls.gender.field.name: ["exact"],
             fields_join(cls.city, City.country): ["in", "iexact"],
-            fields_join(cls.user, User.email): ["iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
             ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
             ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["exact"],

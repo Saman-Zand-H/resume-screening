@@ -22,6 +22,8 @@ from .views import (
     TemplateCreateInitView,
     TemplateReportView,
     TemplateSavedFilterCreateView,
+    TemplateSavedFilterUpdateView,
+    TemplateUpdateView,
 )
 
 
@@ -39,9 +41,19 @@ class TemplateAdmin(BaseTemplateAdmin):
                 name="flex_report_template_wizard_complete",
             ),
             path(
+                "<int:pk>/edit",
+                self.admin_site.admin_view(TemplateUpdateView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_edit",
+            ),
+            path(
                 "<int:pk>/filter",
                 self.admin_site.admin_view(TemplateSavedFilterCreateView.as_view(admin_site=self.admin_site)),
                 name="flex_report_template_filter",
+            ),
+            path(
+                "<int:pk>/filter/<int:filter_pk>",
+                self.admin_site.admin_view(TemplateSavedFilterUpdateView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_filter_update",
             ),
             path(
                 "<int:pk>/report",

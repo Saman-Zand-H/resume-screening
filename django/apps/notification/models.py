@@ -27,6 +27,10 @@ def get_template_help_text():
     )
 
 
+def get_campaign_crontab_help_text():
+    return "If you wish to make this campaign periodic, then go to <a href='https://crontab.guru/'>Crontab Halper</a> and copy-paste the crontab values."
+
+
 class NotificationTemplate(TimeStampedModel):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     content_template = models.TextField(verbose_name=_("Content Template"), help_text=get_template_help_text)
@@ -47,6 +51,13 @@ class NotificationTemplate(TimeStampedModel):
 
 
 class Campaign(TimeStampedModel):
+    crontab = models.CharField(
+        max_length=255,
+        verbose_name=_("Crontab"),
+        help_text=get_campaign_crontab_help_text(),
+        blank=True,
+        null=True,
+    )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     saved_filter = models.ForeignKey(
         TemplateSavedFilter,

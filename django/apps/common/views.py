@@ -16,6 +16,12 @@ from flex_report.defaults.views import TemplateDeleteView
 from flex_report.defaults.views import (
     TemplateSavedFilterCreateView as BaseTemplateSavedFilterCreateView,
 )
+from flex_report.defaults.views import (
+    TemplateSavedFilterUpdateView as BaseTemplateSavedFilterUpdateView,
+)
+from flex_report.defaults.views import (
+    TemplateUpdateView as BaseTemplateUpdateView,
+)
 
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -79,6 +85,20 @@ class TemplateSavedFilterCreateView(FlexAdminBaseView, BaseTemplateSavedFilterCr
 
     def get_success_url(self):
         return self.success_url
+
+
+class TemplateSavedFilterUpdateView(FlexAdminBaseView, BaseTemplateSavedFilterUpdateView):
+    admin_title = _("Update Filter")
+    template_name = "flex_report/template_saved_filter_create.html"
+
+    def get_success_url(self):
+        return reverse_lazy("admin:flex_report_template_report", args=[self.get_object().pk])
+
+
+class TemplateUpdateView(FlexAdminBaseView, BaseTemplateUpdateView):
+    admin_title = _("Update Template")
+    template_name = "flex_report/template_create_complete.html"
+    success_url = reverse_lazy("admin:flex_report_template_changelist")
 
 
 class TemplateCreateCompleteView(FlexAdminBaseView, BaseTemplateCreateCompleteView):
