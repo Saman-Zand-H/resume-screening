@@ -32,7 +32,7 @@ class CourseQuerySet(models.QuerySet):
                     Q(is_required=True)
                     | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
                     | Q(
-                        industries__in=Industry.objects.filter(jobcategory__job__in=user.profile.interested_jobs.all())
+                        industries__in=Industry.objects.filter(job__in=user.profile.interested_jobs.all())
                         .distinct()
                         .values_list("id", flat=True)
                     )
@@ -72,7 +72,7 @@ class CourseResult(models.Model):
         COMPLETED = "completed", _("Completed")
         FAILED = "failed", _("Failed")
 
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="results")
+    course = models.ForeignKey(Course, on_delete=models.RESTRICT, related_name="results")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="course_results")
     status = models.CharField(max_length=50, choices=Status.choices, default=Status.IN_PROGRESS.value)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))

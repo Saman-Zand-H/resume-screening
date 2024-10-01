@@ -6,6 +6,7 @@ from itertools import groupby
 from typing import Generic, List, Optional, TypeVar, Union
 
 import firebase_admin
+from common.logging import get_logger
 from common.utils import get_all_subclasses
 from config.settings.subscriptions import NotificationSubscription
 from firebase_admin import messaging
@@ -25,6 +26,7 @@ from .models import (
     Campaign,
     CampaignNotification,
     EmailNotification,
+    InAppNotification,
     Notification,
     PushNotification,
     SMSNotification,
@@ -33,6 +35,8 @@ from .models import (
 )
 from .report_mapper import ReportMapper
 from .types import NotificationType
+
+logger = get_logger()
 
 NT = TypeVar("NT", bound=Notification)
 
@@ -235,7 +239,7 @@ def handle_notification_error(notification, error, sender):
     notification.notification.set_status(Notification.Status.FAILED if error else Notification.Status.SENT)
 
     if settings.DEBUG and error:
-        print("".join(traceback.TracebackException.from_exception(error).format()))
+        logger.info("".join(traceback.TracebackException.from_exception(error).format()))
 
 
 def send_notifications(*notifications: NotificationContext[Notification], **kwargs) -> list[bool]:
@@ -298,6 +302,9 @@ def send_campaign_notifications(campaign_id: int, queryset=None):
             extra_dict = {Notification.body.field.name: body}
             if notification_type == NotificationTypes.EMAIL:
                 extra_dict[EmailNotification.title.field.name] = campaign_notification_type.subject.render(context)
+
+            if notification_type == NotificationTypes.IN_APP:
+                extra_dict[InAppNotification.title.field.name] = campaign_notification_type.subject.render(context)
 
             notifications_kwargs.extend(
                 notification_kwargs | extra_dict

@@ -4,7 +4,7 @@ from flex_pubsub.subscription import SubscriptionBase
 class AccountSubscription(SubscriptionBase):
     EMAILING = "emailing"
     ASSISTANTS = "assistants"
-    DOCUMENT_VERIFICATION = "document_verification"
+    DAILY_EXECUTION = "daily_execution"
 
 
 class CVSubscription(SubscriptionBase):

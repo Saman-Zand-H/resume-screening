@@ -1,12 +1,12 @@
-import logging
-
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from .config import AcademyClientConfig
 from .exceptions import EXCEPTIONS, AcademyRequestException
 
-logger = logging.getLogger(__name__)
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 class BaseAcademyClient:

@@ -50,7 +50,7 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         JobAssessmentResult.order_id.field.name,
         JobAssessmentResult.report_url.field.name,
     )
-    raw_id_fields = (
+    autocomplete_fields = (
         "user",
         "job_assessment",
     )

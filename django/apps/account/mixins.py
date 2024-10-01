@@ -209,7 +209,7 @@ class EmailVerificationMixin:
         return []
 
     def send_verification(self, *, is_async=True):
-        from .tasks import send_email_async
+        from .tasks import send_email_async_non_existing_user
 
         email = self.get_verification_email()
         from_email = self.get_verification_email_from()
@@ -217,7 +217,7 @@ class EmailVerificationMixin:
         content = self.get_verification_content()
 
         call(
-            getattr(send_email_async, is_async and "delay" or "__call__", "__call__"),
+            getattr(send_email_async_non_existing_user, is_async and "delay" or "__call__", "__call__"),
             recipient_list=[email],
             subject=subject,
             content=content,

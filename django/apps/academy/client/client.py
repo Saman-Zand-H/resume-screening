@@ -1,5 +1,3 @@
-import logging
-
 from ._client import BaseAcademyClient
 from .types import (
     EnrollUserInCourseRequest,
@@ -14,7 +12,9 @@ from .types import (
     GetUserByExternalIdResponse,
 )
 
-logger = logging.getLogger(__name__)
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 class AcademyClient(BaseAcademyClient):

@@ -1,5 +1,3 @@
-import logging
-
 from django.utils.deprecation import MiddlewareMixin
 from django.views.debug import ExceptionReporter
 
@@ -7,8 +5,11 @@ from .errors import Errors
 from .exceptions import GraphQLError
 from .utils import map_exception_to_error
 
-graphql_logger = logging.getLogger("graphql.error")
-django_logger = logging.getLogger("django.error")
+
+from common.logging import get_logger
+
+graphql_logger = get_logger("graphql.error")
+django_logger = get_logger("django.error")
 
 
 class GrapheneErrorHandlingMiddleware:

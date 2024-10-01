@@ -1,12 +1,12 @@
-import logging
-
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from .config import CriteriaClientConfig
 from .exceptions import CriteriaRequestException
 
-logger = logging.getLogger(__name__)
+from common.logging import get_logger
+
+logger = get_logger()
 
 
 class BaseCriteriaClient:

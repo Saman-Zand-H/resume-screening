@@ -1,19 +1,22 @@
+import os
 import traceback
 from datetime import timedelta
 from functools import wraps
 from itertools import chain
-from logging import getLogger
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
+from common.logging import get_logger
 from config.settings.subscriptions import AccountSubscription
+from flex_blob.builders import BlobResponseBuilder
+from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
+from notification.models import EmailNotification
+from notification.senders import NotificationContext, send_notifications
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.mail import EmailMessage
 from django.utils import timezone
-
-from notification.senders import send_notifications, NotificationContext
-from notification.models import EmailNotification
 
 from .utils import (
     extract_available_jobs,
@@ -23,11 +26,10 @@ from .utils import (
     get_user_additional_information,
 )
 
+logger = get_logger()
 
-logger = getLogger("django")
 
-
-@register_task([AccountSubscription.DOCUMENT_VERIFICATION], schedule={"schedule": "0 0 * * *"})
+@register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "0 0 * * *"})
 def self_verify_documents():
     from .models import DocumentAbstract, Education, WorkExperience
 
@@ -39,6 +41,13 @@ def self_verify_documents():
             updated_at__lte=timezone.now() - timedelta(days=7),
             allow_self_verification=True,
         ).update(status=DocumentAbstract.Status.SELF_VERIFIED)
+
+
+@register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "0 0 * * *"})
+def set_expiry():
+    from .models import OrganizationJobPosition
+
+    OrganizationJobPosition.set_expiry()
 
 
 class Task(Protocol):
@@ -175,16 +184,44 @@ def set_user_resume_json(user_id: str) -> bool:
 
 
 @register_task([AccountSubscription.EMAILING])
+def send_email_async_non_existing_user(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
+    email = EmailMessage(
+        subject=subject,
+        from_email=from_email,
+        to=recipient_list,
+        body=content,
+    )
+    email.content_subtype = "html"
+
+    if file_model_ids:
+        blob_builder = BlobResponseBuilder.get_response_builder()
+        for file_model_id in file_model_ids:
+            attachment = FileModel.objects.get(pk=file_model_id)
+            file_name = os.path.basename(blob_builder.get_file_name(attachment))
+            email.attach(
+                file_name.split("/")[-1],
+                attachment.file.read(),
+                blob_builder.get_content_type(attachment),
+            )
+
+    email.send()
+
+
+@register_task([AccountSubscription.EMAILING])
 def send_email_async(recipient_list, from_email, subject, content, file_model_ids: List[int] = []):
     notifications = []
     recipient_list = list(recipient_list)  # Ensure it's a list
     for email in recipient_list:
-        email_notification = EmailNotification(
-            user=get_user_model().objects.get(email=email),
-            title=subject,
-            email=email,
-            body=content,
-        )
+        try:
+            email_notification = EmailNotification(
+                user=get_user_model().objects.get(email=email),
+                title=subject,
+                email=email,
+                body=content,
+            )
+        except get_user_model().DoesNotExist:
+            send_email_async_non_existing_user(recipient_list, from_email, subject, content, file_model_ids)
+            continue
         notifications.append(
             NotificationContext(
                 notification=email_notification,
@@ -208,8 +245,9 @@ def graphql_auth_async_email(func, args):
 
 def patched_send_email(subject, template, context, recipient_list=None):
     from graphql_auth.settings import graphql_auth_settings
-    from django.template.loader import render_to_string
+
     from account.tasks import send_email_async
+    from django.template.loader import render_to_string
 
     _subject = render_to_string(subject, context).replace("\n", " ").strip()
     html_message = render_to_string(template, context)

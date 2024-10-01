@@ -9,7 +9,6 @@ from .models import (
     Industry,
     Job,
     JobBenefit,
-    JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
@@ -75,18 +74,12 @@ class IndustryAdmin(admin.ModelAdmin):
     search_fields = (Industry.title.field.name,)
 
 
-@admin.register(JobCategory)
-class JobCategoryAdmin(admin.ModelAdmin):
-    list_display = (JobCategory.title.field.name, JobCategory.industry.field.name)
-    search_fields = (JobCategory.title.field.name,)
-    list_filter = (JobCategory.industry.field.name,)
-
-
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = (Job.title.field.name, Job.category.field.name, Job.order.field.name)
+    list_display = (Job.title.field.name, Job.industry.field.name, Job.order.field.name)
     search_fields = (Job.title.field.name,)
-    list_filter = (Job.category.field.name,)
+    list_filter = (Job.industry.field.name,)
+    autocomplete_fields = (Job.industry.field.name,)
 
 
 @admin.register(Field)
@@ -106,6 +99,7 @@ class SkillTopicAdmin(admin.ModelAdmin):
     list_display = (SkillTopic.title.field.name, SkillTopic.industry.field.name)
     search_fields = (SkillTopic.title.field.name,)
     list_filter = (SkillTopic.industry.field.name,)
+    autocomplete_fields = (SkillTopic.industry.field.name,)
 
 
 @admin.register(Skill)
@@ -133,6 +127,7 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
         LanguageProficiencySkill.validators.field.name,
     )
     search_fields = list_display
+    autocomplete_fields = (LanguageProficiencySkill.test.field.name,)
 
 
 @admin.register(JobBenefit)

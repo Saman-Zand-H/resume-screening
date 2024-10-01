@@ -842,10 +842,10 @@ class Education(DocumentAbstract, HasDurationMixin):
         DIPLOMA = "diploma", _("Diploma")
         CERTIFICATE = "certificate", _("Certificate")
 
-    field = models.ForeignKey(Field, on_delete=models.CASCADE, verbose_name=_("Field"))
+    field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
-    university = models.ForeignKey(University, on_delete=models.CASCADE, verbose_name=_("University"))
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"))
+    university = models.ForeignKey(University, on_delete=models.RESTRICT, verbose_name=_("University"))
+    city = models.ForeignKey(City, on_delete=models.RESTRICT, verbose_name=_("City"))
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
 
@@ -979,8 +979,8 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
     start = models.DateField(verbose_name=_("Start Date"))
     end = models.DateField(verbose_name=_("End Date"), null=True, blank=True)
     organization = models.CharField(max_length=255, verbose_name=_("Organization"))
-    city = models.ForeignKey(City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="work_experiences")
-    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, verbose_name=_("Industry"))
+    city = models.ForeignKey(City, on_delete=models.RESTRICT, verbose_name=_("City"), related_name="work_experiences")
+    industry = models.ForeignKey(Industry, on_delete=models.RESTRICT, verbose_name=_("Industry"))
     skills = models.CharField(max_length=250, verbose_name=_("Skills"), blank=True, null=True)
 
     class Meta:
@@ -1107,7 +1107,7 @@ class LanguageCertificate(DocumentAbstract, HasDurationMixin):
     language = models.CharField(choices=LANGUAGES, max_length=32, verbose_name=_("Language"))
     test = models.ForeignKey(
         LanguageProficiencyTest,
-        on_delete=models.CASCADE,
+        on_delete=models.RESTRICT,
         verbose_name=_("Test"),
         related_name="certificates",
     )
@@ -1339,7 +1339,7 @@ class CanadaVisa(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="canada_visa")
     nationality = models.ForeignKey(
-        Country, on_delete=models.CASCADE, verbose_name=_("Nationality"), related_name="canada_visas"
+        Country, on_delete=models.RESTRICT, verbose_name=_("Nationality"), related_name="canada_visas"
     )
     status = models.CharField(
         max_length=50,
@@ -1617,7 +1617,7 @@ class Organization(DocumentAbstract):
     )
     industry = models.ForeignKey(
         Industry,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         verbose_name=_("Industry"),
         null=True,
         blank=True,
@@ -1631,6 +1631,9 @@ class Organization(DocumentAbstract):
         object_id_field=Role.managed_by_id.field.name,
     )
     established_at = models.DateField(verbose_name=_("Established At"), null=True, blank=True)
+    city = models.ForeignKey(
+        City, on_delete=models.SET_NULL, verbose_name=_("City"), null=True, blank=True, related_name="organizations"
+    )
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
     allow_self_verification = None
@@ -1792,7 +1795,7 @@ class OrganizationMembership(models.Model):
     invited_by = models.ForeignKey(
         User,
         verbose_name=_("Invited By"),
-        on_delete=models.RESTRICT,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="invited_memberships",
@@ -1968,14 +1971,14 @@ class OrganizationJobPosition(models.Model):
         blank=True,
     )
     city = models.ForeignKey(
-        City, on_delete=models.CASCADE, verbose_name=_("City"), related_name="job_positions", null=True, blank=True
+        City, on_delete=models.SET_NULL, verbose_name=_("City"), related_name="job_positions", null=True, blank=True
     )
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="job_positions")
     job_seeker_assignment = models.ManyToManyField(
         User, through="JobPositionAssignment", verbose_name=_("Job Seeker Assignment")
     )
-    _status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
+    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -1985,16 +1988,19 @@ class OrganizationJobPosition(models.Model):
     def __str__(self):
         return f"{self.title} - {self.organization.name}"
 
+    @classmethod
+    def set_expiry(cls):
+        expired_job_positions = cls.objects.filter(validity_date__lt=now().date()).exclude(status=cls.Status.EXPIRED)
+        expired_job_positions.update(status=cls.Status.EXPIRED)
+        for job_position in expired_job_positions:
+            job_position.set_status_history()
+
     @property
-    def status(self):
-        if self.validity_date and self.validity_date < now().date():
-            self._status = self.Status.EXPIRED
-            self.save(update_fields=[OrganizationJobPosition._status.field.name])
-            self.set_status_history()
-        return self._status
+    def is_editable(self):
+        return self.status == OrganizationJobPosition.Status.DRAFTED.value and not self.assignments.count()
 
     def set_status_history(self):
-        OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self._status)
+        OrganizationJobPositionStatusHistory.objects.create(job_position=self, status=self.status)
 
     def clean(self):
         if self.start_at and self.validity_date and self.start_at > self.validity_date:
@@ -2018,11 +2024,11 @@ class OrganizationJobPosition(models.Model):
             self.Status.SUSPENDED: SuspendedState(),
             self.Status.EXPIRED: ExpiredState(),
         }
-        current_state = state_mapping.get(self._status)
+        current_state = state_mapping.get(self.status)
         if not current_state:
-            raise ValueError(f"Invalid status: {self._status}")
+            raise ValueError(f"Invalid status: {self.status}")
         current_state.change_status(self, new_status)
-        self.save(update_fields=[OrganizationJobPosition._status.field.name])
+        self.save(update_fields=[OrganizationJobPosition.status.field.name])
 
 
 class OrganizationJobPositionState:
@@ -2033,7 +2039,7 @@ class OrganizationJobPositionState:
         if new_status.value not in cls.new_statuses:
             raise GraphQLErrorBadRequest(f"Cannot transition from {cls} to {new_status.value}")
 
-        job_position._status = new_status.value
+        job_position.status = new_status.value
         job_position.set_status_history()
 
 
@@ -2085,8 +2091,8 @@ class OrganizationJobPositionStatusHistory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Status History")
-        verbose_name_plural = _("Status Histories")
+        verbose_name = _("Organization Job Position Status History")
+        verbose_name_plural = _("Organization Job Position Status Histories")
 
     def __str__(self):
         return f"{self.job_position.title} - {self.status}"
@@ -2124,9 +2130,41 @@ class JobPositionAssignment(models.Model):
     class Meta:
         verbose_name = _("Job Position Assignment")
         verbose_name_plural = _("Job Position Assignments")
+        unique_together = [("job_seeker", "job_position")]
 
     def __str__(self):
         return f"{self.job_position.title} - {self.job_seeker.email}"
+
+    @property
+    def organization_related_statuses(self):
+        return [
+            self.Status.NOT_REVIEWED,
+            self.Status.AWAITING_INTERVIEW_DATE,
+            self.Status.INTERVIEW_SCHEDULED,
+            self.Status.INTERVIEWING,
+            self.Status.AWAITING_INTERVIEW_RESULTS,
+            self.Status.INTERVIEW_CANCELED_BY_EMPLOYER,
+            self.Status.REJECTED_AT_INTERVIEW,
+            self.Status.REJECTED,
+            self.Status.HIRED,
+        ]
+
+    @property
+    def jobseeker_related_statuses(self):
+        return [
+            self.Status.AWAITING_JOBSEEKER_APPROVAL,
+            self.Status.REJECTED_BY_JOBSEEKER,
+            self.Status.AWAITING_INTERVIEW_DATE,
+            self.Status.INTERVIEW_SCHEDULED,
+            self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER,
+        ]
+
+    @staticmethod
+    def get_job_seeker_specific_statuses():
+        return [
+            JobPositionAssignment.Status.AWAITING_JOBSEEKER_APPROVAL,
+            JobPositionAssignment.Status.REJECTED_BY_JOBSEEKER,
+        ]
 
     def set_status_history(self):
         return JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
@@ -2180,7 +2218,7 @@ class JobPositionInterview(models.Model):
         related_name="interviews",
     )
     assignment_status_history = models.OneToOneField(
-        JobPositionAssignmentStatusHistory, on_delete=models.CASCADE, related_name="interview", null=True, blank=True
+        JobPositionAssignmentStatusHistory, on_delete=models.RESTRICT, related_name="interview", null=True, blank=True
     )
     interview_date = models.DateTimeField(verbose_name=_("Interview Date"))
     result_date = models.DateTimeField(verbose_name=_("Result Date"), null=True, blank=True)
@@ -2310,10 +2348,11 @@ class HiredState(JobPositionAssignmentState):
 
 class OrganizationEmployee(models.Model):
     class HiringStatus(models.TextChoices):
+        AWAITING = "awaiting", _("Awaiting")
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
-        TERMINATED = "terminated", _("Terminated")
-        DISMISSED = "dismissed", _("Dismissed")
+        FIRED = "fired", _("Fired")
+        FINISHED = "finished", _("Finished")
 
     job_position_assignment = models.OneToOneField(
         JobPositionAssignment,
@@ -2325,9 +2364,8 @@ class OrganizationEmployee(models.Model):
         max_length=50,
         choices=HiringStatus.choices,
         verbose_name=_("Status"),
-        default=HiringStatus.ACTIVE,
+        default=HiringStatus.AWAITING,
     )
-    cooperation_range = DateRangeField(verbose_name=_("Start End Date"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
@@ -2336,3 +2374,174 @@ class OrganizationEmployee(models.Model):
 
     def __str__(self):
         return str(self.job_position_assignment)
+
+    def set_hiring_status_history(self):
+        OrganizationEmployeeHiringStatusHistory.objects.create(
+            cooperation_history=self.cooperation_histories.first(), hiring_status=self.hiring_status
+        )
+
+    def change_hiring_status(self, new_status, **kwargs):
+        state_mapping = {
+            self.HiringStatus.AWAITING: HiringAwaitingState(),
+            self.HiringStatus.ACTIVE: HiringActiveState(),
+            self.HiringStatus.SUSPENDED: HiringSuspendedState(),
+            self.HiringStatus.FINISHED: HiringFinishedState(),
+            self.HiringStatus.FIRED: HiringFiredState(),
+        }
+        current_state = state_mapping.get(self.hiring_status)
+        if not current_state:
+            raise ValueError(f"Invalid status: {self.hiring_status}")
+        current_state.change_status(self, new_status, **kwargs)
+        self.save(update_fields=[OrganizationEmployee.hiring_status.field.name])
+
+    @classmethod
+    def get_hiring_status_order(cls):
+        return {
+            cls.HiringStatus.AWAITING: 1,
+            cls.HiringStatus.ACTIVE: 2,
+            cls.HiringStatus.SUSPENDED: 3,
+            cls.HiringStatus.FINISHED: 4,
+            cls.HiringStatus.FIRED: 5,
+        }
+
+
+class OrganizationEmployeeCooperationHistory(models.Model):
+    employee = models.ForeignKey(
+        OrganizationEmployee,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Employee"),
+        related_name="cooperation_histories",
+    )
+    start_at = models.DateField(verbose_name=_("Start At"))
+    end_at = models.DateField(verbose_name=_("End At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Cooperation History")
+        verbose_name_plural = _("Organization Employee Cooperation Histories")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.id}: {self.employee} - {self.start_at} - {self.end_at or ''}"
+
+
+class OrganizationEmployeeHiringState:
+    new_statuses = []
+
+    @classmethod
+    def change_status(cls, organization_employee, new_status, **kwargs):
+        if new_status.value not in cls.new_statuses:
+            raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
+
+        organization_employee.hiring_status = new_status.value
+        organization_employee.set_hiring_status_history()
+
+
+class HiringAwaitingState(OrganizationEmployeeHiringState):
+    new_statuses = [
+        OrganizationEmployee.HiringStatus.ACTIVE.value,
+    ]
+
+    @classmethod
+    def change_status(cls, organization_employee, new_status, **kwargs):
+        OrganizationEmployeeCooperationHistory.objects.create(employee=organization_employee, start_at=now().date())
+        super().change_status(organization_employee, new_status, **kwargs)
+
+
+class HiringActiveState(OrganizationEmployeeHiringState):
+    new_statuses = [
+        OrganizationEmployee.HiringStatus.SUSPENDED.value,
+        OrganizationEmployee.HiringStatus.FIRED.value,
+        OrganizationEmployee.HiringStatus.FINISHED.value,
+    ]
+
+    @classmethod
+    def change_status(cls, organization_employee, new_status, **kwargs):
+        super().change_status(organization_employee, new_status, **kwargs)
+        if new_status.value in [
+            OrganizationEmployee.HiringStatus.FIRED.value,
+            OrganizationEmployee.HiringStatus.FINISHED.value,
+        ]:
+            cooperation = organization_employee.cooperation_histories.first()
+            cooperation.end_at = now().date()
+            cooperation.save(update_fields=[OrganizationEmployeeCooperationHistory.end_at.field.name])
+
+
+class HiringSuspendedState(OrganizationEmployeeHiringState):
+    new_statuses = [
+        OrganizationEmployee.HiringStatus.ACTIVE.value,
+    ]
+
+
+class HiringFinishedState(OrganizationEmployeeHiringState):
+    new_statuses = []
+
+
+class HiringFiredState(OrganizationEmployeeHiringState):
+    new_statuses = []
+
+
+class OrganizationEmployeeHiringStatusHistory(models.Model):
+    cooperation_history = models.ForeignKey(
+        OrganizationEmployeeCooperationHistory,
+        on_delete=models.CASCADE,
+        verbose_name=_("Cooperation History"),
+        related_name="hiring_status_histories",
+    )
+    hiring_status = models.CharField(
+        max_length=50,
+        choices=OrganizationEmployee.HiringStatus.choices,
+        verbose_name=_("Status"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Hiring Status History")
+        verbose_name_plural = _("Organization Employee Hiring Status Histories")
+
+    def __str__(self):
+        return f"{self.cooperation_history} - {self.hiring_status}"
+
+
+class PlatformMessage(models.Model):
+    class Source(models.TextChoices):
+        AI = "ai", _("AI")
+        HUMAN = "human", _("Human")
+
+    source = models.CharField(
+        max_length=8,
+        choices=Source.choices,
+        verbose_name=_("Source"),
+        default=Source.HUMAN,
+    )
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    text = models.TextField(verbose_name=_("Text"))
+    employee = models.ForeignKey(
+        OrganizationEmployee,
+        on_delete=models.CASCADE,
+        verbose_name=_("Employee"),
+        related_name="%(class)s",
+    )
+    read_at = models.DateTimeField(verbose_name=_("Read At"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        abstract = True
+
+
+class OrganizationPlatformMessage(PlatformMessage):
+    class Meta:
+        verbose_name = _("Organization Platform Message")
+        verbose_name_plural = _("Organization Platform Messages")
+
+    def __str__(self):
+        return f"{self.employee} - {self.title}"
+
+
+class EmployeePlatformMessage(PlatformMessage):
+    class Meta:
+        verbose_name = _("Employee Platform Message")
+        verbose_name_plural = _("Employee Platform Messages")
+
+    def __str__(self):
+        return f"{self.employee} - {self.title}"

@@ -78,6 +78,7 @@ from .models import (
     LanguageCertificate,
     LanguageCertificateValue,
     Organization,
+    OrganizationEmployee,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -443,6 +444,7 @@ class OrganizationUpdateMutation(
             Organization.industry.field.name,
             Organization.established_at.field.name,
             Organization.size.field.name,
+            Organization.city.field.name,
             Organization.about.field.name,
         )
 
@@ -514,10 +516,7 @@ class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactabl
 
     @classmethod
     def get_contactable_object(cls, info, input):
-        organization_id = input[0].get("organization_id") if type(input) is list else input.get("organization_id")
-        organization = Organization.objects.filter(pk=organization_id).first()
-        if not organization:
-            raise GraphQLErrorBadRequest("Organization not found.")
+        organization = cls.get_access_object(info, input=input)
         return organization.contactable
 
 
@@ -1168,8 +1167,8 @@ class OrganizationJobPositionUpdateMutation(
 
     @classmethod
     def validate(cls, root, info, input, id, obj):
-        if obj.status != OrganizationJobPosition.Status.DRAFTED.value:
-            raise GraphQLErrorBadRequest(f"Cannot modify job position with status {obj.status}.")
+        if not obj.is_editable:
+            raise GraphQLErrorBadRequest(_("Cannot modify the job position."))
         return super().validate(root, info, input, id, obj)
 
     @classmethod
@@ -1197,14 +1196,14 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
     class Meta:
         model = OrganizationJobPosition
         login_required = True
-        fields = [OrganizationJobPosition._status.field.name]
-        required_fields = [OrganizationJobPosition._status.field.name]
+        fields = [OrganizationJobPosition.status.field.name]
+        required_fields = [OrganizationJobPosition.status.field.name]
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
     @transaction.atomic
     def mutate(cls, root, info, input, id):
-        status = input.get(OrganizationJobPosition._status.field.name)
+        status = input.get(OrganizationJobPosition.status.field.name)
         if not (obj := OrganizationJobPosition.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position not found."))
 
@@ -1250,10 +1249,53 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         if not (obj := JobPositionAssignment.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Job position assignment not found."))
 
+        if obj.status not in obj.organization_related_statuses:
+            raise GraphQLErrorBadRequest(_("Cannot modify status of the job position assignment."))
+
         interview_date = input.get(JobPositionInterview.interview_date.field.name)
         result_date = input.get(JobPositionInterview.result_date.field.name)
 
         obj.change_status(status, interview_date=interview_date, result_date=result_date)
+        return cls(**{cls._meta.return_field_name: obj})
+
+
+class OrganizationEmployeeHiringStatusUpdateMutation(
+    MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
+):
+    accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (
+            organization := Organization.objects.filter(
+                **{
+                    fields_join(
+                        OrganizationJobPosition.organization.field.related_query_name(),
+                        JobPositionAssignment.job_position.field.related_query_name(),
+                        OrganizationEmployee.job_position_assignment.field.related_query_name(),
+                        "pk",
+                    ): kwargs.get("id")
+                }
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
+
+    class Meta:
+        model = OrganizationEmployee
+        login_required = True
+        fields = [OrganizationEmployee.hiring_status.field.name]
+        required_fields = [OrganizationEmployee.hiring_status.field.name]
+        type_name = "OrganizationEmployeeHiringStatusUpdateInput"
+
+    @classmethod
+    @transaction.atomic
+    def mutate(cls, root, info, input, id):
+        status = input.get(OrganizationEmployee.hiring_status.field.name)
+        if not (obj := OrganizationEmployee.objects.get(pk=id)):
+            raise GraphQLErrorBadRequest(_("Organization employee not found."))
+        obj.change_hiring_status(status)
         return cls(**{cls._meta.return_field_name: obj})
 
 
@@ -1378,6 +1420,7 @@ class OrganizationMutation(graphene.ObjectType):
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
     update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
+    update_employee_hiring_status = OrganizationEmployeeHiringStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
