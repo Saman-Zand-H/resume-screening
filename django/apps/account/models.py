@@ -644,8 +644,8 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
-    flex_report_custom_manager = FlexReportProfileManager()
     objects = models.Manager()
+    flex_report_custom_manager = FlexReportProfileManager()
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
