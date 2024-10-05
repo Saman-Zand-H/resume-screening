@@ -20,3 +20,5 @@ def run_campaign_crontabs():
             <= SCHEDULER_CRONJOB_DIFFERENCE_THRESHOLD
         ):
             send_campaign_notifications(campaign)
+            campaign.crontab_last_run = timezone.now()
+            campaign.save(update_fields=[fields_join(Campaign.crontab_last_run)])

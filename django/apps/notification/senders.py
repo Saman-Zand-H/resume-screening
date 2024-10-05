@@ -7,7 +7,7 @@ from typing import Generic, List, Optional, TypeVar, Union
 
 import firebase_admin
 from common.logging import get_logger
-from common.utils import get_all_subclasses
+from common.utils import fields_join, get_all_subclasses
 from config.settings.subscriptions import NotificationSubscription
 from firebase_admin import messaging
 from flex_blob.models import FileModel
@@ -19,6 +19,7 @@ from twilio.rest import Client
 from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMessage
+from django.utils import timezone
 
 from .constants import NotificationTypes
 from .context_mapper import ContextMapperRegistry
@@ -331,4 +332,6 @@ def send_campaign_notifications(campaign_id: int, pks=None):
             )
 
     send_notifications(*notification_contexts)
+    campaign.sent_at = timezone.now()
+    campaign.save(update_fields=[fields_join(Campaign.sent_at)])
     CampaignNotification.objects.bulk_create(campaign_notifications, batch_size=20)
