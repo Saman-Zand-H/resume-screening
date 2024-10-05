@@ -73,6 +73,60 @@ class Campaign(TimeStampedModel):
         verbose_name=_("Saved Filter"),
     )
 
+    def get_user_latest_statuses(self, user):
+        campaign_notification = CampaignNotification.objects.filter(
+            **{
+                fields_join(CampaignNotification.campaign_notification_type, CampaignNotificationType.campaign): self,
+                fields_join(CampaignNotification.notification, Notification.user): user,
+            }
+        )
+
+        return campaign_notification.order_by(
+            fields_join(CampaignNotification.campaign_notification_type),
+            f"-{fields_join(CampaignNotification.created)}",
+        ).distinct(fields_join(CampaignNotification.campaign_notification_type))
+
+    def get_latest_failed_campaign_notifications(self):
+        return (
+            CampaignNotification.objects.filter(
+                **{
+                    fields_join(
+                        CampaignNotification.campaign_notification_type,
+                        CampaignNotificationType.campaign,
+                    ): self
+                }
+            )
+            .order_by(
+                fields_join(
+                    CampaignNotification.notification,
+                    Notification.user,
+                ),
+                fields_join(
+                    CampaignNotification.campaign_notification_type,
+                    CampaignNotificationType.notification_type,
+                ),
+                f"-{fields_join(CampaignNotification.created)}",
+            )
+            .distinct(
+                fields_join(
+                    CampaignNotification.notification,
+                    Notification.user,
+                ),
+                fields_join(
+                    CampaignNotification.campaign_notification_type,
+                    CampaignNotificationType.notification_type,
+                ),
+            )
+            .filter(
+                **{
+                    fields_join(
+                        CampaignNotification.notification,
+                        Notification.status,
+                    ): Notification.Status.FAILED,
+                }
+            )
+        )
+
     def clean(self):
         if self.crontab and not croniter.is_valid(self.crontab):
             raise ValidationError({fields_join(Campaign.crontab): _("Invalid crontab value.")})
@@ -210,7 +264,7 @@ class CampaignNotification(TimeStampedModel):
         related_name="campaign_notifications",
         verbose_name=_("Campaign Notification Type"),
     )
-    notification = models.OneToOneField(
+    notification = models.ForeignKey(
         Notification,
         on_delete=models.CASCADE,
         related_name="campaign_notifications",

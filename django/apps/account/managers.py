@@ -140,8 +140,12 @@ class FlexReportProfileManager(models.Manager):
                     }
                 )
             ),
-            ProfileAnnotationNames.LAST_LOGIN: models.F(fields_join(Profile.user, User.last_login, "age", "day")),
-            ProfileAnnotationNames.DATE_JOINED: models.F(fields_join(Profile.user, User.date_joined, "age", "day")),
+            ProfileAnnotationNames.LAST_LOGIN: models.F(
+                fields_join(Profile.user, User.last_login, "date", "age", "day")
+            ),
+            ProfileAnnotationNames.DATE_JOINED: models.F(
+                fields_join(Profile.user, User.date_joined, "date", "age", "day")
+            ),
             ProfileAnnotationNames.STAGE_DATA: JSONObject(
                 **{annotation_name: models.F(annotation_name) for annotation_name in STAGE_ANNOTATIONS}
             ),

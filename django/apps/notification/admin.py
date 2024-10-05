@@ -19,7 +19,7 @@ from .models import (
     UserDevice,
     WhatsAppNotification,
 )
-from .views import CampaignNotifyView, CampaignUserNotifyView
+from .views import CampaginNotifyFailedView, CampaignNotifyAllView, CampaignNotifyView
 
 
 @admin.register(NotificationTemplate)
@@ -120,9 +120,14 @@ class CampaignAdmin(admin.ModelAdmin):
                 name="notification_compaign_notify",
             ),
             path(
-                "<int:pk>/notify/user",
-                self.admin_site.admin_view(CampaignUserNotifyView.as_view(admin_site=self.admin_site)),
-                name="notification_compaign_notify_user",
+                "<int:pk>/notify/all",
+                self.admin_site.admin_view(CampaignNotifyAllView.as_view(admin_site=self.admin_site)),
+                name="notification_compaign_notify_all",
+            ),
+            path(
+                "<int:pk>/notify/failed",
+                self.admin_site.admin_view(CampaginNotifyFailedView.as_view(admin_site=self.admin_site)),
+                name="notification_compaign_notify_failed",
             ),
         ]
 

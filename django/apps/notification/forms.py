@@ -4,10 +4,6 @@ from django.contrib.auth import get_user_model
 from .models import Campaign
 
 
-class CampaignNotifyConfirmForm(forms.Form):
-    pass
-
-
 class CampaignNotifyUserForm(forms.Form):
     users = forms.ModelMultipleChoiceField(queryset=get_user_model().objects.none())
 
@@ -17,3 +13,7 @@ class CampaignNotifyUserForm(forms.Form):
 
         if campaign:
             self.fields["users"].queryset = campaign.saved_filter.get_queryset()
+
+
+class NotifyCampaignFilterForm(forms.Form):
+    email = forms.CharField()

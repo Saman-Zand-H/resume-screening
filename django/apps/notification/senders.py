@@ -277,14 +277,21 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
 
 
 @register_task([NotificationSubscription.CAMPAIGN])
-def send_campaign_notifications(campaign_id: int, queryset=None):
+def send_campaign_notifications(campaign_id: int, pks=None):
     campaign = Campaign.objects.filter(pk=campaign_id).first()
 
     if not campaign:
         return
 
     campaign_notification_types = campaign.get_campaign_notification_types()
-    report_qs = queryset or campaign.saved_filter.get_queryset()
+    report_qs = (
+        (campaign.saved_filter.get_queryset().filter(pk__in=pks))
+        if pks is not None
+        else campaign.saved_filter.get_queryset()
+    )
+    if not report_qs:
+        return
+
     notification_contexts = []
     campaign_notifications = []
 
