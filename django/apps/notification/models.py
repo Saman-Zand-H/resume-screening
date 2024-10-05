@@ -1,4 +1,5 @@
-from common.utils import get_all_subclasses
+from common.utils import fields_join, get_all_subclasses
+from croniter import croniter
 from flex_report.models import TemplateSavedFilter
 from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
@@ -58,6 +59,12 @@ class Campaign(TimeStampedModel):
         blank=True,
         null=True,
     )
+    crontab_last_run = models.DateTimeField(
+        verbose_name=_("Crontab Last Run"),
+        blank=True,
+        null=True,
+    )
+    sent_at = models.DateTimeField(verbose_name=_("Sent At"), blank=True, null=True)
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     saved_filter = models.ForeignKey(
         TemplateSavedFilter,
@@ -65,6 +72,10 @@ class Campaign(TimeStampedModel):
         related_name="campaigns",
         verbose_name=_("Saved Filter"),
     )
+
+    def clean(self):
+        if self.crontab and not croniter.is_valid(self.crontab):
+            raise ValidationError({fields_join(Campaign.crontab): _("Invalid crontab value.")})
 
     def get_campaign_notification_types(self):
         campaign_notification_manager: models.BaseManager[CampaignNotificationType] = getattr(

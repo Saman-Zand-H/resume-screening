@@ -1,6 +1,18 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import CharField, Func, Transform
 from django.db.models.fields import DateField, DateTimeField
+from django.db.models.functions.datetime import (
+    ExtractDay,
+    ExtractHour,
+    ExtractIsoYear,
+    ExtractMinute,
+    ExtractMonth,
+    ExtractQuarter,
+    ExtractSecond,
+    ExtractWeek,
+    ExtractWeekDay,
+    ExtractYear,
+)
 
 
 class GetKeysByValue(Func):
@@ -42,3 +54,23 @@ class DateTimeAge(Transform):
 @DateField.register_lookup
 class DateAge(DateTimeAge):
     output_field = DateField()
+
+
+DateTimeAge.register_lookup(ExtractYear)
+DateTimeAge.register_lookup(ExtractMonth)
+DateTimeAge.register_lookup(ExtractDay)
+DateTimeAge.register_lookup(ExtractHour)
+DateTimeAge.register_lookup(ExtractMinute)
+DateTimeAge.register_lookup(ExtractSecond)
+DateTimeAge.register_lookup(ExtractQuarter)
+DateTimeAge.register_lookup(ExtractIsoYear)
+DateTimeAge.register_lookup(ExtractWeek)
+DateTimeAge.register_lookup(ExtractWeekDay)
+
+DateAge.register_lookup(ExtractYear)
+DateAge.register_lookup(ExtractMonth)
+DateAge.register_lookup(ExtractDay)
+DateAge.register_lookup(ExtractQuarter)
+DateAge.register_lookup(ExtractIsoYear)
+DateAge.register_lookup(ExtractWeek)
+DateAge.register_lookup(ExtractWeekDay)
