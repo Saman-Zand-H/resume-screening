@@ -3,7 +3,7 @@ from notification.models import (
     InAppNotification,
     PushNotification,
     SMSNotification,
-    UserDevice,
+    UserPushNotificationToken,
     WhatsAppNotification,
 )
 from notification.report_mapper import register
@@ -49,9 +49,11 @@ def profile_push_mapper(instance: Profile):
     return [
         {
             PushNotification.user.field.name: instance.user,
-            PushNotification.device_token.field.name: device.device_token,
+            PushNotification.token.field.name: device.token,
         }
-        for device in UserDevice.objects.filter(**{UserDevice.user.field.name: instance.user})
+        for device in UserPushNotificationToken.objects.filter(
+            **{UserPushNotificationToken.user.field.name: instance.user}
+        )
     ]
 
 

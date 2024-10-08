@@ -31,7 +31,7 @@ from .models import (
     Notification,
     PushNotification,
     SMSNotification,
-    UserDevice,
+    UserPushNotificationToken,
     WhatsAppNotification,
 )
 from .report_mapper import ReportMapper
@@ -212,7 +212,7 @@ class PushNotificationSender(NotificationSender):
                 title=notification.notification.title,
                 body=notification.notification.body,
             ),
-            token=notification.notification.device_token,
+            token=notification.notification.token,
         )
 
     def send(self, notification: NotificationContext[PushNotification]):
@@ -225,12 +225,12 @@ class PushNotificationSender(NotificationSender):
         responses = messaging.send_each(messages)
         for response, notification in zip(responses.responses, notifications):
             if not response.success and isinstance(response.exception, messaging.UnregisteredError):
-                UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+                UserPushNotificationToken.objects.filter(device_token=notification.notification.token).delete()
         return [response.exception for response in responses]
 
     def handle_exception(self, exception: Exception, notification: NotificationContext[PushNotification]):
         if isinstance(exception, messaging.UnregisteredError):
-            UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+            UserPushNotificationToken.objects.filter(device_token=notification.notification.token).delete()
         return super().handle_exception(exception, notification)
 
 

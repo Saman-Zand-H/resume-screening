@@ -1,3 +1,4 @@
+from account.models import UserDevice
 from common.utils import fields_join, get_all_subclasses
 from croniter import croniter
 from flex_report.models import TemplateSavedFilter
@@ -330,17 +331,17 @@ class WhatsAppNotification(Notification):
 
 
 class DeviceToken(models.Model):
-    device_token = models.CharField(max_length=255, verbose_name=_("Device Token"))
+    token = models.CharField(max_length=255, verbose_name=_("Device Token"))
 
     class Meta:
         abstract = True
 
     def __str__(self):
-        return token_excerpt(self.device_token)
+        return token_excerpt(self.token)
 
     @property
     def short_token(self):
-        return token_excerpt(self.device_token)
+        return token_excerpt(self.token)
 
 
 class PushNotification(DeviceToken, NotificationTitle, Notification):
@@ -354,17 +355,17 @@ class PushNotification(DeviceToken, NotificationTitle, Notification):
         return self.short_token
 
 
-class UserDevice(DeviceToken, TimeStampedModel):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+class UserPushNotificationToken(DeviceToken, TimeStampedModel):
+    device = models.OneToOneField(
+        UserDevice,
         on_delete=models.CASCADE,
-        related_name="devices",
-        verbose_name=_("User"),
+        related_name="push_notification_token",
+        verbose_name=_("Device"),
     )
 
     class Meta:
-        verbose_name = _("User Device")
-        verbose_name_plural = _("User Devices")
+        verbose_name = _("User Push Notification Token")
+        verbose_name_plural = _("User Push Notification Tokens")
 
     def __str__(self):
         return self.short_token
