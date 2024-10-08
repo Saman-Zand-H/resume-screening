@@ -1512,7 +1512,7 @@ class SupportTicket(TimeStampedModel):
         return self.title
 
 
-class UserTask(models.Model):
+class UserTask(TimeStampedModel):
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", _("Scheduled")
         IN_PROGRESS = "in_progress", _("In Progress")
