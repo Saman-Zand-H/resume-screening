@@ -1512,6 +1512,7 @@ class AccountMutation(graphene.ObjectType):
     password_reset = graphql_auth_mutations.PasswordReset.Field()
     token_auth = ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()
+    revoke_token = RevokeTokenMutation.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
     profile = graphene.Field(ProfileMutation)
