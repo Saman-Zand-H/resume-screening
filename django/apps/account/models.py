@@ -719,6 +719,9 @@ class Profile(ComputedFieldsModel):
             ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
             ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],
             ProfileAnnotationNames.LAST_LOGIN: ["gte", "lte"],
+            ProfileAnnotationNames.COMPLETED_STAGES: ["overlap"],
+            ProfileAnnotationNames.INCOMPLETE_STAGES: ["overlap"],
+            ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: ["exact"],
         }
 
     @staticmethod
@@ -1527,7 +1530,7 @@ class SupportTicket(TimeStampedModel):
         return self.title
 
 
-class UserTask(models.Model):
+class UserTask(TimeStampedModel):
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", _("Scheduled")
         IN_PROGRESS = "in_progress", _("In Progress")

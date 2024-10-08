@@ -1,5 +1,5 @@
 from django.contrib.postgres.fields import ArrayField
-from django.db.models import CharField, Func, Transform
+from django.db.models import Func, TextField, Transform
 from django.db.models.fields import DateField, DateTimeField
 from django.db.models.functions.datetime import (
     ExtractDay,
@@ -17,10 +17,12 @@ from django.db.models.functions.datetime import (
 
 class GetKeysByValue(Func):
     arity = 2
-    output_field = ArrayField(CharField())
+    output_field = ArrayField(TextField())
 
-    def __init__(self, json_field_name, value, **extra):
+    def __init__(self, json_field_name, value, choices=[], **extra):
         super().__init__(json_field_name, value, **extra)
+        if choices:
+            self.output_field.choices = choices
 
     def as_sql(self, compiler, connection, function=None, template=None):
         json_field = self.source_expressions[0]

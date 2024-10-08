@@ -59,6 +59,11 @@ class Campaign(TimeStampedModel):
         blank=True,
         null=True,
     )
+    max_attempts = models.PositiveIntegerField(
+        verbose_name=_("Max Attempts"),
+        blank=True,
+        null=True,
+    )
     crontab_last_run = models.DateTimeField(
         verbose_name=_("Crontab Last Run"),
         blank=True,
