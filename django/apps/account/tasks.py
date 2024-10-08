@@ -10,6 +10,7 @@ from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
+from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import EmailNotification
 from notification.senders import NotificationContext, send_notifications
 
@@ -48,6 +49,13 @@ def set_expiry():
     from .models import OrganizationJobPosition
 
     OrganizationJobPosition.set_expiry()
+
+
+@register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "*/30 * * * *"})
+def clean_revoked_tokens():
+    (
+        UserRefreshToken.objects.expired().filter(expired=True) | UserRefreshToken.objects.filter(revoked__isnull=False)
+    ).delete()
 
 
 class Task(Protocol):

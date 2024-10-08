@@ -38,6 +38,7 @@ from common.validators import (
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from flex_report import report_model
+from graphql_jwt.refresh_token.models import RefreshToken
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
 from model_utils.models import TimeStampedModel
@@ -48,7 +49,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField, DateRangeField, IntegerRangeField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -359,6 +360,23 @@ class User(AbstractUser):
 for field, properties in User.FIELDS_PROPERTIES.items():
     for key, value in properties.items():
         setattr(User._meta.get_field(field), key, value)
+
+
+class UserDevice(TimeStampedModel):
+    device_id = models.CharField(max_length=255, verbose_name=_("Device ID"), unique=True, db_index=True)
+    refresh_token = models.OneToOneField(RefreshToken, on_delete=models.CASCADE, verbose_name=_("Refresh Token"))
+
+    class Meta:
+        verbose_name = _("User Device")
+        verbose_name_plural = _("User Devices")
+        unique_together = ("device_id", "refresh_token")
+
+    @property
+    def user(self):
+        return self.refresh_token.user
+
+    def __str__(self):
+        return f"{self.user} - {self.device_id[:3]}...{self.device_id[-3:]}"
 
 
 class Access(SlugTitleAbstract):

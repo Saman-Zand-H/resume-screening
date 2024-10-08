@@ -11,8 +11,6 @@ from common.mixins import (
 from common.models import Job, Skill
 from common.types import SkillType
 from common.utils import fields_join
-from notification.models import InAppNotification
-from notification.senders import NotificationContext, send_notifications
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
@@ -36,6 +34,9 @@ from graphql_jwt.decorators import (
     on_token_auth_resolve,
     refresh_expiration,
 )
+from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
+from notification.models import InAppNotification
+from notification.senders import NotificationContext, send_notifications
 
 from account.utils import is_env
 from django.contrib.auth.signals import user_logged_in
@@ -90,6 +91,7 @@ from .models import (
     Role,
     SupportTicket,
     User,
+    UserDevice,
     WorkExperience,
 )
 from .tasks import (
@@ -171,6 +173,24 @@ def set_template_context_variable(context, key, value):
     _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
     _template_context[key] = value
     setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+
+
+def register_user_device(refresh_token, device_id):
+    user_device, created = UserDevice.objects.get_or_create(
+        device_id=device_id,
+        defaults={UserDevice.refresh_token.field.name: UserRefreshToken.objects.get(token=refresh_token)},
+    )
+    if not created:
+        user_device.refresh_token.revoke()
+        user_device.refresh_token = UserRefreshToken.objects.get(token=refresh_token)
+        user_device.save(update_fields=[UserDevice.refresh_token.field.name])
+
+
+class DeviceIDMixin:
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._meta.arguments.update({"device_id": graphene.String(required=True)})
+        return super().Field(*args, **kwargs)
 
 
 class EmailCallbackUrlMixin:
@@ -350,7 +370,7 @@ class RefreshToken(graphql_auth_mutations.RefreshToken):
         return field
 
 
-class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
+class BaseSocialAuth(DeviceIDMixin, SuccessErrorsOutput, graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
         referral_code = graphene.String()
@@ -379,10 +399,13 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         user.username = user.email
         user.status.save(update_fields=["verified"])
         user.save(update_fields=["username"])
+        info.context.jwt_cookie = True
         on_token_auth_resolve((info.context, user, cls))
 
         if serializer.is_new_user:
             referral_registration(user, kwargs.get("referral_code"))
+
+        register_user_device(cls.refresh_token, kwargs.get("device_id"))
 
         cls.success = True
         cls.errors = None
@@ -407,14 +430,32 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class ObtainJSONWebToken(graphql_auth_mutations.ObtainJSONWebToken):
+class ObtainJSONWebToken(DeviceIDMixin, graphql_auth_mutations.ObtainJSONWebToken):
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._meta.arguments.update({"device_id": graphene.String(required=True)})
+        return super().Field(*args, **kwargs)
+
     @classmethod
     def mutate(cls, root, info, **input):
+        info.context.jwt_cookie = True
+        device_id = input.pop("device_id")
         output = super().mutate(root, info, **input)
         if output.success:
             user: User = output.user
             user_logged_in.send(sender=user.__class__, request=None, user=user)
+            register_user_device(output.refresh_token, device_id)
         return output
+
+
+class RevokeTokenMutation(graphql_auth_mutations.RevokeToken):
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        result = super().mutate(*args, **kwargs)
+        refresh_token = kwargs.get("refresh_token")
+        if result.success:
+            UserDevice.objects.filter(refresh_token__token=refresh_token).delete()
+        return result
 
 
 class OrganizationUpdateMutation(
