@@ -5,12 +5,11 @@ from pathlib import Path
 from typing import NamedTuple
 
 from ai.types import CachableVectorStore
+from common.logging import get_logger
 from common.models import Job, Skill
 from disposable_email_domains import blocklist
 
 from django.conf import settings
-
-from common.logging import get_logger
 
 logger = get_logger()
 
@@ -43,6 +42,16 @@ STAGE_ANNOTATIONS = [
     ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE,
     ProfileAnnotationNames.HAS_SKILLS,
     ProfileAnnotationNames.HAS_CANADA_VISA,
+]
+
+STAGE_CHOICES = [
+    (ProfileAnnotationNames.HAS_PROFILE_INFORMATION, "Completed Profile"),
+    (ProfileAnnotationNames.HAS_WORK_EXPERIENCE, "Work Experience"),
+    (ProfileAnnotationNames.HAS_EDUCATION, "Education"),
+    (ProfileAnnotationNames.HAS_CERTIFICATE, "Certificate"),
+    (ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, "Language Certificate"),
+    (ProfileAnnotationNames.HAS_SKILLS, "Skills"),
+    (ProfileAnnotationNames.HAS_CANADA_VISA, "Canada Visa"),
 ]
 
 

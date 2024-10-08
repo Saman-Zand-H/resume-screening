@@ -48,7 +48,7 @@ from phonenumbers.phonenumberutil import NumberParseException
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField, DateRangeField, IntegerRangeField
+from django.contrib.postgres.fields import ArrayField, IntegerRangeField
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -701,6 +701,9 @@ class Profile(ComputedFieldsModel):
             ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
             ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],
             ProfileAnnotationNames.LAST_LOGIN: ["gte", "lte"],
+            ProfileAnnotationNames.COMPLETED_STAGES: ["overlap"],
+            ProfileAnnotationNames.INCOMPLETE_STAGES: ["overlap"],
+            ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: ["exact"],
         }
 
     @staticmethod

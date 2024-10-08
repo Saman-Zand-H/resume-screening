@@ -8,6 +8,7 @@ from django.db.models.functions import JSONObject, Now
 from .constants import (
     ORGANIZATION_INVITATION_EXPIRY_DELTA,
     STAGE_ANNOTATIONS,
+    STAGE_CHOICES,
     ProfileAnnotationNames,
 )
 
@@ -152,10 +153,12 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.COMPLETED_STAGES: GetKeysByValue(
                 models.F(ProfileAnnotationNames.STAGE_DATA),
                 models.Value(True),
+                choices=STAGE_CHOICES,
             ),
             ProfileAnnotationNames.INCOMPLETE_STAGES: GetKeysByValue(
                 models.F(ProfileAnnotationNames.STAGE_DATA),
                 models.Value(False),
+                choices=STAGE_CHOICES,
             ),
             ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: models.Case(
                 models.When(
