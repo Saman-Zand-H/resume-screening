@@ -1,3 +1,4 @@
+from common.utils import fields_join
 from notification.models import (
     EmailNotification,
     InAppNotification,
@@ -9,7 +10,7 @@ from notification.models import (
 from notification.report_mapper import register
 from notification.types import NotificationTypes
 
-from .models import Contact, Profile
+from .models import Contact, Profile, RefreshToken, UserDevice
 
 
 @register(Profile, NotificationTypes.WHATSAPP)
@@ -52,7 +53,11 @@ def profile_push_mapper(instance: Profile):
             PushNotification.token.field.name: device.token,
         }
         for device in UserPushNotificationToken.objects.filter(
-            **{UserPushNotificationToken.user.field.name: instance.user}
+            **{
+                fields_join(
+                    UserPushNotificationToken.device, UserDevice.refresh_token, RefreshToken.user
+                ): instance.user
+            }
         )
     ]
 
