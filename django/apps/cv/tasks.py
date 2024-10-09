@@ -8,7 +8,7 @@ from .models import CVTemplate, GeneratedCV
 
 
 @register_task(subscriptions=[CVSubscription.CV])
-@user_task_decorator
+@user_task_decorator(timeout_seconds=120)
 def render_cv_template(user_id: int, template_id: int = None):
     user = get_user_model().objects.get(pk=user_id)
     template = CVTemplate.objects.filter(pk=template_id).first()

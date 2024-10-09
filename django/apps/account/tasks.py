@@ -10,6 +10,7 @@ from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
+from func_timeout import FunctionTimedOut, func_timeout
 from notification.models import EmailNotification
 from notification.senders import NotificationContext, send_notifications
 
@@ -55,36 +56,45 @@ class Task(Protocol):
     def delay(cls, *args: Tuple[Any], **kwargs: Dict[str, Any]): ...
 
 
-def user_task_decorator(func: Callable) -> Callable:
-    task_name = func.__name__
+def user_task_decorator(timeout_seconds: int) -> Callable:
+    def wrapper(func: Callable):
+        task_name = func.__name__
 
-    @wraps(func)
-    def wrapper(*args: Tuple[Any], **kwargs: Dict[str, Any]):
-        from .models import UserTask
+        @wraps(func)
+        def inner_wrapper(*args: Tuple[Any], **kwargs: Dict[str, Any]):
+            from .models import UserTask
 
-        task_user_id = kwargs.pop("task_user_id", None)
-        if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
-            logger.info(f"Running task {task_name}: user {task_user_id} not found.")
-            (
-                user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
-            ) and user_task.change_status(UserTask.Status.FAILED, "User not found.")
-            return
+            task_user_id = kwargs.pop("task_user_id", None)
+            if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
+                logger.info(f"Running task {task_name}: user {task_user_id} not found.")
+                (
+                    user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
+                ) and user_task.change_status(UserTask.Status.FAILED, "User not found.")
+                return
 
-        user_task = UserTask.objects.get_or_create(user=user, task_name=task_name)[0]
-        if user_task.status == UserTask.Status.IN_PROGRESS:
-            logger.info(f"Running task {task_name}: task {user_task.pk} is already in progress.")
-            return
+            user_task = UserTask.objects.get_or_create(user=user, task_name=task_name)[0]
+            if user_task.status == UserTask.Status.IN_PROGRESS:
+                logger.info(f"Running task {task_name}: task {user_task.pk} is already in progress.")
+                return
 
-        user_task.change_status(UserTask.Status.IN_PROGRESS)
-        try:
-            func(*args, **kwargs)
-            user_task.change_status(UserTask.Status.COMPLETED)
-            return True
-        except Exception as e:
-            user_task.change_status(
-                UserTask.Status.FAILED,
-                f"{e}\n{traceback.format_exc()}",
-            )
+            user_task.change_status(UserTask.Status.IN_PROGRESS)
+            try:
+                func_timeout(timeout_seconds, func, *args, **kwargs)
+                user_task.change_status(UserTask.Status.COMPLETED)
+
+            except FunctionTimedOut:
+                user_task.change_status(
+                    UserTask.Status.FAILED,
+                    f"Timeout after {timeout_seconds} seconds.\n{traceback.format_exc()}",
+                )
+
+            except Exception as e:
+                user_task.change_status(
+                    UserTask.Status.FAILED,
+                    f"{e}\n{traceback.format_exc()}",
+                )
+
+        return inner_wrapper
 
     return wrapper
 
@@ -108,7 +118,7 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
 
 
 @register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator
+@user_task_decorator(timeout_seconds=120)
 def get_certificate_text(certificate_id: int) -> bool:
     from .models import (
         CertificateAndLicense,
@@ -132,7 +142,7 @@ def get_certificate_text(certificate_id: int) -> bool:
 
 
 @register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator
+@user_task_decorator(timeout_seconds=120)
 def find_available_jobs(user_id: int) -> bool:
     if not (user := get_user_model().objects.filter(pk=user_id).first()):
         raise ValueError(f"User with id {user_id} not found.")
@@ -147,7 +157,7 @@ def find_available_jobs(user_id: int) -> bool:
 
 
 @register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator
+@user_task_decorator(timeout_seconds=120)
 def set_user_skills(user_id: int) -> bool:
     user = get_user_model().objects.get(pk=user_id)
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
@@ -164,7 +174,7 @@ def set_user_skills(user_id: int) -> bool:
 
 
 @register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator
+@user_task_decorator(timeout_seconds=120)
 def set_user_resume_json(user_id: str) -> bool:
     from .models import Resume
 
