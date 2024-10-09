@@ -188,6 +188,18 @@ class CampaignNotificationType(TimeStampedModel):
         NotificationTypes.IN_APP,
     ]
 
+    def successful_notifications_count(self, user):
+        return Notification.objects.filter(
+            **{
+                fields_join(
+                    CampaignNotification.notification.field.related_query_name(),
+                    CampaignNotification.campaign_notification_type,
+                ): self,
+                fields_join(Notification.user): user,
+                fields_join(Notification.status): Notification.Status.SENT,
+            }
+        ).count()
+
     def clean(self):
         subject_required = self.notification_type in self.SUBJECT_REQUIRED_TYPES
         if subject_required and not self.subject:

@@ -78,13 +78,14 @@ def user_task_decorator(timeout_seconds: int) -> Callable:
                 return
 
             user_task.change_status(UserTask.Status.IN_PROGRESS)
+
             try:
                 func_timeout(timeout_seconds, func, *args, **kwargs)
                 user_task.change_status(UserTask.Status.COMPLETED)
 
             except FunctionTimedOut:
                 user_task.change_status(
-                    UserTask.Status.FAILED,
+                    UserTask.Status.TIMEDOUT,
                     f"Timeout after {timeout_seconds} seconds.\n{traceback.format_exc()}",
                 )
 

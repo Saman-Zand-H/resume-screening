@@ -21,6 +21,7 @@ class ProfileAnnotationNames(NamedTuple):
     HAS_VERIFIED_EDUCATION = "has_verified_education"
     HAS_WORK_EXPERIENCE = "has_work_experience"
     HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_RESUME = "has_resume"
     HAS_CERTIFICATE = "has_certificate"
     HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
     HAS_SKILLS = "has_skills"

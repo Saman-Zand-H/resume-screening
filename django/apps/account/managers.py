@@ -22,6 +22,7 @@ class FlexReportProfileManager(models.Manager):
             LanguageCertificate,
             OrganizationMembership,
             Profile,
+            Resume,
             User,
             WorkExperience,
         )
@@ -146,6 +147,17 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.DATE_JOINED: models.F(
                 fields_join(Profile.user, User.date_joined, "date", "age", "day")
+            ),
+            ProfileAnnotationNames.HAS_RESUME: models.Exists(
+                Resume.objects.filter(
+                    **{
+                        fields_join(
+                            Resume.user,
+                            Profile.user.field.related_query_name(),
+                            Profile._meta.pk.attname,
+                        ): models.OuterRef(Profile._meta.pk.attname)
+                    }
+                )
             ),
             ProfileAnnotationNames.STAGE_DATA: JSONObject(
                 **{annotation_name: models.F(annotation_name) for annotation_name in STAGE_ANNOTATIONS}

@@ -1518,6 +1518,7 @@ class UserTask(TimeStampedModel):
         IN_PROGRESS = "in_progress", _("In Progress")
         COMPLETED = "completed", _("Completed")
         FAILED = "failed", _("Failed")
+        TIMEDOUT = "timedout", _("Timed-Out")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
     task_name = models.CharField(
