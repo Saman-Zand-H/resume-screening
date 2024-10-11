@@ -16,6 +16,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 from import_export.formats.base_formats import XLSX
 
 from .constants import Assistants
@@ -104,6 +105,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "account.middlewares.AuthMiddleware",
+    "account.middlewares.DeviceMiddleware",
 ]
 
 
@@ -376,3 +378,9 @@ LOGGING = {
         },
     },
 }
+
+
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    "x-cpj-device-id",
+)

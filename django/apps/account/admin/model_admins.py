@@ -56,6 +56,7 @@ from ..models import (
     UploadCompanyCertificateMethod,
     UploadFileToWebsiteMethod,
     User,
+    UserDevice,
     UserTask,
     WorkExperience,
 )
@@ -132,6 +133,18 @@ class UserAdmin(UserAdminBase):
             },
         )
         self.fieldsets = tuple(fieldsets)
+
+
+@register(UserDevice)
+class UserDeviceIDAdmin(admin.ModelAdmin):
+    list_display = (
+        UserDevice.device_id.field.name,
+        UserDevice.created.field.name,
+        UserDevice.user.fget.__name__,
+    )
+    readonly_fields = (UserDevice.user.fget.__name__,)
+    search_fields = (UserDevice.device_id.field.name,)
+    autocomplete_fields = (UserDevice.refresh_token.field.name,)
 
 
 @register(UserStatus)

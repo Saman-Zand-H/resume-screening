@@ -16,7 +16,7 @@ from .models import (
     NotificationTemplate,
     PushNotification,
     SMSNotification,
-    UserDevice,
+    UserPushNotificationToken,
     WhatsAppNotification,
 )
 from .views import CampaginNotifyFailedView, CampaignNotifyAllView, CampaignNotifyView
@@ -205,7 +205,7 @@ class PushNotificationAdmin(admin.ModelAdmin):
     )
     list_filter = (PushNotification.status.field.name,)
     search_fields = (
-        PushNotification.device_token.field.name,
+        PushNotification.token.field.name,
         PushNotification.title.field.name,
         PushNotification.user.field.name,
     )
@@ -226,8 +226,15 @@ class InAppNotificationAdmin(admin.ModelAdmin):
     autocomplete_fields = (InAppNotification.user.field.name,)
 
 
-@admin.register(UserDevice)
-class UserDeviceAdmin(admin.ModelAdmin):
-    list_display = (UserDevice.device_token.field.name, UserDevice.user.field.name, UserDevice.created.field.name)
-    search_fields = (UserDevice.device_token.field.name, UserDevice.user.field.name)
-    autocomplete_fields = (UserDevice.user.field.name,)
+@admin.register(UserPushNotificationToken)
+class UserPushNotificationTokenAdmin(admin.ModelAdmin):
+    list_display = (
+        UserPushNotificationToken.token.field.name,
+        UserPushNotificationToken.device.field.name,
+        UserPushNotificationToken.created.field.name,
+    )
+    search_fields = (
+        UserPushNotificationToken.token.field.name,
+        UserPushNotificationToken.device.field.name,
+    )
+    autocomplete_fields = (UserPushNotificationToken.device.field.name,)
