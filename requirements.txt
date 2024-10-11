@@ -28,7 +28,7 @@ django-storages[google]~=1.14
 django-flex-blob==0.0.12
 django-flex-pubsub==0.0.15
 func_timeout~=4.3
-django-flex-report==0.9.10
+django-flex-report==0.9.13
 google-auth~=2.35
 google-cloud-secret-manager~=2.20
 django-environ~=0.11

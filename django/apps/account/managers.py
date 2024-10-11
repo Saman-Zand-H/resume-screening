@@ -57,7 +57,7 @@ class FlexReportProfileManager(models.Manager):
                     }
                 )
             ),
-            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: models.Exists(
+            ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: models.Exists(
                 Education.objects.filter(
                     **{
                         fields_join(
@@ -67,7 +67,8 @@ class FlexReportProfileManager(models.Manager):
                         ): models.OuterRef(Profile._meta.pk.attname),
                         Education.status.field.name: Education.get_verified_statuses(),
                     }
-                )
+                ),
+                negated=True,
             ),
             ProfileAnnotationNames.HAS_WORK_EXPERIENCE: models.Exists(
                 WorkExperience.objects.filter(
@@ -80,7 +81,7 @@ class FlexReportProfileManager(models.Manager):
                     }
                 )
             ),
-            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: models.Exists(
+            ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE: models.Exists(
                 WorkExperience.objects.filter(
                     **{
                         fields_join(
@@ -90,7 +91,8 @@ class FlexReportProfileManager(models.Manager):
                         ): models.OuterRef(Profile._meta.pk.attname),
                         WorkExperience.status.field.name: WorkExperience.get_verified_statuses(),
                     }
-                )
+                ),
+                negated=True,
             ),
             ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: models.Exists(
                 LanguageCertificate.objects.filter(

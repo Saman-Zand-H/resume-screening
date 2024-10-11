@@ -69,10 +69,10 @@
                         {% endfor %}
 
                         <th>
-                            {% trans 'Last Notification Sent At' %}
+                            {% trans 'Last Sent At' %}
                         </th>
                         <th>
-                            {% trans 'Last Notification Status' %}
+                            {% trans 'Last Status' %}
                         </th>
                     </thead>
                     <tbody>
@@ -98,11 +98,15 @@
                                 <td>
                                     {% for latest_notification in latest_notifications %}
                                         {{ latest_notification.created|date:"Y-m-d H:i" }}
+                                    {% empty %}
+                                        &mdash;
                                     {% endfor %}
                                 </td>
                                 <td>
                                     {% for latest_notification in latest_notifications %}
                                         <b>{{ latest_notification.campaign_notification_type.get_notification_type_display }}</b>: {{ latest_notification.notification.get_status_display }}
+                                    {% empty %}
+                                        &mdash;
                                     {% endfor %}
                                 </td>
                             </tr>

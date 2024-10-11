@@ -18,9 +18,9 @@ class ProfileAnnotationNames(NamedTuple):
     IS_ORGANIZATION_MEMBER = "is_organization_member"
     HAS_PROFILE_INFORMATION = "has_profile_information"
     HAS_EDUCATION = "has_education"
-    HAS_VERIFIED_EDUCATION = "has_verified_education"
+    HAS_UNVERIFIED_EDUCATION = "has_unverified_education"
     HAS_WORK_EXPERIENCE = "has_work_experience"
-    HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_UNVERIFIED_WORK_EXPERIENCE = "has_unverified_work_experience"
     HAS_RESUME = "has_resume"
     HAS_CERTIFICATE = "has_certificate"
     HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
@@ -36,13 +36,17 @@ class ProfileAnnotationNames(NamedTuple):
 
 
 STAGE_ANNOTATIONS = [
+    ProfileAnnotationNames.HAS_RESUME,
     ProfileAnnotationNames.HAS_PROFILE_INFORMATION,
     ProfileAnnotationNames.HAS_WORK_EXPERIENCE,
+    ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE,
     ProfileAnnotationNames.HAS_EDUCATION,
+    ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE,
     ProfileAnnotationNames.HAS_CERTIFICATE,
     ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE,
     ProfileAnnotationNames.HAS_SKILLS,
     ProfileAnnotationNames.HAS_CANADA_VISA,
+    ProfileAnnotationNames.HAS_INTERESTED_JOBS,
 ]
 
 STAGE_CHOICES = [

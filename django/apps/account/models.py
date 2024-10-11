@@ -694,16 +694,19 @@ class Profile(ComputedFieldsModel):
             fields_join(cls.city, City.country): ["in", "iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
             ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
-            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: ["exact"],
             ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
-            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_CERTIFICATE: ["exact"],
             ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["exact"],
             ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
             ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],
             ProfileAnnotationNames.LAST_LOGIN: ["gte", "lte"],
             ProfileAnnotationNames.COMPLETED_STAGES: ["overlap"],
             ProfileAnnotationNames.INCOMPLETE_STAGES: ["overlap"],
-            ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: ["exact"],
+            ProfileAnnotationNames.HAS_PROFILE_INFORMATION: ["exact"],
+            ProfileAnnotationNames.HAS_RESUME: ["exact"],
+            ProfileAnnotationNames.HAS_INTERESTED_JOBS: ["exact"],
         }
 
     @staticmethod
