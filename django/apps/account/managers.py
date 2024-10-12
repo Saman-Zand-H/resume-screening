@@ -4,6 +4,7 @@ from common.utils import fields_join
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.db import models
 from django.db.models.functions import JSONObject, Now
+from django.db.models.lookups import In
 
 from .constants import (
     ORGANIZATION_INVITATION_EXPIRY_DELTA,
@@ -65,10 +66,12 @@ class FlexReportProfileManager(models.Manager):
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
                         ): models.OuterRef(Profile._meta.pk.attname),
-                        Education.status.field.name: Education.get_verified_statuses(),
+                    }
+                ).exclude(
+                    **{
+                        fields_join(Education.status, In.lookup_name): Education.get_verified_statuses(),
                     }
                 ),
-                negated=True,
             ),
             ProfileAnnotationNames.HAS_WORK_EXPERIENCE: models.Exists(
                 WorkExperience.objects.filter(
