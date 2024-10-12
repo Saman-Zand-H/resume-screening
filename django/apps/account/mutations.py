@@ -35,7 +35,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
-from notification.models import InAppNotification, UserPushNotificationToken
+from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
 from account.utils import is_env
@@ -1504,52 +1504,6 @@ class SupportTicketMutation(graphene.ObjectType):
     create = SupportTicketCreateMutation.Field()
 
 
-class RegisterPushNotificationTokenMutation(graphene.Mutation):
-    class Arguments:
-        token = graphene.String(required=True)
-
-    success = graphene.Boolean()
-
-    @login_required
-    def mutate(root, info, token):
-        user_device = info.context.user_device
-        if not user_device:
-            return RegisterPushNotificationTokenMutation(success=False)
-        UserPushNotificationToken.objects.update_or_create(
-            device=user_device,
-            defaults={UserPushNotificationToken.token.field.name: token},
-            create_defaults={UserPushNotificationToken.token.field.name: token},
-        )
-        return RegisterPushNotificationTokenMutation(success=True)
-
-
-class RemovePushNotificationTokenMutation(graphene.Mutation):
-    class Arguments:
-        token = graphene.String(required=True)
-
-    success = graphene.Boolean()
-
-    @login_required
-    def mutate(root, info, token):
-        user = info.context.user
-        UserPushNotificationToken.objects.filter(
-            **{
-                UserPushNotificationToken.token.field.name: token,
-                fields_join(
-                    UserPushNotificationToken.device.field.name,
-                    UserDevice.refresh_token.field.name,
-                    UserRefreshToken.user.field.name,
-                ): user,
-            }
-        ).delete()
-        return RemovePushNotificationTokenMutation(success=True)
-
-
-class PushNotificationTokenMutation(graphene.ObjectType):
-    register = RegisterPushNotificationTokenMutation.Field()
-    remove = RemovePushNotificationTokenMutation.Field()
-
-
 class AccountMutation(graphene.ObjectType):
     register = UserRegister.Field()
     verify = VerifyAccount.Field()
@@ -1569,7 +1523,6 @@ class AccountMutation(graphene.ObjectType):
     certificate_and_license = graphene.Field(CertificateAndLicenseMutation)
     canada_visa = graphene.Field(CanadaVisaMutation)
     support_ticket = graphene.Field(SupportTicketMutation)
-    push_notification_token = graphene.Field(PushNotificationTokenMutation)
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
@@ -1594,9 +1547,6 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_support_ticket(self, *args, **kwargs):
         return SupportTicketMutation()
-
-    def resolve_push_notification_token(self, *args, **kwargs):
-        return PushNotificationTokenMutation()
 
 
 class Mutation(graphene.ObjectType):
