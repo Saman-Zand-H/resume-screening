@@ -1,19 +1,13 @@
 import graphene
 from common.utils import fields_join
-from graphene_django_cud.mutations import (
-    DjangoBatchPatchMutation,
-)
-from graphql_jwt.decorators import (
-    login_required,
-)
+from graphene_django_cud.mutations import DjangoBatchPatchMutation
+from graphql_jwt.decorators import login_required
 from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 
 from django.utils import timezone
 from notification.models import InAppNotification, UserPushNotificationToken
 
-from .models import (
-    UserDevice,
-)
+from .models import UserDevice
 
 
 class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
