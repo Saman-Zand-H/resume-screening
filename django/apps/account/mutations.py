@@ -35,7 +35,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
-from notification.models import InAppNotification, UserPushNotificationToken
+from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
 from account.utils import is_env
