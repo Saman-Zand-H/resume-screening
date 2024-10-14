@@ -78,6 +78,10 @@ class Campaign(TimeStampedModel):
         related_name="campaigns",
         verbose_name=_("Saved Filter"),
     )
+    is_scheduler_active = models.BooleanField(
+        default=False,
+        verbose_name=_("Is Scheduler Active"),
+    )
 
     def get_user_latest_statuses(self, user):
         campaign_notification = CampaignNotification.objects.filter(

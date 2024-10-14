@@ -39,7 +39,7 @@ STAGE_ANNOTATIONS = [
     ProfileAnnotationNames.HAS_RESUME,
     ProfileAnnotationNames.HAS_PROFILE_INFORMATION,
     ProfileAnnotationNames.HAS_WORK_EXPERIENCE,
-    ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE,
+    ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION,
     ProfileAnnotationNames.HAS_EDUCATION,
     ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE,
     ProfileAnnotationNames.HAS_CERTIFICATE,

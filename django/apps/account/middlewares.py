@@ -16,8 +16,8 @@ class AuthMiddleware(MiddlewareMixin):
 
 class DeviceMiddleware(MiddlewareMixin):
     def process_request(self, request):
+        request.user_device = None
         if not (get_http_authorization(request) and request.user.is_authenticated):
-            request.user_device = None
             return
 
         device_id = request.headers.get("x-cpj-device-id")
