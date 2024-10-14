@@ -80,6 +80,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeCooperation,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -1300,7 +1301,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class OrganizationEmployeeHiringStatusUpdateMutation(
+class OrganizationEmployeeCooperationStatusUpdateMutation(
     MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
@@ -1311,9 +1312,8 @@ class OrganizationEmployeeHiringStatusUpdateMutation(
             organization := Organization.objects.filter(
                 **{
                     fields_join(
-                        OrganizationJobPosition.organization.field.related_query_name(),
-                        JobPositionAssignment.job_position.field.related_query_name(),
-                        OrganizationEmployee.job_position_assignment.field.related_query_name(),
+                        OrganizationEmployee.organization.field.related_query_name(),
+                        OrganizationEmployeeCooperation.employee.field.related_query_name(),
                         "pk",
                     ): kwargs.get("id")
                 }
@@ -1324,19 +1324,19 @@ class OrganizationEmployeeHiringStatusUpdateMutation(
         return organization
 
     class Meta:
-        model = OrganizationEmployee
+        model = OrganizationEmployeeCooperation
         login_required = True
-        fields = [OrganizationEmployee.hiring_status.field.name]
-        required_fields = [OrganizationEmployee.hiring_status.field.name]
-        type_name = "OrganizationEmployeeHiringStatusUpdateInput"
+        fields = [OrganizationEmployeeCooperation.status.field.name,]
+        required_fields = [OrganizationEmployeeCooperation.status.field.name,]
+        type_name = "OrganizationEmployeeCooperationStatusUpdateInput"
 
     @classmethod
     @transaction.atomic
     def mutate(cls, root, info, input, id):
-        status = input.get(OrganizationEmployee.hiring_status.field.name)
-        if not (obj := OrganizationEmployee.objects.get(pk=id)):
-            raise GraphQLErrorBadRequest(_("Organization employee not found."))
-        obj.change_hiring_status(status)
+        status = input.get(OrganizationEmployeeCooperation.status.field.name)
+        if not (obj := OrganizationEmployeeCooperation.objects.get(pk=id)):
+            raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
+        obj.change_status(status)
         return cls(**{cls._meta.return_field_name: obj})
 
 
@@ -1461,7 +1461,7 @@ class OrganizationMutation(graphene.ObjectType):
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
     update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
-    update_employee_hiring_status = OrganizationEmployeeHiringStatusUpdateMutation.Field()
+    update_employee_cooperation_status = OrganizationEmployeeCooperationStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):

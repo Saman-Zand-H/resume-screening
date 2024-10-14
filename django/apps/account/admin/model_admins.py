@@ -36,8 +36,8 @@ from ..models import (
     OnlineMethod,
     Organization,
     OrganizationEmployee,
-    OrganizationEmployeeCooperationHistory,
-    OrganizationEmployeeHiringStatusHistory,
+    OrganizationEmployeeCooperation,
+    OrganizationEmployeeCooperationStatusHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationJobPositionStatusHistory,
@@ -746,6 +746,7 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
         OrganizationJobPosition.title.field.name,
         OrganizationJobPosition.status.field.name,
         OrganizationJobPosition.organization.field.name,
+        OrganizationJobPosition.validity_date.field.name,
         OrganizationJobPosition.created_at.field.name,
     )
     search_fields = (
@@ -852,23 +853,16 @@ class JobPositionInterviewAdmin(admin.ModelAdmin):
 class OrganizationEmployeeAdmin(admin.ModelAdmin):
     list_display = (
         OrganizationEmployee.id.field.name,
-        OrganizationEmployee.job_position_assignment.field.name,
-        OrganizationEmployee.hiring_status.field.name,
-        OrganizationEmployee.created_at.field.name,
+        OrganizationEmployee.user.field.name,
+        OrganizationEmployee.organization.field.name,
+        OrganizationEmployee.created.field.name,
     )
     search_fields = (
-        fields_join(OrganizationEmployee.job_position_assignment, JobPositionAssignment.job_seeker, User.email),
-        fields_join(
-            OrganizationEmployee.job_position_assignment,
-            JobPositionAssignment.job_position,
-            OrganizationJobPosition.title,
-        ),
+        fields_join(OrganizationEmployee.user, User.email),
+        fields_join(OrganizationEmployee.organization, Organization.name),
     )
-    list_filter = (
-        OrganizationEmployee.hiring_status.field.name,
-        OrganizationEmployee.created_at.field.name,
-    )
-    autocomplete_fields = (OrganizationEmployee.job_position_assignment.field.name,)
+    list_filter = (OrganizationEmployee.created.field.name,)
+    autocomplete_fields = (OrganizationEmployee.user.field.name, OrganizationEmployee.organization.field.name)
 
 
 @register(EmployeePlatformMessage)
@@ -877,13 +871,13 @@ class EmployeePlatformMessageAdmin(admin.ModelAdmin):
         EmployeePlatformMessage.id.field.name,
         EmployeePlatformMessage.source.field.name,
         EmployeePlatformMessage.title.field.name,
-        EmployeePlatformMessage.employee.field.name,
+        EmployeePlatformMessage.organization_employee_cooperation.field.name,
         EmployeePlatformMessage.read_at.field.name,
         EmployeePlatformMessage.created_at.field.name,
     )
     search_fields = (EmployeePlatformMessage.title.field.name,)
     list_filter = (EmployeePlatformMessage.created_at.field.name, EmployeePlatformMessage.read_at.field.name)
-    autocomplete_fields = (EmployeePlatformMessage.employee.field.name,)
+    autocomplete_fields = (EmployeePlatformMessage.organization_employee_cooperation.field.name,)
 
 
 @register(OrganizationPlatformMessage)
@@ -892,52 +886,65 @@ class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
         OrganizationPlatformMessage.id.field.name,
         OrganizationPlatformMessage.source.field.name,
         OrganizationPlatformMessage.title.field.name,
-        OrganizationPlatformMessage.employee.field.name,
+        OrganizationPlatformMessage.organization_employee_cooperation.field.name,
         OrganizationPlatformMessage.read_at.field.name,
         OrganizationPlatformMessage.created_at.field.name,
     )
     search_fields = (OrganizationPlatformMessage.title.field.name,)
     list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
-    autocomplete_fields = (OrganizationPlatformMessage.employee.field.name,)
+    autocomplete_fields = (OrganizationPlatformMessage.organization_employee_cooperation.field.name,)
 
 
-@register(OrganizationEmployeeCooperationHistory)
-class OrganizationEmployeeCooperationHistoryAdmin(admin.ModelAdmin):
+@register(OrganizationEmployeeCooperation)
+class OrganizationEmployeeCooperationAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeeCooperationHistory.id.field.name,
-        OrganizationEmployeeCooperationHistory.employee.field.name,
-        OrganizationEmployeeCooperationHistory.start_at.field.name,
-        OrganizationEmployeeCooperationHistory.end_at.field.name,
-        OrganizationEmployeeCooperationHistory.created_at.field.name,
+        OrganizationEmployeeCooperation.id.field.name,
+        OrganizationEmployeeCooperation.status.field.name,
+        OrganizationEmployeeCooperation.employee.field.name,
+        OrganizationEmployeeCooperation.job_position_assignment.field.name,
+        OrganizationEmployeeCooperation.start_at.field.name,
+        OrganizationEmployeeCooperation.end_at.field.name,
+        OrganizationEmployeeCooperation.created_at.field.name,
     )
     search_fields = (
         fields_join(
-            OrganizationEmployeeCooperationHistory.employee,
-            OrganizationEmployee.job_position_assignment,
-            JobPositionAssignment.job_seeker,
+            OrganizationEmployeeCooperation.employee,
+            OrganizationEmployee.user,
             User.email,
         ),
         fields_join(
-            OrganizationEmployeeCooperationHistory.employee,
-            OrganizationEmployee.job_position_assignment,
+            OrganizationEmployeeCooperation.employee,
+            OrganizationEmployee.organization,
+            Organization.name,
+        ),
+        fields_join(
+            OrganizationEmployeeCooperation.job_position_assignment,
             JobPositionAssignment.job_position,
             OrganizationJobPosition.title,
         ),
     )
-    list_filter = (OrganizationEmployeeCooperationHistory.created_at.field.name,)
-    autocomplete_fields = (OrganizationEmployeeCooperationHistory.employee.field.name,)
+    list_filter = (
+        OrganizationEmployeeCooperation.created_at.field.name,
+        OrganizationEmployeeCooperation.status.field.name,
+        OrganizationEmployeeCooperation.start_at.field.name,
+        OrganizationEmployeeCooperation.end_at.field.name,
+    )
+    autocomplete_fields = (
+        OrganizationEmployeeCooperation.employee.field.name,
+        OrganizationEmployeeCooperation.job_position_assignment.field.name,
+    )
 
 
-@register(OrganizationEmployeeHiringStatusHistory)
+@register(OrganizationEmployeeCooperationStatusHistory)
 class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeeHiringStatusHistory.id.field.name,
-        OrganizationEmployeeHiringStatusHistory.cooperation_history.field.name,
-        OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
-        OrganizationEmployeeHiringStatusHistory.created_at.field.name,
+        OrganizationEmployeeCooperationStatusHistory.id.field.name,
+        OrganizationEmployeeCooperationStatusHistory.organization_employee_cooperation.field.name,
+        OrganizationEmployeeCooperationStatusHistory.status.field.name,
+        OrganizationEmployeeCooperationStatusHistory.created_at.field.name,
     )
     list_filter = (
-        OrganizationEmployeeHiringStatusHistory.hiring_status.field.name,
-        OrganizationEmployeeHiringStatusHistory.created_at.field.name,
+        OrganizationEmployeeCooperationStatusHistory.status.field.name,
+        OrganizationEmployeeCooperationStatusHistory.created_at.field.name,
     )
-    autocomplete_fields = (OrganizationEmployeeHiringStatusHistory.cooperation_history.field.name,)
+    autocomplete_fields = (OrganizationEmployeeCooperationStatusHistory.organization_employee_cooperation.field.name,)
