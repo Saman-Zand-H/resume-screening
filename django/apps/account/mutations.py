@@ -1347,8 +1347,12 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
     class Meta:
         model = OrganizationEmployeeCooperation
         login_required = True
-        fields = [OrganizationEmployeeCooperation.status.field.name,]
-        required_fields = [OrganizationEmployeeCooperation.status.field.name,]
+        fields = [
+            OrganizationEmployeeCooperation.status.field.name,
+        ]
+        required_fields = [
+            OrganizationEmployeeCooperation.status.field.name,
+        ]
         type_name = "OrganizationEmployeeCooperationStatusUpdateInput"
 
     @classmethod
