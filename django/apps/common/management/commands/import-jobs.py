@@ -19,8 +19,9 @@ class Command(BaseCommand):
             with open(csv_file, newline="") as file:
                 reader = csv.DictReader(file)
                 for row in reader:
-                    industry, _ = Industry.objects.get_or_create(title=row["industry"])
-                    Job.objects.get_or_create(title=row["job"], industry=industry)
+                    job, _ = Job.objects.get_or_create(title=row["job"])
+                    for industry in row["industries"].split("|"):
+                        job.industries.add(Industry.objects.get_or_create(title=industry)[0])
             self.stdout.write(self.style.SUCCESS("Successfully imported jobs"))
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f"File not found: {csv_file}"))

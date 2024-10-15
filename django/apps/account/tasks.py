@@ -10,8 +10,8 @@ from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
 from flex_pubsub.tasks import register_task
-from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from func_timeout import FunctionTimedOut, func_timeout
+from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import EmailNotification
 from notification.senders import NotificationContext, send_notifications
 
@@ -20,12 +20,14 @@ from django.core.cache import cache
 from django.core.mail import EmailMessage
 from django.utils import timezone
 
+from .typing import ResumeJson
 from .utils import (
     extract_available_jobs,
     extract_certificate_text_content,
     extract_or_create_skills,
     extract_resume_json,
     get_user_additional_information,
+    set_contacts_from_resume_json,
 )
 
 logger = get_logger()
@@ -88,7 +90,7 @@ def user_task_decorator(timeout_seconds: int) -> Callable:
             user_task.change_status(UserTask.Status.IN_PROGRESS)
 
             try:
-                func_timeout(timeout_seconds, func, *args, **kwargs)
+                func_timeout(timeout_seconds, func, args=args, kwargs=kwargs)
                 user_task.change_status(UserTask.Status.COMPLETED)
 
             except FunctionTimedOut:
@@ -190,16 +192,18 @@ def set_user_resume_json(user_id: str) -> bool:
     resume = Resume.objects.get(user_id=user_id)
     user = resume.user
 
-    resume_json = extract_resume_json(resume.file.pk)
+    if not ((resume_json := extract_resume_json(resume.file.pk)) and ResumeJson.model_validate(resume_json)):
+        return
 
-    if resume_json:
-        Resume.objects.update_or_create(
-            user=user,
-            defaults={
-                "resume_json": resume_json,
-            },
-        )
-        return True
+    Resume.objects.update_or_create(
+        user=user,
+        defaults={
+            "resume_json": resume_json,
+        },
+    )
+    set_contacts_from_resume_json(user, resume_json)
+
+    return True
 
 
 @register_task([AccountSubscription.EMAILING])

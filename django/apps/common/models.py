@@ -40,7 +40,7 @@ class Industry(models.Model):
 
 class Job(models.Model):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
-    industry = models.ForeignKey(Industry, on_delete=models.CASCADE, verbose_name=_("Industry"))
+    industries = models.ManyToManyField(Industry, verbose_name=_("Industries"), related_name="jobs")
     require_appearance_data = models.BooleanField(default=False, verbose_name=_("Require Appearance Data"))
     order = models.PositiveIntegerField(default=0, verbose_name=_("Order"))
 

@@ -10,13 +10,13 @@ def merge_duplicate_jobs(apps, schema_editor):
 
     Job: JobModel = apps.get_model("common", "Job")
     duplicate_jobs = [
-        [[1223, "Aircraft Maintenance Engineer"], [-819, "Aircraft Maintenance Engineer (AME)"]],
-        [[-719, "Blasting Technician"], [492, "Blast Technician"]],
-        [[-433, "Cabinetmaker"], [1001, "Cabinet Maker"]],
-        [[-1683, "Chief Operating Officer (COO)"], [512, "Chief Operations Officer (COO)"]],
-        [[562, "Database Administrator"], [-1274, "Database Administrator (DBA)"]],
-        [[-991, "Process Development Engineer"], [1033, "Process Development Engineer (Paper)"]],
-        [[-1017, "Product Development Specialist"], [956, "Product Development Specialist (Food)"]],
+        # [[1223, "Aircraft Maintenance Engineer"], [-819, "Aircraft Maintenance Engineer (AME)"]],
+        # [[-719, "Blasting Technician"], [492, "Blast Technician"]],
+        # [[-433, "Cabinetmaker"], [1001, "Cabinet Maker"]],
+        # [[-1683, "Chief Operating Officer (COO)"], [512, "Chief Operations Officer (COO)"]],
+        # [[562, "Database Administrator"], [-1274, "Database Administrator (DBA)"]],
+        # [[-991, "Process Development Engineer"], [1033, "Process Development Engineer (Paper)"]],
+        # [[-1017, "Product Development Specialist"], [956, "Product Development Specialist (Food)"]],
     ]
     for job in duplicate_jobs:
         source_pk = min(i[0] for i in job)
