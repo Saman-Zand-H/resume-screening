@@ -76,10 +76,10 @@ class IndustryAdmin(admin.ModelAdmin):
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = (Job.title.field.name, Job.industry.field.name, Job.order.field.name)
+    list_display = (Job.title.field.name, Job.order.field.name)
     search_fields = (Job.title.field.name,)
-    list_filter = (Job.industry.field.name,)
-    autocomplete_fields = (Job.industry.field.name,)
+    list_filter = (Job.industries.field.name,)
+    autocomplete_fields = (Job.industries.field.name,)
 
 
 @admin.register(Field)

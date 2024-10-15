@@ -72,13 +72,12 @@ class JobNode(DjangoObjectType):
         fields = (
             Job.id.field.name,
             Job.title.field.name,
-            Job.industry.field.name,
+            Job.industries.field.name,
             Job.require_appearance_data.field.name,
         )
         filter_fields = {
             Job.id.field.name: ["exact"],
             Job.title.field.name: ["icontains"],
-            Job.industry.field.name: ["exact"],
         }
 
 
