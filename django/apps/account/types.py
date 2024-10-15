@@ -18,7 +18,7 @@ from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When, Subquery, OuterRef
 
 from .accesses import (
     JobPositionContainer,
@@ -980,7 +980,7 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
 
     def resolve_cooperations(self, info):
         return self.cooperations.all()
-
+    
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
         user = info.context.user
@@ -994,6 +994,22 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
                     ): user
                 }
             )
+            .annotate(
+                last_cooperation_status=Subquery(
+                    (
+                        OrganizationEmployeeCooperation.objects.filter(employee=OuterRef("pk"))
+                        .order_by("-id")
+                        .values("status")[:1]
+                    )
+                ),
+                status_order=Case(
+                    *[
+                        When(last_cooperation_status=status, then=Value(order))
+                        for order, status in enumerate(OrganizationEmployeeCooperation.get_status_order())
+                    ],
+                    output_field=IntegerField(),
+                ),
+            )
             .distinct()
-            .order_by("-created")
+            .order_by("status_order", "-created")
         )

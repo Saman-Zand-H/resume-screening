@@ -2434,14 +2434,14 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         )
 
     @classmethod
-    def get_hiring_status_order(cls):
-        return {
-            cls.Status.AWAITING: 1,
-            cls.Status.ACTIVE: 2,
-            cls.Status.SUSPENDED: 3,
-            cls.Status.FINISHED: 4,
-            cls.Status.FIRED: 5,
-        }
+    def get_status_order(cls):
+        return [
+            cls.Status.AWAITING,
+            cls.Status.ACTIVE,
+            cls.Status.SUSPENDED,
+            cls.Status.FINISHED,
+            cls.Status.FIRED,
+        ]
 
 
 class HiringAwaitingState(GenericState):
