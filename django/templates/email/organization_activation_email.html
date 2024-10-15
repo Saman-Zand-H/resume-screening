@@ -1,0 +1,21 @@
+<h2 style="color: #333; text-align: center;">Dear {{ request.template_context.email_receiver_name }},</h2>
+<p style="color: #555; font-size: 16px;">
+    Welcome to <strong>Canada Prime Jobs (CPJ)</strong>, your trusted recruitment partner in Canada!
+</p>
+<p style="color: #555; font-size: 16px;">
+    We are excited to have your organization on board. 
+    To start posting job listings and connecting with top talents, 
+    please verify your email by clicking the link below:
+</p>
+<p style="text-align: center;">
+    <a href="{{ request.template_context.email_callback_url}}?token={{ token }}" class="button" style="color: white;">
+        Verify Email
+    </a>
+</p>
+<p style="color: #555; font-size: 16px;">
+    If you need any assistance, our dedicated team is available 24/7 to support you.
+</p>
+<p style="color: #333; font-size: 16px; text-align: center;">
+    Best regards,<br>
+    <strong>The CPJ Team</strong>
+</p>

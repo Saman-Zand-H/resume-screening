@@ -58,6 +58,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -274,6 +275,10 @@ class User(AbstractUser):
         return f"{self.first_name} {self.last_name}"
 
     full_name.fget.verbose_name = _("Full Name")
+
+    @cached_property
+    def user_type(self):
+        return "USER" if self.organizations.count() == 0 else "ORGANIZATION"
 
     @property
     def has_resume(self):
