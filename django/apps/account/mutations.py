@@ -80,6 +80,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeCooperation,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -165,13 +166,14 @@ def referral_registration(user, referral_code):
 
 
 EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+EMAIL_RECEIVER_USER_TYPE_VARIABLE = "email_receiver_user_type"
 EMAIL_RECEIVER_NAME_VARIABLE = "email_receiver_name"
 TEMPLATE_CONTEXT_VARIABLE = "template_context"
 
 
-def set_template_context_variable(context, key, value):
+def set_template_context_variable(context, data: dict):
     _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
-    _template_context[key] = value
+    _template_context.update(data)
     setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
 
 
@@ -197,9 +199,7 @@ class EmailCallbackUrlMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
         set_template_context_variable(
-            args[1].context,
-            EMAIL_CALLBACK_URL_VARIABLE,
-            kwargs.get(EMAIL_CALLBACK_URL_VARIABLE),
+            args[1].context, {EMAIL_CALLBACK_URL_VARIABLE: kwargs.get(EMAIL_CALLBACK_URL_VARIABLE)}
         )
         return super().mutate(*args, **kwargs)
 
@@ -218,8 +218,10 @@ class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
         email = kwargs.get(User.EMAIL_FIELD)
         set_template_context_variable(
             args[1].context,
-            EMAIL_RECEIVER_NAME_VARIABLE,
-            kwargs.get(cls.EMAIL_RECEIVER_NAME),
+            {
+                EMAIL_RECEIVER_USER_TYPE_VARIABLE: cls.EMAIL_RECEIVER_USER_TYPE,
+                EMAIL_RECEIVER_NAME_VARIABLE: kwargs.get(cls.EMAIL_RECEIVER_NAME),
+            },
         )
         try:
             UserStatus.clean_email(email)
@@ -249,6 +251,7 @@ class UserRegister(RegisterBase):
         OrganizationInvitation.token.field.name,
     ]
 
+    EMAIL_RECEIVER_USER_TYPE = "USER"
     EMAIL_RECEIVER_NAME = User.first_name.field.name
 
     @classmethod
@@ -282,6 +285,7 @@ class UserRegister(RegisterBase):
 class RegisterOrganization(RegisterBase):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
 
+    EMAIL_RECEIVER_USER_TYPE = "ORGANIZATION"
     EMAIL_RECEIVER_NAME = Organization.name.field.name
 
     @classmethod
@@ -331,7 +335,13 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
                 [user.email],
                 None,
                 subject=_("Welcome to CPJ - Your Journey to Career Excellence Starts Here!"),
-                content=render_to_string("email/welcome.html", {"user": user}),
+                content=render_to_string(
+                    "email/welcome.html",
+                    {
+                        EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                        EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                    },
+                ),
             )
 
             in_app_notification = InAppNotification(
@@ -346,7 +356,17 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
 
 
 class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
-    pass
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        user = get_user_by_email(kwargs.get("email"))
+        set_template_context_variable(
+            args[1].context,
+            {
+                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+            },
+        )
+        return super().mutate(*args, **kwargs)
 
 
 class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
@@ -355,8 +375,10 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         user = get_user_by_email(kwargs.get("email"))
         set_template_context_variable(
             args[1].context,
-            EMAIL_RECEIVER_NAME_VARIABLE,
-            user.first_name if user.first_name else user.email,
+            {
+                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+            },
         )
         return super().mutate(*args, **kwargs)
 
@@ -1300,7 +1322,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class OrganizationEmployeeHiringStatusUpdateMutation(
+class OrganizationEmployeeCooperationStatusUpdateMutation(
     MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
@@ -1311,9 +1333,8 @@ class OrganizationEmployeeHiringStatusUpdateMutation(
             organization := Organization.objects.filter(
                 **{
                     fields_join(
-                        OrganizationJobPosition.organization.field.related_query_name(),
-                        JobPositionAssignment.job_position.field.related_query_name(),
-                        OrganizationEmployee.job_position_assignment.field.related_query_name(),
+                        OrganizationEmployee.organization.field.related_query_name(),
+                        OrganizationEmployeeCooperation.employee.field.related_query_name(),
                         "pk",
                     ): kwargs.get("id")
                 }
@@ -1324,19 +1345,19 @@ class OrganizationEmployeeHiringStatusUpdateMutation(
         return organization
 
     class Meta:
-        model = OrganizationEmployee
+        model = OrganizationEmployeeCooperation
         login_required = True
-        fields = [OrganizationEmployee.hiring_status.field.name]
-        required_fields = [OrganizationEmployee.hiring_status.field.name]
-        type_name = "OrganizationEmployeeHiringStatusUpdateInput"
+        fields = [OrganizationEmployeeCooperation.status.field.name,]
+        required_fields = [OrganizationEmployeeCooperation.status.field.name,]
+        type_name = "OrganizationEmployeeCooperationStatusUpdateInput"
 
     @classmethod
     @transaction.atomic
     def mutate(cls, root, info, input, id):
-        status = input.get(OrganizationEmployee.hiring_status.field.name)
-        if not (obj := OrganizationEmployee.objects.get(pk=id)):
-            raise GraphQLErrorBadRequest(_("Organization employee not found."))
-        obj.change_hiring_status(status)
+        status = input.get(OrganizationEmployeeCooperation.status.field.name)
+        if not (obj := OrganizationEmployeeCooperation.objects.get(pk=id)):
+            raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
+        obj.change_status(status)
         return cls(**{cls._meta.return_field_name: obj})
 
 
@@ -1461,7 +1482,7 @@ class OrganizationMutation(graphene.ObjectType):
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
     update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
-    update_employee_hiring_status = OrganizationEmployeeHiringStatusUpdateMutation.Field()
+    update_employee_cooperation_status = OrganizationEmployeeCooperationStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):

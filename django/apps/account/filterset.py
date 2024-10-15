@@ -5,9 +5,8 @@ import django_filters
 from common.utils import fields_join
 
 from .models import (
-    OrganizationJobPosition,
     OrganizationEmployee,
-    OrganizationEmployeeCooperationHistory,
+    OrganizationEmployeeCooperation,
     JobPositionAssignment,
     User,
 )
@@ -22,22 +21,21 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
     class Meta:
         model = OrganizationEmployee
         fields = {
+            OrganizationEmployee.organization.field.name: ["exact"],
             fields_join(
-                OrganizationEmployee.job_position_assignment,
-                JobPositionAssignment.job_position,
-                OrganizationJobPosition.organization,
-            ): ["exact"],
-            fields_join(
-                OrganizationEmployee.job_position_assignment,
+                OrganizationEmployee.user,
+                JobPositionAssignment.job_seeker.field.related_query_name(),
                 JobPositionAssignment.job_position,
             ): ["exact"],
-            OrganizationEmployee.hiring_status.field.name: ["exact"],
+            fields_join(
+                OrganizationEmployeeCooperation.employee.field.related_query_name(),
+                OrganizationEmployeeCooperation.status,
+            ): ["exact"],
         }
 
     def filter_full_name(self, queryset, name, value):
-        job_seeker = fields_join(OrganizationEmployee.job_position_assignment, JobPositionAssignment.job_seeker)
-        first_name = fields_join(job_seeker, User.first_name)
-        last_name = fields_join(job_seeker, User.last_name)
+        first_name = fields_join(OrganizationEmployee.user, User.first_name)
+        last_name = fields_join(OrganizationEmployee.user, User.last_name)
         return queryset.annotate(full_name=Concat(first_name, Value(" "), last_name, output_field=CharField())).filter(
             full_name__icontains=value
         )
@@ -46,8 +44,8 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
         return queryset.filter(
             **{
                 fields_join(
-                    OrganizationEmployeeCooperationHistory.employee.field.related_query_name(),
-                    OrganizationEmployeeCooperationHistory.start_at,
+                    OrganizationEmployeeCooperation.employee.field.related_query_name(),
+                    OrganizationEmployeeCooperation.start_at,
                     opt,
                 ): value
             }

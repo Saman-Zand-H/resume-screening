@@ -35,6 +35,7 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
     ValidateFileSize,
 )
+from common.states import ChangeStateMixin, GenericState
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from flex_report import report_model
@@ -57,6 +58,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -273,6 +275,10 @@ class User(AbstractUser):
         return f"{self.first_name} {self.last_name}"
 
     full_name.fget.verbose_name = _("Full Name")
+
+    @cached_property
+    def user_type(self):
+        return "USER" if self.organizations.count() == 0 else "ORGANIZATION"
 
     @property
     def has_resume(self):
@@ -1662,6 +1668,7 @@ class Organization(DocumentAbstract):
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
     allow_self_verification = None
+    employees = models.ManyToManyField(User, through="OrganizationEmployee", related_name="employee_organizations")
 
     class Meta:
         verbose_name = _("Organization")
@@ -1880,7 +1887,7 @@ class OrganizationInvitation(models.Model):
         return f"{self.email} - {self.organization.name}"
 
 
-class OrganizationJobPosition(models.Model):
+class OrganizationJobPosition(ChangeStateMixin, models.Model):
     class Status(models.TextChoices):
         DRAFTED = "drafted", _("Drafted")
         PUBLISHED = "published", _("Published")
@@ -2041,41 +2048,29 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.title.field.name,
         ]
 
-    def change_status(self, new_status):
-        state_mapping = {
+    def change_status(self, new_status, *args, **kwargs):
+        super().change_status(
+            new_status,
+            {
             self.Status.DRAFTED: DraftedState(),
             self.Status.PUBLISHED: PublishedState(),
             self.Status.COMPLETED: CompletedState(),
             self.Status.SUSPENDED: SuspendedState(),
             self.Status.EXPIRED: ExpiredState(),
-        }
-        current_state = state_mapping.get(self.status)
-        if not current_state:
-            raise ValueError(f"Invalid status: {self.status}")
-        current_state.change_status(self, new_status)
-        self.save(update_fields=[OrganizationJobPosition.status.field.name])
+            },
+            OrganizationJobPosition.status.field.name,
+            **kwargs,
+        )
 
 
-class OrganizationJobPositionState:
-    new_statuses = []
-
-    @classmethod
-    def change_status(cls, job_position, new_status):
-        if new_status.value not in cls.new_statuses:
-            raise GraphQLErrorBadRequest(f"Cannot transition from {cls} to {new_status.value}")
-
-        job_position.status = new_status.value
-        job_position.set_status_history()
-
-
-class DraftedState(OrganizationJobPositionState):
+class DraftedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.PUBLISHED.value,
     ]
 
     @classmethod
-    def change_status(cls, job_position, new_status):
-        super().change_status(job_position, new_status)
+    def change_status(cls, job_position, new_status, status_field, **kwargs):
+        super().change_status(job_position, new_status, status_field, **kwargs)
         missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
         if missing_fields:
             raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
@@ -2084,27 +2079,27 @@ class DraftedState(OrganizationJobPositionState):
             raise GraphQLErrorBadRequest(("Organization must be verified to publish job positions"))
 
 
-class PublishedState(OrganizationJobPositionState):
+class PublishedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
         OrganizationJobPosition.Status.SUSPENDED.value,
     ]
 
 
-class CompletedState(OrganizationJobPositionState):
+class CompletedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
     ]
 
 
-class SuspendedState(OrganizationJobPositionState):
+class SuspendedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
         OrganizationJobPosition.Status.PUBLISHED.value,
     ]
 
 
-class ExpiredState(OrganizationJobPositionState):
+class ExpiredState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
     ]
@@ -2123,7 +2118,7 @@ class OrganizationJobPositionStatusHistory(models.Model):
         return f"{self.job_position.title} - {self.status}"
 
 
-class JobPositionAssignment(models.Model):
+class JobPositionAssignment(ChangeStateMixin, models.Model):
     class Status(models.TextChoices):
         AWAITING_JOBSEEKER_APPROVAL = "awaiting_jobseeker_approval", _("Awaiting Jobseeker Approval")
         REJECTED_BY_JOBSEEKER = "rejected_by_jobseeker", _("Rejected By Jobseeker")
@@ -2136,7 +2131,7 @@ class JobPositionAssignment(models.Model):
         INTERVIEW_CANCELED_BY_EMPLOYER = "interview_canceled_by_employer", _("Interview Canceled By Employer")
         REJECTED_AT_INTERVIEW = "rejected_at_interview", _("Rejected At Interview")
         REJECTED = "rejected", _("Rejected")
-        HIRED = "hired", _("Hired")
+        ACCEPTED = "accepted", _("Accepted")
 
     job_seeker = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name=_("Job Seeker"), related_name="job_position_assignments"
@@ -2171,7 +2166,7 @@ class JobPositionAssignment(models.Model):
             self.Status.INTERVIEW_CANCELED_BY_EMPLOYER,
             self.Status.REJECTED_AT_INTERVIEW,
             self.Status.REJECTED,
-            self.Status.HIRED,
+            self.Status.ACCEPTED,
         ]
 
     @property
@@ -2195,7 +2190,9 @@ class JobPositionAssignment(models.Model):
         return JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
 
     def change_status(self, new_status, **kwargs):
-        state_mapping = {
+        super().change_status(
+            new_status,
+            {
             self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
             self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
             self.Status.NOT_REVIEWED: NotReviewedState(),
@@ -2207,13 +2204,11 @@ class JobPositionAssignment(models.Model):
             self.Status.INTERVIEW_CANCELED_BY_EMPLOYER: InterviewCanceledByEmployerState(),
             self.Status.REJECTED_AT_INTERVIEW: RejectedAtInterviewState(),
             self.Status.REJECTED: RejectedState(),
-            self.Status.HIRED: HiredState(),
-        }
-        current_state = state_mapping.get(self.status)
-        if not current_state:
-            raise ValueError(f"Invalid status: {self.status}")
-        current_state.change_status(self, new_status, **kwargs)
-        self.save(update_fields=[JobPositionAssignment.status.field.name])
+                self.Status.ACCEPTED: AccptedState(),
+            },
+            JobPositionAssignment.status.field.name,
+            **kwargs,
+        )
 
 
 class JobPositionAssignmentStatusHistory(models.Model):
@@ -2257,37 +2252,25 @@ class JobPositionInterview(models.Model):
         return f"{self.job_position_assignment} - Interview date: {self.interview_date}"
 
 
-class JobPositionAssignmentState:
-    new_statuses = []
-
-    @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        if new_status.value not in cls.new_statuses:
-            raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
-
-        job_position_assignment.status = new_status.value
-        return job_position_assignment.set_status_history()
-
-
-class AwaitingJobseekerApprovalState(JobPositionAssignmentState):
+class AwaitingJobseekerApprovalState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED_BY_JOBSEEKER.value,
         JobPositionAssignment.Status.NOT_REVIEWED.value,
     ]
 
 
-class RejectedByJobseekerState(JobPositionAssignmentState):
+class RejectedByJobseekerState(GenericState):
     new_statuses = []
 
 
-class NotReviewedState(JobPositionAssignmentState):
+class NotReviewedState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
         JobPositionAssignment.Status.REJECTED.value,
     ]
 
 
-class AwaitingInterviewDateState(JobPositionAssignmentState):
+class AwaitingInterviewDateState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.INTERVIEW_SCHEDULED.value,
         JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
@@ -2295,8 +2278,8 @@ class AwaitingInterviewDateState(JobPositionAssignmentState):
     ]
 
     @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        assignment_status_history = super().change_status(job_position_assignment, new_status, **kwargs)
+    def change_status(cls, job_position_assignment, new_status, status_field, **kwargs):
+        assignment_status_history = super().change_status(job_position_assignment, new_status, status_field, **kwargs)
         if new_status.value == JobPositionAssignment.Status.INTERVIEW_SCHEDULED.value:
             if interview_date := kwargs.get("interview_date"):
                 JobPositionInterview.objects.create(
@@ -2308,7 +2291,7 @@ class AwaitingInterviewDateState(JobPositionAssignmentState):
                 raise ValueError(_("Interview date is required"))
 
 
-class InterviewScheduledState(JobPositionAssignmentState):
+class InterviewScheduledState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.INTERVIEWING.value,
         JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
@@ -2316,14 +2299,14 @@ class InterviewScheduledState(JobPositionAssignmentState):
     ]
 
 
-class InterviewingState(JobPositionAssignmentState):
+class InterviewingState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.AWAITING_INTERVIEW_RESULTS.value,
     ]
 
     @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        super().change_status(job_position_assignment, new_status, **kwargs)
+    def change_status(cls, job_position_assignment, new_status, status_field, **kwargs):
+        super().change_status(job_position_assignment, new_status, status_field, **kwargs)
         if result_date := kwargs.get("result_date"):
             job_position_interview = job_position_assignment.interviews.last()
             job_position_interview.result_date = result_date
@@ -2332,200 +2315,199 @@ class InterviewingState(JobPositionAssignmentState):
             raise ValueError(_("Result date is required"))
 
 
-class AwaitingInterviewResultsState(JobPositionAssignmentState):
+class AwaitingInterviewResultsState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED_AT_INTERVIEW.value,
-        JobPositionAssignment.Status.HIRED.value,
+        JobPositionAssignment.Status.ACCEPTED.value,
     ]
 
     @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        super().change_status(job_position_assignment, new_status, **kwargs)
-        if new_status.value == JobPositionAssignment.Status.HIRED.value:
-            OrganizationEmployee.objects.create(job_position_assignment=job_position_assignment)
+    def change_status(cls, job_position_assignment, new_status, status_field, **kwargs):
+        super().change_status(job_position_assignment, new_status, status_field, **kwargs)
+        if new_status.value == JobPositionAssignment.Status.ACCEPTED.value:
+            organization_employee, _ = OrganizationEmployee.objects.get_or_create(
+                user=job_position_assignment.job_seeker, organization=job_position_assignment.job_position.organization
+            )
+            OrganizationEmployeeCooperation.objects.create(
+                employee=organization_employee,
+                job_position_assignment=job_position_assignment,
+            )
 
 
-class InterviewCanceledByJobseekerState(JobPositionAssignmentState):
+class InterviewCanceledByJobseekerState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED.value,
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
     ]
 
 
-class InterviewCanceledByEmployerState(JobPositionAssignmentState):
+class InterviewCanceledByEmployerState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED.value,
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
     ]
 
 
-class RejectedAtInterviewState(JobPositionAssignmentState):
+class RejectedAtInterviewState(GenericState):
     new_statuses = []
 
 
-class RejectedState(JobPositionAssignmentState):
+class RejectedState(GenericState):
     new_statuses = []
 
 
-class HiredState(JobPositionAssignmentState):
+class AccptedState(GenericState):
     new_statuses = []
 
 
-class OrganizationEmployee(models.Model):
-    class HiringStatus(models.TextChoices):
+class OrganizationEmployee(TimeStampedModel):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="organization_employees"
+    )
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, verbose_name=_("Organization"), related_name="organization_employees"
+    )
+
+    class Meta:
+        verbose_name = _("Organization Employee")
+        verbose_name_plural = _("Organization Employees")
+        unique_together = [("user", "organization")]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.organization.name}"
+
+
+class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
+    class Status(models.TextChoices):
         AWAITING = "awaiting", _("Awaiting")
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
         FIRED = "fired", _("Fired")
         FINISHED = "finished", _("Finished")
 
-    job_position_assignment = models.OneToOneField(
-        JobPositionAssignment,
-        on_delete=models.RESTRICT,
-        verbose_name=_("Job Position Assignment "),
-        related_name="organization_employee",
-    )
-    hiring_status = models.CharField(
+    status = models.CharField(
         max_length=50,
-        choices=HiringStatus.choices,
+        choices=Status.choices,
         verbose_name=_("Status"),
-        default=HiringStatus.AWAITING,
+        default=Status.AWAITING,
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-
-    class Meta:
-        verbose_name = _("Organization Employee")
-        verbose_name_plural = _("Organization Employees")
-
-    def __str__(self):
-        return str(self.job_position_assignment)
-
-    def set_hiring_status_history(self):
-        OrganizationEmployeeHiringStatusHistory.objects.create(
-            cooperation_history=self.cooperation_histories.first(), hiring_status=self.hiring_status
-        )
-
-    def change_hiring_status(self, new_status, **kwargs):
-        state_mapping = {
-            self.HiringStatus.AWAITING: HiringAwaitingState(),
-            self.HiringStatus.ACTIVE: HiringActiveState(),
-            self.HiringStatus.SUSPENDED: HiringSuspendedState(),
-            self.HiringStatus.FINISHED: HiringFinishedState(),
-            self.HiringStatus.FIRED: HiringFiredState(),
-        }
-        current_state = state_mapping.get(self.hiring_status)
-        if not current_state:
-            raise ValueError(f"Invalid status: {self.hiring_status}")
-        current_state.change_status(self, new_status, **kwargs)
-        self.save(update_fields=[OrganizationEmployee.hiring_status.field.name])
-
-    @classmethod
-    def get_hiring_status_order(cls):
-        return {
-            cls.HiringStatus.AWAITING: 1,
-            cls.HiringStatus.ACTIVE: 2,
-            cls.HiringStatus.SUSPENDED: 3,
-            cls.HiringStatus.FINISHED: 4,
-            cls.HiringStatus.FIRED: 5,
-        }
-
-
-class OrganizationEmployeeCooperationHistory(models.Model):
     employee = models.ForeignKey(
         OrganizationEmployee,
         on_delete=models.CASCADE,
         verbose_name=_("Organization Employee"),
-        related_name="cooperation_histories",
+        related_name="cooperations",
     )
-    start_at = models.DateField(verbose_name=_("Start At"))
-    end_at = models.DateField(verbose_name=_("End At"), null=True, blank=True)
+    job_position_assignment = models.ForeignKey(
+        JobPositionAssignment,
+        on_delete=models.RESTRICT,
+        verbose_name=_("Job Position Assignment"),
+        related_name="cooperations",
+    )
+    start_at = models.DateTimeField(verbose_name=_("Start At"), null=True, blank=True)
+    end_at = models.DateTimeField(verbose_name=_("End At"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Organization Employee Cooperation History")
-        verbose_name_plural = _("Organization Employee Cooperation Histories")
-        ordering = ["-created_at"]
+        verbose_name = _("Organization Employee Cooperation")
+        verbose_name_plural = _("Organization Employee Cooperation")
 
     def __str__(self):
-        return f"{self.id}: {self.employee} - {self.start_at} - {self.end_at or ''}"
+        return f"{self.id}: {self.employee} - {self.start_at or ''} - {self.end_at or ''}"
 
+    def set_status_history(self):
+        OrganizationEmployeeCooperationStatusHistory.objects.create(
+            organization_employee_cooperation=self, status=self.status
+        )
 
-class OrganizationEmployeeHiringState:
-    new_statuses = []
+    def change_status(self, new_status, **kwargs):
+        super().change_status(
+            new_status,
+            {
+                self.Status.AWAITING: HiringAwaitingState(),
+                self.Status.ACTIVE: HiringActiveState(),
+                self.Status.SUSPENDED: HiringSuspendedState(),
+                self.Status.FINISHED: HiringFinishedState(),
+                self.Status.FIRED: HiringFiredState(),
+            },
+            OrganizationEmployeeCooperation.status.field.name,
+            **kwargs,
+        )
 
     @classmethod
-    def change_status(cls, organization_employee, new_status, **kwargs):
-        if new_status.value not in cls.new_statuses:
-            raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
+    def get_status_order(cls):
+        return [
+            cls.Status.AWAITING,
+            cls.Status.ACTIVE,
+            cls.Status.SUSPENDED,
+            cls.Status.FINISHED,
+            cls.Status.FIRED,
+        ]
 
-        organization_employee.hiring_status = new_status.value
-        organization_employee.set_hiring_status_history()
 
-
-class HiringAwaitingState(OrganizationEmployeeHiringState):
+class HiringAwaitingState(GenericState):
     new_statuses = [
-        OrganizationEmployee.HiringStatus.ACTIVE.value,
+        OrganizationEmployeeCooperation.Status.ACTIVE.value,
     ]
 
     @classmethod
-    def change_status(cls, organization_employee, new_status, **kwargs):
-        OrganizationEmployeeCooperationHistory.objects.create(employee=organization_employee, start_at=now().date())
-        super().change_status(organization_employee, new_status, **kwargs)
+    def change_status(cls, organization_employee_cooperation, new_status, status_field, **kwargs):
+        organization_employee_cooperation.start_at = now()
+        organization_employee_cooperation.save(update_fields=[OrganizationEmployeeCooperation.start_at.field.name])
+        super().change_status(organization_employee_cooperation, new_status, status_field, **kwargs)
 
 
-class HiringActiveState(OrganizationEmployeeHiringState):
+class HiringActiveState(GenericState):
     new_statuses = [
-        OrganizationEmployee.HiringStatus.SUSPENDED.value,
-        OrganizationEmployee.HiringStatus.FIRED.value,
-        OrganizationEmployee.HiringStatus.FINISHED.value,
+        OrganizationEmployeeCooperation.Status.SUSPENDED.value,
+        OrganizationEmployeeCooperation.Status.FIRED.value,
+        OrganizationEmployeeCooperation.Status.FINISHED.value,
     ]
 
     @classmethod
-    def change_status(cls, organization_employee, new_status, **kwargs):
-        super().change_status(organization_employee, new_status, **kwargs)
+    def change_status(cls, organization_employee_cooperation, new_status, status_field, **kwargs):
+        super().change_status(organization_employee_cooperation, new_status, status_field, **kwargs)
         if new_status.value in [
-            OrganizationEmployee.HiringStatus.FIRED.value,
-            OrganizationEmployee.HiringStatus.FINISHED.value,
+            OrganizationEmployeeCooperation.Status.FIRED.value,
+            OrganizationEmployeeCooperation.Status.FINISHED.value,
         ]:
-            cooperation = organization_employee.cooperation_histories.first()
-            cooperation.end_at = now().date()
-            cooperation.save(update_fields=[OrganizationEmployeeCooperationHistory.end_at.field.name])
+            organization_employee_cooperation.end_at = now()
+            organization_employee_cooperation.save(update_fields=[OrganizationEmployeeCooperation.end_at.field.name])
 
 
-class HiringSuspendedState(OrganizationEmployeeHiringState):
+class HiringSuspendedState(GenericState):
     new_statuses = [
-        OrganizationEmployee.HiringStatus.ACTIVE.value,
+        OrganizationEmployeeCooperation.Status.ACTIVE.value,
     ]
 
 
-class HiringFinishedState(OrganizationEmployeeHiringState):
+class HiringFinishedState(GenericState):
     new_statuses = []
 
 
-class HiringFiredState(OrganizationEmployeeHiringState):
+class HiringFiredState(GenericState):
     new_statuses = []
 
 
-class OrganizationEmployeeHiringStatusHistory(models.Model):
-    cooperation_history = models.ForeignKey(
-        OrganizationEmployeeCooperationHistory,
+class OrganizationEmployeeCooperationStatusHistory(models.Model):
+    organization_employee_cooperation = models.ForeignKey(
+        OrganizationEmployeeCooperation,
         on_delete=models.CASCADE,
-        verbose_name=_("Cooperation History"),
-        related_name="hiring_status_histories",
+        verbose_name=_("Organization Employee Cooperation"),
+        related_name="status_histories",
     )
-    hiring_status = models.CharField(
+    status = models.CharField(
         max_length=50,
-        choices=OrganizationEmployee.HiringStatus.choices,
+        choices=OrganizationEmployeeCooperation.Status.choices,
         verbose_name=_("Status"),
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Organization Employee Hiring Status History")
-        verbose_name_plural = _("Organization Employee Hiring Status Histories")
+        verbose_name = _("Organization Employee Cooperation Status History")
+        verbose_name_plural = _("Organization Employee Cooperation Status Histories")
 
     def __str__(self):
-        return f"{self.cooperation_history} - {self.hiring_status}"
+        return f"{self.organization_employee_cooperation} - {self.status}"
 
 
 class PlatformMessage(models.Model):
@@ -2541,8 +2523,8 @@ class PlatformMessage(models.Model):
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     text = models.TextField(verbose_name=_("Text"))
-    employee = models.ForeignKey(
-        OrganizationEmployee,
+    organization_employee_cooperation = models.ForeignKey(
+        OrganizationEmployeeCooperation,
         on_delete=models.CASCADE,
         verbose_name=_("Employee"),
         related_name="%(class)s",
@@ -2560,7 +2542,7 @@ class OrganizationPlatformMessage(PlatformMessage):
         verbose_name_plural = _("Organization Platform Messages")
 
     def __str__(self):
-        return f"{self.employee} - {self.title}"
+        return f"{self.organization_employee_cooperation} - {self.title}"
 
 
 class EmployeePlatformMessage(PlatformMessage):
@@ -2569,4 +2551,5 @@ class EmployeePlatformMessage(PlatformMessage):
         verbose_name_plural = _("Employee Platform Messages")
 
     def __str__(self):
-        return f"{self.employee} - {self.title}"
+        return f"{self.organization_employee_cooperation} - {self.title}"
+

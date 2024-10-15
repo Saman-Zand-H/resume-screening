@@ -18,7 +18,7 @@ from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When, Subquery, OuterRef
 
 from .accesses import (
     JobPositionContainer,
@@ -42,7 +42,7 @@ from .models import (
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
-    OrganizationEmployeeCooperationHistory,
+    OrganizationEmployeeCooperation,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -945,43 +945,42 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
 
-class OrganizationEmployeeCooperationHistoryType(DjangoObjectType):
-    class Meta:
-        model = OrganizationEmployeeCooperationHistory
-        fields = (
-            OrganizationEmployeeCooperationHistory.id.field.name,
-            OrganizationEmployeeCooperationHistory.start_at.field.name,
-            OrganizationEmployeeCooperationHistory.end_at.field.name,
-        )
-
-
-class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
+class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
-    employee = graphene.Field(EmployeeType)
-    cooperation_histories = graphene.List(OrganizationEmployeeCooperationHistoryType)
     platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
-        model = OrganizationEmployee
-        use_connection = True
+        model = OrganizationEmployeeCooperation
         fields = (
-            OrganizationEmployee.id.field.name,
-            OrganizationEmployee.hiring_status.field.name,
+            OrganizationEmployeeCooperation.id.field.name,
+            OrganizationEmployeeCooperation.status.field.name,
+            OrganizationEmployeeCooperation.start_at.field.name,
+            OrganizationEmployeeCooperation.end_at.field.name,
         )
-        filterset_class = OrganizationEmployeeFilterset
-
-    def resolve_job_position(self, info):
-        return self.job_position_assignment.job_position
-
-    def resolve_employee(self, info):
-        return self.job_position_assignment.job_seeker
-
-    def resolve_cooperation_histories(self, info):
-        return self.cooperation_histories.all()
 
     def resolve_platform_messages(self, info):
         return self.organizationplatformmessage.all()
 
+    def resolve_job_position(self, info):
+        return self.job_position_assignment.job_position
+
+
+class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    employee = graphene.Field(EmployeeType)
+    cooperations = graphene.List(OrganizationEmployeeCooperationType)
+
+    class Meta:
+        model = OrganizationEmployee
+        use_connection = True
+        fields = (OrganizationEmployee.id.field.name,)
+        filterset_class = OrganizationEmployeeFilterset
+
+    def resolve_employee(self, info):
+        return self.user
+
+    def resolve_cooperations(self, info):
+        return self.cooperations.all()
+    
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
         user = info.context.user
@@ -989,23 +988,28 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
             queryset.filter(
                 **{
                     fields_join(
-                        OrganizationEmployee.job_position_assignment,
-                        JobPositionAssignment.job_position,
-                        OrganizationJobPosition.organization,
+                        OrganizationEmployee.organization,
                         OrganizationMembership.organization.field.related_query_name(),
                         OrganizationMembership.user,
                     ): user
                 }
             )
             .annotate(
+                last_cooperation_status=Subquery(
+                    (
+                        OrganizationEmployeeCooperation.objects.filter(employee=OuterRef("pk"))
+                        .order_by("-id")
+                        .values("status")[:1]
+                    )
+                ),
                 status_order=Case(
                     *[
-                        When(hiring_status=status, then=Value(order))
-                        for status, order in OrganizationEmployee.get_hiring_status_order().items()
+                        When(last_cooperation_status=status, then=Value(order))
+                        for order, status in enumerate(OrganizationEmployeeCooperation.get_status_order())
                     ],
                     output_field=IntegerField(),
-                )
+                ),
             )
             .distinct()
-            .order_by("status_order", "-created_at")
+            .order_by("status_order", "-created")
         )
