@@ -2,14 +2,14 @@ from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, RootModel
 
-from ..models import Contact
+from ..choices import ContactType
 
 CONTACT_TYPES = Literal[
-    Contact.Type.WHATSAPP,
-    Contact.Type.ADDRESS,
-    Contact.Type.PHONE,
-    Contact.Type.LINKEDIN,
-    Contact.Type.WEBSITE,
+    ContactType.WHATSAPP,
+    ContactType.ADDRESS,
+    ContactType.PHONE,
+    ContactType.LINKEDIN,
+    ContactType.WEBSITE,
 ]
 
 

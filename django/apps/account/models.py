@@ -23,6 +23,7 @@ from common.models import (
     SlugTitleAbstract,
     University,
 )
+from common.states import ChangeStateMixin, GenericState
 from common.utils import (
     field_serializer,
     fields_join,
@@ -35,7 +36,6 @@ from common.validators import (
     IMAGE_FILE_SIZE_VALIDATOR,
     ValidateFileSize,
 )
-from common.states import ChangeStateMixin, GenericState
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from flex_report import report_model
@@ -62,7 +62,7 @@ from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from .choices import get_task_names_choices
+from .choices import ContactType, get_task_names_choices
 from .constants import (
     EARLY_USERS_COUNT,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
@@ -140,12 +140,7 @@ class Contactable(models.Model):
 
 
 class Contact(models.Model):
-    class Type(models.TextChoices):
-        WEBSITE = "website", _("Website")
-        ADDRESS = "address", _("Address")
-        LINKEDIN = "linkedin", _("LinkedIn")
-        WHATSAPP = "whatsapp", _("WhatsApp")
-        PHONE = "phone", _("Phone")
+    Type = ContactType
 
     VALIDATORS = {
         Type.WEBSITE: models.URLField().run_validators,
@@ -2052,11 +2047,11 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
         super().change_status(
             new_status,
             {
-            self.Status.DRAFTED: DraftedState(),
-            self.Status.PUBLISHED: PublishedState(),
-            self.Status.COMPLETED: CompletedState(),
-            self.Status.SUSPENDED: SuspendedState(),
-            self.Status.EXPIRED: ExpiredState(),
+                self.Status.DRAFTED: DraftedState(),
+                self.Status.PUBLISHED: PublishedState(),
+                self.Status.COMPLETED: CompletedState(),
+                self.Status.SUSPENDED: SuspendedState(),
+                self.Status.EXPIRED: ExpiredState(),
             },
             OrganizationJobPosition.status.field.name,
             **kwargs,
@@ -2193,17 +2188,17 @@ class JobPositionAssignment(ChangeStateMixin, models.Model):
         super().change_status(
             new_status,
             {
-            self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
-            self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
-            self.Status.NOT_REVIEWED: NotReviewedState(),
-            self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
-            self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
-            self.Status.INTERVIEWING: InterviewingState(),
-            self.Status.AWAITING_INTERVIEW_RESULTS: AwaitingInterviewResultsState(),
-            self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER: InterviewCanceledByJobseekerState(),
-            self.Status.INTERVIEW_CANCELED_BY_EMPLOYER: InterviewCanceledByEmployerState(),
-            self.Status.REJECTED_AT_INTERVIEW: RejectedAtInterviewState(),
-            self.Status.REJECTED: RejectedState(),
+                self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
+                self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
+                self.Status.NOT_REVIEWED: NotReviewedState(),
+                self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
+                self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
+                self.Status.INTERVIEWING: InterviewingState(),
+                self.Status.AWAITING_INTERVIEW_RESULTS: AwaitingInterviewResultsState(),
+                self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER: InterviewCanceledByJobseekerState(),
+                self.Status.INTERVIEW_CANCELED_BY_EMPLOYER: InterviewCanceledByEmployerState(),
+                self.Status.REJECTED_AT_INTERVIEW: RejectedAtInterviewState(),
+                self.Status.REJECTED: RejectedState(),
                 self.Status.ACCEPTED: AccptedState(),
             },
             JobPositionAssignment.status.field.name,
@@ -2552,4 +2547,3 @@ class EmployeePlatformMessage(PlatformMessage):
 
     def __str__(self):
         return f"{self.organization_employee_cooperation} - {self.title}"
-
