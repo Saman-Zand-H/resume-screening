@@ -1,5 +1,5 @@
 from common.exceptions import GraphQLErrorBadRequest
-
+from account.models import User
 
 class ChangeStateMixin:
     def change_status(self, new_status, state_mapping, status_field, **kwargs):
