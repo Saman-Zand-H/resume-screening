@@ -915,6 +915,7 @@ class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
 
 class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
     SLUG = "education_evaluation"
+    ANALYSABLE = True
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/education_evaluation/{filename}"
@@ -951,6 +952,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 class DegreeFile(UserUploadedDocumentFile):
     SLUG = "degree"
+    ANALYSABLE = True
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/degree/{filename}"
@@ -1042,6 +1044,7 @@ class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstrac
 
 class EmployerLetterFile(UserUploadedDocumentFile):
     SLUG = "employer_letter"
+    ANALYSABLE = True
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/employer_letter/{filename}"
@@ -1070,6 +1073,7 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract, EmailVerifi
 
 class PaystubsFile(UserUploadedDocumentFile):
     SLUG = "paystubs"
+    ANALYSABLE = True
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/paystubs/{filename}"

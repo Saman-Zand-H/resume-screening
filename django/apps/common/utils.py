@@ -108,3 +108,7 @@ def get_file_models():
 
 def get_file_model(slug: str):
     return next((model for model in get_file_models() if model.SLUG == slug), None)
+
+
+def get_analysable_file_models():
+    return (model for model in get_file_models() if hasattr(model, "ANALYSABLE") and model.ANALYSABLE)

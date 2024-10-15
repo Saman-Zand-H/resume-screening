@@ -22,7 +22,7 @@ from .models import (
     Skill,
     University,
 )
-from .utils import get_file_models
+from .utils import get_file_models, get_analysable_file_models
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = graphene.Enum("Errors", enum_values)
@@ -217,6 +217,11 @@ class SkillType(DjangoObjectType):
 UploadType = convert_choices_to_named_enum_with_descriptions(
     "UploadType",
     sorted(((model.SLUG, model._meta.verbose_name) for model in get_file_models()), key=itemgetter(0)),
+)
+
+AnalysableUploadType = convert_choices_to_named_enum_with_descriptions(
+    "AnalysableUploadType",
+    sorted(((model.SLUG, model._meta.verbose_name) for model in get_analysable_file_models()), key=itemgetter(0)),
 )
 
 
