@@ -17,6 +17,33 @@ from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
 from .constants import VectorStores
+from .typing import ResumeJson
+
+
+def set_contacts_from_resume_json(user, resume_json: dict):
+    from .models import Contact, Contactable, Profile
+
+    contactable = Contactable.objects.filter(
+        **{fields_join(Profile.contactable.field.related_query_name(), Profile.user): user}
+    ).first()
+
+    if not (contactable and (resume_json_model := ResumeJson.model_validate(resume_json)).contact_informations):
+        return
+
+    contacts = [
+        Contact(
+            **{
+                fields_join(Contact.contactable): contactable,
+                fields_join(Contact.value): contact_information.value,
+                fields_join(Contact.type): contact_information.type,
+            }
+        )
+        for contact_information in resume_json_model.contact_informations
+    ]
+    Contact.objects.bulk_create(
+        contacts,
+        ignore_conflicts=True,
+    )
 
 
 def extract_resume_json(file_model_id: int):
