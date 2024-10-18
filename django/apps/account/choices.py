@@ -12,6 +12,36 @@ class ContactType(TextChoices):
     PHONE = "phone", _("Phone")
 
 
+class IEEEvaluator(TextChoices):
+    WES = "wes", _("World Education Services")
+    IQAS = "iqas", _("International Qualifications Assessment Service")
+    ICAS = "icas", _("International Credential Assessment Service of Canada")
+    CES = "ces", _("Comparative Education Service")
+    OTHER = "other", _("Other")
+
+
+class WorkExperienceGrade(TextChoices):
+    INTERN = "intern", _("Intern")
+    ASSOCIATE = "associate", _("Associate")
+    JUNIOR = "junior", _("Junior")
+    MID_LEVEL = "mid_level", _("Mid-Level")
+    SENIOR = "senior", _("Senior")
+    MANAGER = "manager", _("Manager")
+    DIRECTOR = "director", _("Director")
+    CTO = "cto", _("CTO")
+    CFO = "cfo", _("CFO")
+    CEO = "ceo", _("CEO")
+
+
+class EducationDegree(TextChoices):
+    BACHELORS = "bachelors", _("Bachelors")
+    MASTERS = "masters", _("Masters")
+    PHD = "phd", _("PhD")
+    ASSOCIATE = "associate", _("Associate")
+    DIPLOMA = "diploma", _("Diploma")
+    CERTIFICATE = "certificate", _("Certificate")
+
+
 class DefaultRoles(TextChoices):
     OWNER = "owner", "Owner"
 

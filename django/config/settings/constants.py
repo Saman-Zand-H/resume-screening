@@ -13,4 +13,5 @@ class Assistants:
     SKILL = "get-or-create-skills"
     RESUME_JSON = "get-resume-json"
     GENERATE_RESUME = "get-resume-info"
+    DOCUMENT_ANALYSIS = "analyze-document"
     OCR = "get-file-text-content"
