@@ -10,7 +10,11 @@ from common.mixins import (
     FilePermissionMixin,
 )
 from common.models import Job, Skill
-from common.types import SkillType, WorkExperienceVerificationMethodUploadType, EducationVerificationMethodUploadType
+from common.types import (
+    EducationVerificationMethodUploadType,
+    SkillType,
+    WorkExperienceVerificationMethodUploadType,
+)
 from common.utils import fields_join
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -55,6 +59,7 @@ from .accesses import (
     OrganizationProfileContainer,
 )
 from .choices import DefaultRoles
+from .constants import FileSlugs
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -72,8 +77,11 @@ from .models import (
     CertificateAndLicenseOfflineVerificationMethod,
     CommunicateOrganizationMethod,
     Contact,
+    DegreeFile,
     DocumentAbstract,
     Education,
+    EducationEvaluationDocumentFile,
+    EmployerLetterFile,
     EmployerLetterMethod,
     JobPositionAssignment,
     JobPositionInterview,
@@ -85,6 +93,7 @@ from .models import (
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
+    PaystubsFile,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -95,10 +104,6 @@ from .models import (
     User,
     UserDevice,
     WorkExperience,
-    EducationEvaluationDocumentFile,
-    DegreeFile,
-    EmployerLetterFile,
-    PaystubsFile,
 )
 from .tasks import (
     get_certificate_text,
@@ -110,8 +115,8 @@ from .tasks import (
 from .types import (
     CertificateAndLicenseNode,
     EducationAIType,
-    EducationVerificationMethodType,
     EducationNode,
+    EducationVerificationMethodType,
     LanguageCertificateNode,
     OrganizationJobPositionNode,
     ProfileType,
@@ -120,6 +125,7 @@ from .types import (
     WorkExperienceNode,
     WorkExperienceVerificationMethodType,
 )
+from .utils import analyze_document
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -838,23 +844,15 @@ class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, file_id, verification_type):
         file_model = {
-            "education_evaluation": EducationEvaluationDocumentFile,
-            "degree": DegreeFile,
-        }[verification_type.value]
-        if not (obj := file_model.objects.filter(pk=file_id).first()):
+            FileSlugs.EDUCATION_EVALUATION.value: EducationEvaluationDocumentFile,
+            FileSlugs.DEGREE.value: DegreeFile,
+        }.get(verification_type.value)
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
             raise GraphQLErrorBadRequest("File not found.")
 
-        data = {"degree": "bachelors", "start": datetime(2020, 1, 1), "end": datetime(2025, 1, 1)}
-        verification_method_data = (
-            {"website": "https://example.com", "email": "john@doe.com", "department": "HQ", "person": "John Doe"}
-            if file_model == DegreeFile
-            else {"evaluator": "John Doe"}
-        )
-        info.context.model = file_model
+        response = analyze_document(obj.pk, verification_type.value)
 
-        return EducationAnalyseAndExtractDataMutation(
-            is_valid=True, data=data, verification_method_data=verification_method_data
-        )
+        return EducationAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
@@ -945,34 +943,15 @@ class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
     @staticmethod
     def mutate(root, info, file_id, verification_type):
         file_model = {
-            "employer_letter": EmployerLetterFile,
-            "paystubs": PaystubsFile,
-        }[verification_type.value]
-        if not (obj := file_model.objects.filter(pk=file_id).first()):
+            FileSlugs.EMPLOYER_LETTER.value: EmployerLetterFile,
+            FileSlugs.PAYSTUBS.value: PaystubsFile,
+        }.get(verification_type.value)
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
             raise GraphQLErrorBadRequest("File not found.")
 
-        data = {
-            "job_title": "Software engineer",
-            "grade": "Senior",
-            "start": datetime(2020, 1, 1),
-            "end": datetime(2025, 1, 1),
-            "organization": "Ubisoft",
-        }
-        verification_method_data = (
-            {
-                "name": "John Doe",
-                "email": "john@doe.com",
-                "phone_number": "+1234567890",
-                "position": "HR Manager",
-            }
-            if file_model == EmployerLetterFile
-            else {}
-        )
-        info.context.model = file_model
+        response = analyze_document(obj.pk, verification_type.value)
 
-        return WorkExperienceAnalyseAndExtractDataMutation(
-            is_valid=True, data=data, verification_method_data=verification_method_data
-        )
+        return WorkExperienceAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (

@@ -1,6 +1,7 @@
+import contextlib
 import json
 from operator import attrgetter
-from typing import Any, List, Optional, Union
+from typing import Any, List, Literal, Optional
 
 from ai.google import GoogleServices
 from cities_light.models import City
@@ -9,6 +10,7 @@ from common.utils import fields_join, get_file_model_mimetype
 from config.settings.constants import Assistants, Environment
 from flex_blob.models import FileModel
 from google.genai import types
+from pydantic import ValidationError as PydanticValidationError
 
 from django.conf import settings
 from django.contrib.postgres.expressions import ArraySubquery
@@ -16,12 +18,10 @@ from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
-from .constants import VectorStores
+from .constants import FileSlugs, VectorStores
 from .typing import (
     AnalysisResponse,
-    EducationVerificationType,
     ResumeJson,
-    WorkExperienceVerificationType,
 )
 
 
@@ -53,7 +53,12 @@ def set_contacts_from_resume_json(user, resume_json: dict):
 
 def analyze_document(
     file_model_id: int,
-    verification_method_name: Union[EducationVerificationType, WorkExperienceVerificationType],
+    verification_method_name: Literal[
+        FileSlugs.EMPLOYER_LETTER,
+        FileSlugs.PAYSTUBS,
+        FileSlugs.EDUCATION_EVALUATION,
+        FileSlugs.DEGREE,
+    ],
 ) -> AnalysisResponse:
     if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
         return
@@ -71,8 +76,10 @@ def analyze_document(
     )
 
     if results:
-        print(results)
-        return AnalysisResponse.model_validate(service.message_to_json(results))
+        with contextlib.suppress(PydanticValidationError):
+            return AnalysisResponse.model_validate(service.message_to_json(results))
+
+        return AnalysisResponse(is_valid=False)
 
 
 def extract_resume_json(file_model_id: int):

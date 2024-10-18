@@ -63,7 +63,11 @@ class ReferenceCheckData(BaseModel):
     position: Optional[str] = None
 
 
-WorkExperienceVerificationType = Union[ReferenceCheckData]
+class PaystubsData(BaseModel):
+    pass
+
+
+WorkExperienceVerificationType = Union[ReferenceCheckData, PaystubsData]
 
 
 class EducationData(BaseModel):
