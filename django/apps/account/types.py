@@ -498,8 +498,7 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
             CertificateAndLicense.allow_self_verification.field.name,
-            CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.related_query_name(),
-            CertificateAndLicenseOnlineVerificationMethod.certificate_and_license.field.related_query_name(),
+            *(m.get_related_name() for m in CertificateAndLicense.get_method_models()),
         )
 
 
