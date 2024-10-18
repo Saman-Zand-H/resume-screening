@@ -75,6 +75,7 @@ from .constants import (
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
     SUPPORT_TICKET_SUBJECT_TEMPLATE,
+    FileSlugs,
     ProfileAnnotationNames,
 )
 from .managers import (
@@ -496,7 +497,7 @@ class UserUploadedImageFile(UserFile):
 
 
 class AvatarFile(UserUploadedImageFile):
-    SLUG = "avatar"
+    SLUG = FileSlugs.AVATAR.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
@@ -520,7 +521,7 @@ class AvatarFile(UserUploadedImageFile):
 
 
 class FullBodyImageFile(UserUploadedImageFile):
-    SLUG = "full_body_image"
+    SLUG = FileSlugs.FULL_BODY_IMAGE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/full_body_image/{filename}"
@@ -914,7 +915,7 @@ class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
 
 
 class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
-    SLUG = "education_evaluation"
+    SLUG = FileSlugs.EDUCATION_EVALUATION.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/education_evaluation/{filename}"
@@ -945,7 +946,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 
 class DegreeFile(UserUploadedDocumentFile):
-    SLUG = "degree"
+    SLUG = FileSlugs.DEGREE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/degree/{filename}"
@@ -1026,7 +1027,7 @@ class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstrac
 
 
 class EmployerLetterFile(UserUploadedDocumentFile):
-    SLUG = "employer_letter"
+    SLUG = FileSlugs.EMPLOYER_LETTER.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/employer_letter/{filename}"
@@ -1054,7 +1055,7 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract, EmailVerifi
 
 
 class PaystubsFile(UserUploadedDocumentFile):
-    SLUG = "paystubs"
+    SLUG = FileSlugs.PAYSTUBS.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/paystubs/{filename}"
@@ -1206,7 +1207,7 @@ class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAb
 
 
 class LanguageCertificateFile(UserUploadedDocumentFile):
-    SLUG = "language_certificate"
+    SLUG = FileSlugs.LANGUAGE_CERTIFICATE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/language_certificate_verification/language_certificate/{filename}"
@@ -1283,7 +1284,7 @@ class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethod
 
 
 class CertificateFile(UserUploadedDocumentFile):
-    SLUG = "certificate"
+    SLUG = FileSlugs.CERTIFICATE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/certificate_and_license_verification/certificate_and_license/{filename}"
@@ -1315,7 +1316,7 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
 
 
 class CitizenshipDocumentFile(UserUploadedDocumentFile):
-    SLUG = "citizenship_document"
+    SLUG = FileSlugs.CITIZENSHIP_DOCUMENT.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/citizenship_document/{filename}"
@@ -1370,7 +1371,7 @@ class CanadaVisa(models.Model):
 
 
 class ResumeFile(UserUploadedDocumentFile):
-    SLUG = "resume"
+    SLUG = FileSlugs.RESUME.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
@@ -1556,7 +1557,7 @@ class UserTask(TimeStampedModel):
 
 
 class OrganizationLogoFile(UserUploadedImageFile):
-    SLUG = "organization_logo"
+    SLUG = FileSlugs.ORGANIZATION_LOGO.value
 
     def get_upload_path(self, filename):
         return f"organization/logo/{self.uploaded_by.id}/{filename}"
@@ -1729,7 +1730,7 @@ class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
 
 
 class OrganizationCertificateFile(UserUploadedDocumentFile):
-    SLUG = "organization_certificate"
+    SLUG = FileSlugs.ORGANIZATION_CERTIFICATE.value
 
     def get_upload_path(self, filename):
         return f"organization/certificate/{self.uploaded_by.id}/{filename}"

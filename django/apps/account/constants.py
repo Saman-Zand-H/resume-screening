@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from enum import Enum
 from functools import partial
 from pathlib import Path
 from typing import NamedTuple
@@ -12,6 +13,21 @@ from disposable_email_domains import blocklist
 from django.conf import settings
 
 logger = get_logger()
+
+
+class FileSlugs(Enum):
+    DEGREE = "degree"
+    EMPLOYER_LETTER = "employer_letter"
+    PAYSTUBS = "paystubs"
+    EDUCATION_EVALUATION = "education_evaluation"
+    LANGUAGE_CERTIFICATE = "language_certificate"
+    CERTIFICATE = "certificate"
+    CITIZENSHIP_DOCUMENT = "citizenship_document"
+    RESUME = "resume"
+    ORGANIZATION_LOGO = "organization_logo"
+    ORGANIZATION_CERTIFICATE = "organization_certificate"
+    AVATAR = "avatar"
+    FULL_BODY_IMAGE = "full_body_image"
 
 
 class ProfileAnnotationNames(NamedTuple):
