@@ -1,13 +1,13 @@
 import contextlib
 from functools import lru_cache, reduce
-from typing import Dict, Set
+from typing import Dict, Set, List, Type
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
 from graphene_django.converter import convert_choice_field_to_enum
 
 import django.apps
-from django.db.models import Model
+from django.db.models import Model, OneToOneField
 from django.db.models.constants import LOOKUP_SEP
 
 from .constants import GRAPHQL_ERROR_FIELD_SEP
@@ -110,5 +110,10 @@ def get_file_model(slug: str):
     return next((model for model in get_file_models() if model.SLUG == slug), None)
 
 
-def get_analysable_file_models():
-    return (model for model in get_file_models() if hasattr(model, "ANALYSABLE") and model.ANALYSABLE)
+def get_verification_method_file_models(base_model: Type[Model]) -> List[Model]:
+    return (
+        field.related_model
+        for model in base_model.get_method_models()
+        for field in model._meta.fields
+        if isinstance(field, OneToOneField) and issubclass(field.related_model, FileModel)
+    )

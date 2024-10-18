@@ -2,7 +2,7 @@ import graphene
 from graphene_file_upload.scalars import Upload
 from graphql_jwt.decorators import login_required
 
-from .types import UploadType, AnalysableUploadType
+from .types import UploadType
 from .utils import get_file_model
 
 
@@ -28,22 +28,8 @@ class UploadFileMutation(graphene.Mutation):
         return cls(pk=obj.pk)
 
 
-class AnalyseAndExtractFileDataMutation(graphene.Mutation):
-    is_valid = graphene.Boolean()
-    data = graphene.JSONString()
-
-    class Arguments:
-        type = AnalysableUploadType(required=True)
-        file_id = graphene.String(required=True)
-
-    @staticmethod
-    def mutate(root, info, type, file_id):
-        return AnalyseAndExtractFileDataMutation(is_valid=True, data={})
-
-
 class CommonMutation(graphene.ObjectType):
     upload_file = UploadFileMutation.Field()
-    get_file_data = AnalyseAndExtractFileDataMutation.Field()
 
 
 class Mutation(graphene.ObjectType):

@@ -22,7 +22,9 @@ from .models import (
     Skill,
     University,
 )
-from .utils import get_file_models, get_analysable_file_models
+from .utils import get_file_models, get_verification_method_file_models
+from account.models import WorkExperience, Education
+
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = graphene.Enum("Errors", enum_values)
@@ -219,9 +221,21 @@ UploadType = convert_choices_to_named_enum_with_descriptions(
     sorted(((model.SLUG, model._meta.verbose_name) for model in get_file_models()), key=itemgetter(0)),
 )
 
-AnalysableUploadType = convert_choices_to_named_enum_with_descriptions(
-    "AnalysableUploadType",
-    sorted(((model.SLUG, model._meta.verbose_name) for model in get_analysable_file_models()), key=itemgetter(0)),
+
+WorkExperienceVerificationMethodUploadType = convert_choices_to_named_enum_with_descriptions(
+    "WorkExperienceVerificationMethodUploadType",
+    sorted(
+        ((model.SLUG, model._meta.verbose_name) for model in get_verification_method_file_models(WorkExperience)),
+        key=itemgetter(0),
+    ),
+)
+
+EducationVerificationMethodUploadType = convert_choices_to_named_enum_with_descriptions(
+    "EducationVerificationMethodUploadType",
+    sorted(
+        ((model.SLUG, model._meta.verbose_name) for model in get_verification_method_file_models(Education)),
+        key=itemgetter(0),
+    ),
 )
 
 

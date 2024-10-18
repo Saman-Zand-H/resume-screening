@@ -393,6 +393,11 @@ class CommunicationMethodType(DjangoObjectType):
         )
 
 
+class EducationVerificationMethodType(graphene.Union):
+    class Meta:
+        types = (IEEMethodType, CommunicationMethodType)
+
+
 class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
     class Meta:
         model = WorkExperience
@@ -444,6 +449,11 @@ class ReferenceCheckEmployerType(DjangoObjectType):
             ReferenceCheckEmployer.phone_number.field.name,
             ReferenceCheckEmployer.position.field.name,
         )
+
+
+class WorkExperienceVerificationMethodType(graphene.Union):
+    class Meta:
+        types = (EmployerLetterMethodType, PaystubsMethodType)
 
 
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
@@ -980,7 +990,7 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
 
     def resolve_cooperations(self, info):
         return self.cooperations.all()
-    
+
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
         user = info.context.user

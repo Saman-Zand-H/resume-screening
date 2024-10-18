@@ -9,7 +9,7 @@ from common.mixins import (
     FilePermissionMixin,
 )
 from common.models import Job, Skill
-from common.types import SkillType
+from common.types import SkillType, WorkExperienceVerificationMethodUploadType, EducationVerificationMethodUploadType
 from common.utils import fields_join
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
@@ -94,6 +94,10 @@ from .models import (
     User,
     UserDevice,
     WorkExperience,
+    EducationEvaluationDocumentFile,
+    DegreeFile,
+    EmployerLetterFile,
+    PaystubsFile,
 )
 from .tasks import (
     get_certificate_text,
@@ -110,6 +114,8 @@ from .types import (
     ProfileType,
     UserNode,
     WorkExperienceNode,
+    EducationVerificationMethodType,
+    WorkExperienceVerificationMethodType,
 )
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -817,6 +823,32 @@ class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
         model = Education
 
 
+class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
+    is_valid = graphene.Boolean()
+    data = graphene.Field(EducationNode)
+    verification_method_data = graphene.Field(EducationVerificationMethodType)
+
+    class Arguments:
+        file_id = graphene.String(required=True)
+        verification_type = EducationVerificationMethodUploadType(required=True)
+
+    @staticmethod
+    def mutate(root, info, file_id, verification_type):
+        file_model = {
+            "education_evaluation": EducationEvaluationDocumentFile,
+            "degree": DegreeFile,
+        }[verification_type.value]
+        if not (obj := file_model.objects.filter(pk=file_id).first()):
+            raise GraphQLErrorBadRequest("File not found.")
+
+        verification_method_instance = getattr(obj, file_model._meta.related_objects[0].related_name)
+        instance = getattr(verification_method_instance, "education")
+
+        return EducationAnalyseAndExtractDataMutation(
+            is_valid=True, data=instance, verification_method_data=verification_method_instance
+        )
+
+
 WORK_EXPERIENCE_MUTATION_FIELDS = (
     WorkExperience.job_title.field.name,
     WorkExperience.grade.field.name,
@@ -891,6 +923,31 @@ class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
 
     class Meta:
         model = WorkExperience
+
+
+class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
+    is_valid = graphene.Boolean()
+    data = graphene.Field(WorkExperienceNode)
+    verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
+
+    class Arguments:
+        file_id = graphene.String(required=True)
+        verification_type = WorkExperienceVerificationMethodUploadType(required=True)
+
+    @staticmethod
+    def mutate(root, info, file_id, verification_type):
+        file_model = {
+            "employer_letter": EmployerLetterFile,
+            "paystubs": PaystubsFile,
+        }[verification_type.value]
+        if not (obj := file_model.objects.filter(pk=file_id).first()):
+            raise GraphQLErrorBadRequest("File not found.")
+
+        verification_method_instance = getattr(obj, file_model._meta.related_objects[0].related_name)
+        instance = getattr(verification_method_instance, "work_experience")
+        return WorkExperienceAnalyseAndExtractDataMutation(
+            is_valid=True, data=instance, verification_method_data=verification_method_instance
+        )
 
 
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
@@ -1495,6 +1552,7 @@ class EducationMutation(graphene.ObjectType):
     delete = EducationDeleteMutation.Field()
     update_status = EducationUpdateStatusMutation.Field()
     set_verification_method = EducationSetVerificationMethodMutation.Field()
+    analyse_and_extract_data = EducationAnalyseAndExtractDataMutation.Field()
 
 
 class WorkExperienceMutation(graphene.ObjectType):
@@ -1503,6 +1561,7 @@ class WorkExperienceMutation(graphene.ObjectType):
     delete = WorkExperienceDeleteMutation.Field()
     update_status = WorkExperienceUpdateStatusMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
+    analyse_and_extract_data = WorkExperienceAnalyseAndExtractDataMutation.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):
