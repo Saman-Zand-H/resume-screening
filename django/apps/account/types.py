@@ -34,7 +34,10 @@ from .models import (
     CertificateAndLicenseOnlineVerificationMethod,
     CommunicationMethod,
     Contact,
+    DegreeFile,
     Education,
+    EducationEvaluationDocumentFile,
+    EmployerLetterFile,
     EmployerLetterMethod,
     IEEMethod,
     JobPositionAssignment,
@@ -49,6 +52,7 @@ from .models import (
     OrganizationJobPosition,
     OrganizationMembership,
     OrganizationPlatformMessage,
+    PaystubsFile,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -373,13 +377,12 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 
 class EducationAIType(graphene.ObjectType):
-    id = graphene.ID()
+    field = graphene.String()
     degree = graphene.String()
-    city = graphene.Field(CityNode)
+    university = graphene.String()
+    city = graphene.String()
     start = graphene.Date()
     end = graphene.Date()
-    status = graphene.String()
-    created_at = graphene.DateTime()
 
 
 class IEEMethodType(DjangoObjectType):
@@ -393,7 +396,6 @@ class IEEMethodType(DjangoObjectType):
 
 
 class IEEMethodAIType(graphene.ObjectType):
-    id = graphene.ID()
     evaluator = graphene.String()
 
 
@@ -411,7 +413,6 @@ class CommunicationMethodType(DjangoObjectType):
 
 
 class CommunicationMethodAIType(graphene.ObjectType):
-    id = graphene.ID()
     website = graphene.String()
     email = graphene.String()
     department = graphene.String()
@@ -423,9 +424,10 @@ class EducationVerificationMethodType(graphene.Union):
         types = (IEEMethodAIType, CommunicationMethodAIType)
 
     def resolve_type(self, info):
-        if isinstance(self, IEEMethod):
+        model = getattr(info.context, "model", None)
+        if model == EducationEvaluationDocumentFile:
             return IEEMethodAIType
-        elif isinstance(self, CommunicationMethod):
+        elif model == DegreeFile:
             return CommunicationMethodAIType
         return None
 
@@ -453,16 +455,14 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 
 class WorkExperienceAIType(graphene.ObjectType):
-    id = graphene.ID()
     job_title = graphene.String()
     grade = graphene.String()
     start = graphene.Date()
     end = graphene.Date()
     organization = graphene.String()
-    city = graphene.Field(CityNode)
+    city = graphene.String()
     industry = graphene.String()
-    status = graphene.String()
-    created_at = graphene.DateTime()
+    skills = graphene.String()
 
 
 class EmployerLetterMethodType(DjangoObjectType):
@@ -476,7 +476,6 @@ class EmployerLetterMethodType(DjangoObjectType):
 
 
 class EmployerLetterMethodAIType(graphene.ObjectType):
-    id = graphene.ID()
     name = graphene.String()
     email = graphene.String()
     phone_number = graphene.String()
@@ -513,9 +512,12 @@ class WorkExperienceVerificationMethodType(graphene.Union):
         types = (EmployerLetterMethodAIType, PaystubsMethodAIType)
 
     def resolve_type(self, info):
-        if isinstance(self, PaystubsMethod):
+        model = getattr(info.context, "model", None)
+        if model == PaystubsFile:
             return PaystubsMethodAIType
-        return EmployerLetterMethodAIType
+        elif model == EmployerLetterFile:
+            return EmployerLetterMethodAIType
+        return None
 
 
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
