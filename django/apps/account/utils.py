@@ -1,6 +1,6 @@
 import json
 from operator import attrgetter
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from ai.google import GoogleServices
 from cities_light.models import City
@@ -17,7 +17,12 @@ from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
 from .constants import VectorStores
-from .typing import ResumeJson
+from .typing import (
+    AnalysisResponse,
+    EducationVerificationType,
+    ResumeJson,
+    WorkExperienceVerificationType,
+)
 
 
 def set_contacts_from_resume_json(user, resume_json: dict):
@@ -44,6 +49,30 @@ def set_contacts_from_resume_json(user, resume_json: dict):
         contacts,
         ignore_conflicts=True,
     )
+
+
+def analyze_document(
+    file_model_id: int,
+    verification_method_name: Union[EducationVerificationType, WorkExperienceVerificationType],
+) -> AnalysisResponse:
+    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+        return
+
+    service = GoogleServices(Assistants.DOCUMENT_ANALYSIS)
+    mime_type = get_file_model_mimetype(file_model)
+    with file_model.file.open("rb") as file:
+        content = file.file.read()
+
+    results = service.generate_text_content(
+        [
+            types.Part.from_bytes(content, mime_type),
+            types.Part.from_text(json.dumps({"verification_method_name": verification_method_name})),
+        ]
+    )
+
+    if results:
+        print(results)
+        return AnalysisResponse.model_validate(service.message_to_json(results))
 
 
 def extract_resume_json(file_model_id: int):

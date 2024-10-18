@@ -62,7 +62,13 @@ from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from .choices import ContactType, get_task_names_choices
+from .choices import (
+    ContactType,
+    EducationDegree,
+    IEEEvaluator,
+    WorkExperienceGrade,
+    get_task_names_choices,
+)
 from .constants import (
     EARLY_USERS_COUNT,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
@@ -859,13 +865,7 @@ class DocumentVerificationMethodAbstract(models.Model):
 
 
 class Education(DocumentAbstract, HasDurationMixin):
-    class Degree(models.TextChoices):
-        BACHELORS = "bachelors", _("Bachelors")
-        MASTERS = "masters", _("Masters")
-        PHD = "phd", _("PhD")
-        ASSOCIATE = "associate", _("Associate")
-        DIPLOMA = "diploma", _("Diploma")
-        CERTIFICATE = "certificate", _("Certificate")
+    Degree = EducationDegree
 
     field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
@@ -925,12 +925,7 @@ class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
 
 
 class IEEMethod(EducationVerificationMethodAbstract):
-    class Evaluator(models.TextChoices):
-        WES = "wes", _("World Education Services")
-        IQAS = "iqas", _("International Qualifications Assessment Service")
-        ICAS = "icas", _("International Credential Assessment Service of Canada")
-        CES = "ces", _("Comparative Education Service")
-        OTHER = "other", _("Other")
+    Evaluator = IEEEvaluator
 
     education_evaluation_document = models.OneToOneField(
         EducationEvaluationDocumentFile,
@@ -987,17 +982,7 @@ class CommunicationMethod(EducationVerificationMethodAbstract, EmailVerification
 
 
 class WorkExperience(DocumentAbstract, HasDurationMixin):
-    class Grade(models.TextChoices):
-        INTERN = "intern", _("Intern")
-        ASSOCIATE = "associate", _("Associate")
-        JUNIOR = "junior", _("Junior")
-        MID_LEVEL = "mid_level", _("Mid-Level")
-        SENIOR = "senior", _("Senior")
-        MANAGER = "manager", _("Manager")
-        DIRECTOR = "director", _("Director")
-        CTO = "cto", _("CTO")
-        CFO = "cfo", _("CFO")
-        CEO = "ceo", _("CEO")
+    Grade = WorkExperienceGrade
 
     job_title = models.CharField(max_length=255, verbose_name=_("Job Title"))
     grade = models.CharField(max_length=50, choices=Grade.choices, verbose_name=_("Grade"))
