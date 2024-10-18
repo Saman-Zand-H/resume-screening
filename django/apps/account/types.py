@@ -3,7 +3,7 @@ import contextlib
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import FieldType, JobBenefitType, JobNode, SkillType
+from common.types import FieldType, JobBenefitType, JobNode, SkillType, CityNode
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -372,6 +372,16 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class EducationAIType(graphene.ObjectType):
+    id = graphene.ID()
+    degree = graphene.String()
+    city = graphene.Field(CityNode)
+    start = graphene.Date()
+    end = graphene.Date()
+    status = graphene.String()
+    created_at = graphene.DateTime()
+
+
 class IEEMethodType(DjangoObjectType):
     class Meta:
         model = IEEMethod
@@ -380,6 +390,11 @@ class IEEMethodType(DjangoObjectType):
             IEEMethod.education_evaluation_document.field.name,
             IEEMethod.evaluator.field.name,
         )
+
+
+class IEEMethodAIType(graphene.ObjectType):
+    id = graphene.ID()
+    evaluator = graphene.String()
 
 
 class CommunicationMethodType(DjangoObjectType):
@@ -395,9 +410,24 @@ class CommunicationMethodType(DjangoObjectType):
         )
 
 
+class CommunicationMethodAIType(graphene.ObjectType):
+    id = graphene.ID()
+    website = graphene.String()
+    email = graphene.String()
+    department = graphene.String()
+    person = graphene.String()
+
+
 class EducationVerificationMethodType(graphene.Union):
     class Meta:
-        types = (IEEMethodType, CommunicationMethodType)
+        types = (IEEMethodAIType, CommunicationMethodAIType)
+
+    def resolve_type(self, info):
+        if isinstance(self, IEEMethod):
+            return IEEMethodAIType
+        elif isinstance(self, CommunicationMethod):
+            return CommunicationMethodAIType
+        return None
 
 
 class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
@@ -422,6 +452,19 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class WorkExperienceAIType(graphene.ObjectType):
+    id = graphene.ID()
+    job_title = graphene.String()
+    grade = graphene.String()
+    start = graphene.Date()
+    end = graphene.Date()
+    organization = graphene.String()
+    city = graphene.Field(CityNode)
+    industry = graphene.String()
+    status = graphene.String()
+    created_at = graphene.DateTime()
+
+
 class EmployerLetterMethodType(DjangoObjectType):
     class Meta:
         model = EmployerLetterMethod
@@ -432,6 +475,14 @@ class EmployerLetterMethodType(DjangoObjectType):
         )
 
 
+class EmployerLetterMethodAIType(graphene.ObjectType):
+    id = graphene.ID()
+    name = graphene.String()
+    email = graphene.String()
+    phone_number = graphene.String()
+    position = graphene.String()
+
+
 class PaystubsMethodType(DjangoObjectType):
     class Meta:
         model = PaystubsMethod
@@ -439,6 +490,10 @@ class PaystubsMethodType(DjangoObjectType):
             PaystubsMethod.id.field.name,
             PaystubsMethod.paystubs.field.name,
         )
+
+
+class PaystubsMethodAIType(graphene.ObjectType):
+    id = graphene.ID()
 
 
 class ReferenceCheckEmployerType(DjangoObjectType):
@@ -455,7 +510,12 @@ class ReferenceCheckEmployerType(DjangoObjectType):
 
 class WorkExperienceVerificationMethodType(graphene.Union):
     class Meta:
-        types = (EmployerLetterMethodType, PaystubsMethodType)
+        types = (EmployerLetterMethodAIType, PaystubsMethodAIType)
+
+    def resolve_type(self, info):
+        if isinstance(self, PaystubsMethod):
+            return PaystubsMethodAIType
+        return EmployerLetterMethodAIType
 
 
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
