@@ -30,6 +30,8 @@ from .models import (
     Access,
     CanadaVisa,
     CertificateAndLicense,
+    CertificateAndLicenseOfflineVerificationMethod,
+    CertificateAndLicenseOnlineVerificationMethod,
     CommunicationMethod,
     Contact,
     Education,
@@ -496,6 +498,26 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
             CertificateAndLicense.allow_self_verification.field.name,
+            CertificateAndLicenseOfflineVerificationMethod.certificate_and_license.field.related_query_name(),
+            CertificateAndLicenseOnlineVerificationMethod.certificate_and_license.field.related_query_name(),
+        )
+
+
+class CertificateAndLicenseOfflineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicenseOfflineVerificationMethod
+        fields = (
+            CertificateAndLicenseOfflineVerificationMethod.id.field.name,
+            CertificateAndLicenseOfflineVerificationMethod.certificate_file.field.name,
+        )
+
+
+class CertificateAndLicenseOnlineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicenseOnlineVerificationMethod
+        fields = (
+            CertificateAndLicenseOnlineVerificationMethod.id.field.name,
+            CertificateAndLicenseOnlineVerificationMethod.certificate_link.field.name,
         )
 
 
