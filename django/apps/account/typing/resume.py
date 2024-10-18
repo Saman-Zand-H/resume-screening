@@ -38,7 +38,7 @@ CoreCompetencies = RootModel[Union[List[str], Dict[str, Union[str, int, List[str
 class ResumeJson(BaseModel):
     about_me: str
     headline: str
-    educations: List[Education]
-    work_experiences: List[WorkExperience]
-    core_competencies: Optional[CoreCompetencies]
-    contact_informations: List[ContactInformation]
+    educations: Optional[List[Education]] = []
+    work_experiences: Optional[List[WorkExperience]] = []
+    core_competencies: Optional[CoreCompetencies] = {}
+    contact_informations: Optional[List[ContactInformation]] = []
