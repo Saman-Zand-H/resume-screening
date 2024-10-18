@@ -1,4 +1,5 @@
 import contextlib
+from datetime import datetime
 
 import graphene
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
@@ -843,11 +844,16 @@ class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
         if not (obj := file_model.objects.filter(pk=file_id).first()):
             raise GraphQLErrorBadRequest("File not found.")
 
-        verification_method_instance = getattr(obj, file_model._meta.related_objects[0].related_name)
-        instance = getattr(verification_method_instance, "education")
+        data = {"degree": "bachelors", "start": datetime(2020, 1, 1), "end": datetime(2025, 1, 1)}
+        verification_method_data = (
+            {"website": "https://example.com", "email": "john@doe.com", "department": "HQ", "person": "John Doe"}
+            if file_model == DegreeFile
+            else {"evaluator": "John Doe"}
+        )
+        info.context.model = file_model
 
         return EducationAnalyseAndExtractDataMutation(
-            is_valid=True, data=instance, verification_method_data=verification_method_instance
+            is_valid=True, data=data, verification_method_data=verification_method_data
         )
 
 
@@ -945,18 +951,27 @@ class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
         if not (obj := file_model.objects.filter(pk=file_id).first()):
             raise GraphQLErrorBadRequest("File not found.")
 
-        verification_method_instance = getattr(obj, file_model._meta.related_objects[0].related_name)
-        instance = getattr(verification_method_instance, "work_experience")
-
-        verification_method_instance = {
-            "name": "John Doe",
-            "email": "john-doe@gmail.com",
-            "phone_number": "+1234567890",
-            "position": "HR Manager",
+        data = {
+            "job_title": "Software engineer",
+            "grade": "Senior",
+            "start": datetime(2020, 1, 1),
+            "end": datetime(2025, 1, 1),
+            "organization": "Ubisoft",
         }
+        verification_method_data = (
+            {
+                "name": "John Doe",
+                "email": "john@doe.com",
+                "phone_number": "+1234567890",
+                "position": "HR Manager",
+            }
+            if file_model == EmployerLetterFile
+            else {}
+        )
+        info.context.model = file_model
 
         return WorkExperienceAnalyseAndExtractDataMutation(
-            is_valid=True, data=instance, verification_method_data=verification_method_instance
+            is_valid=True, data=data, verification_method_data=verification_method_data
         )
 
 
