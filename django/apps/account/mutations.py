@@ -108,13 +108,15 @@ from .tasks import (
 )
 from .types import (
     CertificateAndLicenseNode,
+    EducationAIType,
+    EducationVerificationMethodType,
     EducationNode,
     LanguageCertificateNode,
     OrganizationJobPositionNode,
     ProfileType,
     UserNode,
+    WorkExperienceAIType,
     WorkExperienceNode,
-    EducationVerificationMethodType,
     WorkExperienceVerificationMethodType,
 )
 from .views import GoogleOAuth2View, LinkedInOAuth2View
@@ -825,7 +827,7 @@ class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
 
 class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
-    data = graphene.Field(EducationNode)
+    data = graphene.Field(EducationAIType)
     verification_method_data = graphene.Field(EducationVerificationMethodType)
 
     class Arguments:
@@ -927,7 +929,7 @@ class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
 
 class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
-    data = graphene.Field(WorkExperienceNode)
+    data = graphene.Field(WorkExperienceAIType)
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
 
     class Arguments:
@@ -945,6 +947,14 @@ class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
 
         verification_method_instance = getattr(obj, file_model._meta.related_objects[0].related_name)
         instance = getattr(verification_method_instance, "work_experience")
+
+        verification_method_instance = {
+            "name": "John Doe",
+            "email": "john-doe@gmail.com",
+            "phone_number": "+1234567890",
+            "position": "HR Manager",
+        }
+
         return WorkExperienceAnalyseAndExtractDataMutation(
             is_valid=True, data=instance, verification_method_data=verification_method_instance
         )
