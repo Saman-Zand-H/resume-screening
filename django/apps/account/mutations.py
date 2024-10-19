@@ -849,6 +849,7 @@ class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
         if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
             raise GraphQLErrorBadRequest("File not found.")
 
+        info.context.model = file_model
         response = analyze_document(obj.pk, verification_type.value)
 
         return EducationAnalyseAndExtractDataMutation(**response.model_dump())
@@ -948,6 +949,7 @@ class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
         if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
             raise GraphQLErrorBadRequest("File not found.")
 
+        info.context.model = file_model
         response = analyze_document(obj.pk, verification_type.value)
 
         return WorkExperienceAnalyseAndExtractDataMutation(**response.model_dump())
