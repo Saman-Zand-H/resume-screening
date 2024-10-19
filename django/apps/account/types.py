@@ -45,6 +45,8 @@ from .models import (
     JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
+    OfflineMethod,
+    OnlineMethod,
     Organization,
     OrganizationEmployee,
     OrganizationEmployeeCooperation,
@@ -534,7 +536,20 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
             LanguageCertificate.allow_self_verification.field.name,
             LanguageCertificate.status.field.name,
             LanguageCertificateValue.language_certificate.field.related_query_name(),
+            *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
+
+
+class LanguageCertificateOfflineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = OfflineMethod
+        fields = (OfflineMethod.id.field.name, OfflineMethod.certificate_file.field.name)
+
+
+class LanguageCertificateOnlineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = OnlineMethod
+        fields = (OnlineMethod.id.field.name, OnlineMethod.certificate_link.field.name)
 
 
 class LanguageCertificateValueNode(DjangoObjectType):
