@@ -3,7 +3,7 @@ import contextlib
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import FieldType, JobBenefitType, JobNode, SkillType, CityNode
+from common.types import FieldType, JobBenefitType, JobNode, SkillType, CityNode, IndustryNode, UniversityNode
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -379,10 +379,10 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 
 class EducationAIType(graphene.ObjectType):
-    field = graphene.String()
+    field = graphene.Field(FieldType)
     degree = graphene.String()
-    university = graphene.String()
-    city = graphene.String()
+    university = graphene.Field(UniversityNode)
+    city = graphene.Field(CityNode)
     start = graphene.Date()
     end = graphene.Date()
 
@@ -462,8 +462,8 @@ class WorkExperienceAIType(graphene.ObjectType):
     start = graphene.Date()
     end = graphene.Date()
     organization = graphene.String()
-    city = graphene.String()
-    industry = graphene.String()
+    city = graphene.Field(CityNode)
+    industry = graphene.Field(IndustryNode)
     skills = graphene.String()
 
 
