@@ -13,7 +13,7 @@ VerificationT = TypeVar("VerificationT")
 class BaseAnalysisResponse(BaseModel, Generic[DocumentT, VerificationT]):
     is_valid: bool
     data: Optional[DocumentT] = None
-    verification_data: Optional[VerificationT] = None
+    verification_method_data: Optional[VerificationT] = None
 
 
 WorkExperienceGradeType = Literal[

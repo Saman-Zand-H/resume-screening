@@ -1,5 +1,4 @@
 import contextlib
-from datetime import datetime
 
 import graphene
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
@@ -838,7 +837,7 @@ class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
     verification_method_data = graphene.Field(EducationVerificationMethodType)
 
     class Arguments:
-        file_id = graphene.String(required=True)
+        file_id = graphene.ID(required=True)
         verification_type = EducationVerificationMethodUploadType(required=True)
 
     @staticmethod
@@ -937,7 +936,7 @@ class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
 
     class Arguments:
-        file_id = graphene.String(required=True)
+        file_id = graphene.ID(required=True)
         verification_type = WorkExperienceVerificationMethodUploadType(required=True)
 
     @staticmethod
