@@ -71,7 +71,7 @@ WorkExperienceVerificationType = Union[ReferenceCheckData, PaystubsData]
 
 
 class CertificateAndLicenseData(BaseModel):
-    tilte: Optional[str] = None
+    title: Optional[str] = None
     certifier: Optional[str] = None
     issued_at: Optional[date] = None
     expired_at: Optional[date] = None
