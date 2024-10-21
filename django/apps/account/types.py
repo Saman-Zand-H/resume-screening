@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from academy.types import CourseNode
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import (
@@ -17,25 +18,34 @@ from common.types import (
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
-from academy.types import CourseNode
-from notification.models import InAppNotification
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django.fields import DjangoConnectionField
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
+from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When, Subquery, OuterRef
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    OuterRef,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
 
 from .accesses import (
     JobPositionContainer,
     OrganizationMembershipContainer,
 )
-from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .filterset import OrganizationEmployeeFilterset
+from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
     Access,
     CanadaVisa,
