@@ -857,6 +857,9 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
         if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
             raise GraphQLErrorBadRequest(_("File not found."))
 
+        if info.context.user != obj.uploaded_by:
+            raise GraphQLErrorBadRequest(_("Permission denied."))
+
         info.context.model = file_model
         response = analyze_document(obj.pk, verification_type.value if verification_type else cls.FILE_SLUG)
 
