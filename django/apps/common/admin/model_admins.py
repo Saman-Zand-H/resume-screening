@@ -1,10 +1,11 @@
 from flex_report.defaults.admin import TemplateAdmin as BaseTemplateAdmin
 from flex_report.defaults.views import TemplateDeleteView
+from import_export.admin import ExportMixin
 
 from django.contrib import admin
 from django.urls import path
 
-from .models import (
+from ..models import (
     Field,
     Industry,
     Job,
@@ -15,14 +16,25 @@ from .models import (
     SkillTopic,
     University,
 )
-from .utils import get_file_models
-from .views import (
+from ..utils import get_file_models
+from ..views import (
     TemplateCreateCompleteView,
     TemplateCreateInitView,
     TemplateReportView,
     TemplateSavedFilterCreateView,
     TemplateSavedFilterUpdateView,
     TemplateUpdateView,
+)
+from .resources import (
+    FieldResource,
+    IndustryResource,
+    LanguageProficiencySkillResource,
+    LanguageProficiencyTestResource,
+    JobBenefitResource,
+    JobResource,
+    SkillResource,
+    SkillTopicResource,
+    UniversityResource,
 )
 
 
@@ -69,13 +81,15 @@ class TemplateAdmin(BaseTemplateAdmin):
 
 
 @admin.register(Industry)
-class IndustryAdmin(admin.ModelAdmin):
+class IndustryAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [IndustryResource]
     list_display = (Industry.title.field.name,)
     search_fields = (Industry.title.field.name,)
 
 
 @admin.register(Job)
-class JobAdmin(admin.ModelAdmin):
+class JobAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [JobResource]
     list_display = (Job.title.field.name, Job.order.field.name)
     search_fields = (Job.title.field.name,)
     list_filter = (Job.industries.field.name,)
@@ -83,19 +97,22 @@ class JobAdmin(admin.ModelAdmin):
 
 
 @admin.register(Field)
-class FieldAdmin(admin.ModelAdmin):
+class FieldAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [FieldResource]
     list_display = (Field.name.field.name,)
     search_fields = (Field.name.field.name,)
 
 
 @admin.register(University)
-class UniversityAdmin(admin.ModelAdmin):
+class UniversityAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [UniversityResource]
     list_display = (University.name.field.name, University.websites.field.name)
     search_fields = (University.name.field.name, University.websites.field.name)
 
 
 @admin.register(SkillTopic)
-class SkillTopicAdmin(admin.ModelAdmin):
+class SkillTopicAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [SkillTopicResource]
     list_display = (SkillTopic.title.field.name, SkillTopic.industry.field.name)
     search_fields = (SkillTopic.title.field.name,)
     list_filter = (SkillTopic.industry.field.name,)
@@ -103,7 +120,8 @@ class SkillTopicAdmin(admin.ModelAdmin):
 
 
 @admin.register(Skill)
-class SkillAdmin(admin.ModelAdmin):
+class SkillAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [SkillResource]
     list_display = (
         Skill.title.field.name,
         Skill.insert_type.field.name,
@@ -113,13 +131,15 @@ class SkillAdmin(admin.ModelAdmin):
 
 
 @admin.register(LanguageProficiencyTest)
-class LanguageProficiencyTestAdmin(admin.ModelAdmin):
+class LanguageProficiencyTestAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [LanguageProficiencyTestResource]
     list_display = (LanguageProficiencyTest.title.field.name, LanguageProficiencyTest.languages.field.name)
     search_fields = (LanguageProficiencyTest.title.field.name,)
 
 
 @admin.register(LanguageProficiencySkill)
-class LanguageProficiencySkillAdmin(admin.ModelAdmin):
+class LanguageProficiencySkillAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [LanguageProficiencySkillResource]
     list_display = (
         LanguageProficiencySkill.skill_name.field.name,
         LanguageProficiencySkill.test.field.name,
@@ -131,7 +151,8 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
 
 
 @admin.register(JobBenefit)
-class JobBenefitsAdmin(admin.ModelAdmin):
+class JobBenefitsAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [JobBenefitResource]
     list_display = (
         JobBenefit.id.field.name,
         JobBenefit.name.field.name,
