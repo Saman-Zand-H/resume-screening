@@ -835,28 +835,46 @@ class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
         model = Education
 
 
-class EducationAnalyseAndExtractDataMutation(graphene.Mutation):
+class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
+    data = graphene.Field(graphene.ObjectType)
+    verification_method_data = graphene.Field(graphene.ObjectType)
+
+    FILE_MODEL_MAPPING = {}
+    FILE_SLUG = None
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def get_file_model(cls, verification_type):
+        return cls.FILE_MODEL_MAPPING.get(verification_type.value if verification_type else cls.FILE_SLUG)
+
+    @classmethod
+    def mutate(cls, root, info, file_id, verification_type=None):
+        file_model = cls.get_file_model(verification_type)
+
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
+            raise GraphQLErrorBadRequest(_("File not found."))
+
+        info.context.model = file_model
+        response = analyze_document(obj.pk, verification_type.value if verification_type else cls.FILE_SLUG)
+
+        return cls(**response.model_dump())
+
+
+class EducationAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(EducationAIType)
     verification_method_data = graphene.Field(EducationVerificationMethodType)
+
+    FILE_MODEL_MAPPING = {
+        FileSlugs.EDUCATION_EVALUATION.value: EducationEvaluationDocumentFile,
+        FileSlugs.DEGREE.value: DegreeFile,
+    }
 
     class Arguments:
         file_id = graphene.ID(required=True)
         verification_type = EducationVerificationMethodUploadType(required=True)
-
-    @staticmethod
-    def mutate(root, info, file_id, verification_type):
-        file_model = {
-            FileSlugs.EDUCATION_EVALUATION.value: EducationEvaluationDocumentFile,
-            FileSlugs.DEGREE.value: DegreeFile,
-        }.get(verification_type.value)
-        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
-            raise GraphQLErrorBadRequest("File not found.")
-
-        info.context.model = file_model
-        response = analyze_document(obj.pk, verification_type.value)
-
-        return EducationAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 WORK_EXPERIENCE_MUTATION_FIELDS = (
@@ -935,28 +953,18 @@ class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
         model = WorkExperience
 
 
-class WorkExperienceAnalyseAndExtractDataMutation(graphene.Mutation):
-    is_valid = graphene.Boolean()
+class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(WorkExperienceAIType)
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
+
+    FILE_MODEL_MAPPING = {
+        FileSlugs.EMPLOYER_LETTER.value: EmployerLetterFile,
+        FileSlugs.PAYSTUBS.value: PaystubsFile,
+    }
 
     class Arguments:
         file_id = graphene.ID(required=True)
         verification_type = WorkExperienceVerificationMethodUploadType(required=True)
-
-    @staticmethod
-    def mutate(root, info, file_id, verification_type):
-        file_model = {
-            FileSlugs.EMPLOYER_LETTER.value: EmployerLetterFile,
-            FileSlugs.PAYSTUBS.value: PaystubsFile,
-        }.get(verification_type.value)
-        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
-            raise GraphQLErrorBadRequest("File not found.")
-
-        info.context.model = file_model
-        response = analyze_document(obj.pk, verification_type.value)
-
-        return WorkExperienceAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
@@ -1067,24 +1075,15 @@ class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMi
         model = LanguageCertificate
 
 
-class LanguageCertificateAnalyseAndExtractDataMutation(graphene.Mutation):
-    is_valid = graphene.Boolean()
+class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(LanguageCertificateAIType)
     verification_method_data = graphene.String()
 
+    FILE_MODEL_MAPPING = {FileSlugs.LANGUAGE_CERTIFICATE.value: LanguageCertificateFile}
+    FILE_SLUG = FileSlugs.LANGUAGE_CERTIFICATE.value
+
     class Arguments:
         file_id = graphene.ID(required=True)
-
-    @staticmethod
-    def mutate(root, info, file_id):
-        file_model = LanguageCertificateFile
-        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
-            raise GraphQLErrorBadRequest("File not found.")
-
-        info.context.model = file_model
-        response = analyze_document(obj.pk, FileSlugs.LANGUAGE_CERTIFICATE.value)
-
-        return LanguageCertificateAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
@@ -1149,24 +1148,15 @@ class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatus
         model = CertificateAndLicense
 
 
-class CertificateAndLicenseAnalyseAndExtractDataMutation(graphene.Mutation):
-    is_valid = graphene.Boolean()
+class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(CertificateAndLicenseAIType)
     verification_method_data = graphene.String()
 
+    FILE_MODEL_MAPPING = {FileSlugs.CERTIFICATE.value: CertificateFile}
+    FILE_SLUG = FileSlugs.CERTIFICATE.value
+
     class Arguments:
         file_id = graphene.ID(required=True)
-
-    @staticmethod
-    def mutate(root, info, file_id):
-        file_model = CertificateFile
-        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
-            raise GraphQLErrorBadRequest("File not found.")
-
-        info.context.model = file_model
-        response = analyze_document(obj.pk, FileSlugs.CERTIFICATE.value)
-
-        return CertificateAndLicenseAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
@@ -1621,6 +1611,7 @@ class LanguageCertificateMutation(graphene.ObjectType):
     set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
     analyse_and_extract_data = LanguageCertificateAnalyseAndExtractDataMutation.Field()
 
+
 class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
     update = CertificateAndLicenseUpdateMutation.Field()
@@ -1628,6 +1619,7 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     update_status = CertificateAndLicenseUpdateStatusMutation.Field()
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
     analyse_and_extract_data = CertificateAndLicenseAnalyseAndExtractDataMutation.Field()
+
 
 class CanadaVisaMutation(graphene.ObjectType):
     create = CanadaVisaCreateMutation.Field()
