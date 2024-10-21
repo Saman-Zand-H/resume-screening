@@ -843,6 +843,11 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     FILE_MODEL_MAPPING = {}
     FILE_SLUG = None
 
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._meta.arguments.update({"file_id": graphene.ID(required=True)})
+        return super().Field(*args, **kwargs)
+
     class Meta:
         abstract = True
 
@@ -876,7 +881,6 @@ class EducationAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     }
 
     class Arguments:
-        file_id = graphene.ID(required=True)
         verification_type = EducationVerificationMethodUploadType(required=True)
 
 
@@ -966,7 +970,6 @@ class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutat
     }
 
     class Arguments:
-        file_id = graphene.ID(required=True)
         verification_type = WorkExperienceVerificationMethodUploadType(required=True)
 
 
@@ -1085,9 +1088,6 @@ class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractData
     FILE_MODEL_MAPPING = {FileSlugs.LANGUAGE_CERTIFICATE.value: LanguageCertificateFile}
     FILE_SLUG = FileSlugs.LANGUAGE_CERTIFICATE.value
 
-    class Arguments:
-        file_id = graphene.ID(required=True)
-
 
 CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
     CertificateAndLicense.title.field.name,
@@ -1157,9 +1157,6 @@ class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDa
 
     FILE_MODEL_MAPPING = {FileSlugs.CERTIFICATE.value: CertificateFile}
     FILE_SLUG = FileSlugs.CERTIFICATE.value
-
-    class Arguments:
-        file_id = graphene.ID(required=True)
 
 
 class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
