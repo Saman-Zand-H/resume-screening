@@ -70,6 +70,13 @@ class PaystubsData(BaseModel):
 WorkExperienceVerificationType = Union[ReferenceCheckData, PaystubsData]
 
 
+class CertificateAndLicenseData(BaseModel):
+    tilte: Optional[str] = None
+    certifier: Optional[str] = None
+    issued_at: Optional[date] = None
+    expired_at: Optional[date] = None
+
+
 class EducationData(BaseModel):
     degree: Optional[EducationDegreeType] = None
     start_date: Optional[date] = None
@@ -98,4 +105,14 @@ class EducationAnalysisResponse(BaseAnalysisResponse[EducationData, EducationVer
     pass
 
 
-AnalysisResponse = RootModel[Union[WorkExperienceAnalysisResponse, EducationAnalysisResponse]]
+class CertificateAndLicenseAnalysisResponse(BaseAnalysisResponse[CertificateAndLicenseData, None]):
+    pass
+
+
+AnalysisResponse = RootModel[
+    Union[
+        WorkExperienceAnalysisResponse,
+        EducationAnalysisResponse,
+        CertificateAndLicenseAnalysisResponse,
+    ]
+]
