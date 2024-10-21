@@ -45,7 +45,6 @@ from markdownfield.validators import VALIDATOR_STANDARD
 from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
-from phonenumbers.phonenumberutil import NumberParseException
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -90,14 +89,7 @@ from .validators import (
     LinkedInUsernameValidator,
     NameValidator,
     NoTagEmailValidator,
-    WhatsAppValidator,
 )
-
-
-def fix_whatsapp_value(value):
-    with contextlib.suppress(NumberParseException):
-        return PhoneNumber.from_string(value).as_e164
-    return value
 
 
 def generate_unique_referral_code():
@@ -153,13 +145,12 @@ class Contact(models.Model):
         Type.WEBSITE: models.URLField().run_validators,
         Type.ADDRESS: None,
         Type.LINKEDIN: LinkedInUsernameValidator(),
-        Type.WHATSAPP: WhatsAppValidator(),
+        Type.WHATSAPP: PhoneNumberField().run_validators,
         Type.PHONE: PhoneNumberField().run_validators,
     }
 
     VALUE_FIXERS = {
         Type.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
-        Type.WHATSAPP: fix_whatsapp_value,
     }
 
     TYPE_ICON = {
