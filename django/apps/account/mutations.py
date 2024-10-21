@@ -73,6 +73,7 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
+    CertificateFile,
     CertificateAndLicenseOfflineVerificationMethod,
     CommunicateOrganizationMethod,
     Contact,
@@ -85,6 +86,7 @@ from .models import (
     JobPositionAssignment,
     JobPositionInterview,
     LanguageCertificate,
+    LanguageCertificateFile,
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
@@ -112,10 +114,12 @@ from .tasks import (
     user_task_runner,
 )
 from .types import (
+    CertificateAndLicenseAIType,
     CertificateAndLicenseNode,
     EducationAIType,
     EducationNode,
     EducationVerificationMethodType,
+    LanguageCertificateAIType,
     LanguageCertificateNode,
     OrganizationJobPositionNode,
     ProfileType,
@@ -1063,6 +1067,25 @@ class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMi
         model = LanguageCertificate
 
 
+class LanguageCertificateAnalyseAndExtractDataMutation(graphene.Mutation):
+    is_valid = graphene.Boolean()
+    data = graphene.Field(LanguageCertificateAIType)
+
+    class Arguments:
+        file_id = graphene.ID(required=True)
+
+    @staticmethod
+    def mutate(root, info, file_id):
+        file_model = LanguageCertificateFile
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
+            raise GraphQLErrorBadRequest("File not found.")
+
+        info.context.model = file_model
+        response = analyze_document(obj.pk, FileSlugs.LANGUAGE_CERTIFICATE.value)
+
+        return LanguageCertificateAnalyseAndExtractDataMutation(**response.model_dump())
+
+
 CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
     CertificateAndLicense.title.field.name,
     CertificateAndLicense.certifier.field.name,
@@ -1123,6 +1146,25 @@ class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatus
 
     class Meta:
         model = CertificateAndLicense
+
+
+class CertificateAndLicenseAnalyseAndExtractDataMutation(graphene.Mutation):
+    is_valid = graphene.Boolean()
+    data = graphene.Field(CertificateAndLicenseAIType)
+
+    class Arguments:
+        file_id = graphene.ID(required=True)
+
+    @staticmethod
+    def mutate(root, info, file_id):
+        file_model = CertificateFile
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
+            raise GraphQLErrorBadRequest("File not found.")
+
+        info.context.model = file_model
+        response = analyze_document(obj.pk, FileSlugs.CERTIFICATE.value)
+
+        return CertificateAndLicenseAnalyseAndExtractDataMutation(**response.model_dump())
 
 
 class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
@@ -1575,7 +1617,7 @@ class LanguageCertificateMutation(graphene.ObjectType):
     delete = LanguageCertificateDeleteMutation.Field()
     update_status = LanguageCertificateUpdateStatusMutation.Field()
     set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
-
+    analyse_and_extract_data = LanguageCertificateAnalyseAndExtractDataMutation.Field()
 
 class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
@@ -1583,7 +1625,7 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     delete = CertificateAndLicenseDeleteMutation.Field()
     update_status = CertificateAndLicenseUpdateStatusMutation.Field()
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
-
+    analyse_and_extract_data = CertificateAndLicenseAnalyseAndExtractDataMutation.Field()
 
 class CanadaVisaMutation(graphene.ObjectType):
     create = CanadaVisaCreateMutation.Field()

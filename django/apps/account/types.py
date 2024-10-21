@@ -3,7 +3,17 @@ import contextlib
 import graphene
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import FieldType, JobBenefitType, JobNode, SkillType, CityNode, IndustryNode, UniversityNode
+from common.types import (
+    CityNode,
+    FieldType,
+    IndustryNode,
+    JobBenefitType,
+    JobNode,
+    LanguageProficiencySkillNode,
+    LanguageProficiencyTestNode,
+    SkillType,
+    UniversityNode,
+)
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -540,6 +550,19 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class LanguageCertificateValueAIType(graphene.ObjectType):
+    skill = graphene.Field(LanguageProficiencySkillNode)
+    value = graphene.String()
+
+
+class LanguageCertificateAIType(graphene.ObjectType):
+    language = graphene.String()
+    test = graphene.Field(LanguageProficiencyTestNode)
+    issued_at = graphene.Date()
+    expired_at = graphene.Date()
+    values = graphene.List(LanguageCertificateValueAIType)
+
+
 class LanguageCertificateOfflineVerificationMethodType(DjangoObjectType):
     class Meta:
         model = OfflineMethod
@@ -577,6 +600,14 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.allow_self_verification.field.name,
             *(m.get_related_name() for m in CertificateAndLicense.get_method_models()),
         )
+
+
+class CertificateAndLicenseAIType(graphene.ObjectType):
+    title = graphene.String()
+    certificate_text = graphene.String()
+    certifier = graphene.String()
+    issued_at = graphene.Date()
+    expired_at = graphene.Date()
 
 
 class CertificateAndLicenseOfflineVerificationMethodType(DjangoObjectType):
