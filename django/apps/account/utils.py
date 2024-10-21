@@ -35,6 +35,9 @@ def set_contacts_from_resume_json(user, resume_json: dict):
     if not (contactable and (resume_json_model := ResumeJson.model_validate(resume_json)).contact_informations):
         return
 
+    user_contact_types = Contact.objects.filter(**{fields_join(Contact.contactable): contactable}).values_list(
+        fields_join(Contact.type), flat=True
+    )
     contacts = [
         Contact(
             **{
@@ -44,11 +47,9 @@ def set_contacts_from_resume_json(user, resume_json: dict):
             }
         )
         for contact_information in resume_json_model.contact_informations
+        if contact_information.type not in user_contact_types
     ]
-    Contact.objects.bulk_create(
-        contacts,
-        ignore_conflicts=True,
-    )
+    Contact.objects.bulk_create(contacts, ignore_conflicts=True)
 
 
 def analyze_document(
