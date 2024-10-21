@@ -1070,6 +1070,7 @@ class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMi
 class LanguageCertificateAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
     data = graphene.Field(LanguageCertificateAIType)
+    verification_method_data = graphene.String()
 
     class Arguments:
         file_id = graphene.ID(required=True)
@@ -1151,6 +1152,7 @@ class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatus
 class CertificateAndLicenseAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
     data = graphene.Field(CertificateAndLicenseAIType)
+    verification_method_data = graphene.String()
 
     class Arguments:
         file_id = graphene.ID(required=True)

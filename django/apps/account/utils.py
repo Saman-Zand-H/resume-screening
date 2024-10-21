@@ -58,6 +58,8 @@ def analyze_document(
         FileSlugs.PAYSTUBS,
         FileSlugs.EDUCATION_EVALUATION,
         FileSlugs.DEGREE,
+        FileSlugs.LANGUAGE_CERTIFICATE,
+        FileSlugs.CERTIFICATE,
     ],
 ) -> AnalysisResponse:
     if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
