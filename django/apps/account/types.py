@@ -614,7 +614,6 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class CertificateAndLicenseAIType(graphene.ObjectType):
     title = graphene.String()
-    certificate_text = graphene.String()
     certifier = graphene.String()
     issued_at = graphene.Date()
     expired_at = graphene.Date()
