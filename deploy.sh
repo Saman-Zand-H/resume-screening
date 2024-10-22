@@ -59,6 +59,9 @@ merge_tag_push() {
     echo "Switching to $target_branch for merge..."
     git checkout "$target_branch"
 
+    echo "Pulling latest changes for $source_branch..."
+    git pull origin "$source_branch"
+
     echo "Merge $source_branch into $target_branch with tag $tag"
     git merge --no-ff "$source_branch" -m "Merge $source_branch into $target_branch with tag $tag"
 
