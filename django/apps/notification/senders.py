@@ -303,7 +303,9 @@ def send_campaign_notifications(campaign_id: int, pks=None):
 
         notifications_kwargs = []
         for instance in report_qs:
-            if notification_type.successful_notifications_count(instance.user) >= campaign.max_attempts:
+            if campaign.max_attempts and (
+                notification_type.successful_notifications_count(instance.user) >= campaign.max_attempts
+            ):
                 continue
 
             context = ContextMapperRegistry.get_context(instance)
