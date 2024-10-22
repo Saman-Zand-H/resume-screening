@@ -6,6 +6,7 @@ from itertools import chain
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from common.logging import get_logger
+from common.utils import fields_join
 from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
@@ -18,6 +19,7 @@ from notification.senders import NotificationContext, send_notifications
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.mail import EmailMessage
+from django.db.models.lookups import In
 from django.utils import timezone
 
 from .typing import ResumeJson
@@ -78,12 +80,21 @@ def user_task_decorator(timeout_seconds: int) -> Callable:
             if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
                 logger.info(f"Running task {task_name}: user {task_user_id} not found.")
                 (
-                    user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).first()
+                    user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).latest(
+                        UserTask.created
+                    )
                 ) and user_task.change_status(UserTask.Status.FAILED, "User not found.")
                 return
 
-            user_task = UserTask.objects.get_or_create(user=user, task_name=task_name)[0]
-            if user_task.status == UserTask.Status.IN_PROGRESS:
+            user_task = UserTask.objects.filter(
+                **{
+                    fields_join(UserTask.status, In.lookup_name): [
+                        UserTask.Status.IN_PROGRESS,
+                        UserTask.Status.SCHEDULED,
+                    ]
+                }
+            ).get_or_create(user=user, task_name=task_name)[0]
+            if user_task.status in [UserTask.Status.IN_PROGRESS, UserTask.Status.SCHEDULED]:
                 logger.info(f"Running task {task_name}: task {user_task.pk} is already in progress.")
                 return
 

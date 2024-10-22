@@ -567,6 +567,8 @@ class UserTaskAdmin(admin.ModelAdmin):
         UserTask.user.field.name,
         UserTask.task_name.field.name,
         UserTask.status.field.name,
+        UserTask.created.field.name,
+        UserTask.modified.field.name,
     )
     search_fields = (fields_join(UserTask.user, User.email), UserTask.task_name.field.name)
     list_filter = (UserTask.status.field.name,)
