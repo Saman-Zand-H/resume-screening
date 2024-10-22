@@ -9,10 +9,12 @@ from common.mixins import (
     FilePermissionMixin,
 )
 from common.models import Job, Skill
-from common.types import SkillType
+from common.types import (
+    EducationVerificationMethodUploadType,
+    SkillType,
+    WorkExperienceVerificationMethodUploadType,
+)
 from common.utils import fields_join
-from notification.models import InAppNotification
-from notification.senders import NotificationContext, send_notifications
 from config.settings.constants import Environment
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
@@ -36,6 +38,9 @@ from graphql_jwt.decorators import (
     on_token_auth_resolve,
     refresh_expiration,
 )
+from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
+from notification.models import InAppNotification
+from notification.senders import NotificationContext, send_notifications
 
 from account.utils import is_env
 from django.contrib.auth.signals import user_logged_in
@@ -53,6 +58,7 @@ from .accesses import (
     OrganizationProfileContainer,
 )
 from .choices import DefaultRoles
+from .constants import FileSlugs
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -67,21 +73,28 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
+    CertificateFile,
     CertificateAndLicenseOfflineVerificationMethod,
     CommunicateOrganizationMethod,
     Contact,
+    DegreeFile,
     DocumentAbstract,
     Education,
+    EducationEvaluationDocumentFile,
+    EmployerLetterFile,
     EmployerLetterMethod,
     JobPositionAssignment,
     JobPositionInterview,
     LanguageCertificate,
+    LanguageCertificateFile,
     LanguageCertificateValue,
     Organization,
     OrganizationEmployee,
+    OrganizationEmployeeCooperation,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
+    PaystubsFile,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -90,6 +103,7 @@ from .models import (
     Role,
     SupportTicket,
     User,
+    UserDevice,
     WorkExperience,
 )
 from .tasks import (
@@ -100,14 +114,21 @@ from .tasks import (
     user_task_runner,
 )
 from .types import (
+    CertificateAndLicenseAIType,
     CertificateAndLicenseNode,
+    EducationAIType,
     EducationNode,
+    EducationVerificationMethodType,
+    LanguageCertificateAIType,
     LanguageCertificateNode,
     OrganizationJobPositionNode,
     ProfileType,
     UserNode,
+    WorkExperienceAIType,
     WorkExperienceNode,
+    WorkExperienceVerificationMethodType,
 )
+from .utils import analyze_document
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -163,23 +184,40 @@ def referral_registration(user, referral_code):
 
 
 EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
+EMAIL_RECEIVER_USER_TYPE_VARIABLE = "email_receiver_user_type"
 EMAIL_RECEIVER_NAME_VARIABLE = "email_receiver_name"
 TEMPLATE_CONTEXT_VARIABLE = "template_context"
 
 
-def set_template_context_variable(context, key, value):
+def set_template_context_variable(context, data: dict):
     _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
-    _template_context[key] = value
+    _template_context.update(data)
     setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+
+
+def register_user_device(refresh_token, device_id):
+    user_device, created = UserDevice.objects.get_or_create(
+        device_id=device_id,
+        defaults={UserDevice.refresh_token.field.name: UserRefreshToken.objects.get(token=refresh_token)},
+    )
+    if not created:
+        user_device.refresh_token.revoke()
+        user_device.refresh_token = UserRefreshToken.objects.get(token=refresh_token)
+        user_device.save(update_fields=[UserDevice.refresh_token.field.name])
+
+
+class DeviceIDMixin:
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._meta.arguments.update({"device_id": graphene.String(required=True)})
+        return super().Field(*args, **kwargs)
 
 
 class EmailCallbackUrlMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
         set_template_context_variable(
-            args[1].context,
-            EMAIL_CALLBACK_URL_VARIABLE,
-            kwargs.get(EMAIL_CALLBACK_URL_VARIABLE),
+            args[1].context, {EMAIL_CALLBACK_URL_VARIABLE: kwargs.get(EMAIL_CALLBACK_URL_VARIABLE)}
         )
         return super().mutate(*args, **kwargs)
 
@@ -198,8 +236,10 @@ class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
         email = kwargs.get(User.EMAIL_FIELD)
         set_template_context_variable(
             args[1].context,
-            EMAIL_RECEIVER_NAME_VARIABLE,
-            kwargs.get(cls.EMAIL_RECEIVER_NAME),
+            {
+                EMAIL_RECEIVER_USER_TYPE_VARIABLE: cls.EMAIL_RECEIVER_USER_TYPE,
+                EMAIL_RECEIVER_NAME_VARIABLE: kwargs.get(cls.EMAIL_RECEIVER_NAME),
+            },
         )
         try:
             UserStatus.clean_email(email)
@@ -229,6 +269,7 @@ class UserRegister(RegisterBase):
         OrganizationInvitation.token.field.name,
     ]
 
+    EMAIL_RECEIVER_USER_TYPE = "USER"
     EMAIL_RECEIVER_NAME = User.first_name.field.name
 
     @classmethod
@@ -262,6 +303,7 @@ class UserRegister(RegisterBase):
 class RegisterOrganization(RegisterBase):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
 
+    EMAIL_RECEIVER_USER_TYPE = "ORGANIZATION"
     EMAIL_RECEIVER_NAME = Organization.name.field.name
 
     @classmethod
@@ -311,7 +353,13 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
                 [user.email],
                 None,
                 subject=_("Welcome to CPJ - Your Journey to Career Excellence Starts Here!"),
-                content=render_to_string("email/welcome.html", {"user": user}),
+                content=render_to_string(
+                    "email/welcome.html",
+                    {
+                        EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                        EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                    },
+                ),
             )
 
             in_app_notification = InAppNotification(
@@ -326,7 +374,17 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
 
 
 class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
-    pass
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        user = get_user_by_email(kwargs.get("email"))
+        set_template_context_variable(
+            args[1].context,
+            {
+                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+            },
+        )
+        return super().mutate(*args, **kwargs)
 
 
 class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
@@ -335,8 +393,10 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         user = get_user_by_email(kwargs.get("email"))
         set_template_context_variable(
             args[1].context,
-            EMAIL_RECEIVER_NAME_VARIABLE,
-            user.first_name if user.first_name else user.email,
+            {
+                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+            },
         )
         return super().mutate(*args, **kwargs)
 
@@ -350,7 +410,7 @@ class RefreshToken(graphql_auth_mutations.RefreshToken):
         return field
 
 
-class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
+class BaseSocialAuth(DeviceIDMixin, SuccessErrorsOutput, graphene.Mutation):
     class Arguments:
         code = graphene.String(required=True)
         referral_code = graphene.String()
@@ -379,10 +439,13 @@ class BaseSocialAuth(SuccessErrorsOutput, graphene.Mutation):
         user.username = user.email
         user.status.save(update_fields=["verified"])
         user.save(update_fields=["username"])
+        info.context.jwt_cookie = True
         on_token_auth_resolve((info.context, user, cls))
 
         if serializer.is_new_user:
             referral_registration(user, kwargs.get("referral_code"))
+
+        register_user_device(cls.refresh_token, kwargs.get("device_id"))
 
         cls.success = True
         cls.errors = None
@@ -407,14 +470,32 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class ObtainJSONWebToken(graphql_auth_mutations.ObtainJSONWebToken):
+class ObtainJSONWebToken(DeviceIDMixin, graphql_auth_mutations.ObtainJSONWebToken):
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._meta.arguments.update({"device_id": graphene.String(required=True)})
+        return super().Field(*args, **kwargs)
+
     @classmethod
     def mutate(cls, root, info, **input):
+        info.context.jwt_cookie = True
+        device_id = input.pop("device_id")
         output = super().mutate(root, info, **input)
         if output.success:
             user: User = output.user
             user_logged_in.send(sender=user.__class__, request=None, user=user)
+            register_user_device(output.refresh_token, device_id)
         return output
+
+
+class RevokeTokenMutation(graphql_auth_mutations.RevokeToken):
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        result = super().mutate(*args, **kwargs)
+        refresh_token = kwargs.get("refresh_token")
+        if result.success:
+            UserDevice.objects.filter(refresh_token__token=refresh_token).delete()
+        return result
 
 
 class OrganizationUpdateMutation(
@@ -754,6 +835,55 @@ class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
         model = Education
 
 
+class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
+    is_valid = graphene.Boolean()
+    data = graphene.Field(graphene.ObjectType)
+    verification_method_data = graphene.Field(graphene.ObjectType)
+
+    FILE_MODEL_MAPPING = {}
+    FILE_SLUG = None
+
+    @classmethod
+    def Field(cls, *args, **kwargs):
+        cls._meta.arguments.update({"file_id": graphene.ID(required=True)})
+        return super().Field(*args, **kwargs)
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def get_file_model(cls, verification_type):
+        return cls.FILE_MODEL_MAPPING.get(verification_type.value if verification_type else cls.FILE_SLUG)
+
+    @classmethod
+    def mutate(cls, root, info, file_id, verification_type=None):
+        file_model = cls.get_file_model(verification_type)
+
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
+            raise GraphQLErrorBadRequest(_("File not found."))
+
+        if info.context.user != obj.uploaded_by:
+            raise GraphQLErrorBadRequest(_("Permission denied."))
+
+        info.context.model = file_model
+        response = analyze_document(obj.pk, verification_type.value if verification_type else cls.FILE_SLUG)
+
+        return cls(**response.model_dump())
+
+
+class EducationAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
+    data = graphene.Field(EducationAIType)
+    verification_method_data = graphene.Field(EducationVerificationMethodType)
+
+    FILE_MODEL_MAPPING = {
+        FileSlugs.EDUCATION_EVALUATION.value: EducationEvaluationDocumentFile,
+        FileSlugs.DEGREE.value: DegreeFile,
+    }
+
+    class Arguments:
+        verification_type = EducationVerificationMethodUploadType(required=True)
+
+
 WORK_EXPERIENCE_MUTATION_FIELDS = (
     WorkExperience.job_title.field.name,
     WorkExperience.grade.field.name,
@@ -828,6 +958,19 @@ class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
 
     class Meta:
         model = WorkExperience
+
+
+class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
+    data = graphene.Field(WorkExperienceAIType)
+    verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
+
+    FILE_MODEL_MAPPING = {
+        FileSlugs.EMPLOYER_LETTER.value: EmployerLetterFile,
+        FileSlugs.PAYSTUBS.value: PaystubsFile,
+    }
+
+    class Arguments:
+        verification_type = WorkExperienceVerificationMethodUploadType(required=True)
 
 
 LANGUAGE_CERTIFICATE_MUTATION_FIELDS = (
@@ -938,6 +1081,14 @@ class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMi
         model = LanguageCertificate
 
 
+class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
+    data = graphene.Field(LanguageCertificateAIType)
+    verification_method_data = graphene.String()
+
+    FILE_MODEL_MAPPING = {FileSlugs.LANGUAGE_CERTIFICATE.value: LanguageCertificateFile}
+    FILE_SLUG = FileSlugs.LANGUAGE_CERTIFICATE.value
+
+
 CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
     CertificateAndLicense.title.field.name,
     CertificateAndLicense.certifier.field.name,
@@ -998,6 +1149,14 @@ class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatus
 
     class Meta:
         model = CertificateAndLicense
+
+
+class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
+    data = graphene.Field(CertificateAndLicenseAIType)
+    verification_method_data = graphene.String()
+
+    FILE_MODEL_MAPPING = {FileSlugs.CERTIFICATE.value: CertificateFile}
+    FILE_SLUG = FileSlugs.CERTIFICATE.value
 
 
 class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
@@ -1259,7 +1418,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class OrganizationEmployeeHiringStatusUpdateMutation(
+class OrganizationEmployeeCooperationStatusUpdateMutation(
     MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
@@ -1270,9 +1429,8 @@ class OrganizationEmployeeHiringStatusUpdateMutation(
             organization := Organization.objects.filter(
                 **{
                     fields_join(
-                        OrganizationJobPosition.organization.field.related_query_name(),
-                        JobPositionAssignment.job_position.field.related_query_name(),
-                        OrganizationEmployee.job_position_assignment.field.related_query_name(),
+                        OrganizationEmployee.organization.field.related_query_name(),
+                        OrganizationEmployeeCooperation.employee.field.related_query_name(),
                         "pk",
                     ): kwargs.get("id")
                 }
@@ -1283,19 +1441,23 @@ class OrganizationEmployeeHiringStatusUpdateMutation(
         return organization
 
     class Meta:
-        model = OrganizationEmployee
+        model = OrganizationEmployeeCooperation
         login_required = True
-        fields = [OrganizationEmployee.hiring_status.field.name]
-        required_fields = [OrganizationEmployee.hiring_status.field.name]
-        type_name = "OrganizationEmployeeHiringStatusUpdateInput"
+        fields = [
+            OrganizationEmployeeCooperation.status.field.name,
+        ]
+        required_fields = [
+            OrganizationEmployeeCooperation.status.field.name,
+        ]
+        type_name = "OrganizationEmployeeCooperationStatusUpdateInput"
 
     @classmethod
     @transaction.atomic
     def mutate(cls, root, info, input, id):
-        status = input.get(OrganizationEmployee.hiring_status.field.name)
-        if not (obj := OrganizationEmployee.objects.get(pk=id)):
-            raise GraphQLErrorBadRequest(_("Organization employee not found."))
-        obj.change_hiring_status(status)
+        status = input.get(OrganizationEmployeeCooperation.status.field.name)
+        if not (obj := OrganizationEmployeeCooperation.objects.get(pk=id)):
+            raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
+        obj.change_status(status)
         return cls(**{cls._meta.return_field_name: obj})
 
 
@@ -1420,7 +1582,7 @@ class OrganizationMutation(graphene.ObjectType):
     update_job_position = OrganizationJobPositionUpdateMutation.Field()
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
     update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
-    update_employee_hiring_status = OrganizationEmployeeHiringStatusUpdateMutation.Field()
+    update_employee_cooperation_status = OrganizationEmployeeCooperationStatusUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
@@ -1429,6 +1591,7 @@ class EducationMutation(graphene.ObjectType):
     delete = EducationDeleteMutation.Field()
     update_status = EducationUpdateStatusMutation.Field()
     set_verification_method = EducationSetVerificationMethodMutation.Field()
+    analyse_and_extract_data = EducationAnalyseAndExtractDataMutation.Field()
 
 
 class WorkExperienceMutation(graphene.ObjectType):
@@ -1437,6 +1600,7 @@ class WorkExperienceMutation(graphene.ObjectType):
     delete = WorkExperienceDeleteMutation.Field()
     update_status = WorkExperienceUpdateStatusMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
+    analyse_and_extract_data = WorkExperienceAnalyseAndExtractDataMutation.Field()
 
 
 class LanguageCertificateMutation(graphene.ObjectType):
@@ -1445,6 +1609,7 @@ class LanguageCertificateMutation(graphene.ObjectType):
     delete = LanguageCertificateDeleteMutation.Field()
     update_status = LanguageCertificateUpdateStatusMutation.Field()
     set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
+    analyse_and_extract_data = LanguageCertificateAnalyseAndExtractDataMutation.Field()
 
 
 class CertificateAndLicenseMutation(graphene.ObjectType):
@@ -1453,6 +1618,7 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     delete = CertificateAndLicenseDeleteMutation.Field()
     update_status = CertificateAndLicenseUpdateStatusMutation.Field()
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
+    analyse_and_extract_data = CertificateAndLicenseAnalyseAndExtractDataMutation.Field()
 
 
 class CanadaVisaMutation(graphene.ObjectType):
@@ -1471,6 +1637,7 @@ class AccountMutation(graphene.ObjectType):
     password_reset = graphql_auth_mutations.PasswordReset.Field()
     token_auth = ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()
+    revoke_token = RevokeTokenMutation.Field()
     google_auth = GoogleAuth.Field()
     linkedin_auth = LinkedInAuth.Field()
     profile = graphene.Field(ProfileMutation)

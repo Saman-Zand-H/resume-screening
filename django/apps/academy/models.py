@@ -1,9 +1,11 @@
 from account.models import User
-from common.models import Industry
+from common.models import Industry, Job
+from common.utils import fields_join
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.db.models.lookups import In
 from django.utils.translation import gettext_lazy as _
 
 from .client.client import academy_client
@@ -26,15 +28,31 @@ def get_logo_upload_path(instance, filename):
 class CourseQuerySet(models.QuerySet):
     def related_to_user(self, user):
         return (
-            self.filter(is_active=True)
+            self.filter(**{fields_join(Course.is_active): True})
             .filter(
                 (
-                    Q(is_required=True)
-                    | Q(results__user=user, results__status=CourseResult.Status.COMPLETED)
+                    Q(**{fields_join(Course.is_required): True})
                     | Q(
-                        industries__in=Industry.objects.filter(jobcategory__job__in=user.profile.interested_jobs.all())
-                        .distinct()
-                        .values_list("id", flat=True)
+                        **{
+                            fields_join(CourseResult.course.field.related_query_name(), CourseResult.user): user,
+                            fields_join(
+                                CourseResult.course.field.related_query_name(),
+                                CourseResult.status,
+                            ): CourseResult.Status.COMPLETED,
+                        }
+                    )
+                    | Q(
+                        **{
+                            fields_join(Course.industries, In.lookup_name): Industry.objects.filter(
+                                **{
+                                    fields_join(
+                                        Job.industries.field.related_query_name(), In.lookup_name
+                                    ): user.profile.interested_jobs.all()
+                                }
+                            )
+                            .distinct()
+                            .values_list("id", flat=True)
+                        }
                     )
                 )
             )

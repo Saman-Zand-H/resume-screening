@@ -1,38 +1,63 @@
 import contextlib
 
 import graphene
+from academy.types import CourseNode
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
-from common.types import FieldType, JobBenefitType, JobNode, SkillType
+from common.types import (
+    CityNode,
+    FieldType,
+    IndustryNode,
+    JobBenefitType,
+    JobNode,
+    LanguageProficiencySkillNode,
+    LanguageProficiencyTestNode,
+    SkillType,
+    UniversityNode,
+)
 from common.utils import fields_join
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
-from academy.types import CourseNode
-from notification.models import InAppNotification
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django.fields import DjangoConnectionField
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
+from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import Case, Count, IntegerField, Q, QuerySet, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    OuterRef,
+    Q,
+    QuerySet,
+    Subquery,
+    Value,
+    When,
+)
 
 from .accesses import (
     JobPositionContainer,
     OrganizationMembershipContainer,
 )
-from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .filterset import OrganizationEmployeeFilterset
+from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
     Access,
     CanadaVisa,
     CertificateAndLicense,
+    CertificateAndLicenseOfflineVerificationMethod,
+    CertificateAndLicenseOnlineVerificationMethod,
     CommunicationMethod,
     Contact,
+    DegreeFile,
     Education,
+    EducationEvaluationDocumentFile,
+    EmployerLetterFile,
     EmployerLetterMethod,
     IEEMethod,
     JobPositionAssignment,
@@ -40,13 +65,16 @@ from .models import (
     JobPositionInterview,
     LanguageCertificate,
     LanguageCertificateValue,
+    OfflineMethod,
+    OnlineMethod,
     Organization,
     OrganizationEmployee,
-    OrganizationEmployeeCooperationHistory,
+    OrganizationEmployeeCooperation,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
     OrganizationPlatformMessage,
+    PaystubsFile,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -370,6 +398,15 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class EducationAIType(graphene.ObjectType):
+    field = graphene.Field(FieldType)
+    degree = graphene.String()
+    university = graphene.Field(UniversityNode)
+    city = graphene.Field(CityNode)
+    start = graphene.Date()
+    end = graphene.Date()
+
+
 class IEEMethodType(DjangoObjectType):
     class Meta:
         model = IEEMethod
@@ -378,6 +415,10 @@ class IEEMethodType(DjangoObjectType):
             IEEMethod.education_evaluation_document.field.name,
             IEEMethod.evaluator.field.name,
         )
+
+
+class IEEMethodAIType(graphene.ObjectType):
+    evaluator = graphene.String()
 
 
 class CommunicationMethodType(DjangoObjectType):
@@ -391,6 +432,26 @@ class CommunicationMethodType(DjangoObjectType):
             CommunicationMethod.person.field.name,
             CommunicationMethod.degree_file.field.name,
         )
+
+
+class CommunicationMethodAIType(graphene.ObjectType):
+    website = graphene.String()
+    email = graphene.String()
+    department = graphene.String()
+    person = graphene.String()
+
+
+class EducationVerificationMethodType(graphene.Union):
+    class Meta:
+        types = (IEEMethodAIType, CommunicationMethodAIType)
+
+    def resolve_type(self, info):
+        model = getattr(info.context, "model", None)
+        if model == EducationEvaluationDocumentFile:
+            return IEEMethodAIType
+        elif model == DegreeFile:
+            return CommunicationMethodAIType
+        return None
 
 
 class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
@@ -415,6 +476,17 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class WorkExperienceAIType(graphene.ObjectType):
+    job_title = graphene.String()
+    grade = graphene.String()
+    start = graphene.Date()
+    end = graphene.Date()
+    organization = graphene.String()
+    city = graphene.Field(CityNode)
+    industry = graphene.Field(IndustryNode)
+    skills = graphene.String()
+
+
 class EmployerLetterMethodType(DjangoObjectType):
     class Meta:
         model = EmployerLetterMethod
@@ -425,6 +497,13 @@ class EmployerLetterMethodType(DjangoObjectType):
         )
 
 
+class EmployerLetterMethodAIType(graphene.ObjectType):
+    name = graphene.String()
+    email = graphene.String()
+    phone_number = graphene.String()
+    position = graphene.String()
+
+
 class PaystubsMethodType(DjangoObjectType):
     class Meta:
         model = PaystubsMethod
@@ -432,6 +511,10 @@ class PaystubsMethodType(DjangoObjectType):
             PaystubsMethod.id.field.name,
             PaystubsMethod.paystubs.field.name,
         )
+
+
+class PaystubsMethodAIType(graphene.ObjectType):
+    id = graphene.ID()
 
 
 class ReferenceCheckEmployerType(DjangoObjectType):
@@ -444,6 +527,19 @@ class ReferenceCheckEmployerType(DjangoObjectType):
             ReferenceCheckEmployer.phone_number.field.name,
             ReferenceCheckEmployer.position.field.name,
         )
+
+
+class WorkExperienceVerificationMethodType(graphene.Union):
+    class Meta:
+        types = (EmployerLetterMethodAIType, PaystubsMethodAIType)
+
+    def resolve_type(self, info):
+        model = getattr(info.context, "model", None)
+        if model == PaystubsFile:
+            return PaystubsMethodAIType
+        elif model == EmployerLetterFile:
+            return EmployerLetterMethodAIType
+        return None
 
 
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
@@ -460,7 +556,33 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
             LanguageCertificate.allow_self_verification.field.name,
             LanguageCertificate.status.field.name,
             LanguageCertificateValue.language_certificate.field.related_query_name(),
+            *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
+
+
+class LanguageCertificateValueAIType(graphene.ObjectType):
+    skill = graphene.Field(LanguageProficiencySkillNode)
+    value = graphene.String()
+
+
+class LanguageCertificateAIType(graphene.ObjectType):
+    language = graphene.String()
+    test = graphene.Field(LanguageProficiencyTestNode)
+    issued_at = graphene.Date()
+    expired_at = graphene.Date()
+    values = graphene.List(LanguageCertificateValueAIType)
+
+
+class LanguageCertificateOfflineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = OfflineMethod
+        fields = (OfflineMethod.id.field.name, OfflineMethod.certificate_file.field.name)
+
+
+class LanguageCertificateOnlineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = OnlineMethod
+        fields = (OnlineMethod.id.field.name, OnlineMethod.certificate_link.field.name)
 
 
 class LanguageCertificateValueNode(DjangoObjectType):
@@ -486,6 +608,32 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
             CertificateAndLicense.allow_self_verification.field.name,
+            *(m.get_related_name() for m in CertificateAndLicense.get_method_models()),
+        )
+
+
+class CertificateAndLicenseAIType(graphene.ObjectType):
+    title = graphene.String()
+    certifier = graphene.String()
+    issued_at = graphene.Date()
+    expired_at = graphene.Date()
+
+
+class CertificateAndLicenseOfflineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicenseOfflineVerificationMethod
+        fields = (
+            CertificateAndLicenseOfflineVerificationMethod.id.field.name,
+            CertificateAndLicenseOfflineVerificationMethod.certificate_file.field.name,
+        )
+
+
+class CertificateAndLicenseOnlineVerificationMethodType(DjangoObjectType):
+    class Meta:
+        model = CertificateAndLicenseOnlineVerificationMethod
+        fields = (
+            CertificateAndLicenseOnlineVerificationMethod.id.field.name,
+            CertificateAndLicenseOnlineVerificationMethod.certificate_link.field.name,
         )
 
 
@@ -945,42 +1093,41 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
 
-class OrganizationEmployeeCooperationHistoryType(DjangoObjectType):
-    class Meta:
-        model = OrganizationEmployeeCooperationHistory
-        fields = (
-            OrganizationEmployeeCooperationHistory.id.field.name,
-            OrganizationEmployeeCooperationHistory.start_at.field.name,
-            OrganizationEmployeeCooperationHistory.end_at.field.name,
-        )
-
-
-class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
+class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
-    employee = graphene.Field(EmployeeType)
-    cooperation_histories = graphene.List(OrganizationEmployeeCooperationHistoryType)
     platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
-        model = OrganizationEmployee
-        use_connection = True
+        model = OrganizationEmployeeCooperation
         fields = (
-            OrganizationEmployee.id.field.name,
-            OrganizationEmployee.hiring_status.field.name,
+            OrganizationEmployeeCooperation.id.field.name,
+            OrganizationEmployeeCooperation.status.field.name,
+            OrganizationEmployeeCooperation.start_at.field.name,
+            OrganizationEmployeeCooperation.end_at.field.name,
         )
-        filterset_class = OrganizationEmployeeFilterset
+
+    def resolve_platform_messages(self, info):
+        return self.organizationplatformmessage.all()
 
     def resolve_job_position(self, info):
         return self.job_position_assignment.job_position
 
+
+class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    employee = graphene.Field(EmployeeType)
+    cooperations = graphene.List(OrganizationEmployeeCooperationType)
+
+    class Meta:
+        model = OrganizationEmployee
+        use_connection = True
+        fields = (OrganizationEmployee.id.field.name,)
+        filterset_class = OrganizationEmployeeFilterset
+
     def resolve_employee(self, info):
-        return self.job_position_assignment.job_seeker
+        return self.user
 
-    def resolve_cooperation_histories(self, info):
-        return self.cooperation_histories.all()
-
-    def resolve_platform_messages(self, info):
-        return self.organizationplatformmessage.all()
+    def resolve_cooperations(self, info):
+        return self.cooperations.all()
 
     @classmethod
     def get_queryset(cls, queryset: QuerySet[OrganizationEmployee], info):
@@ -989,14 +1136,28 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
             queryset.filter(
                 **{
                     fields_join(
-                        OrganizationEmployee.job_position_assignment,
-                        JobPositionAssignment.job_position,
-                        OrganizationJobPosition.organization,
+                        OrganizationEmployee.organization,
                         OrganizationMembership.organization.field.related_query_name(),
                         OrganizationMembership.user,
                     ): user
                 }
             )
+            .annotate(
+                last_cooperation_status=Subquery(
+                    (
+                        OrganizationEmployeeCooperation.objects.filter(employee=OuterRef("pk"))
+                        .order_by("-id")
+                        .values("status")[:1]
+                    )
+                ),
+                status_order=Case(
+                    *[
+                        When(last_cooperation_status=status, then=Value(order))
+                        for order, status in enumerate(OrganizationEmployeeCooperation.get_status_order())
+                    ],
+                    output_field=IntegerField(),
+                ),
+            )
             .distinct()
-            .order_by("-id")
+            .order_by("status_order", "-created")
         )

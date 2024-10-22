@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(random_course_external_id),
+        migrations.RunPython(random_course_external_id, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="course",
             name="external_id",

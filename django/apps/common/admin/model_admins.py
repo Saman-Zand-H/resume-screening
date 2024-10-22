@@ -1,27 +1,40 @@
 from flex_report.defaults.admin import TemplateAdmin as BaseTemplateAdmin
 from flex_report.defaults.views import TemplateDeleteView
+from import_export.admin import ExportMixin
 
 from django.contrib import admin
 from django.urls import path
 
-from .models import (
+from ..models import (
     Field,
     Industry,
     Job,
     JobBenefit,
-    JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
     SkillTopic,
     University,
 )
-from .utils import get_file_models
-from .views import (
+from ..utils import get_file_models
+from ..views import (
     TemplateCreateCompleteView,
     TemplateCreateInitView,
     TemplateReportView,
     TemplateSavedFilterCreateView,
+    TemplateSavedFilterUpdateView,
+    TemplateUpdateView,
+)
+from .resources import (
+    FieldResource,
+    IndustryResource,
+    LanguageProficiencySkillResource,
+    LanguageProficiencyTestResource,
+    JobBenefitResource,
+    JobResource,
+    SkillResource,
+    SkillTopicResource,
+    UniversityResource,
 )
 
 
@@ -39,9 +52,19 @@ class TemplateAdmin(BaseTemplateAdmin):
                 name="flex_report_template_wizard_complete",
             ),
             path(
+                "<int:pk>/edit",
+                self.admin_site.admin_view(TemplateUpdateView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_edit",
+            ),
+            path(
                 "<int:pk>/filter",
                 self.admin_site.admin_view(TemplateSavedFilterCreateView.as_view(admin_site=self.admin_site)),
                 name="flex_report_template_filter",
+            ),
+            path(
+                "<int:pk>/filter/<int:filter_pk>",
+                self.admin_site.admin_view(TemplateSavedFilterUpdateView.as_view(admin_site=self.admin_site)),
+                name="flex_report_template_filter_update",
             ),
             path(
                 "<int:pk>/report",
@@ -58,41 +81,38 @@ class TemplateAdmin(BaseTemplateAdmin):
 
 
 @admin.register(Industry)
-class IndustryAdmin(admin.ModelAdmin):
+class IndustryAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [IndustryResource]
     list_display = (Industry.title.field.name,)
     search_fields = (Industry.title.field.name,)
 
 
-@admin.register(JobCategory)
-class JobCategoryAdmin(admin.ModelAdmin):
-    list_display = (JobCategory.title.field.name, JobCategory.industry.field.name)
-    search_fields = (JobCategory.title.field.name,)
-    list_filter = (JobCategory.industry.field.name,)
-    autocomplete_fields = (JobCategory.industry.field.name,)
-
-
 @admin.register(Job)
-class JobAdmin(admin.ModelAdmin):
-    list_display = (Job.title.field.name, Job.category.field.name, Job.order.field.name)
+class JobAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [JobResource]
+    list_display = (Job.title.field.name, Job.order.field.name)
     search_fields = (Job.title.field.name,)
-    list_filter = (Job.category.field.name,)
-    autocomplete_fields = (Job.category.field.name,)
+    list_filter = (Job.industries.field.name,)
+    autocomplete_fields = (Job.industries.field.name,)
 
 
 @admin.register(Field)
-class FieldAdmin(admin.ModelAdmin):
+class FieldAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [FieldResource]
     list_display = (Field.name.field.name,)
     search_fields = (Field.name.field.name,)
 
 
 @admin.register(University)
-class UniversityAdmin(admin.ModelAdmin):
+class UniversityAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [UniversityResource]
     list_display = (University.name.field.name, University.websites.field.name)
     search_fields = (University.name.field.name, University.websites.field.name)
 
 
 @admin.register(SkillTopic)
-class SkillTopicAdmin(admin.ModelAdmin):
+class SkillTopicAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [SkillTopicResource]
     list_display = (SkillTopic.title.field.name, SkillTopic.industry.field.name)
     search_fields = (SkillTopic.title.field.name,)
     list_filter = (SkillTopic.industry.field.name,)
@@ -100,7 +120,8 @@ class SkillTopicAdmin(admin.ModelAdmin):
 
 
 @admin.register(Skill)
-class SkillAdmin(admin.ModelAdmin):
+class SkillAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [SkillResource]
     list_display = (
         Skill.title.field.name,
         Skill.insert_type.field.name,
@@ -110,13 +131,15 @@ class SkillAdmin(admin.ModelAdmin):
 
 
 @admin.register(LanguageProficiencyTest)
-class LanguageProficiencyTestAdmin(admin.ModelAdmin):
+class LanguageProficiencyTestAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [LanguageProficiencyTestResource]
     list_display = (LanguageProficiencyTest.title.field.name, LanguageProficiencyTest.languages.field.name)
     search_fields = (LanguageProficiencyTest.title.field.name,)
 
 
 @admin.register(LanguageProficiencySkill)
-class LanguageProficiencySkillAdmin(admin.ModelAdmin):
+class LanguageProficiencySkillAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [LanguageProficiencySkillResource]
     list_display = (
         LanguageProficiencySkill.skill_name.field.name,
         LanguageProficiencySkill.test.field.name,
@@ -128,7 +151,8 @@ class LanguageProficiencySkillAdmin(admin.ModelAdmin):
 
 
 @admin.register(JobBenefit)
-class JobBenefitsAdmin(admin.ModelAdmin):
+class JobBenefitsAdmin(ExportMixin, admin.ModelAdmin):
+    resource_classes = [JobBenefitResource]
     list_display = (
         JobBenefit.id.field.name,
         JobBenefit.name.field.name,

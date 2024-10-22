@@ -1,13 +1,13 @@
 import csv
 
-from common.models import Industry, Job, JobCategory
+from common.models import Industry, Job
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 
 class Command(BaseCommand):
-    help = "Import jobs, job categories, and industries from a CSV file into the database"
+    help = "Import jobs and industries from a CSV file into the database"
 
     def add_arguments(self, parser):
         parser.add_argument("csv_file", type=str, help="The path to the CSV file")
@@ -19,9 +19,9 @@ class Command(BaseCommand):
             with open(csv_file, newline="") as file:
                 reader = csv.DictReader(file)
                 for row in reader:
-                    industry, _ = Industry.objects.get_or_create(title=row["industry"])
-                    category, _ = JobCategory.objects.get_or_create(title=row["category"], industry=industry)
-                    Job.objects.get_or_create(title=row["job"], category=category)
+                    job, _ = Job.objects.get_or_create(title=row["job"])
+                    for industry in row["industries"].split("|"):
+                        job.industries.add(Industry.objects.get_or_create(title=industry)[0])
             self.stdout.write(self.style.SUCCESS("Successfully imported jobs"))
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f"File not found: {csv_file}"))

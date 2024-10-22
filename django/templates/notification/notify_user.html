@@ -1,0 +1,141 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list flex_report_filters common %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static "admin/css/changelists.css" %}">
+  {% if cl.formset %}
+    <link rel="stylesheet" href="{% static "admin/css/forms.css" %}">
+  {% endif %}
+  {% if cl.formset or action_form %}
+    <script src="{% url 'admin:jsi18n' %}"></script>
+  {% endif %}
+  {{ media.css }}
+  {% if not actions_on_top and not actions_on_bottom %}
+    <style>
+      #changelist table thead th:first-child {width: inherit}
+    </style>
+  {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+{{ media.js }}
+<script src="{% static 'admin/js/filters.js' %}" defer></script>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} change-list{% endblock %}
+
+{% block coltype %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module{% if cl.has_filters %} filtered{% endif %}" id="changelist">
+      <div class="changelist-form-container">
+        <form id="changelist-form" method="get" style="display: flex; gap: .5rem; margin-bottom: 1rem;">
+            <div>
+                <input type="text" name="email" value="{{ request.GET.email }}" placeholder="Email">
+            </div>
+            <button type="submit" class="button">Search</button>
+        </form>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="results">
+                <table id="result_list">
+                    <thead>
+                        <th scope="col" class="action-checkbox-column" style="width: 3%;">
+                            <div class="text">
+                                <span>
+                                    <input 
+                                        type="checkbox" 
+                                        id="action-toggle" 
+                                        aria-label="Select all objects on this page for an action"
+                                    >
+                                </span>
+                            </div>
+                        </th>
+                        {% for column in object.saved_filter.template.columns.all %}
+                            {% if column.column_type == 'model' %}
+                                <th>{{ object.saved_filter.template.model.model_class|get_column_verbose_name:column.title }}</th>
+                            {% else %}
+                                {% for dynamic_field in column.get_dynamic_obj.unpack_field %}
+                                    <th>
+                                        {{ dynamic_field.get_verbose_name }}
+                                    </th>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+
+                        <th>
+                            {% trans 'Last Sent At' %}
+                        </th>
+                        <th>
+                            {% trans 'Last Status' %}
+                        </th>
+                    </thead>
+                    <tbody>
+                        {% for record in queryset %}
+                            <tr>
+                                <td class="action-checkbox">
+                                    <input type="checkbox" name="users" value="{{ record.pk }}" class="action-select" aria-label="Select this object for an action - admin: Can manage company profile">
+                                </td>
+                                
+                                {% for column in object.saved_filter.template.columns.all %}
+                                    {% if column.column_type == 'model' %}
+                                        <td>{{ record|get_row_value:column.title|default:"-" }}</td>
+                                    {% else %}
+                                        {% for dynamic_field in column.get_dynamic_obj.unpack_field %}
+                                            <td>
+                                                {% call_method dynamic_field 'get_value' record %}
+                                            </td>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% call_method object "get_user_latest_statuses" user=record.user as latest_notifications %}
+                                <td>
+                                    {% for latest_notification in latest_notifications %}
+                                        {{ latest_notification.created|date:"Y-m-d H:i" }}
+                                    {% empty %}
+                                        &mdash;
+                                    {% endfor %}
+                                </td>
+                                <td>
+                                    {% for latest_notification in latest_notifications %}
+                                        <b>{{ latest_notification.campaign_notification_type.get_notification_type_display }}</b>: {{ latest_notification.notification.get_status_display }}
+                                    {% empty %}
+                                        &mdash;
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="{{ object.saved_filter.template.columns_count|add:2 }}" style="text-align: center;">
+                                    {% trans 'No template has been created yet.' %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="submit-row" style="margin-top: 1rem; display: flex; gap: .5rem;">
+                <input type="submit" class="default" value="Notify Selected">
+                <a href="{% url 'admin:notification_compaign_notify_failed' object.pk %}" class="default button" style="padding: 10px 15px">Notify Failed</a>
+                <a href="{% url 'admin:notification_compaign_notify_all' object.pk %}" class="default button" style="padding: 10px 15px">Notify All</a>
+            </div>
+        </form>
+      </div>
+    </div>
+</div>
+<script>
+    document.getElementById('action-toggle').addEventListener('click', function() {
+        var checkboxes = document.querySelectorAll('.action-select');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = this.checked;
+        }
+    });
+</script>
+{% endblock %}

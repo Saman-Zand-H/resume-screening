@@ -1,4 +1,6 @@
-from common.utils import get_all_subclasses
+from account.models import UserDevice
+from common.utils import fields_join, get_all_subclasses
+from croniter import croniter
 from flex_report.models import TemplateSavedFilter
 from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
@@ -27,6 +29,10 @@ def get_template_help_text():
     )
 
 
+def get_campaign_crontab_help_text():
+    return "If you wish to make this campaign periodic, then go to <a href='https://crontab.guru/'>Crontab Halper</a> and copy-paste the crontab values."
+
+
 class NotificationTemplate(TimeStampedModel):
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     content_template = models.TextField(verbose_name=_("Content Template"), help_text=get_template_help_text)
@@ -47,6 +53,24 @@ class NotificationTemplate(TimeStampedModel):
 
 
 class Campaign(TimeStampedModel):
+    crontab = models.CharField(
+        max_length=255,
+        verbose_name=_("Crontab"),
+        help_text=get_campaign_crontab_help_text(),
+        blank=True,
+        null=True,
+    )
+    max_attempts = models.PositiveIntegerField(
+        verbose_name=_("Max Attempts"),
+        blank=True,
+        null=True,
+    )
+    crontab_last_run = models.DateTimeField(
+        verbose_name=_("Crontab Last Run"),
+        blank=True,
+        null=True,
+    )
+    sent_at = models.DateTimeField(verbose_name=_("Sent At"), blank=True, null=True)
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     saved_filter = models.ForeignKey(
         TemplateSavedFilter,
@@ -54,6 +78,72 @@ class Campaign(TimeStampedModel):
         related_name="campaigns",
         verbose_name=_("Saved Filter"),
     )
+    is_scheduler_active = models.BooleanField(
+        default=False,
+        verbose_name=_("Is Scheduler Active"),
+    )
+
+    def get_user_latest_statuses(self, user):
+        campaign_notification = CampaignNotification.objects.filter(
+            **{
+                fields_join(CampaignNotification.campaign_notification_type, CampaignNotificationType.campaign): self,
+                fields_join(CampaignNotification.notification, Notification.user): user,
+            }
+        )
+
+        return campaign_notification.order_by(
+            fields_join(CampaignNotification.campaign_notification_type),
+            f"-{fields_join(CampaignNotification.created)}",
+        ).distinct(fields_join(CampaignNotification.campaign_notification_type))
+
+    def get_latest_failed_campaign_notifications(self):
+        return (
+            CampaignNotification.objects.filter(
+                **{
+                    fields_join(
+                        CampaignNotification.campaign_notification_type,
+                        CampaignNotificationType.campaign,
+                    ): self
+                }
+            )
+            .order_by(
+                fields_join(
+                    CampaignNotification.notification,
+                    Notification.user,
+                ),
+                fields_join(
+                    CampaignNotification.campaign_notification_type,
+                    CampaignNotificationType.notification_type,
+                ),
+                f"-{fields_join(CampaignNotification.created)}",
+            )
+            .distinct(
+                fields_join(
+                    CampaignNotification.notification,
+                    Notification.user,
+                ),
+                fields_join(
+                    CampaignNotification.campaign_notification_type,
+                    CampaignNotificationType.notification_type,
+                ),
+            )
+            .filter(
+                **{
+                    fields_join(
+                        CampaignNotification.notification,
+                        Notification.status,
+                    ): Notification.Status.FAILED,
+                }
+            )
+        )
+
+    def clean(self):
+        if self.crontab:
+            if not croniter.is_valid(self.crontab):
+                raise ValidationError({fields_join(Campaign.crontab): _("Invalid crontab value.")})
+
+            if self.crontab[0] != "0":
+                raise ValidationError({fields_join(Campaign.crontab): _("Crontab should start with 0.")})
 
     def get_campaign_notification_types(self):
         campaign_notification_manager: models.BaseManager[CampaignNotificationType] = getattr(
@@ -102,6 +192,18 @@ class CampaignNotificationType(TimeStampedModel):
         NotificationTypes.PUSH,
         NotificationTypes.IN_APP,
     ]
+
+    def successful_notifications_count(self, user):
+        return Notification.objects.filter(
+            **{
+                fields_join(
+                    CampaignNotification.notification.field.related_query_name(),
+                    CampaignNotification.campaign_notification_type,
+                ): self,
+                fields_join(Notification.user): user,
+                fields_join(Notification.status): Notification.Status.SENT,
+            }
+        ).count()
 
     def clean(self):
         subject_required = self.notification_type in self.SUBJECT_REQUIRED_TYPES
@@ -188,7 +290,7 @@ class CampaignNotification(TimeStampedModel):
         related_name="campaign_notifications",
         verbose_name=_("Campaign Notification Type"),
     )
-    notification = models.OneToOneField(
+    notification = models.ForeignKey(
         Notification,
         on_delete=models.CASCADE,
         related_name="campaign_notifications",
@@ -245,17 +347,17 @@ class WhatsAppNotification(Notification):
 
 
 class DeviceToken(models.Model):
-    device_token = models.CharField(max_length=255, verbose_name=_("Device Token"))
+    token = models.CharField(max_length=255, verbose_name=_("Device Token"))
 
     class Meta:
         abstract = True
 
     def __str__(self):
-        return token_excerpt(self.device_token)
+        return token_excerpt(self.token)
 
     @property
     def short_token(self):
-        return token_excerpt(self.device_token)
+        return token_excerpt(self.token)
 
 
 class PushNotification(DeviceToken, NotificationTitle, Notification):
@@ -269,17 +371,17 @@ class PushNotification(DeviceToken, NotificationTitle, Notification):
         return self.short_token
 
 
-class UserDevice(DeviceToken, TimeStampedModel):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+class UserPushNotificationToken(DeviceToken, TimeStampedModel):
+    device = models.OneToOneField(
+        UserDevice,
         on_delete=models.CASCADE,
-        related_name="devices",
-        verbose_name=_("User"),
+        related_name="push_notification_token",
+        verbose_name=_("Device"),
     )
 
     class Meta:
-        verbose_name = _("User Device")
-        verbose_name_plural = _("User Devices")
+        verbose_name = _("User Push Notification Token")
+        verbose_name_plural = _("User Push Notification Tokens")
 
     def __str__(self):
         return self.short_token

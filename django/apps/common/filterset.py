@@ -6,6 +6,18 @@ from flex_report.filterset import (
 from flex_report.filterset import FilterSet as BaseFilterSet
 
 from django.contrib.admin.options import FORMFIELD_FOR_DBFIELD_DEFAULTS
+from django.contrib.postgres.fields import ArrayField
+from django.db.models.constants import LOOKUP_SEP
+
+
+class OverlapsFilter(django_filters.MultipleChoiceFilter):
+    def get_filter_predicate(self, v):
+        name = self.field_name
+        if name:
+            name = LOOKUP_SEP.join([name, self.lookup_expr])
+        predicate = super().get_filter_predicate(v)
+        predicate[name] = [v]
+        return predicate
 
 
 class FilterSet(BaseFilterSet):
@@ -21,7 +33,7 @@ class FilterSet(BaseFilterSet):
 
     @classmethod
     def filter_for_lookup(cls, f, lookup_type):
-        filter_, opts = super().filter_for_lookup(f, lookup_type)
+        filter_, opts = super(BaseFilterSet, cls).filter_for_lookup(f, lookup_type)
         modified_widget = cls.get_form_field_widget(f)
         modified_field_class = cls.get_form_field_class(f)
         widget = lambda w, attrs=None: w(attrs=attrs) if attrs else w()  # noqa
@@ -29,6 +41,11 @@ class FilterSet(BaseFilterSet):
         if isinstance(filter_, django_filters.ModelMultipleChoiceFilter) and "choices" in opts:
             filter_ = django_filters.MultipleChoiceFilter
             opts["widget"] = widget(modified_widget or filter_.field_class.widget)
+
+        elif isinstance(f, ArrayField):
+            filter_ = OverlapsFilter
+            opts["widget"] = widget(modified_widget or filter_.field_class.widget)
+            opts["choices"] = getattr(f, "choices", [])
 
         elif isinstance(filter_, django_filters.ModelChoiceFilter):
             filter_ = django_filters.ModelMultipleChoiceFilter
@@ -41,5 +58,8 @@ class FilterSet(BaseFilterSet):
         elif issubclass(filter_, django_filters.BaseInFilter):
             filter_ = CustomModelMultipleChoiceFilter
             opts["widget"] = widget(modified_widget or filter_.field_class.widget)
+
+        else:
+            filter_, opts = super().filter_for_lookup(f, lookup_type)
 
         return filter_, opts

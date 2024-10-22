@@ -17,13 +17,14 @@ from .models import (
     Industry,
     Job,
     JobBenefit,
-    JobCategory,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
     Skill,
     University,
 )
-from .utils import get_file_models
+from .utils import get_file_models, get_verification_method_file_models
+from account.models import WorkExperience, Education
+
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = graphene.Enum("Errors", enum_values)
@@ -66,20 +67,6 @@ class IndustryNode(DjangoObjectType):
         }
 
 
-class JobCategoryNode(DjangoObjectType):
-    class Meta:
-        model = JobCategory
-        use_connection = True
-        fields = (
-            JobCategory.id.field.name,
-            JobCategory.title.field.name,
-        )
-        filter_fields = {
-            JobCategory.id.field.name: ["exact"],
-            JobCategory.title.field.name: ["icontains"],
-        }
-
-
 class JobNode(DjangoObjectType):
     class Meta:
         model = Job
@@ -87,13 +74,12 @@ class JobNode(DjangoObjectType):
         fields = (
             Job.id.field.name,
             Job.title.field.name,
-            Job.category.field.name,
+            Job.industries.field.name,
             Job.require_appearance_data.field.name,
         )
         filter_fields = {
             Job.id.field.name: ["exact"],
             Job.title.field.name: ["icontains"],
-            Job.category.field.name: ["exact"],
         }
 
 
@@ -233,6 +219,23 @@ class SkillType(DjangoObjectType):
 UploadType = convert_choices_to_named_enum_with_descriptions(
     "UploadType",
     sorted(((model.SLUG, model._meta.verbose_name) for model in get_file_models()), key=itemgetter(0)),
+)
+
+
+WorkExperienceVerificationMethodUploadType = convert_choices_to_named_enum_with_descriptions(
+    "WorkExperienceVerificationMethodUploadType",
+    sorted(
+        ((model.SLUG, model._meta.verbose_name) for model in get_verification_method_file_models(WorkExperience)),
+        key=itemgetter(0),
+    ),
+)
+
+EducationVerificationMethodUploadType = convert_choices_to_named_enum_with_descriptions(
+    "EducationVerificationMethodUploadType",
+    sorted(
+        ((model.SLUG, model._meta.verbose_name) for model in get_verification_method_file_models(Education)),
+        key=itemgetter(0),
+    ),
 )
 
 

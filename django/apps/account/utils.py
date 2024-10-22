@@ -1,6 +1,7 @@
+import contextlib
 import json
 from operator import attrgetter
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from ai.google import GoogleServices
 from cities_light.models import City
@@ -9,6 +10,7 @@ from common.utils import fields_join, get_file_model_mimetype
 from config.settings.constants import Assistants, Environment
 from flex_blob.models import FileModel
 from google.genai import types
+from pydantic import ValidationError as PydanticValidationError
 
 from django.conf import settings
 from django.contrib.postgres.expressions import ArraySubquery
@@ -16,7 +18,71 @@ from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
-from .constants import VectorStores
+from .constants import FileSlugs, VectorStores
+from .typing import (
+    AnalysisResponse,
+    ResumeJson,
+)
+
+
+def set_contacts_from_resume_json(user, resume_json: dict):
+    from .models import Contact, Contactable, Profile
+
+    contactable = Contactable.objects.filter(
+        **{fields_join(Profile.contactable.field.related_query_name(), Profile.user): user}
+    ).first()
+
+    if not (contactable and (resume_json_model := ResumeJson.model_validate(resume_json)).contact_informations):
+        return
+
+    user_contact_types = Contact.objects.filter(**{fields_join(Contact.contactable): contactable}).values_list(
+        fields_join(Contact.type), flat=True
+    )
+    contacts = [
+        Contact(
+            **{
+                fields_join(Contact.contactable): contactable,
+                fields_join(Contact.value): contact_information.value,
+                fields_join(Contact.type): contact_information.type,
+            }
+        )
+        for contact_information in resume_json_model.contact_informations
+        if contact_information.type not in user_contact_types
+    ]
+    Contact.objects.bulk_create(contacts, ignore_conflicts=True)
+
+
+def analyze_document(
+    file_model_id: int,
+    verification_method_name: Literal[
+        FileSlugs.EMPLOYER_LETTER,
+        FileSlugs.PAYSTUBS,
+        FileSlugs.EDUCATION_EVALUATION,
+        FileSlugs.DEGREE,
+        FileSlugs.LANGUAGE_CERTIFICATE,
+        FileSlugs.CERTIFICATE,
+    ],
+) -> AnalysisResponse:
+    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+        return
+
+    service = GoogleServices(Assistants.DOCUMENT_ANALYSIS)
+    mime_type = get_file_model_mimetype(file_model)
+    with file_model.file.open("rb") as file:
+        content = file.file.read()
+
+    results = service.generate_text_content(
+        [
+            types.Part.from_bytes(data=content, mime_type=mime_type),
+            types.Part.from_text(text=json.dumps({"verification_method_name": verification_method_name})),
+        ]
+    )
+
+    if results:
+        with contextlib.suppress(PydanticValidationError):
+            return AnalysisResponse.model_validate(service.message_to_json(results))
+
+        return AnalysisResponse(is_valid=False)
 
 
 def extract_resume_json(file_model_id: int):
@@ -30,10 +96,8 @@ def extract_resume_json(file_model_id: int):
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(content, mime_type),
-            types.Part.from_text(
-                "extract resume JSON",
-            ),
+            types.Part.from_bytes(data=content, mime_type=mime_type),
+            types.Part.from_text(text="extract resume JSON"),
         ]
     )
 
@@ -150,9 +214,9 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     }
     message = service.generate_text_content(
         [
-            types.Part.from_text(json.dumps(message_dict)),
-            types.Part.from_text("\nTHE FOLLOWING IS THE DATA:\n"),
-            types.Part.from_text(json.dumps(VectorStores.JOB.data_fn())),
+            types.Part.from_text(text=json.dumps(message_dict)),
+            types.Part.from_text(text="\nTHE FOLLOWING IS THE DATA:\n"),
+            types.Part.from_text(text=json.dumps(VectorStores.JOB.data_fn())),
         ]
     )
     if message:
@@ -172,10 +236,8 @@ def extract_certificate_text_content(file_model_id: int):
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(content, mimetype),
-            types.Part.from_text(
-                "extract text content",
-            ),
+            types.Part.from_bytes(data=content, mime_type=mimetype),
+            types.Part.from_text(text="extract text content"),
         ]
     )
 
@@ -191,9 +253,9 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
     message_dict = {"raw_skills": raw_skills, "resume_data": resume_json, **additional_information}
     message = service.generate_text_content(
         [
-            types.Part.from_text(json.dumps(message_dict)),
-            types.Part.from_text("\nTHE FOLLOWING IS THE DATA:\n"),
-            types.Part.from_text(json.dumps(VectorStores.SKILL.data_fn())),
+            types.Part.from_text(text=json.dumps(message_dict)),
+            types.Part.from_text(text="\nTHE FOLLOWING IS THE DATA:\n"),
+            types.Part.from_text(text=json.dumps(VectorStores.SKILL.data_fn())),
         ]
     )
 

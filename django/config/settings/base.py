@@ -16,9 +16,8 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 from import_export.formats.base_formats import XLSX
-
-from .constants import Assistants
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
@@ -104,6 +103,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "account.middlewares.AuthMiddleware",
+    "account.middlewares.DeviceMiddleware",
 ]
 
 
@@ -310,13 +310,6 @@ SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
-ASSISTANT_IDS = {
-    Assistants.JOB: os.environ.get("FIND_USER_AVAILABLE_JOBS_ASSISTANT_ID"),
-    Assistants.SKILL: os.environ.get("FIND_USER_SKILLS_OR_CREATE_ASSISTANT_ID"),
-    Assistants.RESUME_JSON: os.environ.get("GET_RESUME_JSON_ASSISTANT_ID"),
-    Assistants.GENERATE_RESUME: os.environ.get("GENERATE_RESUME_INFO_ASSISTANT_ID"),
-}
-
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "http://localhost:8000")
 
 ACADEMY_SETTINGS = {
@@ -376,3 +369,9 @@ LOGGING = {
         },
     },
 }
+
+
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    "x-cpj-device-id",
+)

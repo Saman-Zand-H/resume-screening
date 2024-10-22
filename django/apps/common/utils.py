@@ -1,16 +1,44 @@
+import contextlib
 from functools import lru_cache, reduce
-from typing import Dict, List, Set
+from typing import Dict, Set, List, Type
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
 from graphene_django.converter import convert_choice_field_to_enum
 
 import django.apps
+from django.db.models import Model, OneToOneField
 from django.db.models.constants import LOOKUP_SEP
 
 from .constants import GRAPHQL_ERROR_FIELD_SEP
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
 from .models import FileModel
+
+
+def merge_relations[T: Model](source: T, *target_objs: T, skipped_relations=[]):
+    through_tables = [i.through for i in source._meta.related_objects if i.many_to_many]
+    related_objects = [i for i in source._meta.related_objects if i.related_model not in through_tables]
+
+    for relation in related_objects:
+        for source_obj in target_objs:
+            if relation.related_model in skipped_relations:
+                continue
+
+            if relation.one_to_many:
+                with contextlib.suppress(AttributeError):
+                    getattr(source, relation.get_accessor_name()).add(
+                        *getattr(source_obj, relation.get_accessor_name()).all()
+                    )
+
+            elif relation.many_to_one or relation.one_to_one:
+                setattr(source, relation.get_accessor_name(), getattr(source_obj, relation.get_accessor_name(), None))
+
+            elif relation.many_to_many:
+                getattr(source, relation.get_accessor_name()).add(
+                    *getattr(source_obj, relation.get_accessor_name()).all()
+                )
+
+    return source
 
 
 def seiralize_field_error(field_name: str, error_message: str) -> str:
@@ -62,10 +90,8 @@ def map_exception_to_error(exception_class: type, exception_text: str = None) ->
     return Errors.INTERNAL_SERVER_ERROR
 
 
-def fields_join(*fields, suffix_lookups: List[str] = []):
-    return LOOKUP_SEP.join(
-        [(hasattr(field, "field") and field.field.name) or field for field in fields] + suffix_lookups
-    )
+def fields_join(*fields):
+    return LOOKUP_SEP.join((hasattr(field, "field") and field.field.name) or field for field in fields)
 
 
 def fix_array_choice_type(field):
@@ -82,3 +108,12 @@ def get_file_models():
 
 def get_file_model(slug: str):
     return next((model for model in get_file_models() if model.SLUG == slug), None)
+
+
+def get_verification_method_file_models(base_model: Type[Model]) -> List[Model]:
+    return (
+        field.related_model
+        for model in base_model.get_method_models()
+        for field in model._meta.fields
+        if isinstance(field, OneToOneField) and issubclass(field.related_model, FileModel)
+    )

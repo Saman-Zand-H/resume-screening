@@ -16,10 +16,10 @@ from .models import (
     NotificationTemplate,
     PushNotification,
     SMSNotification,
-    UserDevice,
+    UserPushNotificationToken,
     WhatsAppNotification,
 )
-from .views import CampaignNotifyView, CampaignUserNotifyView
+from .views import CampaginNotifyFailedView, CampaignNotifyAllView, CampaignNotifyView
 
 
 @admin.register(NotificationTemplate)
@@ -120,9 +120,14 @@ class CampaignAdmin(admin.ModelAdmin):
                 name="notification_compaign_notify",
             ),
             path(
-                "<int:pk>/notify/user",
-                self.admin_site.admin_view(CampaignUserNotifyView.as_view(admin_site=self.admin_site)),
-                name="notification_compaign_notify_user",
+                "<int:pk>/notify/all",
+                self.admin_site.admin_view(CampaignNotifyAllView.as_view(admin_site=self.admin_site)),
+                name="notification_compaign_notify_all",
+            ),
+            path(
+                "<int:pk>/notify/failed",
+                self.admin_site.admin_view(CampaginNotifyFailedView.as_view(admin_site=self.admin_site)),
+                name="notification_compaign_notify_failed",
             ),
         ]
 
@@ -200,7 +205,7 @@ class PushNotificationAdmin(admin.ModelAdmin):
     )
     list_filter = (PushNotification.status.field.name,)
     search_fields = (
-        PushNotification.device_token.field.name,
+        PushNotification.token.field.name,
         PushNotification.title.field.name,
         PushNotification.user.field.name,
     )
@@ -221,8 +226,15 @@ class InAppNotificationAdmin(admin.ModelAdmin):
     autocomplete_fields = (InAppNotification.user.field.name,)
 
 
-@admin.register(UserDevice)
-class UserDeviceAdmin(admin.ModelAdmin):
-    list_display = (UserDevice.device_token.field.name, UserDevice.user.field.name, UserDevice.created.field.name)
-    search_fields = (UserDevice.device_token.field.name, UserDevice.user.field.name)
-    autocomplete_fields = (UserDevice.user.field.name,)
+@admin.register(UserPushNotificationToken)
+class UserPushNotificationTokenAdmin(admin.ModelAdmin):
+    list_display = (
+        UserPushNotificationToken.token.field.name,
+        UserPushNotificationToken.device.field.name,
+        UserPushNotificationToken.created.field.name,
+    )
+    search_fields = (
+        UserPushNotificationToken.token.field.name,
+        UserPushNotificationToken.device.field.name,
+    )
+    autocomplete_fields = (UserPushNotificationToken.device.field.name,)

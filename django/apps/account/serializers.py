@@ -14,7 +14,7 @@ from django.core.validators import URLValidator
 from django.utils.translation import gettext_lazy as _
 
 from .models import Contact, Education, Profile, User
-from .validators import LinkedInUsernameValidator, WhatsAppValidator
+from .validators import LinkedInUsernameValidator
 
 
 class SocialLoginSerializer(BaseSocialLoginSerializer):
@@ -71,7 +71,7 @@ class ContactModel(BaseModel):
             Contact.Type.PHONE: validate_phonenumber,
             Contact.Type.WEBSITE: URLValidator(),
             Contact.Type.LINKEDIN: LinkedInUsernameValidator(),
-            Contact.Type.WHATSAPP: WhatsAppValidator(),
+            Contact.Type.WHATSAPP: validate_phonenumber,
         }
         validator = validators.get(contact_type)
         if validator:

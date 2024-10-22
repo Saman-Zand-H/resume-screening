@@ -23,6 +23,7 @@ from common.models import (
     SlugTitleAbstract,
     University,
 )
+from common.states import ChangeStateMixin, GenericState
 from common.utils import (
     field_serializer,
     fields_join,
@@ -38,12 +39,12 @@ from common.validators import (
 from computedfields.models import ComputedFieldsModel, computed
 from flex_eav.models import EavValue
 from flex_report import report_model
+from graphql_jwt.refresh_token.models import RefreshToken
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
 from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
-from phonenumbers.phonenumberutil import NumberParseException
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -54,18 +55,28 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
+from django.db.models.constraints import UniqueConstraint
 from django.template.loader import render_to_string
 from django.templatetags.static import static
+from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from .choices import get_task_names_choices
+from .choices import (
+    ContactType,
+    EducationDegree,
+    IEEEvaluator,
+    UserTaskStatus,
+    WorkExperienceGrade,
+    get_task_names_choices,
+)
 from .constants import (
     EARLY_USERS_COUNT,
     ORGANIZATION_PHONE_OTP_CACHE_KEY,
     ORGANIZATION_PHONE_OTP_EXPIRY,
     SUPPORT_RECIPIENT_LIST,
     SUPPORT_TICKET_SUBJECT_TEMPLATE,
+    FileSlugs,
     ProfileAnnotationNames,
 )
 from .managers import (
@@ -80,14 +91,7 @@ from .validators import (
     LinkedInUsernameValidator,
     NameValidator,
     NoTagEmailValidator,
-    WhatsAppValidator,
 )
-
-
-def fix_whatsapp_value(value):
-    with contextlib.suppress(NumberParseException):
-        return PhoneNumber.from_string(value).as_e164
-    return value
 
 
 def generate_unique_referral_code():
@@ -137,24 +141,18 @@ class Contactable(models.Model):
 
 
 class Contact(models.Model):
-    class Type(models.TextChoices):
-        WEBSITE = "website", _("Website")
-        ADDRESS = "address", _("Address")
-        LINKEDIN = "linkedin", _("LinkedIn")
-        WHATSAPP = "whatsapp", _("WhatsApp")
-        PHONE = "phone", _("Phone")
+    Type = ContactType
 
     VALIDATORS = {
         Type.WEBSITE: models.URLField().run_validators,
         Type.ADDRESS: None,
         Type.LINKEDIN: LinkedInUsernameValidator(),
-        Type.WHATSAPP: WhatsAppValidator(),
+        Type.WHATSAPP: PhoneNumberField().run_validators,
         Type.PHONE: PhoneNumberField().run_validators,
     }
 
     VALUE_FIXERS = {
         Type.PHONE: lambda value: PhoneNumber.from_string(value).as_e164,
-        Type.WHATSAPP: fix_whatsapp_value,
     }
 
     TYPE_ICON = {
@@ -170,8 +168,6 @@ class Contact(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_("Contactable"),
         related_name="contacts",
-        blank=True,
-        null=True,
     )
     type = models.CharField(
         max_length=50,
@@ -273,6 +269,10 @@ class User(AbstractUser):
 
     full_name.fget.verbose_name = _("Full Name")
 
+    @cached_property
+    def user_type(self):
+        return "USER" if self.organizations.count() == 0 else "ORGANIZATION"
+
     @property
     def has_resume(self):
         for field in self.get_resume_related_models():
@@ -336,9 +336,9 @@ class User(AbstractUser):
         organization_contacts = (
             Contact.objects.filter(
                 **{
-                    fields_join(Contact.contactable, suffix_lookups=["in"]): Contactable.objects.filter(
+                    fields_join(Contact.contactable, "in"): Contactable.objects.filter(
                         **{
-                            fields_join(Organization.contactable, suffix_lookups=["in"]): getattr(
+                            fields_join(Organization.contactable, "in"): getattr(
                                 self, Organization.user.field.related_query_name()
                             ).all()
                         }
@@ -359,6 +359,23 @@ class User(AbstractUser):
 for field, properties in User.FIELDS_PROPERTIES.items():
     for key, value in properties.items():
         setattr(User._meta.get_field(field), key, value)
+
+
+class UserDevice(TimeStampedModel):
+    device_id = models.CharField(max_length=255, verbose_name=_("Device ID"), unique=True, db_index=True)
+    refresh_token = models.OneToOneField(RefreshToken, on_delete=models.CASCADE, verbose_name=_("Refresh Token"))
+
+    class Meta:
+        verbose_name = _("User Device")
+        verbose_name_plural = _("User Devices")
+        unique_together = ("device_id", "refresh_token")
+
+    @property
+    def user(self):
+        return self.refresh_token.user
+
+    def __str__(self):
+        return f"{self.user} - {self.device_id[:3]}...{self.device_id[-3:]}"
 
 
 class Access(SlugTitleAbstract):
@@ -471,7 +488,7 @@ class UserUploadedImageFile(UserFile):
 
 
 class AvatarFile(UserUploadedImageFile):
-    SLUG = "avatar"
+    SLUG = FileSlugs.AVATAR.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/avatar/{filename}"
@@ -495,7 +512,7 @@ class AvatarFile(UserUploadedImageFile):
 
 
 class FullBodyImageFile(UserUploadedImageFile):
-    SLUG = "full_body_image"
+    SLUG = FileSlugs.FULL_BODY_IMAGE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/full_body_image/{filename}"
@@ -644,8 +661,8 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
-    flex_report_custom_manager = FlexReportProfileManager()
     objects = models.Manager()
+    flex_report_custom_manager = FlexReportProfileManager()
 
     @computed(
         models.IntegerField(verbose_name=_("Credits")),
@@ -690,18 +707,23 @@ class Profile(ComputedFieldsModel):
     def flex_report_search_fields(cls):
         return {
             cls.birth_date.field.name: ["gte", "lte"],
-            cls.gender.field.name: ["iexact"],
+            cls.gender.field.name: ["exact"],
             fields_join(cls.city, City.country): ["in", "iexact"],
-            fields_join(cls.user, User.email): ["iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
             ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
-            ProfileAnnotationNames.HAS_VERIFIED_EDUCATION: ["exact"],
+            ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: ["exact"],
             ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
-            ProfileAnnotationNames.HAS_VERIFIED_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE: ["exact"],
+            ProfileAnnotationNames.HAS_CERTIFICATE: ["exact"],
             ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["exact"],
             ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
             ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],
             ProfileAnnotationNames.LAST_LOGIN: ["gte", "lte"],
+            ProfileAnnotationNames.COMPLETED_STAGES: ["overlap"],
+            ProfileAnnotationNames.INCOMPLETE_STAGES: ["overlap"],
+            ProfileAnnotationNames.HAS_PROFILE_INFORMATION: ["exact"],
+            ProfileAnnotationNames.HAS_RESUME: ["exact"],
+            ProfileAnnotationNames.HAS_INTERESTED_JOBS: ["exact"],
         }
 
     @staticmethod
@@ -835,13 +857,7 @@ class DocumentVerificationMethodAbstract(models.Model):
 
 
 class Education(DocumentAbstract, HasDurationMixin):
-    class Degree(models.TextChoices):
-        BACHELORS = "bachelors", _("Bachelors")
-        MASTERS = "masters", _("Masters")
-        PHD = "phd", _("PhD")
-        ASSOCIATE = "associate", _("Associate")
-        DIPLOMA = "diploma", _("Diploma")
-        CERTIFICATE = "certificate", _("Certificate")
+    Degree = EducationDegree
 
     field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name=_("Field"))
     degree = models.CharField(max_length=50, choices=Degree.choices, verbose_name=_("Degree"))
@@ -890,7 +906,7 @@ class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
 
 
 class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
-    SLUG = "education_evaluation"
+    SLUG = FileSlugs.EDUCATION_EVALUATION.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/education_evaluation/{filename}"
@@ -901,12 +917,7 @@ class EducationEvaluationDocumentFile(UserUploadedDocumentFile):
 
 
 class IEEMethod(EducationVerificationMethodAbstract):
-    class Evaluator(models.TextChoices):
-        WES = "wes", _("World Education Services")
-        IQAS = "iqas", _("International Qualifications Assessment Service")
-        ICAS = "icas", _("International Credential Assessment Service of Canada")
-        CES = "ces", _("Comparative Education Service")
-        OTHER = "other", _("Other")
+    Evaluator = IEEEvaluator
 
     education_evaluation_document = models.OneToOneField(
         EducationEvaluationDocumentFile,
@@ -926,7 +937,7 @@ class IEEMethod(EducationVerificationMethodAbstract):
 
 
 class DegreeFile(UserUploadedDocumentFile):
-    SLUG = "degree"
+    SLUG = FileSlugs.DEGREE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/education_verification/degree/{filename}"
@@ -963,17 +974,7 @@ class CommunicationMethod(EducationVerificationMethodAbstract, EmailVerification
 
 
 class WorkExperience(DocumentAbstract, HasDurationMixin):
-    class Grade(models.TextChoices):
-        INTERN = "intern", _("Intern")
-        ASSOCIATE = "associate", _("Associate")
-        JUNIOR = "junior", _("Junior")
-        MID_LEVEL = "mid_level", _("Mid-Level")
-        SENIOR = "senior", _("Senior")
-        MANAGER = "manager", _("Manager")
-        DIRECTOR = "director", _("Director")
-        CTO = "cto", _("CTO")
-        CFO = "cfo", _("CFO")
-        CEO = "ceo", _("CEO")
+    Grade = WorkExperienceGrade
 
     job_title = models.CharField(max_length=255, verbose_name=_("Job Title"))
     grade = models.CharField(max_length=50, choices=Grade.choices, verbose_name=_("Grade"))
@@ -1017,7 +1018,7 @@ class WorkExperienceVerificationMethodAbstract(DocumentVerificationMethodAbstrac
 
 
 class EmployerLetterFile(UserUploadedDocumentFile):
-    SLUG = "employer_letter"
+    SLUG = FileSlugs.EMPLOYER_LETTER.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/employer_letter/{filename}"
@@ -1045,7 +1046,7 @@ class EmployerLetterMethod(WorkExperienceVerificationMethodAbstract, EmailVerifi
 
 
 class PaystubsFile(UserUploadedDocumentFile):
-    SLUG = "paystubs"
+    SLUG = FileSlugs.PAYSTUBS.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/work_experience_verification/paystubs/{filename}"
@@ -1197,7 +1198,7 @@ class LanguageCertificateVerificationMethodAbstract(DocumentVerificationMethodAb
 
 
 class LanguageCertificateFile(UserUploadedDocumentFile):
-    SLUG = "language_certificate"
+    SLUG = FileSlugs.LANGUAGE_CERTIFICATE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/language_certificate_verification/language_certificate/{filename}"
@@ -1274,7 +1275,7 @@ class CertificateAndLicenseVerificationMethodAbstract(DocumentVerificationMethod
 
 
 class CertificateFile(UserUploadedDocumentFile):
-    SLUG = "certificate"
+    SLUG = FileSlugs.CERTIFICATE.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/certificate_and_license_verification/certificate_and_license/{filename}"
@@ -1306,7 +1307,7 @@ class CertificateAndLicenseOnlineVerificationMethod(CertificateAndLicenseVerific
 
 
 class CitizenshipDocumentFile(UserUploadedDocumentFile):
-    SLUG = "citizenship_document"
+    SLUG = FileSlugs.CITIZENSHIP_DOCUMENT.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/citizenship_document/{filename}"
@@ -1361,7 +1362,7 @@ class CanadaVisa(models.Model):
 
 
 class ResumeFile(UserUploadedDocumentFile):
-    SLUG = "resume"
+    SLUG = FileSlugs.RESUME.value
 
     def get_upload_path(self, filename):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
@@ -1510,12 +1511,8 @@ class SupportTicket(TimeStampedModel):
         return self.title
 
 
-class UserTask(models.Model):
-    class Status(models.TextChoices):
-        SCHEDULED = "scheduled", _("Scheduled")
-        IN_PROGRESS = "in_progress", _("In Progress")
-        COMPLETED = "completed", _("Completed")
-        FAILED = "failed", _("Failed")
+class UserTask(TimeStampedModel):
+    Status = UserTaskStatus
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
     task_name = models.CharField(
@@ -1542,11 +1539,23 @@ class UserTask(models.Model):
     class Meta:
         verbose_name = _("User Task")
         verbose_name_plural = _("User Tasks")
-        unique_together = [("user", "task_name")]
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "task_name"],
+                condition=models.Q(
+                    status__in=[
+                        UserTaskStatus.SCHEDULED,
+                        UserTaskStatus.IN_PROGRESS,
+                    ]
+                ),
+                name="unique_user_task_name_scheduled_or_in_progress",
+            ),
+        ]
+        ordering = ["-created", "task_name"]
 
 
 class OrganizationLogoFile(UserUploadedImageFile):
-    SLUG = "organization_logo"
+    SLUG = FileSlugs.ORGANIZATION_LOGO.value
 
     def get_upload_path(self, filename):
         return f"organization/logo/{self.uploaded_by.id}/{filename}"
@@ -1638,6 +1647,7 @@ class Organization(DocumentAbstract):
     size = models.CharField(max_length=50, choices=Size.choices, verbose_name=_("Size"), null=True, blank=True)
     about = models.TextField(verbose_name=_("About"), null=True, blank=True)
     allow_self_verification = None
+    employees = models.ManyToManyField(User, through="OrganizationEmployee", related_name="employee_organizations")
 
     class Meta:
         verbose_name = _("Organization")
@@ -1718,7 +1728,7 @@ class UploadFileToWebsiteMethod(OrganizationVerificationMethodAbstract):
 
 
 class OrganizationCertificateFile(UserUploadedDocumentFile):
-    SLUG = "organization_certificate"
+    SLUG = FileSlugs.ORGANIZATION_CERTIFICATE.value
 
     def get_upload_path(self, filename):
         return f"organization/certificate/{self.uploaded_by.id}/{filename}"
@@ -1856,7 +1866,7 @@ class OrganizationInvitation(models.Model):
         return f"{self.email} - {self.organization.name}"
 
 
-class OrganizationJobPosition(models.Model):
+class OrganizationJobPosition(ChangeStateMixin, models.Model):
     class Status(models.TextChoices):
         DRAFTED = "drafted", _("Drafted")
         PUBLISHED = "published", _("Published")
@@ -1989,7 +1999,12 @@ class OrganizationJobPosition(models.Model):
     def __str__(self):
         return f"{self.title} - {self.organization.name}"
 
-
+    @classmethod
+    def set_expiry(cls):
+        expired_job_positions = cls.objects.filter(validity_date__lt=now().date()).exclude(status=cls.Status.EXPIRED)
+        expired_job_positions.update(status=cls.Status.EXPIRED)
+        for job_position in expired_job_positions:
+            job_position.set_status_history()
 
     @property
     def is_editable(self):
@@ -2012,41 +2027,29 @@ class OrganizationJobPosition(models.Model):
             OrganizationJobPosition.title.field.name,
         ]
 
-    def change_status(self, new_status):
-        state_mapping = {
-            self.Status.DRAFTED: DraftedState(),
-            self.Status.PUBLISHED: PublishedState(),
-            self.Status.COMPLETED: CompletedState(),
-            self.Status.SUSPENDED: SuspendedState(),
-            self.Status.EXPIRED: ExpiredState(),
-        }
-        current_state = state_mapping.get(self.status)
-        if not current_state:
-            raise ValueError(f"Invalid status: {self.status}")
-        current_state.change_status(self, new_status)
-        self.save(update_fields=[OrganizationJobPosition.status.field.name])
+    def change_status(self, new_status, *args, **kwargs):
+        super().change_status(
+            new_status,
+            {
+                self.Status.DRAFTED: DraftedState(),
+                self.Status.PUBLISHED: PublishedState(),
+                self.Status.COMPLETED: CompletedState(),
+                self.Status.SUSPENDED: SuspendedState(),
+                self.Status.EXPIRED: ExpiredState(),
+            },
+            OrganizationJobPosition.status.field.name,
+            **kwargs,
+        )
 
 
-class OrganizationJobPositionState:
-    new_statuses = []
-
-    @classmethod
-    def change_status(cls, job_position, new_status):
-        if new_status.value not in cls.new_statuses:
-            raise GraphQLErrorBadRequest(f"Cannot transition from {cls} to {new_status.value}")
-
-        job_position.status = new_status.value
-        job_position.set_status_history()
-
-
-class DraftedState(OrganizationJobPositionState):
+class DraftedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.PUBLISHED.value,
     ]
 
     @classmethod
-    def change_status(cls, job_position, new_status):
-        super().change_status(job_position, new_status)
+    def change_status(cls, job_position, new_status, status_field, **kwargs):
+        super().change_status(job_position, new_status, status_field, **kwargs)
         missing_fields = [field for field in job_position.required_fields if not getattr(job_position, field)]
         if missing_fields:
             raise GraphQLErrorBadRequest(f"Missing required fields for publishing: {', '.join(missing_fields)}")
@@ -2055,27 +2058,27 @@ class DraftedState(OrganizationJobPositionState):
             raise GraphQLErrorBadRequest(("Organization must be verified to publish job positions"))
 
 
-class PublishedState(OrganizationJobPositionState):
+class PublishedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
         OrganizationJobPosition.Status.SUSPENDED.value,
     ]
 
 
-class CompletedState(OrganizationJobPositionState):
+class CompletedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
     ]
 
 
-class SuspendedState(OrganizationJobPositionState):
+class SuspendedState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
         OrganizationJobPosition.Status.PUBLISHED.value,
     ]
 
 
-class ExpiredState(OrganizationJobPositionState):
+class ExpiredState(GenericState):
     new_statuses = [
         OrganizationJobPosition.Status.DRAFTED.value,
     ]
@@ -2094,7 +2097,7 @@ class OrganizationJobPositionStatusHistory(models.Model):
         return f"{self.job_position.title} - {self.status}"
 
 
-class JobPositionAssignment(models.Model):
+class JobPositionAssignment(ChangeStateMixin, models.Model):
     class Status(models.TextChoices):
         AWAITING_JOBSEEKER_APPROVAL = "awaiting_jobseeker_approval", _("Awaiting Jobseeker Approval")
         REJECTED_BY_JOBSEEKER = "rejected_by_jobseeker", _("Rejected By Jobseeker")
@@ -2107,7 +2110,7 @@ class JobPositionAssignment(models.Model):
         INTERVIEW_CANCELED_BY_EMPLOYER = "interview_canceled_by_employer", _("Interview Canceled By Employer")
         REJECTED_AT_INTERVIEW = "rejected_at_interview", _("Rejected At Interview")
         REJECTED = "rejected", _("Rejected")
-        HIRED = "hired", _("Hired")
+        ACCEPTED = "accepted", _("Accepted")
 
     job_seeker = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name=_("Job Seeker"), related_name="job_position_assignments"
@@ -2142,7 +2145,7 @@ class JobPositionAssignment(models.Model):
             self.Status.INTERVIEW_CANCELED_BY_EMPLOYER,
             self.Status.REJECTED_AT_INTERVIEW,
             self.Status.REJECTED,
-            self.Status.HIRED,
+            self.Status.ACCEPTED,
         ]
 
     @property
@@ -2166,25 +2169,25 @@ class JobPositionAssignment(models.Model):
         return JobPositionAssignmentStatusHistory.objects.create(job_position_assignment=self, status=self.status)
 
     def change_status(self, new_status, **kwargs):
-        state_mapping = {
-            self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
-            self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
-            self.Status.NOT_REVIEWED: NotReviewedState(),
-            self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
-            self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
-            self.Status.INTERVIEWING: InterviewingState(),
-            self.Status.AWAITING_INTERVIEW_RESULTS: AwaitingInterviewResultsState(),
-            self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER: InterviewCanceledByJobseekerState(),
-            self.Status.INTERVIEW_CANCELED_BY_EMPLOYER: InterviewCanceledByEmployerState(),
-            self.Status.REJECTED_AT_INTERVIEW: RejectedAtInterviewState(),
-            self.Status.REJECTED: RejectedState(),
-            self.Status.HIRED: HiredState(),
-        }
-        current_state = state_mapping.get(self.status)
-        if not current_state:
-            raise ValueError(f"Invalid status: {self.status}")
-        current_state.change_status(self, new_status, **kwargs)
-        self.save(update_fields=[JobPositionAssignment.status.field.name])
+        super().change_status(
+            new_status,
+            {
+                self.Status.AWAITING_JOBSEEKER_APPROVAL: AwaitingJobseekerApprovalState(),
+                self.Status.REJECTED_BY_JOBSEEKER: RejectedByJobseekerState(),
+                self.Status.NOT_REVIEWED: NotReviewedState(),
+                self.Status.AWAITING_INTERVIEW_DATE: AwaitingInterviewDateState(),
+                self.Status.INTERVIEW_SCHEDULED: InterviewScheduledState(),
+                self.Status.INTERVIEWING: InterviewingState(),
+                self.Status.AWAITING_INTERVIEW_RESULTS: AwaitingInterviewResultsState(),
+                self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER: InterviewCanceledByJobseekerState(),
+                self.Status.INTERVIEW_CANCELED_BY_EMPLOYER: InterviewCanceledByEmployerState(),
+                self.Status.REJECTED_AT_INTERVIEW: RejectedAtInterviewState(),
+                self.Status.REJECTED: RejectedState(),
+                self.Status.ACCEPTED: AccptedState(),
+            },
+            JobPositionAssignment.status.field.name,
+            **kwargs,
+        )
 
 
 class JobPositionAssignmentStatusHistory(models.Model):
@@ -2228,37 +2231,25 @@ class JobPositionInterview(models.Model):
         return f"{self.job_position_assignment} - Interview date: {self.interview_date}"
 
 
-class JobPositionAssignmentState:
-    new_statuses = []
-
-    @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        if new_status.value not in cls.new_statuses:
-            raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
-
-        job_position_assignment.status = new_status.value
-        return job_position_assignment.set_status_history()
-
-
-class AwaitingJobseekerApprovalState(JobPositionAssignmentState):
+class AwaitingJobseekerApprovalState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED_BY_JOBSEEKER.value,
         JobPositionAssignment.Status.NOT_REVIEWED.value,
     ]
 
 
-class RejectedByJobseekerState(JobPositionAssignmentState):
+class RejectedByJobseekerState(GenericState):
     new_statuses = []
 
 
-class NotReviewedState(JobPositionAssignmentState):
+class NotReviewedState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
         JobPositionAssignment.Status.REJECTED.value,
     ]
 
 
-class AwaitingInterviewDateState(JobPositionAssignmentState):
+class AwaitingInterviewDateState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.INTERVIEW_SCHEDULED.value,
         JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
@@ -2266,8 +2257,8 @@ class AwaitingInterviewDateState(JobPositionAssignmentState):
     ]
 
     @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        assignment_status_history = super().change_status(job_position_assignment, new_status, **kwargs)
+    def change_status(cls, job_position_assignment, new_status, status_field, **kwargs):
+        assignment_status_history = super().change_status(job_position_assignment, new_status, status_field, **kwargs)
         if new_status.value == JobPositionAssignment.Status.INTERVIEW_SCHEDULED.value:
             if interview_date := kwargs.get("interview_date"):
                 JobPositionInterview.objects.create(
@@ -2279,7 +2270,7 @@ class AwaitingInterviewDateState(JobPositionAssignmentState):
                 raise ValueError(_("Interview date is required"))
 
 
-class InterviewScheduledState(JobPositionAssignmentState):
+class InterviewScheduledState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.INTERVIEWING.value,
         JobPositionAssignment.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
@@ -2287,14 +2278,14 @@ class InterviewScheduledState(JobPositionAssignmentState):
     ]
 
 
-class InterviewingState(JobPositionAssignmentState):
+class InterviewingState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.AWAITING_INTERVIEW_RESULTS.value,
     ]
 
     @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        super().change_status(job_position_assignment, new_status, **kwargs)
+    def change_status(cls, job_position_assignment, new_status, status_field, **kwargs):
+        super().change_status(job_position_assignment, new_status, status_field, **kwargs)
         if result_date := kwargs.get("result_date"):
             job_position_interview = job_position_assignment.interviews.last()
             job_position_interview.result_date = result_date
@@ -2303,190 +2294,199 @@ class InterviewingState(JobPositionAssignmentState):
             raise ValueError(_("Result date is required"))
 
 
-class AwaitingInterviewResultsState(JobPositionAssignmentState):
+class AwaitingInterviewResultsState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED_AT_INTERVIEW.value,
-        JobPositionAssignment.Status.HIRED.value,
+        JobPositionAssignment.Status.ACCEPTED.value,
     ]
 
     @classmethod
-    def change_status(cls, job_position_assignment, new_status, **kwargs):
-        super().change_status(job_position_assignment, new_status, **kwargs)
-        if new_status.value == JobPositionAssignment.Status.HIRED.value:
-            OrganizationEmployee.objects.create(job_position_assignment=job_position_assignment)
+    def change_status(cls, job_position_assignment, new_status, status_field, **kwargs):
+        super().change_status(job_position_assignment, new_status, status_field, **kwargs)
+        if new_status.value == JobPositionAssignment.Status.ACCEPTED.value:
+            organization_employee, _ = OrganizationEmployee.objects.get_or_create(
+                user=job_position_assignment.job_seeker, organization=job_position_assignment.job_position.organization
+            )
+            OrganizationEmployeeCooperation.objects.create(
+                employee=organization_employee,
+                job_position_assignment=job_position_assignment,
+            )
 
 
-class InterviewCanceledByJobseekerState(JobPositionAssignmentState):
+class InterviewCanceledByJobseekerState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED.value,
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
     ]
 
 
-class InterviewCanceledByEmployerState(JobPositionAssignmentState):
+class InterviewCanceledByEmployerState(GenericState):
     new_statuses = [
         JobPositionAssignment.Status.REJECTED.value,
         JobPositionAssignment.Status.AWAITING_INTERVIEW_DATE.value,
     ]
 
 
-class RejectedAtInterviewState(JobPositionAssignmentState):
+class RejectedAtInterviewState(GenericState):
     new_statuses = []
 
 
-class RejectedState(JobPositionAssignmentState):
+class RejectedState(GenericState):
     new_statuses = []
 
 
-class HiredState(JobPositionAssignmentState):
+class AccptedState(GenericState):
     new_statuses = []
 
 
-class OrganizationEmployee(models.Model):
-    class HiringStatus(models.TextChoices):
+class OrganizationEmployee(TimeStampedModel):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="organization_employees"
+    )
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, verbose_name=_("Organization"), related_name="organization_employees"
+    )
+
+    class Meta:
+        verbose_name = _("Organization Employee")
+        verbose_name_plural = _("Organization Employees")
+        unique_together = [("user", "organization")]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.organization.name}"
+
+
+class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
+    class Status(models.TextChoices):
         AWAITING = "awaiting", _("Awaiting")
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
         FIRED = "fired", _("Fired")
         FINISHED = "finished", _("Finished")
 
-    job_position_assignment = models.OneToOneField(
-        JobPositionAssignment,
-        on_delete=models.RESTRICT,
-        verbose_name=_("Job Position Assignment "),
-        related_name="organization_employee",
-    )
-    hiring_status = models.CharField(
+    status = models.CharField(
         max_length=50,
-        choices=HiringStatus.choices,
+        choices=Status.choices,
         verbose_name=_("Status"),
-        default=HiringStatus.AWAITING,
+        default=Status.AWAITING,
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-
-    class Meta:
-        verbose_name = _("Organization Employee")
-        verbose_name_plural = _("Organization Employees")
-
-    def __str__(self):
-        return str(self.job_position_assignment)
-
-    def set_hiring_status_history(self):
-        OrganizationEmployeeHiringStatusHistory.objects.create(
-            cooperation_history=self.cooperation_histories.first(), hiring_status=self.hiring_status
-        )
-
-    def change_hiring_status(self, new_status, **kwargs):
-        state_mapping = {
-            self.HiringStatus.AWAITING: HiringAwaitingState(),
-            self.HiringStatus.ACTIVE: HiringActiveState(),
-            self.HiringStatus.SUSPENDED: HiringSuspendedState(),
-            self.HiringStatus.FINISHED: HiringFinishedState(),
-            self.HiringStatus.FIRED: HiringFiredState(),
-        }
-        current_state = state_mapping.get(self.hiring_status)
-        if not current_state:
-            raise ValueError(f"Invalid status: {self.hiring_status}")
-        current_state.change_status(self, new_status, **kwargs)
-        self.save(update_fields=[OrganizationEmployee.hiring_status.field.name])
-
-
-class OrganizationEmployeeCooperationHistory(models.Model):
     employee = models.ForeignKey(
         OrganizationEmployee,
         on_delete=models.CASCADE,
         verbose_name=_("Organization Employee"),
-        related_name="cooperation_histories",
+        related_name="cooperations",
     )
-    start_at = models.DateField(verbose_name=_("Start At"))
-    end_at = models.DateField(verbose_name=_("End At"), null=True, blank=True)
+    job_position_assignment = models.ForeignKey(
+        JobPositionAssignment,
+        on_delete=models.RESTRICT,
+        verbose_name=_("Job Position Assignment"),
+        related_name="cooperations",
+    )
+    start_at = models.DateTimeField(verbose_name=_("Start At"), null=True, blank=True)
+    end_at = models.DateTimeField(verbose_name=_("End At"), null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Organization Employee Cooperation History")
-        verbose_name_plural = _("Organization Employee Cooperation Histories")
-        ordering = ["-created_at"]
+        verbose_name = _("Organization Employee Cooperation")
+        verbose_name_plural = _("Organization Employee Cooperation")
 
     def __str__(self):
-        return f"{self.id}: {self.employee} - {self.start_at} - {self.end_at or ''}"
+        return f"{self.id}: {self.employee} - {self.start_at or ''} - {self.end_at or ''}"
 
+    def set_status_history(self):
+        OrganizationEmployeeCooperationStatusHistory.objects.create(
+            organization_employee_cooperation=self, status=self.status
+        )
 
-class OrganizationEmployeeHiringState:
-    new_statuses = []
+    def change_status(self, new_status, **kwargs):
+        super().change_status(
+            new_status,
+            {
+                self.Status.AWAITING: HiringAwaitingState(),
+                self.Status.ACTIVE: HiringActiveState(),
+                self.Status.SUSPENDED: HiringSuspendedState(),
+                self.Status.FINISHED: HiringFinishedState(),
+                self.Status.FIRED: HiringFiredState(),
+            },
+            OrganizationEmployeeCooperation.status.field.name,
+            **kwargs,
+        )
 
     @classmethod
-    def change_status(cls, organization_employee, new_status, **kwargs):
-        if new_status.value not in cls.new_statuses:
-            raise ValueError(f"Cannot transition from {cls} to {new_status.value}")
+    def get_status_order(cls):
+        return [
+            cls.Status.AWAITING,
+            cls.Status.ACTIVE,
+            cls.Status.SUSPENDED,
+            cls.Status.FINISHED,
+            cls.Status.FIRED,
+        ]
 
-        organization_employee.hiring_status = new_status.value
-        organization_employee.set_hiring_status_history()
 
-
-class HiringAwaitingState(OrganizationEmployeeHiringState):
+class HiringAwaitingState(GenericState):
     new_statuses = [
-        OrganizationEmployee.HiringStatus.ACTIVE.value,
+        OrganizationEmployeeCooperation.Status.ACTIVE.value,
     ]
 
     @classmethod
-    def change_status(cls, organization_employee, new_status, **kwargs):
-        OrganizationEmployeeCooperationHistory.objects.create(employee=organization_employee, start_at=now().date())
-        super().change_status(organization_employee, new_status, **kwargs)
+    def change_status(cls, organization_employee_cooperation, new_status, status_field, **kwargs):
+        organization_employee_cooperation.start_at = now()
+        organization_employee_cooperation.save(update_fields=[OrganizationEmployeeCooperation.start_at.field.name])
+        super().change_status(organization_employee_cooperation, new_status, status_field, **kwargs)
 
 
-class HiringActiveState(OrganizationEmployeeHiringState):
+class HiringActiveState(GenericState):
     new_statuses = [
-        OrganizationEmployee.HiringStatus.SUSPENDED.value,
-        OrganizationEmployee.HiringStatus.FIRED.value,
-        OrganizationEmployee.HiringStatus.FINISHED.value,
+        OrganizationEmployeeCooperation.Status.SUSPENDED.value,
+        OrganizationEmployeeCooperation.Status.FIRED.value,
+        OrganizationEmployeeCooperation.Status.FINISHED.value,
     ]
 
     @classmethod
-    def change_status(cls, organization_employee, new_status, **kwargs):
-        super().change_status(organization_employee, new_status, **kwargs)
+    def change_status(cls, organization_employee_cooperation, new_status, status_field, **kwargs):
+        super().change_status(organization_employee_cooperation, new_status, status_field, **kwargs)
         if new_status.value in [
-            OrganizationEmployee.HiringStatus.FIRED.value,
-            OrganizationEmployee.HiringStatus.FINISHED.value,
+            OrganizationEmployeeCooperation.Status.FIRED.value,
+            OrganizationEmployeeCooperation.Status.FINISHED.value,
         ]:
-            cooperation = organization_employee.cooperation_histories.first()
-            cooperation.end_at = now().date()
-            cooperation.save(update_fields=[OrganizationEmployeeCooperationHistory.end_at.field.name])
+            organization_employee_cooperation.end_at = now()
+            organization_employee_cooperation.save(update_fields=[OrganizationEmployeeCooperation.end_at.field.name])
 
 
-class HiringSuspendedState(OrganizationEmployeeHiringState):
+class HiringSuspendedState(GenericState):
     new_statuses = [
-        OrganizationEmployee.HiringStatus.ACTIVE.value,
+        OrganizationEmployeeCooperation.Status.ACTIVE.value,
     ]
 
 
-class HiringFinishedState(OrganizationEmployeeHiringState):
+class HiringFinishedState(GenericState):
     new_statuses = []
 
 
-class HiringFiredState(OrganizationEmployeeHiringState):
+class HiringFiredState(GenericState):
     new_statuses = []
 
 
-class OrganizationEmployeeHiringStatusHistory(models.Model):
-    cooperation_history = models.ForeignKey(
-        OrganizationEmployeeCooperationHistory,
+class OrganizationEmployeeCooperationStatusHistory(models.Model):
+    organization_employee_cooperation = models.ForeignKey(
+        OrganizationEmployeeCooperation,
         on_delete=models.CASCADE,
-        verbose_name=_("Cooperation History"),
-        related_name="hiring_status_histories",
+        verbose_name=_("Organization Employee Cooperation"),
+        related_name="status_histories",
     )
-    hiring_status = models.CharField(
+    status = models.CharField(
         max_length=50,
-        choices=OrganizationEmployee.HiringStatus.choices,
+        choices=OrganizationEmployeeCooperation.Status.choices,
         verbose_name=_("Status"),
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        verbose_name = _("Organization Employee Hiring Status History")
-        verbose_name_plural = _("Organization Employee Hiring Status Histories")
+        verbose_name = _("Organization Employee Cooperation Status History")
+        verbose_name_plural = _("Organization Employee Cooperation Status Histories")
 
     def __str__(self):
-        return f"{self.cooperation_history} - {self.hiring_status}"
+        return f"{self.organization_employee_cooperation} - {self.status}"
 
 
 class PlatformMessage(models.Model):
@@ -2502,8 +2502,8 @@ class PlatformMessage(models.Model):
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     text = models.TextField(verbose_name=_("Text"))
-    employee = models.ForeignKey(
-        OrganizationEmployee,
+    organization_employee_cooperation = models.ForeignKey(
+        OrganizationEmployeeCooperation,
         on_delete=models.CASCADE,
         verbose_name=_("Employee"),
         related_name="%(class)s",
@@ -2521,7 +2521,7 @@ class OrganizationPlatformMessage(PlatformMessage):
         verbose_name_plural = _("Organization Platform Messages")
 
     def __str__(self):
-        return f"{self.employee} - {self.title}"
+        return f"{self.organization_employee_cooperation} - {self.title}"
 
 
 class EmployeePlatformMessage(PlatformMessage):
@@ -2530,4 +2530,4 @@ class EmployeePlatformMessage(PlatformMessage):
         verbose_name_plural = _("Employee Platform Messages")
 
     def __str__(self):
-        return f"{self.employee} - {self.title}"
+        return f"{self.organization_employee_cooperation} - {self.title}"

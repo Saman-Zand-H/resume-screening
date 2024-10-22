@@ -7,4 +7,4 @@ class CommonConfig(AppConfig):
 
     def ready(self):
         from . import types  # noqa
-        from . import lookups  # noqa
+        from . import db_functions  # noqa

@@ -91,6 +91,9 @@
                                     <a class="button" href="{% url 'admin:flex_report_template_report' object.pk %}" title="{% trans 'View' %}">
                                         View
                                     </a>
+                                    <a href="{% url 'admin:flex_report_template_edit' object.pk %}" class="button" title="{% trans 'Edit' %}" style="padding: 4px 5px">
+                                        Edit
+                                    </a>
                                     <a href="{% url 'admin:flex_report_template_filter' object.pk %}" class="button" title="{% trans 'Delete' %}" style="padding: 4px 5px">
                                         Add Filter
                                     </a>

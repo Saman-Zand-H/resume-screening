@@ -7,7 +7,7 @@ from typing import Generic, List, Optional, TypeVar, Union
 
 import firebase_admin
 from common.logging import get_logger
-from common.utils import get_all_subclasses
+from common.utils import fields_join, get_all_subclasses
 from config.settings.subscriptions import NotificationSubscription
 from firebase_admin import messaging
 from flex_blob.models import FileModel
@@ -19,6 +19,7 @@ from twilio.rest import Client
 from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMessage
+from django.utils import timezone
 
 from .constants import NotificationTypes
 from .context_mapper import ContextMapperRegistry
@@ -30,7 +31,7 @@ from .models import (
     Notification,
     PushNotification,
     SMSNotification,
-    UserDevice,
+    UserPushNotificationToken,
     WhatsAppNotification,
 )
 from .report_mapper import ReportMapper
@@ -207,11 +208,11 @@ class PushNotificationSender(NotificationSender):
 
     def get_message(self, notification: NotificationContext[PushNotification]) -> messaging.Message:
         return messaging.Message(
-            notification=messaging.Notification(
-                title=notification.notification.title,
-                body=notification.notification.body,
-            ),
-            token=notification.notification.device_token,
+            data={
+                "title": notification.notification.title,
+                "body": notification.notification.body,
+            },
+            token=notification.notification.token,
         )
 
     def send(self, notification: NotificationContext[PushNotification]):
@@ -224,12 +225,12 @@ class PushNotificationSender(NotificationSender):
         responses = messaging.send_each(messages)
         for response, notification in zip(responses.responses, notifications):
             if not response.success and isinstance(response.exception, messaging.UnregisteredError):
-                UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+                UserPushNotificationToken.objects.filter(device_token=notification.notification.token).delete()
         return [response.exception for response in responses]
 
     def handle_exception(self, exception: Exception, notification: NotificationContext[PushNotification]):
         if isinstance(exception, messaging.UnregisteredError):
-            UserDevice.objects.filter(device_token=notification.notification.device_token).delete()
+            UserPushNotificationToken.objects.filter(device_token=notification.notification.token).delete()
         return super().handle_exception(exception, notification)
 
 
@@ -277,14 +278,21 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
 
 
 @register_task([NotificationSubscription.CAMPAIGN])
-def send_campaign_notifications(campaign_id: int, queryset=None):
+def send_campaign_notifications(campaign_id: int, pks=None):
     campaign = Campaign.objects.filter(pk=campaign_id).first()
 
     if not campaign:
         return
 
     campaign_notification_types = campaign.get_campaign_notification_types()
-    report_qs = queryset or campaign.saved_filter.get_queryset()
+    report_qs = (
+        (campaign.saved_filter.get_queryset().filter(pk__in=pks))
+        if pks is not None
+        else campaign.saved_filter.get_queryset()
+    )
+    if not report_qs:
+        return
+
     notification_contexts = []
     campaign_notifications = []
 
@@ -295,6 +303,9 @@ def send_campaign_notifications(campaign_id: int, queryset=None):
 
         notifications_kwargs = []
         for instance in report_qs:
+            if notification_type.successful_notifications_count(instance.user) >= campaign.max_attempts:
+                continue
+
             context = ContextMapperRegistry.get_context(instance)
             body = campaign_notification_type.body.render(
                 context, is_email=notification_type == NotificationTypes.EMAIL
@@ -324,4 +335,6 @@ def send_campaign_notifications(campaign_id: int, queryset=None):
             )
 
     send_notifications(*notification_contexts)
+    campaign.sent_at = timezone.now()
+    campaign.save(update_fields=[fields_join(Campaign.sent_at)])
     CampaignNotification.objects.bulk_create(campaign_notifications, batch_size=20)

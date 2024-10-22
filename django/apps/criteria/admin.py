@@ -1,5 +1,9 @@
+from account.models import User
+from common.utils import fields_join
+
 from django.contrib import admin
 from django.contrib.admin import register
+from django.utils.html import format_html
 
 from .models import JobAssessment, JobAssessmentResult
 
@@ -26,31 +30,45 @@ class JobAssessmentAdmin(admin.ModelAdmin):
 @register(JobAssessmentResult)
 class JobAssessmentResultAdmin(admin.ModelAdmin):
     list_display = (
-        "user",
-        "job_assessment",
-        "score",
+        JobAssessmentResult.user.field.name,
+        JobAssessmentResult.job_assessment.field.name,
+        JobAssessmentResult.score.field.name,
         JobAssessmentResult.raw_status.field.name,
         JobAssessmentResult.status.field.name,
-        "created_at",
-        "updated_at",
+        JobAssessmentResult.created_at.field.name,
+        JobAssessmentResult.updated_at.field.name,
     )
     search_fields = (
-        "user__email",
-        "job_assessment__title",
+        fields_join(
+            JobAssessmentResult.user.field.name,
+            User.email.field.name,
+        ),
+        fields_join(
+            JobAssessmentResult.job_assessment.field.name,
+            JobAssessment.title.field.name,
+        ),
         JobAssessmentResult.order_id.field.name,
     )
     list_filter = (
-        "status",
-        "created_at",
-        "updated_at",
+        JobAssessmentResult.status.field.name,
+        JobAssessmentResult.created_at.field.name,
+        JobAssessmentResult.updated_at.field.name,
     )
     readonly_fields = (
-        "score",
+        JobAssessmentResult.score.field.name,
         JobAssessmentResult.status.field.name,
         JobAssessmentResult.order_id.field.name,
-        JobAssessmentResult.report_url.field.name,
+        "report_url_tag",
     )
     autocomplete_fields = (
-        "user",
-        "job_assessment",
+        JobAssessmentResult.user.field.name,
+        JobAssessmentResult.job_assessment.field.name,
     )
+
+    def report_url_tag(self, obj):
+        report_url = obj.report_url
+        if not report_url:
+            return "-"
+        return format_html('<a href="{}">{}</a>', report_url, report_url)
+
+    report_url_tag.short_description = "Report URL"

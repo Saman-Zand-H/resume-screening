@@ -1,27 +1,43 @@
 import json
 from datetime import timedelta
+from enum import Enum
 from functools import partial
 from pathlib import Path
 from typing import NamedTuple
 
 from ai.types import CachableVectorStore
+from common.logging import get_logger
 from common.models import Job, Skill
 from disposable_email_domains import blocklist
 
 from django.conf import settings
 
-from common.logging import get_logger
-
 logger = get_logger()
+
+
+class FileSlugs(Enum):
+    DEGREE = "degree"
+    EMPLOYER_LETTER = "employer_letter"
+    PAYSTUBS = "paystubs"
+    EDUCATION_EVALUATION = "education_evaluation"
+    LANGUAGE_CERTIFICATE = "language_certificate"
+    CERTIFICATE = "certificate"
+    CITIZENSHIP_DOCUMENT = "citizenship_document"
+    RESUME = "resume"
+    ORGANIZATION_LOGO = "organization_logo"
+    ORGANIZATION_CERTIFICATE = "organization_certificate"
+    AVATAR = "avatar"
+    FULL_BODY_IMAGE = "full_body_image"
 
 
 class ProfileAnnotationNames(NamedTuple):
     IS_ORGANIZATION_MEMBER = "is_organization_member"
     HAS_PROFILE_INFORMATION = "has_profile_information"
     HAS_EDUCATION = "has_education"
-    HAS_VERIFIED_EDUCATION = "has_verified_education"
+    HAS_UNVERIFIED_EDUCATION = "has_unverified_education"
     HAS_WORK_EXPERIENCE = "has_work_experience"
-    HAS_VERIFIED_WORK_EXPERIENCE = "has_verified_work_experience"
+    HAS_UNVERIFIED_WORK_EXPERIENCE = "has_unverified_work_experience"
+    HAS_RESUME = "has_resume"
     HAS_CERTIFICATE = "has_certificate"
     HAS_LANGUAGE_CERTIFICATE = "has_language_certificate"
     HAS_SKILLS = "has_skills"
@@ -29,6 +45,35 @@ class ProfileAnnotationNames(NamedTuple):
     HAS_INTERESTED_JOBS = "has_interested_jobs"
     LAST_LOGIN = "last_login_days"
     DATE_JOINED = "date_joined_days"
+    STAGE_DATA = "stage_data"
+    COMPLETED_STAGES = "completed_stages"
+    INCOMPLETE_STAGES = "incomplete_stages"
+    HAS_INCOMPLETE_STAGES = "has_incomplete_stages"
+
+
+STAGE_ANNOTATIONS = [
+    ProfileAnnotationNames.HAS_RESUME,
+    ProfileAnnotationNames.HAS_PROFILE_INFORMATION,
+    ProfileAnnotationNames.HAS_WORK_EXPERIENCE,
+    ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION,
+    ProfileAnnotationNames.HAS_EDUCATION,
+    ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE,
+    ProfileAnnotationNames.HAS_CERTIFICATE,
+    ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE,
+    ProfileAnnotationNames.HAS_SKILLS,
+    ProfileAnnotationNames.HAS_CANADA_VISA,
+    ProfileAnnotationNames.HAS_INTERESTED_JOBS,
+]
+
+STAGE_CHOICES = [
+    (ProfileAnnotationNames.HAS_PROFILE_INFORMATION, "Completed Profile"),
+    (ProfileAnnotationNames.HAS_WORK_EXPERIENCE, "Work Experience"),
+    (ProfileAnnotationNames.HAS_EDUCATION, "Education"),
+    (ProfileAnnotationNames.HAS_CERTIFICATE, "Certificate"),
+    (ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, "Language Certificate"),
+    (ProfileAnnotationNames.HAS_SKILLS, "Skills"),
+    (ProfileAnnotationNames.HAS_CANADA_VISA, "Canada Visa"),
+]
 
 
 def get_extended_blocklist():
