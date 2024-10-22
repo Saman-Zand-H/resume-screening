@@ -208,10 +208,10 @@ class PushNotificationSender(NotificationSender):
 
     def get_message(self, notification: NotificationContext[PushNotification]) -> messaging.Message:
         return messaging.Message(
-            notification=messaging.Notification(
-                title=notification.notification.title,
-                body=notification.notification.body,
-            ),
+            data={
+                "title": notification.notification.title,
+                "body": notification.notification.body,
+            },
             token=notification.notification.token,
         )
 
