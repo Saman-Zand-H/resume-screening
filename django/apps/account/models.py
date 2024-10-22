@@ -55,6 +55,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
+from django.db.models.constraints import UniqueConstraint
 from django.template.loader import render_to_string
 from django.templatetags.static import static
 from django.utils.functional import cached_property
@@ -65,6 +66,7 @@ from .choices import (
     ContactType,
     EducationDegree,
     IEEEvaluator,
+    UserTaskStatus,
     WorkExperienceGrade,
     get_task_names_choices,
 )
@@ -1510,12 +1512,7 @@ class SupportTicket(TimeStampedModel):
 
 
 class UserTask(TimeStampedModel):
-    class Status(models.TextChoices):
-        SCHEDULED = "scheduled", _("Scheduled")
-        IN_PROGRESS = "in_progress", _("In Progress")
-        COMPLETED = "completed", _("Completed")
-        FAILED = "failed", _("Failed")
-        TIMEDOUT = "timedout", _("Timed-Out")
+    Status = UserTaskStatus
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="tasks")
     task_name = models.CharField(
@@ -1542,7 +1539,19 @@ class UserTask(TimeStampedModel):
     class Meta:
         verbose_name = _("User Task")
         verbose_name_plural = _("User Tasks")
-        unique_together = [("user", "task_name")]
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "task_name"],
+                condition=models.Q(
+                    status__in=[
+                        UserTaskStatus.SCHEDULED,
+                        UserTaskStatus.IN_PROGRESS,
+                    ]
+                ),
+                name="unique_user_task_name_scheduled_or_in_progress",
+            ),
+        ]
+        ordering = ["-created", "task_name"]
 
 
 class OrganizationLogoFile(UserUploadedImageFile):

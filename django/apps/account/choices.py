@@ -42,6 +42,14 @@ class EducationDegree(TextChoices):
     CERTIFICATE = "certificate", _("Certificate")
 
 
+class UserTaskStatus(TextChoices):
+    SCHEDULED = "scheduled", _("Scheduled")
+    IN_PROGRESS = "in_progress", _("In Progress")
+    COMPLETED = "completed", _("Completed")
+    FAILED = "failed", _("Failed")
+    TIMEDOUT = "timedout", _("Timed-Out")
+
+
 class DefaultRoles(TextChoices):
     OWNER = "owner", "Owner"
 
