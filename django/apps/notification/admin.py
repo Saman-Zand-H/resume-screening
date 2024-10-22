@@ -108,6 +108,8 @@ class CampaignAdmin(admin.ModelAdmin):
         Campaign.title.field.name,
         Campaign.modified.field.name,
         Campaign.created.field.name,
+        Campaign.is_scheduler_active.field.name,
+        Campaign.crontab_last_run.field.name,
         action_buttons.__name__,
     )
     search_fields = (Campaign.title.field.name,)
