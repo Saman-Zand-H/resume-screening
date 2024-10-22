@@ -22,5 +22,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(copy_user_to_profile),
+        migrations.RunPython(copy_user_to_profile, migrations.RunPython.noop),
     ]

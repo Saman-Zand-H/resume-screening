@@ -166,8 +166,6 @@ class Contact(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_("Contactable"),
         related_name="contacts",
-        blank=True,
-        null=True,
     )
     type = models.CharField(
         max_length=50,

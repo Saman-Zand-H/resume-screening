@@ -17,5 +17,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(migrate_industry_to_m2m),
+        migrations.RunPython(migrate_industry_to_m2m, migrations.RunPython.noop),
     ]

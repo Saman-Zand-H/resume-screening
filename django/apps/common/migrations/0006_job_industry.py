@@ -11,10 +11,6 @@ def populate_industry(apps, schema_editor):
         job.save()
 
 
-def reverse_run(*args, **kwargs):
-    pass
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("common", "0005_alter_skill_insert_type_alter_skill_title"),
@@ -34,7 +30,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(
             populate_industry,
-            reverse_run,
+            migrations.RunPython.noop,
             atomic=True,
         ),
     ]

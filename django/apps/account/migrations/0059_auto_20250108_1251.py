@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(populate_categories, reverse_code=populate_categories),
-        migrations.RunPython(add_default_categories),
+        migrations.RunPython(add_default_categories, migrations.RunPython.noop),
         migrations.AlterField(
             model_name="supportticket",
             name="category",

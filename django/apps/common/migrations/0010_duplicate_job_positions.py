@@ -28,10 +28,6 @@ def merge_duplicate_jobs(apps, schema_editor):
         target_objs.delete()
 
 
-def reverse(*args, **kwargs):
-    pass
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("common", "0009_merge_job_positions"),
@@ -40,7 +36,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(
             merge_duplicate_jobs,
-            reverse,
+            migrations.RunPython.noop,
             atomic=True,
         )
     ]
