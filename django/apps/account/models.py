@@ -1520,7 +1520,7 @@ class UserTask(TimeStampedModel):
         choices=get_task_names_choices,
         verbose_name=_("Task Name"),
     )
-    status = models.CharField(max_length=50, choices=Status.choices, default=Status.SCHEDULED, verbose_name=_("Status"))
+    status = models.CharField(max_length=50, choices=Status.choices, blank=True, null=True, verbose_name=_("Status"))
     status_description = models.TextField(verbose_name=_("Status Description"), blank=True, null=True)
 
     def change_status(self, status: str, description: str = None):
