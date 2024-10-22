@@ -73,8 +73,8 @@ def analyze_document(
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(content, mime_type),
-            types.Part.from_text(json.dumps({"verification_method_name": verification_method_name})),
+            types.Part.from_bytes(data=content, mime_type=mime_type),
+            types.Part.from_text(text=json.dumps({"verification_method_name": verification_method_name})),
         ]
     )
 
@@ -96,10 +96,8 @@ def extract_resume_json(file_model_id: int):
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(content, mime_type),
-            types.Part.from_text(
-                "extract resume JSON",
-            ),
+            types.Part.from_bytes(data=content, mime_type=mime_type),
+            types.Part.from_text(text="extract resume JSON"),
         ]
     )
 
@@ -216,9 +214,9 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     }
     message = service.generate_text_content(
         [
-            types.Part.from_text(json.dumps(message_dict)),
-            types.Part.from_text("\nTHE FOLLOWING IS THE DATA:\n"),
-            types.Part.from_text(json.dumps(VectorStores.JOB.data_fn())),
+            types.Part.from_text(text=json.dumps(message_dict)),
+            types.Part.from_text(text="\nTHE FOLLOWING IS THE DATA:\n"),
+            types.Part.from_text(text=json.dumps(VectorStores.JOB.data_fn())),
         ]
     )
     if message:
@@ -238,10 +236,8 @@ def extract_certificate_text_content(file_model_id: int):
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(content, mimetype),
-            types.Part.from_text(
-                "extract text content",
-            ),
+            types.Part.from_bytes(data=content, mime_type=mimetype),
+            types.Part.from_text(text="extract text content"),
         ]
     )
 
@@ -257,9 +253,9 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
     message_dict = {"raw_skills": raw_skills, "resume_data": resume_json, **additional_information}
     message = service.generate_text_content(
         [
-            types.Part.from_text(json.dumps(message_dict)),
-            types.Part.from_text("\nTHE FOLLOWING IS THE DATA:\n"),
-            types.Part.from_text(json.dumps(VectorStores.SKILL.data_fn())),
+            types.Part.from_text(text=json.dumps(message_dict)),
+            types.Part.from_text(text="\nTHE FOLLOWING IS THE DATA:\n"),
+            types.Part.from_text(text=json.dumps(VectorStores.SKILL.data_fn())),
         ]
     )
 
