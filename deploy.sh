@@ -57,10 +57,10 @@ merge_tag_push() {
     current_branch=$(git rev-parse --abbrev-ref HEAD)
 
     echo "Pulling latest changes for $source_branch..."
-    git pull --ff origin "$source_branch" -m "Pulling latest changes for $source_branch"
+    git pull --ff origin "$source_branch"
 
     echo "Pulling latest changes for $target_branch..."
-    git pull --ff origin "$target_branch" -m "Pulling latest changes for $target_branch"
+    git pull --ff origin "$target_branch"
 
     echo "Switching to $target_branch for merge..."
     git checkout "$target_branch"
