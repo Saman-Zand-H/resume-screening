@@ -94,7 +94,7 @@ def user_task_decorator(timeout_seconds: int) -> Callable:
                     ]
                 }
             ).get_or_create(user=user, task_name=task_name)[0]
-            if user_task.status in [UserTask.Status.IN_PROGRESS, UserTask.Status.SCHEDULED]:
+            if user_task.status == UserTask.Status.IN_PROGRESS:
                 logger.info(f"Running task {task_name}: task {user_task.pk} is already in progress.")
                 return
 
@@ -125,7 +125,14 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
     from .models import UserTask
 
     task_name = task.name
-    user_task, *_ = UserTask.objects.get_or_create(
+    user_task, *_ = UserTask.objects.filter(
+        **{
+            fields_join(UserTask.status, In.lookup_name): [
+                UserTask.Status.IN_PROGRESS,
+                UserTask.Status.SCHEDULED,
+            ],
+        }
+    ).get_or_create(
         user_id=task_user_id,
         task_name=task_name,
     )
@@ -134,9 +141,9 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
         return
 
     if user_task.status not in [UserTask.Status.IN_PROGRESS, UserTask.Status.SCHEDULED]:
-        user_task.change_status(UserTask.Status.SCHEDULED)
         cache.set(cache_key, (task, task_user_id, args, kwargs), timeout=5)
         task.delay(*args, task_user_id=task_user_id, **kwargs)
+        user_task.change_status(UserTask.Status.SCHEDULED)
 
 
 @register_task([AccountSubscription.ASSISTANTS])
