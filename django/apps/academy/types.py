@@ -1,8 +1,5 @@
-from common.models import Industry
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_jwt.decorators import login_required
-
-from django.db.models import Q
 
 from .models import Course, CourseResult
 

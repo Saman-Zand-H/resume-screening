@@ -285,12 +285,10 @@ def send_campaign_notifications(campaign_id: int, pks=None):
         return
 
     campaign_notification_types = campaign.get_campaign_notification_types()
-    report_qs = (
-        (campaign.saved_filter.get_queryset().filter(pk__in=pks))
-        if pks is not None
-        else campaign.saved_filter.get_queryset()
-    )
-    if not report_qs:
+    report_qs = campaign.saved_filter.get_queryset()
+    if pks is not None:
+        report_qs = report_qs.filter(pk__in=pks)
+    if not report_qs.exists():
         return
 
     notification_contexts = []
@@ -318,6 +316,9 @@ def send_campaign_notifications(campaign_id: int, pks=None):
 
             if notification_type == NotificationTypes.IN_APP:
                 extra_dict[InAppNotification.title.field.name] = campaign_notification_type.subject.render(context)
+
+            if notification_type == NotificationTypes.PUSH:
+                extra_dict[PushNotification.title.field.name] = campaign_notification_type.subject.render(context)
 
             notifications_kwargs.extend(
                 notification_kwargs | extra_dict
