@@ -41,7 +41,11 @@
 
         <form method="post" novalidate>
             {% csrf_token %}
-
+            <div class="submit-row" style="margin-bottom: 1rem; display: flex; gap: .5rem;">
+                <input type="submit" class="default" value="Notify Selected">
+                <a href="{% url 'admin:notification_compaign_notify_failed' object.pk %}" class="default button" style="padding: 10px 15px">Notify Failed</a>
+                <a href="{% url 'admin:notification_compaign_notify_all' object.pk %}" class="default button" style="padding: 10px 15px">Notify All</a>
+            </div>
             <div class="results">
                 <table id="result_list">
                     <thead>
