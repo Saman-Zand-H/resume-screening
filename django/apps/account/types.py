@@ -756,6 +756,10 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
 
 class UserTaskType(DjangoObjectType):
+    def get_queryset(cls, queryset: QuerySet[UserTask], info):
+        latest = queryset.filter(user=info.context.user).order_by(f"-{fields_join(UserTask.created)}").first()
+        return queryset.filter(pk=latest)
+
     class Meta:
         model = UserTask
         fields = (
