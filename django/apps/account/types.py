@@ -25,6 +25,7 @@ from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectT
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
+from graphql_jwt.decorators import login_required
 from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType
@@ -756,9 +757,14 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
 
 class UserTaskType(DjangoObjectType):
+    @classmethod
+    @login_required
     def get_queryset(cls, queryset: QuerySet[UserTask], info):
-        latest = queryset.filter(user=info.context.user).order_by(f"-{fields_join(UserTask.created)}").first()
-        return queryset.filter(pk=latest)
+        return (
+            queryset.filter(user=info.context.user)
+            .order_by(fields_join(UserTask.task_name), f"-{fields_join(UserTask.created)}")
+            .distinct(fields_join(UserTask.task_name))
+        )
 
     class Meta:
         model = UserTask
