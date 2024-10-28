@@ -2390,6 +2390,16 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         verbose_name = _("Organization Employee Cooperation")
         verbose_name_plural = _("Organization Employee Cooperation")
 
+    def clean(self):
+        if self.job_position_assignment.job_seeker != self.employee.user:
+            raise ValidationError(
+                _("Job Position Assignment's job seeker must be the same as Organization Employee's user.")
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.id}: {self.employee} - {self.start_at or ''} - {self.end_at or ''}"
 
