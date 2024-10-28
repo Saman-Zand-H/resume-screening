@@ -2,7 +2,6 @@ import os
 import traceback
 from datetime import timedelta
 from functools import wraps
-from itertools import chain
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from common.logging import get_logger
@@ -26,7 +25,6 @@ from .typing import ResumeJson
 from .utils import (
     extract_available_jobs,
     extract_certificate_text_content,
-    extract_or_create_skills,
     extract_resume_json,
     get_user_additional_information,
     set_contacts_from_resume_json,
@@ -182,23 +180,6 @@ def find_available_jobs(user_id: int) -> bool:
         return
 
     user.profile.available_jobs.set(jobs)
-    return True
-
-
-@register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator(timeout_seconds=120)
-def set_user_skills(user_id: int) -> bool:
-    user = get_user_model().objects.get(pk=user_id)
-    resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
-    profile = user.profile
-
-    extracted_skills = extract_or_create_skills(
-        profile.raw_skills or [],
-        resume_json,
-        **get_user_additional_information(user_id),
-    )
-
-    profile.skills.clear() if not extracted_skills else profile.skills.set(chain.from_iterable(extracted_skills))
     return True
 
 
