@@ -2362,6 +2362,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
         FIRED = "fired", _("Fired")
+        RESIGNED = "resigned", _("Resigned")
         FINISHED = "finished", _("Finished")
 
     status = models.CharField(
@@ -2417,6 +2418,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
                 self.Status.SUSPENDED: HiringSuspendedState(),
                 self.Status.FINISHED: HiringFinishedState(),
                 self.Status.FIRED: HiringFiredState(),
+                self.Status.RESIGNED: HiringResignedState(),
             },
             OrganizationEmployeeCooperation.status.field.name,
             **kwargs,
@@ -2437,6 +2439,23 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
             cls.Status.SUSPENDED,
             cls.Status.FINISHED,
             cls.Status.FIRED,
+            cls.Status.RESIGNED,
+        ]
+
+    @property
+    def organization_related_statuses(self):
+        return [
+            self.Status.AWAITING,
+            self.Status.ACTIVE,
+            self.Status.SUSPENDED,
+            self.Status.FINISHED,
+            self.Status.FIRED,
+        ]
+
+    @property
+    def jobseeker_related_statuses(self):
+        return [
+            self.Status.RESIGNED,
         ]
 
 
@@ -2456,6 +2475,7 @@ class HiringActiveState(GenericState):
     new_statuses = [
         OrganizationEmployeeCooperation.Status.SUSPENDED.value,
         OrganizationEmployeeCooperation.Status.FIRED.value,
+        OrganizationEmployeeCooperation.Status.RESIGNED.value,
         OrganizationEmployeeCooperation.Status.FINISHED.value,
     ]
 
@@ -2464,6 +2484,7 @@ class HiringActiveState(GenericState):
         super().change_status(organization_employee_cooperation, new_status, status_field, **kwargs)
         if new_status.value in [
             OrganizationEmployeeCooperation.Status.FIRED.value,
+            OrganizationEmployeeCooperation.Status.RESIGNED.value,
             OrganizationEmployeeCooperation.Status.FINISHED.value,
         ]:
             organization_employee_cooperation.end_at = now()
@@ -2473,6 +2494,7 @@ class HiringActiveState(GenericState):
 class HiringSuspendedState(GenericState):
     new_statuses = [
         OrganizationEmployeeCooperation.Status.ACTIVE.value,
+        OrganizationEmployeeCooperation.Status.RESIGNED.value,
     ]
 
 
@@ -2481,6 +2503,10 @@ class HiringFinishedState(GenericState):
 
 
 class HiringFiredState(GenericState):
+    new_statuses = []
+
+
+class HiringResignedState(GenericState):
     new_statuses = []
 
 

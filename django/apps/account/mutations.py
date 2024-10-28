@@ -1456,6 +1456,8 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
         status = input.get(OrganizationEmployeeCooperation.status.field.name)
         if not (obj := OrganizationEmployeeCooperation.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
+        if status.value not in obj.organization_related_statuses:
+            raise GraphQLErrorBadRequest(_("Cannot modify status of the organization employee cooperation."))
         obj.change_status(status)
         return cls(**{cls._meta.return_field_name: obj})
 
