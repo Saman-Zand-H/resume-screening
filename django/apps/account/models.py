@@ -4,6 +4,7 @@ import random
 import re
 import string
 import uuid
+from operator import attrgetter
 from typing import Dict, List, Optional, Union
 
 from cities_light.models import City, Country
@@ -221,7 +222,7 @@ class Contact(models.Model):
                     self.VALIDATORS[self.type](self.value)
                 except ValidationError as e:
                     raise ValidationError(
-                        {Contact.value.field.name: next(map(field_serializer(self.type), e.messages))},
+                        {Contact.value.field.name: list(map(field_serializer(self.type), e.messages))},
                     ) from e
         else:
             raise NotImplementedError(f"Validation for {self.type} is not implemented")
@@ -1177,10 +1178,12 @@ class LanguageCertificateValue(EavValue):
             super().clean()
         except ValidationError as e:
             message = ""
+
             if error := getattr(e, "error_dict", None):
-                message = list(error.values())[0]
+                message = list(map(field_serializer(self.skill.skill_name), map(attrgetter("message"), error.values())))
             elif error := getattr(e, "error_list", None):
-                message = error[0].message
+                message = list(map(field_serializer(self.skill.skill_name), map(attrgetter("message"), error)))
+
             raise ValidationError({LanguageCertificateValue.value.field.name: message})
 
 

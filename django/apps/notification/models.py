@@ -142,8 +142,8 @@ class Campaign(TimeStampedModel):
             if not croniter.is_valid(self.crontab):
                 raise ValidationError({fields_join(Campaign.crontab): _("Invalid crontab value.")})
 
-            # if self.crontab[0] != "0":
-            #     raise ValidationError({fields_join(Campaign.crontab): _("Crontab should start with 0.")})
+            if self.crontab[0] != "0":
+                raise ValidationError({fields_join(Campaign.crontab): _("Crontab should start with 0.")})
 
     def get_campaign_notification_types(self):
         campaign_notification_manager: models.BaseManager[CampaignNotificationType] = getattr(

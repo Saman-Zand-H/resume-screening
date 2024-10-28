@@ -1,6 +1,6 @@
 import contextlib
 from functools import lru_cache, reduce
-from typing import Dict, Set, List, Type
+from typing import Dict, List, Set, Type
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
