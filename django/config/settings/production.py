@@ -84,3 +84,5 @@ if GOOGLE_CLOUD_ERROR_BUCKET_NAME:
 
 if not DEBUG:
     GRAPHENE["MIDDLEWARE"] += ["common.middlewares.GrapheneDisableIntrospectionMiddleware"]  # noqa
+
+IMPORT_EXPORT_TMP_STORAGE_CLASS = "import_export.tmp_storages.CacheStorage"
