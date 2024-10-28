@@ -28,6 +28,7 @@ from .utils import (
     extract_resume_json,
     get_user_additional_information,
     set_contacts_from_resume_json,
+    set_profile_from_resume_json,
 )
 
 logger = get_logger()
@@ -200,7 +201,9 @@ def set_user_resume_json(user_id: str) -> bool:
             "resume_json": resume_json,
         },
     )
+
     set_contacts_from_resume_json(user, resume_json)
+    set_profile_from_resume_json(user, resume_json)
 
     return True
 

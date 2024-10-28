@@ -1,8 +1,9 @@
+from datetime import date
 from typing import Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, RootModel
 
-from ..choices import ContactType
+from ..choices import ContactType, GenderChoices
 
 CONTACT_TYPES = Literal[
     ContactType.WHATSAPP,
@@ -10,6 +11,11 @@ CONTACT_TYPES = Literal[
     ContactType.PHONE,
     ContactType.LINKEDIN,
     ContactType.WEBSITE,
+]
+
+GENDER_TYPES = Literal[
+    GenderChoices.MALE,
+    GenderChoices.FEMALE,
 ]
 
 
@@ -38,6 +44,8 @@ CoreCompetencies = RootModel[Union[List[str], Dict[str, Union[str, int, List[str
 class ResumeJson(BaseModel):
     about_me: str
     headline: str
+    gender: Optional[GENDER_TYPES] = None
+    birth_date: Optional[date] = None
     educations: Optional[List[Education]] = []
     work_experiences: Optional[List[WorkExperience]] = []
     core_competencies: Optional[CoreCompetencies] = {}
