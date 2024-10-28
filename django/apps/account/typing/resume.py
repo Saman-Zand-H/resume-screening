@@ -19,17 +19,17 @@ class ContactInformation(BaseModel):
 
 
 class Education(BaseModel):
-    title: str
-    duration: str
-    university_name: str
-    achievements: List[str]
+    title: Optional[str] = None
+    duration: Optional[str] = None
+    university_name: Optional[str] = None
+    achievements: Optional[List[str]] = None
 
 
 class WorkExperience(BaseModel):
-    job: str
-    city: str
-    duration: str
-    achievements: List[str]
+    job: Optional[str] = None
+    city: Optional[str] = None
+    duration: Optional[str] = None
+    achievements: Optional[List[str]] = None
 
 
 CoreCompetencies = RootModel[Union[List[str], Dict[str, Union[str, int, List[str]]]]]

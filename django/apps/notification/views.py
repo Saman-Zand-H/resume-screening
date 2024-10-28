@@ -56,7 +56,7 @@ class CampaignNotifyView(BaseView, FormView, SingleObjectMixin):
         return super().get_form_kwargs() | {"campaign": self.get_object()}
 
     def get_success_url(self):
-        return reverse_lazy("admin:notification_campaign_changelist")
+        return reverse_lazy(self.request.resolver_match.view_name, args=[self.get_object().pk])
 
     def get_filter_queryset(self):
         queryset = self.get_object().saved_filter.get_queryset()
@@ -66,7 +66,6 @@ class CampaignNotifyView(BaseView, FormView, SingleObjectMixin):
             queryset = queryset.filter(
                 **{fields_join(Profile.user, User.email, "icontains"): form_data.cleaned_data.get("email")}
             )
-
         return queryset
 
     def get_context_data(self, **kwargs):

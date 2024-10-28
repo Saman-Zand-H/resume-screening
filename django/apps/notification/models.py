@@ -53,24 +53,6 @@ class NotificationTemplate(TimeStampedModel):
 
 
 class Campaign(TimeStampedModel):
-    crontab = models.CharField(
-        max_length=255,
-        verbose_name=_("Crontab"),
-        help_text=get_campaign_crontab_help_text(),
-        blank=True,
-        null=True,
-    )
-    max_attempts = models.PositiveIntegerField(
-        verbose_name=_("Max Attempts"),
-        blank=True,
-        null=True,
-    )
-    crontab_last_run = models.DateTimeField(
-        verbose_name=_("Crontab Last Run"),
-        blank=True,
-        null=True,
-    )
-    sent_at = models.DateTimeField(verbose_name=_("Sent At"), blank=True, null=True)
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     saved_filter = models.ForeignKey(
         TemplateSavedFilter,
@@ -78,9 +60,27 @@ class Campaign(TimeStampedModel):
         related_name="campaigns",
         verbose_name=_("Saved Filter"),
     )
+    max_attempts = models.PositiveIntegerField(
+        verbose_name=_("Max Attempts"),
+        blank=True,
+        null=True,
+    )
+    sent_at = models.DateTimeField(verbose_name=_("Sent At"), blank=True, null=True)
     is_scheduler_active = models.BooleanField(
         default=False,
         verbose_name=_("Is Scheduler Active"),
+    )
+    crontab = models.CharField(
+        max_length=255,
+        verbose_name=_("Crontab"),
+        help_text=get_campaign_crontab_help_text(),
+        blank=True,
+        null=True,
+    )
+    crontab_last_run = models.DateTimeField(
+        verbose_name=_("Crontab Last Run"),
+        blank=True,
+        null=True,
     )
 
     def get_user_latest_statuses(self, user):
