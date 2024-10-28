@@ -73,8 +73,8 @@ from .mixins import (
 from .models import (
     CanadaVisa,
     CertificateAndLicense,
-    CertificateFile,
     CertificateAndLicenseOfflineVerificationMethod,
+    CertificateFile,
     CommunicateOrganizationMethod,
     Contact,
     DegreeFile,
@@ -110,7 +110,6 @@ from .tasks import (
     get_certificate_text,
     send_email_async,
     set_user_resume_json,
-    set_user_skills,
     user_task_runner,
 )
 from .types import (
@@ -128,7 +127,7 @@ from .types import (
     WorkExperienceNode,
     WorkExperienceVerificationMethodType,
 )
-from .utils import analyze_document
+from .utils import analyze_document, set_user_skills
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -702,11 +701,11 @@ class UserSetSkillsMutation(graphene.Mutation):
     def mutate(root, info, input):
         user: User = info.context.user
         profile = user.profile
-        profile.raw_skills = (skills := input.get("skills"))
+        profile.raw_skills = (skills := list(set(input.get("skills") or [])))
         profile.save(update_fields=[Profile.raw_skills.field.name])
 
         if skills:
-            user_task_runner(set_user_skills, task_user_id=user.id, user_id=user.id)
+            set_user_skills(user_id=user.id, raw_skills=skills)
         else:
             profile.skills.clear()
 
@@ -1457,6 +1456,8 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
         status = input.get(OrganizationEmployeeCooperation.status.field.name)
         if not (obj := OrganizationEmployeeCooperation.objects.get(pk=id)):
             raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
+        if status.value not in obj.organization_related_statuses:
+            raise GraphQLErrorBadRequest(_("Cannot modify status of the organization employee cooperation."))
         obj.change_status(status)
         return cls(**{cls._meta.return_field_name: obj})
 
