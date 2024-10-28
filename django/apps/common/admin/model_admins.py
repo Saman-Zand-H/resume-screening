@@ -1,6 +1,6 @@
 from flex_report.defaults.admin import TemplateAdmin as BaseTemplateAdmin
 from flex_report.defaults.views import TemplateDeleteView
-from import_export.admin import ExportMixin
+from import_export.admin import ImportExportMixin
 
 from django.contrib import admin
 from django.urls import path
@@ -81,48 +81,67 @@ class TemplateAdmin(BaseTemplateAdmin):
 
 
 @admin.register(Industry)
-class IndustryAdmin(ExportMixin, admin.ModelAdmin):
+class IndustryAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [IndustryResource]
-    list_display = (Industry.title.field.name,)
+    list_display = (
+        Industry.id.field.name,
+        Industry.title.field.name,
+    )
     search_fields = (Industry.title.field.name,)
 
 
 @admin.register(Job)
-class JobAdmin(ExportMixin, admin.ModelAdmin):
+class JobAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [JobResource]
-    list_display = (Job.title.field.name, Job.order.field.name)
+    list_display = (
+        Job.id.field.name,
+        Job.title.field.name,
+        Job.order.field.name,
+    )
     search_fields = (Job.title.field.name,)
     list_filter = (Job.industries.field.name,)
     autocomplete_fields = (Job.industries.field.name,)
 
 
 @admin.register(Field)
-class FieldAdmin(ExportMixin, admin.ModelAdmin):
+class FieldAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [FieldResource]
-    list_display = (Field.name.field.name,)
+    list_display = (
+        Field.id.field.name,
+        Field.name.field.name,
+    )
     search_fields = (Field.name.field.name,)
 
 
 @admin.register(University)
-class UniversityAdmin(ExportMixin, admin.ModelAdmin):
+class UniversityAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [UniversityResource]
-    list_display = (University.name.field.name, University.websites.field.name)
+    list_display = (
+        University.id.field.name,
+        University.name.field.name,
+        University.websites.field.name,
+    )
     search_fields = (University.name.field.name, University.websites.field.name)
 
 
 @admin.register(SkillTopic)
-class SkillTopicAdmin(ExportMixin, admin.ModelAdmin):
+class SkillTopicAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [SkillTopicResource]
-    list_display = (SkillTopic.title.field.name, SkillTopic.industry.field.name)
+    list_display = (
+        SkillTopic.id.field.name,
+        SkillTopic.title.field.name,
+        SkillTopic.industry.field.name,
+    )
     search_fields = (SkillTopic.title.field.name,)
     list_filter = (SkillTopic.industry.field.name,)
     autocomplete_fields = (SkillTopic.industry.field.name,)
 
 
 @admin.register(Skill)
-class SkillAdmin(ExportMixin, admin.ModelAdmin):
+class SkillAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [SkillResource]
     list_display = (
+        Skill.id.field.name,
         Skill.title.field.name,
         Skill.insert_type.field.name,
     )
@@ -131,16 +150,21 @@ class SkillAdmin(ExportMixin, admin.ModelAdmin):
 
 
 @admin.register(LanguageProficiencyTest)
-class LanguageProficiencyTestAdmin(ExportMixin, admin.ModelAdmin):
+class LanguageProficiencyTestAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageProficiencyTestResource]
-    list_display = (LanguageProficiencyTest.title.field.name, LanguageProficiencyTest.languages.field.name)
+    list_display = (
+        LanguageProficiencyTest.id.field.name,
+        LanguageProficiencyTest.title.field.name,
+        LanguageProficiencyTest.languages.field.name,
+    )
     search_fields = (LanguageProficiencyTest.title.field.name,)
 
 
 @admin.register(LanguageProficiencySkill)
-class LanguageProficiencySkillAdmin(ExportMixin, admin.ModelAdmin):
+class LanguageProficiencySkillAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageProficiencySkillResource]
     list_display = (
+        LanguageProficiencySkill.id.field.name,
         LanguageProficiencySkill.skill_name.field.name,
         LanguageProficiencySkill.test.field.name,
         LanguageProficiencySkill.slug.field.name,
@@ -151,7 +175,7 @@ class LanguageProficiencySkillAdmin(ExportMixin, admin.ModelAdmin):
 
 
 @admin.register(JobBenefit)
-class JobBenefitsAdmin(ExportMixin, admin.ModelAdmin):
+class JobBenefitsAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [JobBenefitResource]
     list_display = (
         JobBenefit.id.field.name,

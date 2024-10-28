@@ -1,5 +1,6 @@
 import contextlib
 import json
+from itertools import chain
 from operator import attrgetter
 from typing import Any, List, Literal, Optional
 
@@ -13,6 +14,7 @@ from google.genai import types
 from pydantic import ValidationError as PydanticValidationError
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.expressions import ArraySubquery
 from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
@@ -242,6 +244,21 @@ def extract_certificate_text_content(file_model_id: int):
     )
 
     return results and service.message_to_json(results) or ""
+
+
+def set_user_skills(user_id: int, raw_skills: List[str]) -> bool:
+    user = get_user_model().objects.get(pk=user_id)
+    resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
+    profile = user.profile
+
+    extracted_skills = extract_or_create_skills(
+        raw_skills,
+        resume_json,
+        **get_user_additional_information(user_id),
+    )
+
+    profile.skills.clear() if not extracted_skills else profile.skills.set(chain.from_iterable(extracted_skills))
+    return True
 
 
 @transaction.atomic

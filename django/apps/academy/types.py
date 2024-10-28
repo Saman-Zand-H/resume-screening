@@ -1,5 +1,6 @@
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_jwt.decorators import login_required
+from graphql_auth.queries import CountableConnection
 
 from .models import Course, CourseResult
 
@@ -33,6 +34,7 @@ class CourseResultType(DjangoObjectType):
     class Meta:
         model = CourseResult
         use_connection = True
+        connection_class = CountableConnection
         fields = (
             CourseResult.id.field.name,
             CourseResult.user.field.name,
@@ -44,6 +46,7 @@ class CourseResultType(DjangoObjectType):
 
         filter_fields = {
             f"{CourseResult.course.field.name}__{Course.type.field.name}": ["exact"],
+            CourseResult.status.field.name: ["exact"],
         }
 
     @classmethod

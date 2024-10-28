@@ -2362,6 +2362,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         ACTIVE = "active", _("Active")
         SUSPENDED = "suspended", _("Suspended")
         FIRED = "fired", _("Fired")
+        RESIGNED = "resigned", _("Resigned")
         FINISHED = "finished", _("Finished")
 
     status = models.CharField(
@@ -2390,6 +2391,16 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         verbose_name = _("Organization Employee Cooperation")
         verbose_name_plural = _("Organization Employee Cooperation")
 
+    def clean(self):
+        if self.job_position_assignment.job_seeker != self.employee.user:
+            raise ValidationError(
+                _("Job Position Assignment's job seeker must be the same as Organization Employee's user.")
+            )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.id}: {self.employee} - {self.start_at or ''} - {self.end_at or ''}"
 
@@ -2407,10 +2418,18 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
                 self.Status.SUSPENDED: HiringSuspendedState(),
                 self.Status.FINISHED: HiringFinishedState(),
                 self.Status.FIRED: HiringFiredState(),
+                self.Status.RESIGNED: HiringResignedState(),
             },
             OrganizationEmployeeCooperation.status.field.name,
             **kwargs,
         )
+
+    @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        if set(cls.get_status_order()) != {status.value for status in cls.Status}:
+            errors.append(checks.Error("Mismatch in get_status_order().", obj=cls))
+        return errors
 
     @classmethod
     def get_status_order(cls):
@@ -2420,6 +2439,23 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
             cls.Status.SUSPENDED,
             cls.Status.FINISHED,
             cls.Status.FIRED,
+            cls.Status.RESIGNED,
+        ]
+
+    @property
+    def organization_related_statuses(self):
+        return [
+            self.Status.AWAITING,
+            self.Status.ACTIVE,
+            self.Status.SUSPENDED,
+            self.Status.FINISHED,
+            self.Status.FIRED,
+        ]
+
+    @property
+    def jobseeker_related_statuses(self):
+        return [
+            self.Status.RESIGNED,
         ]
 
 
@@ -2439,6 +2475,7 @@ class HiringActiveState(GenericState):
     new_statuses = [
         OrganizationEmployeeCooperation.Status.SUSPENDED.value,
         OrganizationEmployeeCooperation.Status.FIRED.value,
+        OrganizationEmployeeCooperation.Status.RESIGNED.value,
         OrganizationEmployeeCooperation.Status.FINISHED.value,
     ]
 
@@ -2447,6 +2484,7 @@ class HiringActiveState(GenericState):
         super().change_status(organization_employee_cooperation, new_status, status_field, **kwargs)
         if new_status.value in [
             OrganizationEmployeeCooperation.Status.FIRED.value,
+            OrganizationEmployeeCooperation.Status.RESIGNED.value,
             OrganizationEmployeeCooperation.Status.FINISHED.value,
         ]:
             organization_employee_cooperation.end_at = now()
@@ -2456,6 +2494,7 @@ class HiringActiveState(GenericState):
 class HiringSuspendedState(GenericState):
     new_statuses = [
         OrganizationEmployeeCooperation.Status.ACTIVE.value,
+        OrganizationEmployeeCooperation.Status.RESIGNED.value,
     ]
 
 
@@ -2464,6 +2503,10 @@ class HiringFinishedState(GenericState):
 
 
 class HiringFiredState(GenericState):
+    new_statuses = []
+
+
+class HiringResignedState(GenericState):
     new_statuses = []
 
 

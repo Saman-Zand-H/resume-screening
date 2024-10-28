@@ -194,6 +194,7 @@ class JobSeekerProfileType(DjangoObjectType):
             Profile.contactable.field.name,
             Profile.city.field.name,
             Profile.birth_date.field.name,
+            Profile.gender.field.name,
         )
 
     def resolve_contacts(self, info):
@@ -1114,6 +1115,7 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
             OrganizationEmployeeCooperation.status.field.name,
             OrganizationEmployeeCooperation.start_at.field.name,
             OrganizationEmployeeCooperation.end_at.field.name,
+            OrganizationEmployeeCooperation.created_at.field.name,
         )
 
     def resolve_platform_messages(self, info):
