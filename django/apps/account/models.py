@@ -2423,6 +2423,13 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         )
 
     @classmethod
+    def check(cls, **kwargs):
+        errors = super().check(**kwargs)
+        if set(cls.get_status_order()) != {status.value for status in cls.Status}:
+            errors.append(checks.Error("Mismatch in get_status_order().", obj=cls))
+        return errors
+
+    @classmethod
     def get_status_order(cls):
         return [
             cls.Status.AWAITING,
