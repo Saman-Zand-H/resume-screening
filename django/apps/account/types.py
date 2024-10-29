@@ -400,9 +400,12 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+EducationDegreeEnum = graphene.Enum("EducationDegreeEnum", Education.Degree.choices)
+
+
 class EducationAIType(graphene.ObjectType):
     field = graphene.Field(FieldType)
-    degree = graphene.String()
+    degree = graphene.Field(EducationDegreeEnum)
     university = graphene.Field(UniversityNode)
     city = graphene.Field(CityNode)
     start = graphene.Date()
@@ -419,8 +422,11 @@ class IEEMethodType(DjangoObjectType):
         )
 
 
+IEEMethodEvaluatorEnum = graphene.Enum("IEEMethodEvaluatorEnum", IEEMethod.Evaluator.choices)
+
+
 class IEEMethodAIType(graphene.ObjectType):
-    evaluator = graphene.String()
+    evaluator = graphene.Field(IEEMethodEvaluatorEnum)
 
 
 class CommunicationMethodType(DjangoObjectType):
@@ -478,9 +484,12 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+WorkExperienceGradeEnum = graphene.Enum("WorkExperienceGradeEnum", WorkExperience.Grade.choices)
+
+
 class WorkExperienceAIType(graphene.ObjectType):
     job_title = graphene.String()
-    grade = graphene.String()
+    grade = graphene.Field(WorkExperienceGradeEnum)
     start = graphene.Date()
     end = graphene.Date()
     organization = graphene.String()
