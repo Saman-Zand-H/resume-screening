@@ -86,3 +86,7 @@ class GraphQLErrorBaseException(GraphQLError):
 
 class GraphQLErrorBadRequest(GraphQLErrorBaseException):
     error = Errors.BAD_REQUEST
+
+
+class GraphQLErrorTooManyRequests(GraphQLErrorBaseException):
+    error = Errors.TOO_MANY_REQUESTS
