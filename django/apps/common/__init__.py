@@ -54,7 +54,11 @@ json.dumps = patched_dumps
 def custom_showwarning(message, category, filename, lineno, file=None, line=None):
     """Override default warning display, hiding specific warnings."""
     ignored_files = ["google/genai"]
-    ignored_messages = ["is not a Python type (it may be an instance of an object)"]
+    ignored_messages = [
+        "is not a Python type (it may be an instance of an object)",
+        "unclosed file",
+        "is still running",
+    ]
 
     if any(ignored_file in str(filename) for ignored_file in ignored_files):
         return
