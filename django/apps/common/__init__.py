@@ -53,7 +53,10 @@ json.dumps = patched_dumps
 
 def custom_showwarning(message, category, filename, lineno, file=None, line=None):
     """Override default warning display, hiding only UserWarning."""
-    if "is not a Python type (it may be an instance of an object), Pydantic will allow" in str(message):
+    if any(
+        w in str(message)
+        for w in ["google/genai/types.py", "is not a Python type (it may be an instance of an object)"]
+    ):
         return
     original_showwarning(message, category, filename, lineno, file, line)
 
