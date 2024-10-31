@@ -927,6 +927,8 @@ class IEEMethod(EducationVerificationMethodAbstract):
         max_length=50,
         choices=Evaluator.choices,
         verbose_name=_("Academic Credential Evaluator"),
+        null=True,
+        blank=True,
     )
 
     class Meta:
