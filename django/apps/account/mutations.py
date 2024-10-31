@@ -693,19 +693,20 @@ class UserSkillInput(graphene.InputObjectType):
 class UserSetSkillsMutation(graphene.Mutation):
     class Arguments:
         input = UserSkillInput(required=True)
+        should_analyze = graphene.Boolean(default_value=True)
 
     user = graphene.Field(UserNode)
 
     @login_required
     @staticmethod
-    def mutate(root, info, input):
+    def mutate(root, info, input, should_analyze):
         user: User = info.context.user
         profile = user.profile
         profile.raw_skills = (skills := list(set(input.get("skills") or [])))
         profile.save(update_fields=[Profile.raw_skills.field.name])
 
         if skills:
-            set_user_skills(user_id=user.id, raw_skills=skills)
+            should_analyze and set_user_skills(user_id=user.id, raw_skills=skills)
         else:
             profile.skills.clear()
 
