@@ -102,7 +102,7 @@ class Skill(models.Model):
         AI = "ai", _("AI")
         ORGANIZATION = "organization", _("Organization")
 
-    title = models.CharField(max_length=255, verbose_name=_("Title"), db_index=True)
+    title = models.CharField(max_length=255, verbose_name=_("Title"), db_index=True, unique=True)
     insert_type = models.CharField(
         max_length=16,
         choices=InsertType.choices,
