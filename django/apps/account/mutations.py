@@ -68,7 +68,6 @@ from .mixins import (
     DocumentUpdateMutationMixin,
     EmailVerificationMixin,
     MutationAccessRequiredMixin,
-    UpdateStatusMixin,
 )
 from .models import (
     CanadaVisa,
@@ -828,13 +827,6 @@ class EducationSetVerificationMethodMutation(
         model = Education
 
 
-class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = EducationNode
-
-    class Meta:
-        model = Education
-
-
 class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
     data = graphene.Field(graphene.ObjectType)
@@ -953,13 +945,6 @@ class WorkExperienceSetVerificationMethodMutation(
         return super().validate(root, info, input, id, obj)
 
 
-class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = WorkExperienceNode
-
-    class Meta:
-        model = WorkExperience
-
-
 class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(WorkExperienceAIType)
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
@@ -1074,13 +1059,6 @@ class LanguageCertificateSetVerificationMethodMutation(
         model = LanguageCertificate
 
 
-class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = LanguageCertificateNode
-
-    class Meta:
-        model = LanguageCertificate
-
-
 class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(LanguageCertificateAIType)
     verification_method_data = graphene.String()
@@ -1142,13 +1120,6 @@ class CertificateAndLicenseSetVerificationMethodMutation(
             task_user_id=info.context.user.id,
             certificate_id=obj.id,
         )
-
-
-class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = CertificateAndLicenseNode
-
-    class Meta:
-        model = CertificateAndLicense
 
 
 class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
@@ -1591,7 +1562,6 @@ class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
     update = EducationUpdateMutation.Field()
     delete = EducationDeleteMutation.Field()
-    update_status = EducationUpdateStatusMutation.Field()
     set_verification_method = EducationSetVerificationMethodMutation.Field()
     analyse_and_extract_data = EducationAnalyseAndExtractDataMutation.Field()
 
@@ -1600,7 +1570,6 @@ class WorkExperienceMutation(graphene.ObjectType):
     create = WorkExperienceCreateMutation.Field()
     update = WorkExperienceUpdateMutation.Field()
     delete = WorkExperienceDeleteMutation.Field()
-    update_status = WorkExperienceUpdateStatusMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
     analyse_and_extract_data = WorkExperienceAnalyseAndExtractDataMutation.Field()
 
@@ -1609,7 +1578,6 @@ class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
     update = LanguageCertificateUpdateMutation.Field()
     delete = LanguageCertificateDeleteMutation.Field()
-    update_status = LanguageCertificateUpdateStatusMutation.Field()
     set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
     analyse_and_extract_data = LanguageCertificateAnalyseAndExtractDataMutation.Field()
 
@@ -1618,7 +1586,6 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
     update = CertificateAndLicenseUpdateMutation.Field()
     delete = CertificateAndLicenseDeleteMutation.Field()
-    update_status = CertificateAndLicenseUpdateStatusMutation.Field()
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
     analyse_and_extract_data = CertificateAndLicenseAnalyseAndExtractDataMutation.Field()
 

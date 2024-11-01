@@ -4,15 +4,14 @@ from operator import call
 from typing import Any, Callable
 
 import graphene
-from django.db import models
 from common.exceptions import GraphQLErrorBadRequest
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
-from graphene_django_cud.mutations import DjangoPatchMutation
 from graphql import GraphQLResolveInfo
 from graphql_jwt.decorators import login_required
 from rules.rulesets import test_rule
 
+from django.db import models
 from django.template.loader import render_to_string
 
 from .constants import VERIFICATION_EMAIL_FROM, VERIFICATION_PHONE_FROM
@@ -287,23 +286,6 @@ class FilterQuerySetByUserMixin:
         if not user:
             return queryset.none()
         return super().get_queryset(queryset, info).filter(user=user)
-
-
-class UpdateStatusMixin(DjangoPatchMutation):
-    class Meta:
-        abstract = True
-
-    @classmethod
-    def __init_subclass_with_meta__(cls, *args, **kwargs):
-        model = kwargs.get("model")
-        kwargs.update(
-            {
-                "login_required": True,
-                "type_name": f"Patch{model.__name__}StatusInput",
-                "fields": (model.status.field.name,),
-            }
-        )
-        return super().__init_subclass_with_meta__(*args, **kwargs)
 
 
 class CRUDWithoutIDMutationMixin:
