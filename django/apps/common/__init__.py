@@ -1,4 +1,5 @@
 import json
+import warnings
 
 from django_filters import BaseCSVFilter, CharFilter
 from graphene_django.filter.filterset import (
@@ -48,3 +49,25 @@ def patched_dumps(obj, *args, **kwargs):
 
 
 json.dumps = patched_dumps
+
+
+def custom_showwarning(message, category, filename, lineno, file=None, line=None):
+    """Override default warning display, hiding specific warnings."""
+    ignored_files = ["google/genai"]
+    ignored_messages = [
+        "is not a Python type (it may be an instance of an object)",
+        "unclosed file",
+        "is still running",
+    ]
+
+    if any(ignored_file in str(filename) for ignored_file in ignored_files):
+        return
+    if any(ignored_message in str(message) for ignored_message in ignored_messages):
+        return
+
+    original_showwarning(message, category, filename, lineno, file, line)
+
+
+original_showwarning = warnings.showwarning
+
+warnings.showwarning = custom_showwarning

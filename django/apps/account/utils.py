@@ -54,6 +54,29 @@ def set_contacts_from_resume_json(user, resume_json: dict):
     Contact.objects.bulk_create(contacts, ignore_conflicts=True)
 
 
+def set_profile_from_resume_json(user, resume_json: dict):
+    from .models import Profile
+
+    changes = {}
+    profile: Profile = user.profile
+    if not (resume_json_model := ResumeJson.model_validate(resume_json)):
+        return
+
+    if resume_json_model.gender and not profile.gender:
+        changes.update(**{fields_join(Profile.gender): resume_json_model.gender})
+
+    if resume_json_model.birth_date and not profile.birth_date:
+        changes.update(**{fields_join(Profile.birth_date): resume_json_model.birth_date})
+
+    if not changes:
+        return
+
+    for key, value in changes.items():
+        setattr(profile, key, value)
+
+    profile.save(update_fields=changes.keys())
+
+
 def analyze_document(
     file_model_id: int,
     verification_method_name: Literal[

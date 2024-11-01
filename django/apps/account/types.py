@@ -408,6 +408,9 @@ class EducationAIType(graphene.ObjectType):
     start = graphene.Date()
     end = graphene.Date()
 
+    def resolve_degree(self, info):
+        return self.get("degree", "").upper() or None
+
 
 class IEEMethodType(DjangoObjectType):
     class Meta:
@@ -415,12 +418,14 @@ class IEEMethodType(DjangoObjectType):
         fields = (
             IEEMethod.id.field.name,
             IEEMethod.education_evaluation_document.field.name,
-            IEEMethod.evaluator.field.name,
         )
 
 
 class IEEMethodAIType(graphene.ObjectType):
     evaluator = graphene.String()
+
+    def resolve_evaluator(self, info):
+        return self.get("evaluator", "").upper() or None
 
 
 class CommunicationMethodType(DjangoObjectType):
@@ -487,6 +492,9 @@ class WorkExperienceAIType(graphene.ObjectType):
     city = graphene.Field(CityNode)
     industry = graphene.Field(IndustryNode)
     skills = graphene.String()
+
+    def resolve_grade(self, info):
+        return self.get("grade", "").upper() or None
 
 
 class EmployerLetterMethodType(DjangoObjectType):

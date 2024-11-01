@@ -66,6 +66,7 @@ from django.utils.translation import gettext_lazy as _
 from .choices import (
     ContactType,
     EducationDegree,
+    GenderChoices,
     IEEEvaluator,
     UserTaskStatus,
     WorkExperienceGrade,
@@ -525,6 +526,8 @@ class FullBodyImageFile(UserUploadedImageFile):
 
 @report_model.register
 class Profile(ComputedFieldsModel):
+    Gender = GenderChoices
+
     class SkinColor(models.TextChoices):
         VERY_FAIR = "#FFDFC4", _("Very Fair")
         FAIR = "#F0D5B1", _("Fair")
@@ -567,12 +570,6 @@ class Profile(ComputedFieldsModel):
         HYBRID = "hybrid", _("Hybrid")
         ON_THE_ROAD = "on_the_road", _("On the road")
         GLOBAL = "global", _("Global")
-
-    class Gender(models.TextChoices):
-        MALE = "male", _("Male")
-        FEMALE = "female", _("Female")
-        NOT_KNOWN = "not_known", _("Not Known")
-        NOT_APPLICABLE = "not_applicable", _("Not Applicable")
 
     contactable = models.OneToOneField(
         Contactable,
@@ -930,6 +927,8 @@ class IEEMethod(EducationVerificationMethodAbstract):
         max_length=50,
         choices=Evaluator.choices,
         verbose_name=_("Academic Credential Evaluator"),
+        null=True,
+        blank=True,
     )
 
     class Meta:

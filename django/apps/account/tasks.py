@@ -28,6 +28,7 @@ from .utils import (
     extract_resume_json,
     get_user_additional_information,
     set_contacts_from_resume_json,
+    set_profile_from_resume_json,
 )
 
 logger = get_logger()
@@ -194,13 +195,10 @@ def set_user_resume_json(user_id: str) -> bool:
     if not ((resume_json := extract_resume_json(resume.file.pk)) and ResumeJson.model_validate(resume_json)):
         return
 
-    Resume.objects.update_or_create(
-        user=user,
-        defaults={
-            "resume_json": resume_json,
-        },
-    )
+    Resume.objects.update_or_create(user=user, defaults={"resume_json": resume_json})
+
     set_contacts_from_resume_json(user, resume_json)
+    set_profile_from_resume_json(user, resume_json)
 
     return True
 

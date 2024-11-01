@@ -48,3 +48,4 @@ tablib[xlsx]~=3.7
 twilio~=9.4
 croniter~=6.0
 firebase-admin~=6.6
+django-ratelimit~=4.1.0

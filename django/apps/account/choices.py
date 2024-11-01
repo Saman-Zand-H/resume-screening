@@ -4,6 +4,13 @@ from django.db.models import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 
+class GenderChoices(TextChoices):
+    MALE = "male", _("Male")
+    FEMALE = "female", _("Female")
+    NOT_KNOWN = "not_known", _("Not Known")
+    NOT_APPLICABLE = "not_applicable", _("Not Applicable")
+
+
 class ContactType(TextChoices):
     WEBSITE = "website", _("Website")
     ADDRESS = "address", _("Address")

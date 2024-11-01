@@ -30,6 +30,7 @@ class Errors:
     INTERNAL_SERVER_ERROR = Error(
         "INTERNAL_SERVER_ERROR", "An unexpected error occurred", HttpResponseServerError.status_code
     )
+    TOO_MANY_REQUESTS = Error("TOO_MANY_REQUESTS", "Too many requests", 429)
 
 
 EXCEPTION_ERROR_MAP = {
