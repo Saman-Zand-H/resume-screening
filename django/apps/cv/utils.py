@@ -1,3 +1,4 @@
+import contextlib
 import io
 import json
 import re
@@ -110,11 +111,11 @@ def extract_generated_resume_info(user):
 
     service = GoogleServices(Assistants.GENERATE_RESUME)
     message = service.generate_text_content(json.dumps(data))
-    if message:
-        try:
-            return service.message_to_json(message)
-        except ValueError:
-            return None
+    if not message:
+        return
+
+    with contextlib.suppress(ValueError):
+        return service.message_to_json(message)
 
 
 def get_static_base_url():

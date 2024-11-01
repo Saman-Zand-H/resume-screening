@@ -2,395 +2,255 @@
 {% load static %}
 
 {% block content %}
-    <div class="cpj-watermark">
-        <img
-            src="{% static 'img/logo/cpj-watermark.svg' %}"
-            alt="CPJ Watermark"
-        />
-    </div>
-    <div role="main" lang="en" dir="ltr" class="resume-container">
-        <div role="article" class="resume-wrapper">
-            <div class="resume-content">
-                <div class="main-column">
-                    <div class="main-content">
-                        <div class="heading-section">
-                            <img
-                                src="{% static 'img/logo/cpj-banner.svg' %}"
-                                class="company-logo"
-                                alt="Canada Prime Jobs Company Logo"
-                            />
+<div class="cpj-watermark">
+    <img src="{% static 'img/logo/cpj-watermark.svg' %}" alt="CPJ Watermark" />
+</div>
+<div role="main" lang="en" dir="ltr" class="resume-container">
+    <div role="article" class="resume-wrapper">
+        <div class="resume-content">
+            <div class="main-column">
+                <div class="main-content">
+                    <div class="heading-section">
+                        <img src="{% static 'img/logo/cpj-banner.svg' %}" class="company-logo" alt="Canada Prime Jobs Company Logo" />
 
-                            <div class="top-heading-section">
-                                <div class="header-section">
-                                    <div class="name-title">
-                                        <div class="name">
-                                            <span class="first-name">
-                                                {{ user.first_name.title }}
-                                            </span>
-                                            <span class="last-name">
-                                                {{ user.last_name.title }}
-                                            </span>
-                                        </div>
-                                        {% if headline %}
-                                            <div class="job-title">{{ headline }}</div>
-                                        {% endif %}
+                        <div class="top-heading-section">
+                            <div class="header-section">
+                                <div class="name-title">
+                                    <div class="name">
+                                        <span class="first-name">
+                                            {{ user.first_name.title }}
+                                        </span>
+                                        <span class="last-name">
+                                            {{ user.last_name.title }}
+                                        </span>
                                     </div>
-                                </div>
-                                <div class="update-date">
-                                    <div></div>
-                                    <span>
-                                        Update : {{ now|date:"j/n/Y" }}
-                                    </span>
-                                </div>
-                                <div class="divider"></div>
-                                <div class="contact-info">
-                                    <div class="contact-item">
-                                        <img
-                                            src="{% static 'img/icon/email.svg' %}"
-                                            class="contact-icon"
-                                            alt="Email icon"
-                                        />
-                                        <div class="contact-text">
-                                            <a href="mailto:{{ user.email }}" target="_blank">
-                                                {{ user.email }}
-                                            </a>
-                                        </div>
-                                    </div>
-                                    {% for contact in contacts %}
-                                        {% with display_contact=contact.get_display_name_and_link %}
-                                            <div class="contact-item">
-                                                <img
-                                                    src="{{ contact.get_contact_icon }}"
-                                                    class="contact-icon"
-                                                    alt="Contact icon"
-                                                />
-                                                <div class="contact-text">
-                                                    {% if display_contact.link %}
-                                                        <a href="{{ display_contact.link }}" target="_blank">
-                                                            {{ display_contact.display }}
-                                                        </a>
-                                                    {% else %}
-                                                        <p>{{ display_contact.display }}</p>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        {% endwith %}
-                                    {% endfor %}
-                                    {% if user.profile.city %}
-                                        <div class="contact-item">
-                                            <img
-                                                src="{% static 'img/icon/Building office.svg' %}"
-                                                class="contact-icon"
-                                                alt="Location icon"
-                                            />
-                                            <div class="contact-text">
-                                                {{ user.profile.city }}
-                                            </div>
-                                        </div>
+                                    {% if headline %}
+                                    <div class="job-title">{{ headline }}</div>
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
-                        <div class="resume-body">
-                            <div class="content-sections">
-                                {% if about_me %}
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/Chat profile.svg' %}"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    About Me:
-                                                </div>
-                                            </div>
-                                            <div
-                                                class="section-items"
-                                                style="margin-top: 0"
-                                            >
-                                                <div
-                                                    class="section-item"
-                                                    style="margin-top: 0"
-                                                >
-                                                    <div
-                                                        class="section-description"
-                                                    >{{ about_me }}</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div class="update-date">
+                                <div></div>
+                                <span>
+                                    Update : {{ now|date:"j/n/Y" }}
+                                </span>
+                            </div>
+                            <div class="divider"></div>
+                            <div class="contact-info">
+                                <div class="contact-item">
+                                    <img src="{% static 'img/icon/email.svg' %}" class="contact-icon" alt="Email icon" />
+                                    <div class="contact-text">
+                                        <a href="mailto:{{ user.email }}" target="_blank">
+                                            {{ user.email }}
+                                        </a>
                                     </div>
-                                {% endif %}
-                                {% if work_experiences %}
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/Work 1.svg' %}"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Work Experience:
-                                                </div>
-                                            </div>
-                                            <div class="section-items">
-                                                {% for experience in work_experiences %}
-                                                    <div class="section-item">
-                                                        <div
-                                                            class="section-heading"
-                                                        >
-                                                            <div
-                                                                class="section-header"
-                                                            >
-                                                                <div
-                                                                    class="section-header-title"
-                                                                >
-                                                                    {{ experience.job }}
-                                                                </div>
-                                                                <div
-                                                                    class="section-item-metadata"
-                                                                >
-                                                                    {{ experience.duration }}
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="section-subheading"
-                                                            >
-                                                                {{ experience.city }}
-                                                            </div>
-                                                        </div>
-                                                        {% if experience.achievements %}
-                                                            <div class="section-descriptions">
-                                                                <ul>
-                                                                    {% for achievement in experience.achievements %}
-                                                                        <li class="section-description">
-                                                                            {{ achievement }}
-                                                                        </li>
-                                                                    {% endfor %}
-                                                                </ul>
-                                                            </div>  
-                                                        {% endif %}
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
+                                </div>
+                                {% for contact in contacts %}
+                                {% with display_contact=contact.get_display_name_and_link %}
+                                <div class="contact-item">
+                                    <img src="{{ contact.get_contact_icon }}" class="contact-icon" alt="Contact icon" />
+                                    <div class="contact-text">
+                                        {% if display_contact.link %}
+                                        <a href="{{ display_contact.link }}" target="_blank">
+                                            {{ display_contact.display }}
+                                        </a>
+                                        {% else %}
+                                        <p>{{ display_contact.display }}</p>
+                                        {% endif %}
                                     </div>
-                                {% endif %}
-                                {% if certifications %}
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/board.svg' %}"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Certifications:
-                                                </div>
-                                            </div>
-                                            <div class="section-list">
-                                                {% for certification in certifications %}
-                                                    <div class="section-list-item">
-                                                        <span class="item-title">
-                                                            {{ certification.date }}
-                                                        </span>
-                                                        <span
-                                                            class="item-description"
-                                                        >
-                                                            {{ certification.title }}
-                                                        </span>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                            {% if certifications.cpjs.exists %}
-                                                <div class="cpj-label">
-                                                    by
-                                                    <span class="cpj-bold">
-                                                        CPJ
-                                                    </span>
-                                                    :
-                                                </div>
-                                                <div class="section-list">
-                                                    {% for certification in certifications %}
-                                                        <div class="section-list-item">
-                                                            <span class="item-title">
-                                                                {{ certification.date }}
-                                                            </span>
-                                                            <span
-                                                                class="item-description"
-                                                            >
-                                                                {{ certification.title }}
-                                                            </span>
-                                                        </div>
-                                                    {% endfor %}
-                                                </div>
-                                            {% endif %}
-                                        </div>
+                                </div>
+                                {% endwith %}
+                                {% endfor %}
+                                {% if user.profile.city %}
+                                <div class="contact-item">
+                                    <img src="{% static 'img/icon/Building office.svg' %}" class="contact-icon" alt="Location icon" />
+                                    <div class="contact-text">
+                                        {{ user.profile.city }}
                                     </div>
-                                {% endif %}
-                                {% if volunteer_experiences %}
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/Medal.svg' %}"
-                                                    alt="About"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Volunteer Experience:
-                                                </div>
-                                            </div>
-                                            <div class="section-items">
-                                                {% for volunteer_experience in volunteer_experiences %}
-                                                    <div class="section-item">
-                                                        <div
-                                                            class="section-heading"
-                                                        >
-                                                            <div
-                                                                class="section-header"
-                                                            >
-                                                                <div
-                                                                    class="section-header-title"
-                                                                >
-                                                                    {{ volunteer_experience.title }}
-                                                                </div>
-                                                                <div
-                                                                    class="section-item-metadata"
-                                                                >
-                                                                    {{ volunteer_experience.duration }}
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="section-subheading"
-                                                            >
-                                                                {{ volunteer_experience.city }}
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="section-description"
-                                                        >
-                                                            {{ volunteer_experience.description }}
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                {% if educations %}
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/Graduated.svg' %}"
-                                                    alt="Education"
-                                                    class="section-icon"
-                                                />
-                                                <div class="section-title">
-                                                    Educations:
-                                                </div>
-                                            </div>
-                                            <div class="section-items">
-                                                {% for education in educations %}
-                                                    <div class="section-item">
-                                                        <div
-                                                            class="section-heading"
-                                                        >
-                                                            <div
-                                                                class="section-header"
-                                                            >
-                                                                <div
-                                                                    class="section-header-title"
-                                                                >
-                                                                    {{ education.title }}
-                                                                </div>
-                                                                <div
-                                                                    class="section-item-metadata"
-                                                                >
-                                                                    {{ education.duration }}
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="section-subheading"
-                                                            >
-                                                                {{ education.university_name }}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                {% if additional_sections %}
-                                    <div class="body-section">
-                                        <div class="body-items">
-                                            <div
-                                                class="section-title-container"
-                                            >
-                                                <img
-                                                    src="{% static 'img/icon/cv/Medal.svg' %}"
-                                                    alt="Additional Section"
-                                                    class="section-icon"
-                                                />
-
-                                                <div class="section-title">
-                                                    Additional Sections:
-                                                </div>
-                                            </div>
-                                            <div class="section-list">
-                                                {% for additional_section in additional_sections %}
-                                                    <div class="section-list-item">
-                                                        <span
-                                                            class="section-description"
-                                                            >
-                                                            {{ additional_section.title }}: {{ additional_section.description }}
-                                                        </span>
-                                                    </div>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    </div>
+                                </div>
                                 {% endif %}
                             </div>
+                        </div>
+                    </div>
+                    <div class="resume-body">
+                        <div class="content-sections">
+                            {% if about_me %}
+                            <div class="body-section">
+                                <div class="body-items">
+                                    <div class="section-title-container">
+                                        <img src="{% static 'img/icon/cv/Chat profile.svg' %}" alt="About" class="section-icon" />
+                                        <div class="section-title">
+                                            About Me:
+                                        </div>
+                                    </div>
+                                    <div class="section-items" style="margin-top: 0">
+                                        <div class="section-item" style="margin-top: 0">
+                                            <div class="section-description">{{ about_me }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if work_experiences %}
+                            <div class="body-section">
+                                <div class="body-items">
+                                    <div class="section-title-container">
+                                        <img src="{% static 'img/icon/cv/Work 1.svg' %}" alt="About" class="section-icon" />
+                                        <div class="section-title">
+                                            Work Experience:
+                                        </div>
+                                    </div>
+                                    <div class="section-items">
+                                        {% for experience in work_experiences %}
+                                        <div class="section-item">
+                                            <div class="section-heading">
+                                                <div class="section-header">
+                                                    <div class="section-header-title">
+                                                        {{ experience.job }}
+                                                    </div>
+                                                    <div class="section-item-metadata">
+                                                        {{ experience.duration }}
+                                                    </div>
+                                                </div>
+                                                <div class="section-subheading">
+                                                    {{ experience.city }}
+                                                </div>
+                                            </div>
+                                            {% if experience.achievements %}
+                                            <div class="section-descriptions">
+                                                <ul>
+                                                    {% for achievement in experience.achievements %}
+                                                    <li class="section-description">
+                                                        {{ achievement }}
+                                                    </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if certifications %}
+                            <div class="body-section">
+                                <div class="body-items">
+                                    <div class="section-title-container">
+                                        <img src="{% static 'img/icon/cv/board.svg' %}" alt="About" class="section-icon" />
+                                        <div class="section-title">
+                                            Certifications:
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% for certification in certifications %}
+                                        <div class="section-list-item">
+                                            <span class="item-title">
+                                                {{ certification.date }}
+                                            </span>
+                                            <span class="item-description">
+                                                {{ certification.title }}
+                                            </span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if certifications.cpjs.exists %}
+                                    <div class="cpj-label">
+                                        by
+                                        <span class="cpj-bold">
+                                            CPJ
+                                        </span>
+                                        :
+                                    </div>
+                                    <div>
+                                        {% for certification in certifications %}
+                                        <div class="section-list-item">
+                                            <span class="item-title">
+                                                {{ certification.date }}
+                                            </span>
+                                            <span class="item-description">
+                                                {{ certification.title }}
+                                            </span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if educations %}
+                            <div class="body-section">
+                                <div class="body-items">
+                                    <div class="section-title-container">
+                                        <img src="{% static 'img/icon/cv/Graduated.svg' %}" alt="Education" class="section-icon" />
+                                        <div class="section-title">
+                                            Educations:
+                                        </div>
+                                    </div>
+                                    <div class="section-items">
+                                        {% for education in educations %}
+                                        <div class="section-item">
+                                            <div class="section-heading">
+                                                <div class="section-header">
+                                                    <div class="section-header-title">
+                                                        {{ education.title }}
+                                                    </div>
+                                                    <div class="section-item-metadata">
+                                                        {{ education.duration }}
+                                                    </div>
+                                                </div>
+                                                <div class="section-subheading">
+                                                    {{ education.university_name }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if additional_sections %}
+                            <div class="body-section">
+                                <div class="body-items">
+                                    <div class="section-title-container">
+                                        <img src="{% static 'img/icon/cv/Medal.svg' %}" alt="Additional Section" class="section-icon" />
+                                        <div class="section-title">
+                                            Additional Sections:
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% for additional_section in additional_sections %}
+                                        <div class="section-list-item">
+                                            <span class="section-description">
+                                                {{ additional_section.title }}: {{ additional_section.description }}
+                                            </span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <footer class="resume-footer">
-            <div class="footer-reference">
-                <div class="reference-text">Refrenced by :</div>
-                <div class="company-reference">
-                    <img
-                        src="{% static 'img/logo/cpj-logo-28x29.svg' %}"
-                        class="reference-logo"
-                        alt="CPJ company logo"
-                    />
-                </div>
-            </div>
-            <div class="footer-contact">
-                <div class="contact-label">Contact Us : </div>
-                <div class="contact-email">
-                    <a style="color: white;" href="mailto:{{ contact_us_email|default:'info@cpj.ai' }}">
-                        {{ contact_us_email|default:"info@cpj.ai" }}
-                    </a>
-                </div>
-            </div>
-        </footer>
     </div>
+    <footer class="resume-footer">
+        <div class="footer-reference">
+            <div class="reference-text">Refrenced by :</div>
+            <div class="company-reference">
+                <img src="{% static 'img/logo/cpj-logo-28x29.svg' %}" class="reference-logo" alt="CPJ company logo" />
+            </div>
+        </div>
+        <div class="footer-contact">
+            <div class="contact-label">Contact Us : </div>
+            <div class="contact-email">
+                <a style="color: white;" href="mailto:{{ contact_us_email|default:'info@cpj.ai' }}">
+                    {{ contact_us_email|default:"info@cpj.ai" }}
+                </a>
+            </div>
+        </div>
+    </footer>
+</div>
 {% endblock %}

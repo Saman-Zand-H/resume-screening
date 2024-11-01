@@ -61,7 +61,7 @@ from ..models import (
     WorkExperience,
 )
 from ..scores import UserScorePack
-from ..tasks import get_certificate_text, user_task_runner
+from ..tasks import get_certificate_text, set_user_resume_json, user_task_runner
 from .resources import (
     CertificateAndLicenseResource,
     EducationResource,
@@ -512,6 +512,11 @@ class CanadaVisaAdmin(admin.ModelAdmin):
 
 @register(Resume)
 class ResumeAdmin(admin.ModelAdmin):
+    @admin.action(description="Re-Evaluate Resume JSON")
+    def reevaluate_resume_json(self, request, queryset: QuerySet[Resume]):
+        for resume in queryset:
+            user_task_runner(set_user_resume_json, user_id=resume.user.pk, task_user_id=resume.user.pk)
+
     list_display = (
         Resume.user.field.name,
         Resume.file.field.name,
@@ -519,6 +524,7 @@ class ResumeAdmin(admin.ModelAdmin):
     search_fields = (fields_join(Resume.user, User.email),)
     raw_id_fields = (Resume.file.field.name,)
     autocomplete_fields = (Resume.user.field.name,)
+    actions = (reevaluate_resume_json.__name__,)
 
 
 class ReferralUserInline(admin.TabularInline):
