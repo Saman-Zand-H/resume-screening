@@ -418,7 +418,6 @@ class IEEMethodType(DjangoObjectType):
         fields = (
             IEEMethod.id.field.name,
             IEEMethod.education_evaluation_document.field.name,
-            IEEMethod.evaluator.field.name,
         )
 
 
