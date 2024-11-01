@@ -2,13 +2,12 @@ import contextlib
 from functools import lru_cache, reduce
 from typing import Dict, List, Set, Type
 
-import graphene
-from flex_blob.builders import BlobResponseBuilder
-from graphene_django.converter import convert_choice_field_to_enum
-
 import django.apps
+import graphene
 from django.db.models import Model, OneToOneField
 from django.db.models.constants import LOOKUP_SEP
+from flex_blob.builders import BlobResponseBuilder
+from graphene_django.converter import convert_choice_field_to_enum
 
 from .constants import GRAPHQL_ERROR_FIELD_SEP
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors

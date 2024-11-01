@@ -11,7 +11,7 @@ from .models import Campaign
 from .senders import send_campaign_notifications
 
 
-@register_task([NotificationSubscription.CAMPAIGN], schedule={"schedule": "0 */1 * * *"})
+@register_task([NotificationSubscription.CAMPAIGN], schedule={"schedule": "*/30 * * * *"})
 def run_campaign_crontabs():
     periodic_campaigns = Campaign.objects.filter(
         **{
@@ -19,6 +19,7 @@ def run_campaign_crontabs():
             fields_join(Campaign.is_scheduler_active): True,
         }
     )
+
     for campaign in periodic_campaigns:
         crontab = croniter(campaign.crontab)
         if (
