@@ -6,7 +6,7 @@ from typing import Any, List, Literal, Optional
 
 from ai.google import GoogleServices
 from cities_light.models import City
-from common.models import Job, Skill, University
+from common.models import Job, LanguageProficiencyTest, Skill, University
 from common.utils import fields_join, get_file_model_mimetype
 from config.settings.constants import Assistants, Environment
 from flex_blob.models import FileModel
@@ -188,6 +188,7 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         user=user,
         status__in=LanguageCertificate.get_verified_statuses(),
     ).values(
+        fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
         LanguageCertificate.language.field.name,
         LanguageCertificate.issued_at.field.name,
         scores=ArraySubquery(language_certificates_values),

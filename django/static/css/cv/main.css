@@ -46,23 +46,6 @@ a {
     min-height: var(--content-height);
 }
 
-.profile-column {
-    display: flex;
-    flex-direction: column;
-    line-height: normal;
-    width: 30%;
-    height: 100%;
-    margin-left: 0;
-}
-
-.profile-info {
-    display: flex;
-    flex-grow: 1;
-    flex-direction: column;
-    font-family: Poppins, sans-serif;
-    height: 100%;
-}
-
 .top-heading-section {
     display: flex;
     flex-direction: column;
@@ -77,40 +60,12 @@ a {
     gap: 20px;
 }
 
-.logo-wrapper {
-    display: flex;
-    min-height: 150.4px; /* 188px * 0.8 */
-    width: 100%;
-    flex-direction: column;
-    justify-content: center;
-}
-
 .company-logo {
     aspect-ratio: 1.21;
     z-index: 30;
-    margin-right: 40px; /* 50px * 0.8 */
+    margin-right: 40px;
     width: 260px;
     margin-left: 80px;
-}
-
-.profile-background {
-    position: absolute;
-    inset: 0;
-    height: 100%;
-    width: 100%;
-    object-fit: cover;
-    object-position: center;
-}
-
-.details-wrapper {
-    margin-bottom: -192px; /* -240px * 0.8 */
-    flex-direction: column;
-    justify-content: start;
-    height: 100%;
-}
-
-.skills-section {
-    width: 100%;
 }
 
 .section-title-container {
@@ -120,7 +75,7 @@ a {
 }
 
 .section-title {
-    font-size: 32.38px; /* 28.16px * 1.15 */
+    font-size: 32.38px;
     font-weight: 500;
     line-height: 1;
     margin-left: 25px;
@@ -251,14 +206,14 @@ a {
 
 .content-sections::before {
     content: "";
-    height: 98%;
+    height: 99%;
     margin-top: 6.4px; /* 8px * 0.8 */
     width: 1.6px; /* 2px * 0.8 */
     border: 1.6px solid #c71f2c; /* 2px * 0.8 */
     background-color: #c71f2c;
     position: absolute;
     left: -4.1%;
-    top: 2%;
+    top: 1%;
 }
 
 .body-section {
@@ -267,13 +222,6 @@ a {
     flex-direction: column;
     color: #000;
     justify-content: start;
-}
-
-.about-text {
-    font-size: 22.26px; /* 19.36px * 1.15 */
-    font-weight: 400;
-    line-height: 36.43px; /* 31.68px * 1.15 */
-    margin-top: 12px;
 }
 
 .body-items {
@@ -286,8 +234,6 @@ a {
 
 .section-items {
     display: flex;
-    gap: 32px; /* 40px * 0.8 */
-    margin-top: 35.2px; /* 44px * 0.8 */
     width: 100%;
     flex-direction: column;
     justify-content: start;
@@ -351,16 +297,6 @@ a {
     margin-top: 8px;
 }
 
-.section-lists {
-    display: flex;
-    margin-top: 32px;
-    width: 100%;
-    flex-direction: column;
-    font-size: 11px;
-    font-weight: 400;
-    justify-content: start;
-}
-
 .item-description {
     color: #000;
     line-height: 36.43px; /* 31.68px * 1.15 */
@@ -373,7 +309,6 @@ a {
     margin-top: 8px;
 }
 
-.cert-year,
 .item-title {
     font-weight: 700;
     font-size: 24.29px; /* 21.12px * 1.15 */
@@ -439,12 +374,6 @@ a {
     margin: auto 0;
 }
 
-.company-name {
-    font-size: 1.316rem; /* 1.144rem * 1.15 */
-    margin-left: 7px;
-    margin-top: 4px;
-}
-
 .footer-reference {
     height: 8mm;
     display: flex;
@@ -473,16 +402,4 @@ a {
     margin-left: 7px;
     white-space: nowrap;
     margin: auto 0;
-}
-
-.visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
 }

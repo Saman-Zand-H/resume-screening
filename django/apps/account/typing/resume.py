@@ -33,6 +33,7 @@ class Education(BaseModel):
 
 class WorkExperience(BaseModel):
     job: Optional[str] = None
+    organization: Optional[str] = None
     city: Optional[str] = None
     duration: Optional[str] = None
     achievements: Optional[List[str]] = None
