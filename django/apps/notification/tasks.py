@@ -11,7 +11,7 @@ from .models import Campaign
 from .senders import send_campaign_notifications
 
 
-@register_task([NotificationSubscription.CAMPAIGN], schedule={"schedule": "* */1 * * *"})
+@register_task([NotificationSubscription.CAMPAIGN], schedule={"schedule": "0 */1 * * *"})
 def run_campaign_crontabs():
     periodic_campaigns = Campaign.objects.filter(
         **{
