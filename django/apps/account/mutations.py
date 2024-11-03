@@ -58,7 +58,8 @@ from .accesses import (
     OrganizationProfileContainer,
 )
 from .choices import DefaultRoles
-from .constants import FileSlugs
+from .constants import FileSlugs, EmailConstants
+from .validators import EmailCallbackURLValidator
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -181,16 +182,10 @@ def referral_registration(user, referral_code):
         ReferralUser.objects.create(user=user, referral=referral)
 
 
-EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
-EMAIL_RECEIVER_USER_TYPE_VARIABLE = "email_receiver_user_type"
-EMAIL_RECEIVER_NAME_VARIABLE = "email_receiver_name"
-TEMPLATE_CONTEXT_VARIABLE = "template_context"
-
-
 def set_template_context_variable(context, data: dict):
-    _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
+    _template_context = getattr(context, EmailConstants.TEMPLATE_CONTEXT_VARIABLE, {})
     _template_context.update(data)
-    setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+    setattr(context, EmailConstants.TEMPLATE_CONTEXT_VARIABLE, _template_context)
 
 
 def register_user_device(refresh_token, device_id):
@@ -214,14 +209,15 @@ class DeviceIDMixin:
 class EmailCallbackUrlMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
-        set_template_context_variable(
-            args[1].context, {EMAIL_CALLBACK_URL_VARIABLE: kwargs.get(EMAIL_CALLBACK_URL_VARIABLE)}
-        )
+        callback_url = kwargs.get(EmailConstants.CALLBACK_URL_VARIABLE)
+        validator = EmailCallbackURLValidator()
+        validator(callback_url)
+        set_template_context_variable(args[1].context, {EmailConstants.CALLBACK_URL_VARIABLE: callback_url})
         return super().mutate(*args, **kwargs)
 
     @classmethod
     def Field(cls, *args, **kwargs):
-        cls._required_args += [EMAIL_CALLBACK_URL_VARIABLE]
+        cls._required_args += [EmailConstants.CALLBACK_URL_VARIABLE]
         return super().Field(*args, **kwargs)
 
 
@@ -235,8 +231,8 @@ class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
         set_template_context_variable(
             args[1].context,
             {
-                EMAIL_RECEIVER_USER_TYPE_VARIABLE: cls.EMAIL_RECEIVER_USER_TYPE,
-                EMAIL_RECEIVER_NAME_VARIABLE: kwargs.get(cls.EMAIL_RECEIVER_NAME),
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: cls.EMAIL_RECEIVER_USER_TYPE,
+                EmailConstants.RECEIVER_NAME_VARIABLE: kwargs.get(cls.EMAIL_RECEIVER_NAME),
             },
         )
         try:
@@ -354,8 +350,8 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
                 content=render_to_string(
                     "email/welcome.html",
                     {
-                        EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
-                        EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                        EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                        EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
                     },
                 ),
             )
@@ -378,8 +374,8 @@ class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.Resend
         set_template_context_variable(
             args[1].context,
             {
-                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
-                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
         return super().mutate(*args, **kwargs)
@@ -392,8 +388,8 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         set_template_context_variable(
             args[1].context,
             {
-                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
-                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
         return super().mutate(*args, **kwargs)

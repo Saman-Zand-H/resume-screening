@@ -116,3 +116,10 @@ class VectorStores:
         data_fn=partial(Skill.objects.filter(insert_type=Skill.InsertType.SYSTEM).values, "pk", "title"),
         cache_key="skills-store",
     )
+
+
+class EmailConstants(NamedTuple):
+    CALLBACK_URL_VARIABLE = "email_callback_url"
+    RECEIVER_USER_TYPE_VARIABLE = "email_receiver_user_type"
+    RECEIVER_NAME_VARIABLE = "email_receiver_name"
+    TEMPLATE_CONTEXT_VARIABLE = "template_context"

@@ -1,13 +1,15 @@
 import re
+from typing import List
 
 from config.settings.constants import Environment
+from django.conf import settings
 
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator, RegexValidator
 from django.utils.regex_helper import _lazy_re_compile
 from django.utils.translation import gettext_lazy as _
 
-from .constants import EXTENDED_EMAIL_BLOCKLIST
+from .constants import EXTENDED_EMAIL_BLOCKLIST, EmailConstants
 from .utils import is_env
 
 
@@ -37,3 +39,13 @@ class BlocklistEmailDomainValidator(EmailValidator):
         domain = value.split("@")[-1]
         if domain in EXTENDED_EMAIL_BLOCKLIST:
             raise ValidationError(_("This domain is blocked. Please use a different email address."))
+
+
+class EmailCallbackURLValidator:
+    def __init__(self, values: List[str] = None):
+        self.values = values or settings.VALID_EMAIL_CALLBACK_URLS
+
+    def __call__(self, value):
+        domain = (".".join(value.split(".")[-2:])).split("/", 1)[0]
+        if not settings.DEBUG and all(domain != val for val in self.values):
+            raise ValidationError({EmailConstants.CALLBACK_URL_VARIABLE: _("This URL is not allowed.")})
