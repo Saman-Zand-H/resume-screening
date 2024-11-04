@@ -1111,10 +1111,29 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessage.created_at.field.name,
         )
 
+        filter_fields = {
+            OrganizationPlatformMessage.organization_employee_cooperation.field.name: ["exact"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fields_join(
+                    OrganizationPlatformMessage.organization_employee_cooperation,
+                    OrganizationEmployeeCooperation.employee,
+                    OrganizationEmployee.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        )
+
 
 class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
-    platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
+    platform_messages = DjangoFilterConnectionField(OrganizationPlatformMessageNode)
 
     class Meta:
         model = OrganizationEmployeeCooperation
@@ -1125,9 +1144,6 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
             OrganizationEmployeeCooperation.end_at.field.name,
             OrganizationEmployeeCooperation.created_at.field.name,
         )
-
-    def resolve_platform_messages(self, info):
-        return self.organizationplatformmessage.all()
 
     def resolve_job_position(self, info):
         return self.job_position_assignment.job_position
