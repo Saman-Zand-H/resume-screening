@@ -2,6 +2,7 @@ from common.utils import fields_join
 from flex_report.mixins import TablePageMixin
 
 from django.contrib import admin
+from django.db.models import QuerySet
 from django.template.loader import get_template
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
@@ -19,6 +20,7 @@ from .models import (
     UserPushNotificationToken,
     WhatsAppNotification,
 )
+from .tasks import sync_campaign_scheduler_task
 from .views import CampaginNotifyFailedView, CampaignNotifyAllView, CampaignNotifyView
 
 
@@ -103,6 +105,21 @@ class CampaignAdmin(admin.ModelAdmin):
             }
         )
 
+    @admin.action(description=_("Sync All Scheduler"))
+    def sync_schedulers(self, request, queryset: QuerySet[Campaign]):
+        sync_campaign_scheduler_task()
+        self.message_user(request, _("Campaigns synced with scheduler."))
+
+    @admin.action(description=_("Activate Schedulers"))
+    def activate_schedulers(self, request, queryset: QuerySet[Campaign]):
+        queryset.update(**{fields_join(Campaign.is_scheduler_active): True})
+        self.message_user(request, _("Schedulers activated."))
+
+    @admin.action(description=_("Deactivate Schedulers"))
+    def deactivate_schedulers(self, request, queryset: QuerySet[Campaign]):
+        queryset.update(**{fields_join(Campaign.is_scheduler_active): False})
+        self.message_user(request, _("Schedulers deactivated."))
+
     inlines = (CampaignNotificationTypeInline,)
     list_display = (
         Campaign.title.field.name,
@@ -112,6 +129,11 @@ class CampaignAdmin(admin.ModelAdmin):
         Campaign.crontab_last_run.field.name,
         action_buttons.__name__,
     )
+    actions = [
+        sync_schedulers.__name__,
+        activate_schedulers.__name__,
+        deactivate_schedulers.__name__,
+    ]
     search_fields = (Campaign.title.field.name,)
 
     def get_urls(self):
