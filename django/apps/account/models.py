@@ -705,6 +705,7 @@ class Profile(ComputedFieldsModel):
     def flex_report_search_fields(cls):
         return {
             cls.birth_date.field.name: ["gte", "lte"],
+            cls.email.field.name: ["iexact"],
             cls.gender.field.name: ["exact"],
             fields_join(cls.city, City.country): ["in", "iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],

@@ -225,12 +225,16 @@ class PushNotificationSender(NotificationSender):
         responses = messaging.send_each(messages)
         for response, notification in zip(responses.responses, notifications):
             if not response.success and isinstance(response.exception, messaging.UnregisteredError):
-                UserPushNotificationToken.objects.filter(device_token=notification.notification.token).delete()
-        return [response.exception for response in responses]
+                UserPushNotificationToken.objects.filter(
+                    **{fields_join(UserPushNotificationToken.token): notification.notification.token}
+                ).delete()
+        return [response.exception for response in responses.responses]
 
     def handle_exception(self, exception: Exception, notification: NotificationContext[PushNotification]):
         if isinstance(exception, messaging.UnregisteredError):
-            UserPushNotificationToken.objects.filter(device_token=notification.notification.token).delete()
+            UserPushNotificationToken.objects.filter(
+                **{fields_join(UserPushNotificationToken.token): notification.notification.token}
+            ).delete()
         return super().handle_exception(exception, notification)
 
 
@@ -302,7 +306,7 @@ def send_campaign_notifications(campaign_id: int, pks=None):
         notifications_kwargs = []
         for instance in report_qs:
             if campaign.max_attempts and (
-                notification_type.successful_notifications_count(instance.user) >= campaign.max_attempts
+                campaign_notification_type.successful_notifications_count(instance.user) >= campaign.max_attempts
             ):
                 continue
 

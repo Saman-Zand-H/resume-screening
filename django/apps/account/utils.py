@@ -271,8 +271,10 @@ def extract_certificate_text_content(file_model_id: int):
 
 
 def set_user_skills(user_id: int, raw_skills: List[str]) -> bool:
+    from .models import Resume
+
     user = get_user_model().objects.get(pk=user_id)
-    resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
+    resume_json = {} if not hasattr(user, Resume.user.field.related_query_name()) else user.resume.resume_json
     profile = user.profile
 
     extracted_skills = extract_or_create_skills(
@@ -290,34 +292,44 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
     if not (raw_skills or resume_json):
         return Skill.objects.none()
 
-    service = GoogleServices(Assistants.SKILL)
-    message_dict = {"raw_skills": raw_skills, "resume_data": resume_json, **additional_information}
-    message = service.generate_text_content(
+    related_skills_message = GoogleServices(Assistants.FIND_RELATIVE_SKILLS).generate_text_content(
         [
-            types.Part.from_text(text=json.dumps(message_dict)),
-            types.Part.from_text(text="\nTHE FOLLOWING IS THE DATA:\n"),
-            types.Part.from_text(text=json.dumps(VectorStores.SKILL.data_fn())),
+            types.Part.from_text(
+                text=json.dumps({"raw_skills": raw_skills, "resume_data": resume_json, **additional_information})
+            )
         ]
     )
 
-    if message:
-        response = service.message_to_json(message)
-        existing_skill_matches, new_skill_matches = response["matched_skills"], response["new_skills"]
+    if related_skills_message:
+        related_skills = GoogleServices.message_to_json(related_skills_message)
 
-        existing_skills = Skill.objects.filter(pk__in=[match.get("pk") for match in existing_skill_matches])
-        created_skills = Skill.objects.filter(
-            pk__in=[
-                Skill.objects.get_or_create(
-                    title=skill_name,
-                    defaults={Skill.insert_type.field.name: Skill.InsertType.AI},
-                )[0].pk
-                for new_skill in new_skill_matches
-                if (skill_name := new_skill.get("title"))
+        get_or_create_skills_message = GoogleServices(Assistants.SKILL).generate_text_content(
+            [
+                types.Part.from_text(text=json.dumps(related_skills)),
+                types.Part.from_text(text=json.dumps(VectorStores.SKILL.data_fn())),
             ]
         )
-        existing_skills = (existing_skills | created_skills).distinct()
 
-        return existing_skills, created_skills.ai()
+        if get_or_create_skills_message:
+            get_or_create_skills = GoogleServices.message_to_json(get_or_create_skills_message)
+            existing_skill_matches, new_skill_matches = (
+                get_or_create_skills["matched_skills"],
+                get_or_create_skills["new_skills"],
+            )
+
+            existing_skills = Skill.objects.filter(pk__in=[match.get("pk") for match in existing_skill_matches])
+            created_skills = Skill.objects.filter(
+                pk__in=[
+                    Skill.objects.get_or_create(
+                        title=skill_name,
+                        defaults={Skill.insert_type.field.name: Skill.InsertType.AI},
+                    )[0].pk
+                    for skill_name in new_skill_matches
+                ]
+            )
+            existing_skills = (existing_skills | created_skills).distinct()
+
+            return existing_skills, created_skills.ai()
 
     return Skill.objects.none()
 
