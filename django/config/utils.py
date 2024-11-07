@@ -1,8 +1,12 @@
+from operator import attrgetter
+
+import google.auth
 from google.cloud import recaptchaenterprise_v1
 from google.cloud.recaptchaenterprise_v1 import Assessment
-import google.auth
 
 from django.conf import settings
+
+from .settings.constants import Environment
 
 
 def create_recaptcha_assessment(token: str, recaptcha_action: str) -> Assessment:
@@ -39,3 +43,5 @@ def create_recaptcha_assessment(token: str, recaptcha_action: str) -> Assessment
     if response.token_properties.action != recaptcha_action:
         return
     return response
+def is_env(*envs: Environment) -> bool:
+    return settings.ENVIRONMENT_NAME.value in map(attrgetter("value"), envs)
