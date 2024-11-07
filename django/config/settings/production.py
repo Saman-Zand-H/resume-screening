@@ -87,4 +87,4 @@ if not DEBUG:
 
 IMPORT_EXPORT_TMP_STORAGE_CLASS = "import_export.tmp_storages.CacheStorage"
 
-RECAPTCHA_KEY = os.environ.get("RECAPTCHA_KEY")
+RECAPTCHA_SITE_KEY = os.environ.get("GOOGLE_CLOUD_RECAPTCHA_SITE_KEY")

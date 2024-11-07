@@ -2,15 +2,15 @@ import re
 from typing import List
 
 from config.settings.constants import Environment
-from django.conf import settings
+from config.utils import is_env
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator, RegexValidator
 from django.utils.regex_helper import _lazy_re_compile
 from django.utils.translation import gettext_lazy as _
 
 from .constants import EXTENDED_EMAIL_BLOCKLIST, EmailConstants
-from .utils import is_env
 
 
 class LinkedInUsernameValidator(RegexValidator):

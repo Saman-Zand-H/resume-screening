@@ -8,12 +8,11 @@ from ai.google import GoogleServices
 from cities_light.models import City
 from common.models import Job, LanguageProficiencyTest, Skill, University
 from common.utils import fields_join, get_file_model_mimetype
-from config.settings.constants import Assistants, Environment
+from config.settings.constants import Assistants
 from flex_blob.models import FileModel
 from google.genai import types
 from pydantic import ValidationError as PydanticValidationError
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.expressions import ArraySubquery
 from django.db import transaction
@@ -332,10 +331,6 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
             return existing_skills, created_skills.ai()
 
     return Skill.objects.none()
-
-
-def is_env(*envs: Environment) -> bool:
-    return settings.ENVIRONMENT_NAME.value in map(attrgetter("value"), envs)
 
 
 class IDLikeObject:

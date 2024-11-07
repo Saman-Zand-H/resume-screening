@@ -16,6 +16,7 @@ from common.types import (
 )
 from common.utils import fields_join
 from config.settings.constants import Environment
+from config.utils import is_env
 from graphene.types.generic import GenericScalar
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
@@ -42,7 +43,6 @@ from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
-from account.utils import is_env
 from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
@@ -58,8 +58,7 @@ from .accesses import (
     OrganizationProfileContainer,
 )
 from .choices import DefaultRoles
-from .constants import FileSlugs, EmailConstants
-from .validators import EmailCallbackURLValidator
+from .constants import EmailConstants, FileSlugs
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -128,6 +127,7 @@ from .types import (
     WorkExperienceVerificationMethodType,
 )
 from .utils import analyze_document, set_user_skills
+from .validators import EmailCallbackURLValidator
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 

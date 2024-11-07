@@ -16,3 +16,7 @@ class Assistants:
     GENERATE_RESUME = "get-resume-info"
     DOCUMENT_ANALYSIS = "analyze-document"
     OCR = "get-file-text-content"
+
+
+class RecaptchaAction(Enum):
+    login = "LOGIN"
