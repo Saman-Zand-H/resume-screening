@@ -49,3 +49,4 @@ twilio~=9.4
 croniter~=6.0
 firebase-admin~=6.6
 django-ratelimit~=4.1.0
+google-cloud-recaptcha-enterprise==1.26.1
