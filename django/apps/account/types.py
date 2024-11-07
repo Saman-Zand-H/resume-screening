@@ -71,6 +71,8 @@ from .models import (
     Organization,
     OrganizationEmployee,
     OrganizationEmployeeCooperation,
+    OrganizationEmployeePerformanceReport,
+    OrganizationEmployeePerformanceReportStatusHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -1098,6 +1100,48 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         return self.job_seeker
 
 
+class OrganizationEmployeePerformanceReportStatusHistoryType(DjangoObjectType):
+    class Meta:
+        model = OrganizationEmployeePerformanceReportStatusHistory
+        fields = (
+            OrganizationEmployeePerformanceReportStatusHistory.status.field.name,
+            OrganizationEmployeePerformanceReportStatusHistory.created_at.field.name,
+        )
+
+
+class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    class Meta:
+        model = OrganizationEmployeePerformanceReport
+        use_connection = True
+        fields = (
+            OrganizationEmployeePerformanceReport.id.field.name,
+            OrganizationEmployeePerformanceReport.status.field.name,
+            OrganizationEmployeePerformanceReport.title.field.name,
+            OrganizationEmployeePerformanceReport.text.field.name,
+            OrganizationEmployeePerformanceReport.date.field.name,
+            OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.related_query_name(),
+        )
+
+        filter_fields = {
+            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: ["exact"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fields_join(
+                    OrganizationPlatformMessage.organization_employee_cooperation,
+                    OrganizationEmployeeCooperation.employee,
+                    OrganizationEmployee.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        )
+
+
 class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = OrganizationPlatformMessage
@@ -1134,6 +1178,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
 class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
     platform_messages = DjangoFilterConnectionField(OrganizationPlatformMessageNode)
+    performance_report = DjangoFilterConnectionField(OrganizationEmployeePerformanceReportNode)
 
     class Meta:
         model = OrganizationEmployeeCooperation

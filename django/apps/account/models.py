@@ -2551,7 +2551,7 @@ class PlatformMessage(models.Model):
     organization_employee_cooperation = models.ForeignKey(
         OrganizationEmployeeCooperation,
         on_delete=models.CASCADE,
-        verbose_name=_("Employee"),
+        verbose_name=_("Employee Cooperation"),
         related_name="%(class)s",
     )
     read_at = models.DateTimeField(verbose_name=_("Read At"), null=True, blank=True)
@@ -2577,3 +2577,50 @@ class EmployeePlatformMessage(PlatformMessage):
 
     def __str__(self):
         return f"{self.organization_employee_cooperation} - {self.title}"
+
+
+class OrganizationEmployeePerformanceReport(models.Model):
+    class Status(models.TextChoices):
+        CREATED = "created", _("Created")
+        COMPLETED = "completed", _("Completed")
+
+    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.CREATED)
+    organization_employee_cooperation = models.ForeignKey(
+        OrganizationEmployeeCooperation,
+        on_delete=models.CASCADE,
+        verbose_name=_("Employee Cooperation"),
+        related_name="%(class)s",
+    )
+    title = models.CharField(max_length=255, verbose_name=_("Title"), null=True, blank=True)
+    text = models.TextField(verbose_name=_("Text"))
+    date = models.DateField(verbose_name=_("Date"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Performance Report")
+        verbose_name_plural = _("Organization Employee Performance Reports")
+
+    def __str__(self):
+        return f"{self.organization_employee_cooperation} - {self.title}"
+
+
+class OrganizationEmployeePerformanceReportStatusHistory(models.Model):
+    organization_employee_performance_report = models.ForeignKey(
+        OrganizationEmployeePerformanceReport,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Employee Performance Report"),
+        related_name="status_histories",
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=OrganizationEmployeePerformanceReport.Status.choices,
+        verbose_name=_("Status"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Performance Report Status History")
+        verbose_name_plural = _("Organization Employee Performance Report Status Histories")
+
+    def __str__(self):
+        return f"{self.organization_employee_performance_report} - {self.status}"
