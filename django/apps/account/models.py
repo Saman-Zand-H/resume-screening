@@ -1576,12 +1576,16 @@ class Organization(DocumentAbstract):
         VERIFIED = "verified", _("Verified")
 
     class Type(models.TextChoices):
-        COMPANY = "company", _("Company")
-        STOCK = "stock", _("Stock")
-        NON_PROFIT = "non_profit", _("Non-Profit")
-        GOVERNMENT = "government", _("Government")
-        EDUCATIONAL = "educational", _("Educational")
-        OTHER = "other", _("Other")
+        SOLE_PROPRIETORSHIP = "sole_proprietorship", _("Sole Proprietorship")
+        GENERAL_PARTNERSHIP = "general_partnership", _("General Partnership")
+        LIMITED_PARTNERSHIP = "limited_partnership", _("Limited Partnership")
+        PRIVATE_CORPORATION = "private_corporation", _("Private Corporation")
+        PUBLIC_CORPORATION = "public_corporation", _("Public Corporation")
+        COOPERATIVE = "cooperative", _("Cooperative")
+        NON_PROFIT_ORGANIZATION = "non_profit_organization", _("Non-Profit Organization")
+        BRANCH_OFFICE = "branch_office", _("Branch Office")
+        SUBSIDIARY = "subsidiary", _("Subsidiary")
+
 
     class BussinessType(models.TextChoices):
         SOFTWARE = "software", _("Software")
