@@ -634,13 +634,13 @@ class Profile(ComputedFieldsModel):
     job_cities = models.ManyToManyField(City, verbose_name=_("Job City"), related_name="job_profiles", blank=True)
     job_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobType.choices),
-        verbose_name=_("Job Type"),
+        verbose_name=_("Job Type Exclude"),
         null=True,
         blank=True,
     )
     job_location_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobLocationType.choices),
-        verbose_name=_("Job Location Type"),
+        verbose_name=_("Job Location Type Exclude"),
         null=True,
         blank=True,
     )

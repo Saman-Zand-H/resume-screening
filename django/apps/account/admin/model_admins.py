@@ -206,6 +206,8 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.scores.field.name,
         Profile.score.field.name,
         Profile.credits.field.name,
+        Profile.job_type.fget.__name__,
+        Profile.job_location_type.fget.__name__,
     )
 
     exclude = (Profile.interested_jobs.field.name,)
