@@ -1,6 +1,6 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import Func, TextField, Transform
-from django.db.models.fields import DateField, DateTimeField
+from django.db.models.fields import CharField, DateField, DateTimeField
 from django.db.models.functions.datetime import (
     ExtractDay,
     ExtractHour,
@@ -76,3 +76,20 @@ DateAge.register_lookup(ExtractQuarter)
 DateAge.register_lookup(ExtractIsoYear)
 DateAge.register_lookup(ExtractWeek)
 DateAge.register_lookup(ExtractWeekDay)
+
+
+class ArrayDifference(Func):
+    """Compute difference between two PostgreSQL arrays."""
+
+    output_field = ArrayField(CharField())
+
+    def __init__(self, array1, array2, **extra):
+        super().__init__(array1, array2, **extra)
+
+    def as_sql(self, compiler, connection):
+        array1_sql, array1_params = compiler.compile(self.source_expressions[0])
+        array2_sql, array2_params = compiler.compile(self.source_expressions[1])
+
+        sql = f"(SELECT ARRAY(SELECT unnest({array1_sql}) EXCEPT SELECT unnest({array2_sql})))"
+        params = array1_params + array2_params
+        return sql, params

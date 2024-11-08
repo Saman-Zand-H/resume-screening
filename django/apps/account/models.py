@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Union
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
+from common.db_functions import ArrayDifference
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import HasDurationMixin
 from common.models import (
@@ -524,6 +525,26 @@ class FullBodyImageFile(UserUploadedImageFile):
         verbose_name_plural = _("Full Body Images")
 
 
+class ProfileManager(models.Manager):
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .annotate(
+                **{
+                    Profile.job_type.fget.annotation_name: ArrayDifference(
+                        Profile.JobType.values,
+                        models.F(Profile.job_type_exclude.field.name),
+                    ),
+                    Profile.job_location_type.fget.annotation_name: ArrayDifference(
+                        Profile.JobLocationType.values,
+                        models.F(Profile.job_location_type_exclude.field.name),
+                    ),
+                }
+            )
+        )
+
+
 @report_model.register
 class Profile(ComputedFieldsModel):
     Gender = GenderChoices
@@ -631,13 +652,13 @@ class Profile(ComputedFieldsModel):
         blank=True,
     )
     job_cities = models.ManyToManyField(City, verbose_name=_("Job City"), related_name="job_profiles", blank=True)
-    job_type = ArrayField(
+    job_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobType.choices),
         verbose_name=_("Job Type"),
         null=True,
         blank=True,
     )
-    job_location_type = ArrayField(
+    job_location_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobLocationType.choices),
         verbose_name=_("Job Location Type"),
         null=True,
@@ -659,7 +680,7 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
-    objects = models.Manager()
+    objects = ProfileManager()
     flex_report_custom_manager = FlexReportProfileManager()
 
     @computed(
@@ -766,6 +787,34 @@ class Profile(ComputedFieldsModel):
         return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
 
     has_appearance_related_data.fget.verbose_name = _("Has Appearance Related Data")
+
+    @property
+    def job_type(self):
+        return Profile.objects.filter(pk=self.pk).values_list(Profile.job_type.fget.annotation_name, flat=True).first()
+
+    @job_type.setter
+    def job_type(self, value: List[JobType]):
+        self.job_type_exclude = list(set(Profile.JobType.values) - set(map(attrgetter("value"), value)))
+
+    job_type.fget.annotation_name = f"{job_type.fget.__name__}_annotation"
+
+    @property
+    def job_location_type(self):
+        return (
+            Profile.objects.filter(
+                pk=self.pk,
+            )
+            .values_list(Profile.job_location_type.fget.annotation_name, flat=True)
+            .first()
+        )
+
+    @job_location_type.setter
+    def job_location_type(self, value: List[JobLocationType]):
+        self.job_location_type_exclude = list(
+            set(Profile.JobLocationType.values) - set(map(attrgetter("value"), value))
+        )
+
+    job_location_type.fget.annotation_name = f"{job_location_type.fget.__name__}_annotation"
 
 
 class DocumentAbstract(models.Model):
@@ -1585,7 +1634,6 @@ class Organization(DocumentAbstract):
         NON_PROFIT_ORGANIZATION = "non_profit_organization", _("Non-Profit Organization")
         BRANCH_OFFICE = "branch_office", _("Branch Office")
         SUBSIDIARY = "subsidiary", _("Subsidiary")
-
 
     class BussinessType(models.TextChoices):
         SOFTWARE = "software", _("Software")

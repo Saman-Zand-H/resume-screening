@@ -16,10 +16,8 @@ from common.types import (
     UniversityNode,
 )
 from common.utils import fields_join
-from criteria.models import JobAssessment
-from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.fields import DjangoConnectionField
+from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -28,6 +26,8 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_jwt.decorators import login_required
 from notification.models import InAppNotification
 
+from criteria.models import JobAssessment
+from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (
     Case,
@@ -328,6 +328,14 @@ class EmployeeType(DjangoObjectType):
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
     completion_percentage = graphene.Float(source=Profile.completion_percentage.fget.__name__)
     contacts = graphene.List(ContactType)
+    job_type = graphene.List(
+        convert_choice_field_to_enum(Profile.job_type_exclude.field.base_field),
+        source=Profile.job_type.fget.__name__,
+    )
+    job_location_type = graphene.List(
+        convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field),
+        source=Profile.job_location_type.fget.__name__,
+    )
     available_jobs = DjangoFilterConnectionField(JobNode)
 
     class Meta:
@@ -349,8 +357,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.native_language.field.name,
             Profile.credits.field.name,
             Profile.job_cities.field.name,
-            Profile.job_type.field.name,
-            Profile.job_location_type.field.name,
             Profile.fluent_languages.field.name,
             Profile.scores.field.name,
             Profile.score.field.name,
