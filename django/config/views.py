@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from .settings.constants import RecaptchaAction
-from .utils import is_recaptcha_token_valid
+from .utils import get_recaptcha_site_key, is_recaptcha_token_valid
 
 
 class AdminLoginView(LoginView):
@@ -19,3 +19,10 @@ class AdminLoginView(LoginView):
             return redirect(reverse("admin:login"))
 
         return super().post(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {"recaptcha_site_key": get_recaptcha_site_key(), "recaptcha_action": RecaptchaAction.login.value}
+        )
+        return context
