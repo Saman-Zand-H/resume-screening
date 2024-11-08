@@ -38,6 +38,8 @@ from ..models import (
     OrganizationEmployee,
     OrganizationEmployeeCooperation,
     OrganizationEmployeeCooperationStatusHistory,
+    OrganizationEmployeePerformanceReport,
+    OrganizationEmployeePerformanceReportStatusHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationJobPositionStatusHistory,
@@ -204,6 +206,8 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.scores.field.name,
         Profile.score.field.name,
         Profile.credits.field.name,
+        Profile.job_type.fget.__name__,
+        Profile.job_location_type.fget.__name__,
     )
 
     exclude = (Profile.interested_jobs.field.name,)
@@ -956,3 +960,45 @@ class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
         OrganizationEmployeeCooperationStatusHistory.created_at.field.name,
     )
     autocomplete_fields = (OrganizationEmployeeCooperationStatusHistory.organization_employee_cooperation.field.name,)
+
+
+@register(OrganizationEmployeePerformanceReport)
+class OrganizationEmployeePerformanceReportAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationEmployeePerformanceReport.id.field.name,
+        OrganizationEmployeePerformanceReport.status.field.name,
+        OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name,
+        OrganizationEmployeePerformanceReport.title.field.name,
+        OrganizationEmployeePerformanceReport.date.field.name,
+        OrganizationEmployeePerformanceReport.created_at.field.name,
+    )
+    search_fields = (
+        fields_join(
+            OrganizationEmployeePerformanceReport.organization_employee_cooperation,
+            OrganizationEmployeeCooperation.employee,
+            User.email,
+        ),
+    )
+    list_filter = (
+        OrganizationEmployeePerformanceReport.date.field.name,
+        OrganizationEmployeePerformanceReport.status.field.name,
+        OrganizationEmployeePerformanceReport.created_at.field.name,
+    )
+    autocomplete_fields = (OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name,)
+
+
+@register(OrganizationEmployeePerformanceReportStatusHistory)
+class OrganizationEmployeePerformanceReportStatusHistoryAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationEmployeePerformanceReportStatusHistory.id.field.name,
+        OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.name,
+        OrganizationEmployeePerformanceReportStatusHistory.status.field.name,
+        OrganizationEmployeePerformanceReportStatusHistory.created_at.field.name,
+    )
+    list_filter = (
+        OrganizationEmployeePerformanceReportStatusHistory.status.field.name,
+        OrganizationEmployeePerformanceReportStatusHistory.created_at.field.name,
+    )
+    autocomplete_fields = (
+        OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.name,
+    )

@@ -85,6 +85,7 @@ from .managers import (
     CertificateAndLicenseManager,
     FlexReportProfileManager,
     OrganizationInvitationManager,
+    ProfileManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -631,15 +632,15 @@ class Profile(ComputedFieldsModel):
         blank=True,
     )
     job_cities = models.ManyToManyField(City, verbose_name=_("Job City"), related_name="job_profiles", blank=True)
-    job_type = ArrayField(
+    job_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobType.choices),
-        verbose_name=_("Job Type"),
+        verbose_name=_("Job Type Exclude"),
         null=True,
         blank=True,
     )
-    job_location_type = ArrayField(
+    job_location_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobLocationType.choices),
-        verbose_name=_("Job Location Type"),
+        verbose_name=_("Job Location Type Exclude"),
         null=True,
         blank=True,
     )
@@ -659,7 +660,7 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
-    objects = models.Manager()
+    objects = ProfileManager()
     flex_report_custom_manager = FlexReportProfileManager()
 
     @computed(
@@ -705,6 +706,7 @@ class Profile(ComputedFieldsModel):
     def flex_report_search_fields(cls):
         return {
             cls.birth_date.field.name: ["gte", "lte"],
+            cls.email.field.name: ["iexact"],
             cls.gender.field.name: ["exact"],
             fields_join(cls.city, City.country): ["in", "iexact"],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
@@ -765,6 +767,34 @@ class Profile(ComputedFieldsModel):
         return all(getattr(self, field) is not None for field in Profile.get_appearance_related_fields())
 
     has_appearance_related_data.fget.verbose_name = _("Has Appearance Related Data")
+
+    @property
+    def job_type(self):
+        return Profile.objects.filter(pk=self.pk).values_list(Profile.job_type.fget.annotation_name, flat=True).first()
+
+    @job_type.setter
+    def job_type(self, value: List[JobType]):
+        self.job_type_exclude = list(set(Profile.JobType.values) - set(map(attrgetter("value"), value)))
+
+    job_type.fget.annotation_name = f"{job_type.fget.__name__}_annotation"
+
+    @property
+    def job_location_type(self):
+        return (
+            Profile.objects.filter(
+                pk=self.pk,
+            )
+            .values_list(Profile.job_location_type.fget.annotation_name, flat=True)
+            .first()
+        )
+
+    @job_location_type.setter
+    def job_location_type(self, value: List[JobLocationType]):
+        self.job_location_type_exclude = list(
+            set(Profile.JobLocationType.values) - set(map(attrgetter("value"), value))
+        )
+
+    job_location_type.fget.annotation_name = f"{job_location_type.fget.__name__}_annotation"
 
 
 class DocumentAbstract(models.Model):
@@ -1575,12 +1605,15 @@ class Organization(DocumentAbstract):
         VERIFIED = "verified", _("Verified")
 
     class Type(models.TextChoices):
-        COMPANY = "company", _("Company")
-        STOCK = "stock", _("Stock")
-        NON_PROFIT = "non_profit", _("Non-Profit")
-        GOVERNMENT = "government", _("Government")
-        EDUCATIONAL = "educational", _("Educational")
-        OTHER = "other", _("Other")
+        SOLE_PROPRIETORSHIP = "sole_proprietorship", _("Sole Proprietorship")
+        GENERAL_PARTNERSHIP = "general_partnership", _("General Partnership")
+        LIMITED_PARTNERSHIP = "limited_partnership", _("Limited Partnership")
+        PRIVATE_CORPORATION = "private_corporation", _("Private Corporation")
+        PUBLIC_CORPORATION = "public_corporation", _("Public Corporation")
+        COOPERATIVE = "cooperative", _("Cooperative")
+        NON_PROFIT_ORGANIZATION = "non_profit_organization", _("Non-Profit Organization")
+        BRANCH_OFFICE = "branch_office", _("Branch Office")
+        SUBSIDIARY = "subsidiary", _("Subsidiary")
 
     class BussinessType(models.TextChoices):
         SOFTWARE = "software", _("Software")
@@ -2550,7 +2583,7 @@ class PlatformMessage(models.Model):
     organization_employee_cooperation = models.ForeignKey(
         OrganizationEmployeeCooperation,
         on_delete=models.CASCADE,
-        verbose_name=_("Employee"),
+        verbose_name=_("Employee Cooperation"),
         related_name="%(class)s",
     )
     read_at = models.DateTimeField(verbose_name=_("Read At"), null=True, blank=True)
@@ -2576,3 +2609,50 @@ class EmployeePlatformMessage(PlatformMessage):
 
     def __str__(self):
         return f"{self.organization_employee_cooperation} - {self.title}"
+
+
+class OrganizationEmployeePerformanceReport(models.Model):
+    class Status(models.TextChoices):
+        CREATED = "created", _("Created")
+        COMPLETED = "completed", _("Completed")
+
+    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.CREATED)
+    organization_employee_cooperation = models.ForeignKey(
+        OrganizationEmployeeCooperation,
+        on_delete=models.CASCADE,
+        verbose_name=_("Employee Cooperation"),
+        related_name="%(class)s",
+    )
+    title = models.CharField(max_length=255, verbose_name=_("Title"), null=True, blank=True)
+    text = models.TextField(verbose_name=_("Text"))
+    date = models.DateField(verbose_name=_("Date"), null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Performance Report")
+        verbose_name_plural = _("Organization Employee Performance Reports")
+
+    def __str__(self):
+        return f"{self.organization_employee_cooperation} - {self.title}"
+
+
+class OrganizationEmployeePerformanceReportStatusHistory(models.Model):
+    organization_employee_performance_report = models.ForeignKey(
+        OrganizationEmployeePerformanceReport,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Employee Performance Report"),
+        related_name="status_histories",
+    )
+    status = models.CharField(
+        max_length=50,
+        choices=OrganizationEmployeePerformanceReport.Status.choices,
+        verbose_name=_("Status"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        verbose_name = _("Organization Employee Performance Report Status History")
+        verbose_name_plural = _("Organization Employee Performance Report Status Histories")
+
+    def __str__(self):
+        return f"{self.organization_employee_performance_report} - {self.status}"

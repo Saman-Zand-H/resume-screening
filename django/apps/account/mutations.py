@@ -16,7 +16,9 @@ from common.types import (
 )
 from common.utils import fields_join
 from config.settings.constants import Environment
+from config.utils import is_env
 from graphene.types.generic import GenericScalar
+from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
@@ -42,7 +44,6 @@ from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
-from account.utils import is_env
 from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
@@ -58,7 +59,7 @@ from .accesses import (
     OrganizationProfileContainer,
 )
 from .choices import DefaultRoles
-from .constants import FileSlugs
+from .constants import EmailConstants, FileSlugs
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -68,7 +69,6 @@ from .mixins import (
     DocumentUpdateMutationMixin,
     EmailVerificationMixin,
     MutationAccessRequiredMixin,
-    UpdateStatusMixin,
 )
 from .models import (
     CanadaVisa,
@@ -128,6 +128,7 @@ from .types import (
     WorkExperienceVerificationMethodType,
 )
 from .utils import analyze_document, set_user_skills
+from .validators import EmailCallbackURLValidator
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -182,16 +183,10 @@ def referral_registration(user, referral_code):
         ReferralUser.objects.create(user=user, referral=referral)
 
 
-EMAIL_CALLBACK_URL_VARIABLE = "email_callback_url"
-EMAIL_RECEIVER_USER_TYPE_VARIABLE = "email_receiver_user_type"
-EMAIL_RECEIVER_NAME_VARIABLE = "email_receiver_name"
-TEMPLATE_CONTEXT_VARIABLE = "template_context"
-
-
 def set_template_context_variable(context, data: dict):
-    _template_context = getattr(context, TEMPLATE_CONTEXT_VARIABLE, {})
+    _template_context = getattr(context, EmailConstants.TEMPLATE_CONTEXT_VARIABLE, {})
     _template_context.update(data)
-    setattr(context, TEMPLATE_CONTEXT_VARIABLE, _template_context)
+    setattr(context, EmailConstants.TEMPLATE_CONTEXT_VARIABLE, _template_context)
 
 
 def register_user_device(refresh_token, device_id):
@@ -215,14 +210,15 @@ class DeviceIDMixin:
 class EmailCallbackUrlMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
-        set_template_context_variable(
-            args[1].context, {EMAIL_CALLBACK_URL_VARIABLE: kwargs.get(EMAIL_CALLBACK_URL_VARIABLE)}
-        )
+        callback_url = kwargs.get(EmailConstants.CALLBACK_URL_VARIABLE)
+        validator = EmailCallbackURLValidator()
+        validator(callback_url)
+        set_template_context_variable(args[1].context, {EmailConstants.CALLBACK_URL_VARIABLE: callback_url})
         return super().mutate(*args, **kwargs)
 
     @classmethod
     def Field(cls, *args, **kwargs):
-        cls._required_args += [EMAIL_CALLBACK_URL_VARIABLE]
+        cls._required_args += [EmailConstants.CALLBACK_URL_VARIABLE]
         return super().Field(*args, **kwargs)
 
 
@@ -236,8 +232,8 @@ class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
         set_template_context_variable(
             args[1].context,
             {
-                EMAIL_RECEIVER_USER_TYPE_VARIABLE: cls.EMAIL_RECEIVER_USER_TYPE,
-                EMAIL_RECEIVER_NAME_VARIABLE: kwargs.get(cls.EMAIL_RECEIVER_NAME),
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: cls.EMAIL_RECEIVER_USER_TYPE,
+                EmailConstants.RECEIVER_NAME_VARIABLE: kwargs.get(cls.EMAIL_RECEIVER_NAME),
             },
         )
         try:
@@ -355,8 +351,8 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
                 content=render_to_string(
                     "email/welcome.html",
                     {
-                        EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
-                        EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                        EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                        EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
                     },
                 ),
             )
@@ -379,8 +375,8 @@ class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.Resend
         set_template_context_variable(
             args[1].context,
             {
-                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
-                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
         return super().mutate(*args, **kwargs)
@@ -393,8 +389,8 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         set_template_context_variable(
             args[1].context,
             {
-                EMAIL_RECEIVER_USER_TYPE_VARIABLE: user.user_type,
-                EMAIL_RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
         return super().mutate(*args, **kwargs)
@@ -611,6 +607,14 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
     optional_fields=fields,
     exclude=tuple(),
 )
+PROFILE_MUTATION_FIELDS = {
+    Profile.job_type.fget.__name__: graphene.List(
+        convert_choice_field_to_enum(Profile.job_type_exclude.field.base_field)
+    ),
+    Profile.job_location_type.fget.__name__: graphene.List(
+        convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field)
+    ),
+}
 
 
 class UserUpdateMutation(
@@ -637,13 +641,14 @@ class UserUpdateMutation(
             Profile.native_language.field.name,
             Profile.fluent_languages.field.name,
             Profile.job_cities.field.name,
-            Profile.job_type.field.name,
-            Profile.job_location_type.field.name,
             Profile.allow_notifications.field.name,
             Profile.accept_terms_and_conditions.field.name,
             Profile.skills.field.name,
         )
-        custom_fields = USER_MUTATION_FIELDS
+        custom_fields = {
+            **USER_MUTATION_FIELDS,
+            **PROFILE_MUTATION_FIELDS,
+        }
 
     @classmethod
     def get_object_id(cls, context):
@@ -657,6 +662,11 @@ class UserUpdateMutation(
         for user_field in user_fields:
             if (user_field_value := input.get(user_field)) is not None:
                 setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
+
+        profile_fields = PROFILE_MUTATION_FIELDS.keys()
+        for profile_field in profile_fields:
+            if (profile_field_value := input.get(profile_field)) is not None:
+                setattr(obj, profile_field, profile_field_value)
 
         user.full_clean()
         user.save()
@@ -828,13 +838,6 @@ class EducationSetVerificationMethodMutation(
         model = Education
 
 
-class EducationUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = EducationNode
-
-    class Meta:
-        model = Education
-
-
 class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
     data = graphene.Field(graphene.ObjectType)
@@ -953,13 +956,6 @@ class WorkExperienceSetVerificationMethodMutation(
         return super().validate(root, info, input, id, obj)
 
 
-class WorkExperienceUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = WorkExperienceNode
-
-    class Meta:
-        model = WorkExperience
-
-
 class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(WorkExperienceAIType)
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
@@ -1074,13 +1070,6 @@ class LanguageCertificateSetVerificationMethodMutation(
         model = LanguageCertificate
 
 
-class LanguageCertificateUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = LanguageCertificateNode
-
-    class Meta:
-        model = LanguageCertificate
-
-
 class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(LanguageCertificateAIType)
     verification_method_data = graphene.String()
@@ -1142,13 +1131,6 @@ class CertificateAndLicenseSetVerificationMethodMutation(
             task_user_id=info.context.user.id,
             certificate_id=obj.id,
         )
-
-
-class CertificateAndLicenseUpdateStatusMutation(CUDOutputTypeMixin, UpdateStatusMixin):
-    output_type = CertificateAndLicenseNode
-
-    class Meta:
-        model = CertificateAndLicense
 
 
 class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
@@ -1591,7 +1573,6 @@ class EducationMutation(graphene.ObjectType):
     create = EducationCreateMutation.Field()
     update = EducationUpdateMutation.Field()
     delete = EducationDeleteMutation.Field()
-    update_status = EducationUpdateStatusMutation.Field()
     set_verification_method = EducationSetVerificationMethodMutation.Field()
     analyse_and_extract_data = EducationAnalyseAndExtractDataMutation.Field()
 
@@ -1600,7 +1581,6 @@ class WorkExperienceMutation(graphene.ObjectType):
     create = WorkExperienceCreateMutation.Field()
     update = WorkExperienceUpdateMutation.Field()
     delete = WorkExperienceDeleteMutation.Field()
-    update_status = WorkExperienceUpdateStatusMutation.Field()
     set_verification_method = WorkExperienceSetVerificationMethodMutation.Field()
     analyse_and_extract_data = WorkExperienceAnalyseAndExtractDataMutation.Field()
 
@@ -1609,7 +1589,6 @@ class LanguageCertificateMutation(graphene.ObjectType):
     create = LanguageCertificateCreateMutation.Field()
     update = LanguageCertificateUpdateMutation.Field()
     delete = LanguageCertificateDeleteMutation.Field()
-    update_status = LanguageCertificateUpdateStatusMutation.Field()
     set_verification_method = LanguageCertificateSetVerificationMethodMutation.Field()
     analyse_and_extract_data = LanguageCertificateAnalyseAndExtractDataMutation.Field()
 
@@ -1618,7 +1597,6 @@ class CertificateAndLicenseMutation(graphene.ObjectType):
     create = CertificateAndLicenseCreateMutation.Field()
     update = CertificateAndLicenseUpdateMutation.Field()
     delete = CertificateAndLicenseDeleteMutation.Field()
-    update_status = CertificateAndLicenseUpdateStatusMutation.Field()
     set_verification_method = CertificateAndLicenseSetVerificationMethodMutation.Field()
     analyse_and_extract_data = CertificateAndLicenseAnalyseAndExtractDataMutation.Field()
 
