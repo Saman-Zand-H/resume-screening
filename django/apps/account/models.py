@@ -1586,7 +1586,6 @@ class Organization(DocumentAbstract):
         BRANCH_OFFICE = "branch_office", _("Branch Office")
         SUBSIDIARY = "subsidiary", _("Subsidiary")
 
-
     class BussinessType(models.TextChoices):
         SOFTWARE = "software", _("Software")
         SERVICE = "service", _("Service")
@@ -1881,25 +1880,6 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
         SUSPENDED = "suspended", _("Suspended")
         EXPIRED = "expired", _("Expired")
 
-    class ContractType(models.TextChoices):
-        FULL_TIME = "full_time", _("Full Time")
-        PART_TIME = "part_time", _("Part Time")
-        PERMANENT = "permanent", _("Permanent")
-        FIX_TERM_CONTRACT = "fix_term_contract", _("Fix Term Contract")
-        SEASONAL = "seasonal", _("Seasonal")
-        FREELANCE = "freelance", _("Freelance")
-        APPRENTICESHIP = "apprenticeship", _("Apprenticeship")
-        PRINCE_EDWARD_ISLAND = "prince_edward_island", _("Prince Edward Island")
-        INTERNSHIP_CO_OP = "internship_co_op", _("Internship/Co-op")
-
-    class LocationType(models.TextChoices):
-        PRECISE_LOCATION = "precise_location", _("On-site (Precise Location)")
-        LIMITED_AREA = "limited_area", _("On-site (Within a Limited Area)")
-        REMOTE = "remote", _("Remote")
-        HYBRID = "hybrid", _("Hybrid")
-        ON_THE_ROAD = "on_the_road", _("On the road")
-        GLOBAL = "global", _("Global")
-
     class PaymentTerm(models.TextChoices):
         HOURLY = "hourly", _("Hourly")
         DAILY = "daily", _("Daily")
@@ -1953,13 +1933,13 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
     )
     contract_type = models.CharField(
         max_length=50,
-        choices=ContractType.choices,
+        choices=Profile.JobType.choices,
         verbose_name=_("Contract Type"),
         null=True,
         blank=True,
     )
     location_type = models.CharField(
-        max_length=50, choices=LocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
+        max_length=50, choices=Profile.JobLocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
     )
     salary_range = IntegerRangeField(verbose_name=_("Salary Range"), null=True, blank=True)
     payment_term = models.CharField(
