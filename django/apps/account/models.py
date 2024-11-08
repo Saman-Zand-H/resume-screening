@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Union
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
-from common.db_functions import ArrayDifference
 from common.exceptions import GraphQLErrorBadRequest
 from common.mixins import HasDurationMixin
 from common.models import (
@@ -86,6 +85,7 @@ from .managers import (
     CertificateAndLicenseManager,
     FlexReportProfileManager,
     OrganizationInvitationManager,
+    ProfileManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -523,26 +523,6 @@ class FullBodyImageFile(UserUploadedImageFile):
     class Meta:
         verbose_name = _("Full Body Image")
         verbose_name_plural = _("Full Body Images")
-
-
-class ProfileManager(models.Manager):
-    def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .annotate(
-                **{
-                    Profile.job_type.fget.annotation_name: ArrayDifference(
-                        Profile.JobType.values,
-                        models.F(Profile.job_type_exclude.field.name),
-                    ),
-                    Profile.job_location_type.fget.annotation_name: ArrayDifference(
-                        Profile.JobLocationType.values,
-                        models.F(Profile.job_location_type_exclude.field.name),
-                    ),
-                }
-            )
-        )
 
 
 @report_model.register

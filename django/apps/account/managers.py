@@ -1,4 +1,4 @@
-from common.db_functions import GetKeysByValue
+from common.db_functions import ArrayDifference, GetKeysByValue
 from common.utils import fields_join
 
 from django.contrib.auth.models import UserManager as BaseUserManager
@@ -12,6 +12,28 @@ from .constants import (
     STAGE_CHOICES,
     ProfileAnnotationNames,
 )
+
+
+class ProfileManager(models.Manager):
+    def get_queryset(self):
+        from .models import Profile
+
+        return (
+            super()
+            .get_queryset()
+            .annotate(
+                **{
+                    Profile.job_type.fget.annotation_name: ArrayDifference(
+                        Profile.JobType.values,
+                        models.F(Profile.job_type_exclude.field.name),
+                    ),
+                    Profile.job_location_type.fget.annotation_name: ArrayDifference(
+                        Profile.JobLocationType.values,
+                        models.F(Profile.job_location_type_exclude.field.name),
+                    ),
+                }
+            )
+        )
 
 
 class FlexReportProfileManager(models.Manager):
