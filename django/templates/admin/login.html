@@ -5,12 +5,14 @@
 {{ block.super }}
 <link rel="stylesheet" href="{% static "admin/css/login.css" %}">
 {{ form.media }}
-<script src="https://www.google.com/recaptcha/enterprise.js?render=6Lf9uc0qAAAAACOcAxTdhheSSOYKXtYL9V-uu78H"></script>
+<script src="https://www.google.com/recaptcha/enterprise.js?render={{ recaptcha_site_key }}"></script>
 <script>
   function onClick(e) {
     e.preventDefault();
     grecaptcha.enterprise.ready(async () => {
-      const token = await grecaptcha.enterprise.execute('6Lf9uc0qAAAAACOcAxTdhheSSOYKXtYL9V-uu78H', { action: 'LOGIN' });
+      const token = await grecaptcha.enterprise.execute('{{ recaptcha_site_key }}', {
+        action: '{{ recaptcha_action }}'
+      });
       document.getElementById("g-recaptcha-response").value = token;
       document.getElementById("login-form").submit();
     });

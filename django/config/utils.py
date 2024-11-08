@@ -9,12 +9,18 @@ from django.conf import settings
 from .settings.constants import Environment, RecaptchaAction
 
 
+def get_recaptcha_site_key() -> str:
+    try:
+        return settings.RECAPTCHA_SITE_KEY
+    except AttributeError:
+        return ""
+
+
 def create_recaptcha_assessment(token: str, recaptcha_action: RecaptchaAction) -> Assessment:
     _, project_id = google.auth.default()
 
-    try:
-        recaptcha_site_key = settings.RECAPTCHA_SITE_KEY
-    except AttributeError:
+    recaptcha_site_key = get_recaptcha_site_key()
+    if not recaptcha_site_key:
         return
 
     client = recaptchaenterprise_v1.RecaptchaEnterpriseServiceClient()
