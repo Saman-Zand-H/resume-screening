@@ -16,7 +16,9 @@ from common.types import (
 )
 from common.utils import fields_join
 from config.settings.constants import Environment
+from config.utils import is_env
 from graphene.types.generic import GenericScalar
+from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
@@ -42,7 +44,6 @@ from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
-from account.utils import is_env
 from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
@@ -58,8 +59,7 @@ from .accesses import (
     OrganizationProfileContainer,
 )
 from .choices import DefaultRoles
-from .constants import FileSlugs, EmailConstants
-from .validators import EmailCallbackURLValidator
+from .constants import EmailConstants, FileSlugs
 from .forms import PasswordLessRegisterForm
 from .mixins import (
     CRUDWithoutIDMutationMixin,
@@ -128,6 +128,7 @@ from .types import (
     WorkExperienceVerificationMethodType,
 )
 from .utils import analyze_document, set_user_skills
+from .validators import EmailCallbackURLValidator
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
@@ -606,6 +607,14 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
     optional_fields=fields,
     exclude=tuple(),
 )
+PROFILE_MUTATION_FIELDS = {
+    Profile.job_type.fget.__name__: graphene.List(
+        convert_choice_field_to_enum(Profile.job_type_exclude.field.base_field)
+    ),
+    Profile.job_location_type.fget.__name__: graphene.List(
+        convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field)
+    ),
+}
 
 
 class UserUpdateMutation(
@@ -632,13 +641,14 @@ class UserUpdateMutation(
             Profile.native_language.field.name,
             Profile.fluent_languages.field.name,
             Profile.job_cities.field.name,
-            Profile.job_type.field.name,
-            Profile.job_location_type.field.name,
             Profile.allow_notifications.field.name,
             Profile.accept_terms_and_conditions.field.name,
             Profile.skills.field.name,
         )
-        custom_fields = USER_MUTATION_FIELDS
+        custom_fields = {
+            **USER_MUTATION_FIELDS,
+            **PROFILE_MUTATION_FIELDS,
+        }
 
     @classmethod
     def get_object_id(cls, context):
@@ -652,6 +662,11 @@ class UserUpdateMutation(
         for user_field in user_fields:
             if (user_field_value := input.get(user_field)) is not None:
                 setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
+
+        profile_fields = PROFILE_MUTATION_FIELDS.keys()
+        for profile_field in profile_fields:
+            if (profile_field_value := input.get(profile_field)) is not None:
+                setattr(obj, profile_field, profile_field_value)
 
         user.full_clean()
         user.save()

@@ -16,10 +16,8 @@ from common.types import (
     UniversityNode,
 )
 from common.utils import fields_join
-from criteria.models import JobAssessment
-from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.fields import DjangoConnectionField
+from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -28,6 +26,8 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_jwt.decorators import login_required
 from notification.models import InAppNotification
 
+from criteria.models import JobAssessment
+from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (
     Case,
@@ -71,6 +71,8 @@ from .models import (
     Organization,
     OrganizationEmployee,
     OrganizationEmployeeCooperation,
+    OrganizationEmployeePerformanceReport,
+    OrganizationEmployeePerformanceReportStatusHistory,
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
@@ -326,6 +328,14 @@ class EmployeeType(DjangoObjectType):
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
     completion_percentage = graphene.Float(source=Profile.completion_percentage.fget.__name__)
     contacts = graphene.List(ContactType)
+    job_type = graphene.List(
+        convert_choice_field_to_enum(Profile.job_type_exclude.field.base_field),
+        source=Profile.job_type.fget.__name__,
+    )
+    job_location_type = graphene.List(
+        convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field),
+        source=Profile.job_location_type.fget.__name__,
+    )
     available_jobs = DjangoFilterConnectionField(JobNode)
 
     class Meta:
@@ -347,8 +357,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             Profile.native_language.field.name,
             Profile.credits.field.name,
             Profile.job_cities.field.name,
-            Profile.job_type.field.name,
-            Profile.job_location_type.field.name,
             Profile.fluent_languages.field.name,
             Profile.scores.field.name,
             Profile.score.field.name,
@@ -1098,6 +1106,48 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         return self.job_seeker
 
 
+class OrganizationEmployeePerformanceReportStatusHistoryType(DjangoObjectType):
+    class Meta:
+        model = OrganizationEmployeePerformanceReportStatusHistory
+        fields = (
+            OrganizationEmployeePerformanceReportStatusHistory.status.field.name,
+            OrganizationEmployeePerformanceReportStatusHistory.created_at.field.name,
+        )
+
+
+class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    class Meta:
+        model = OrganizationEmployeePerformanceReport
+        use_connection = True
+        fields = (
+            OrganizationEmployeePerformanceReport.id.field.name,
+            OrganizationEmployeePerformanceReport.status.field.name,
+            OrganizationEmployeePerformanceReport.title.field.name,
+            OrganizationEmployeePerformanceReport.text.field.name,
+            OrganizationEmployeePerformanceReport.date.field.name,
+            OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.related_query_name(),
+        )
+
+        filter_fields = {
+            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: ["exact"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fields_join(
+                    OrganizationPlatformMessage.organization_employee_cooperation,
+                    OrganizationEmployeeCooperation.employee,
+                    OrganizationEmployee.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        )
+
+
 class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = OrganizationPlatformMessage
@@ -1111,10 +1161,30 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessage.created_at.field.name,
         )
 
+        filter_fields = {
+            OrganizationPlatformMessage.organization_employee_cooperation.field.name: ["exact"],
+        }
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fields_join(
+                    OrganizationPlatformMessage.organization_employee_cooperation,
+                    OrganizationEmployeeCooperation.employee,
+                    OrganizationEmployee.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        )
+
 
 class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType):
     job_position = graphene.Field(OrganizationJobPositionNode)
-    platform_messages = DjangoConnectionField(OrganizationPlatformMessageNode)
+    platform_messages = DjangoFilterConnectionField(OrganizationPlatformMessageNode)
+    performance_report = DjangoFilterConnectionField(OrganizationEmployeePerformanceReportNode)
 
     class Meta:
         model = OrganizationEmployeeCooperation
@@ -1125,9 +1195,6 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
             OrganizationEmployeeCooperation.end_at.field.name,
             OrganizationEmployeeCooperation.created_at.field.name,
         )
-
-    def resolve_platform_messages(self, info):
-        return self.organizationplatformmessage.all()
 
     def resolve_job_position(self, info):
         return self.job_position_assignment.job_position
