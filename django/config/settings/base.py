@@ -73,7 +73,6 @@ INSTALLED_APPS = [
     "cities_light",
     "phonenumber_field",
     "computedfields",
-    "notification",
     "flex_pubsub",
     "flex_blob",
     "flex_eav",
@@ -90,6 +89,7 @@ INSTALLED_APPS += [
     "score",
     "academy",
     "account",
+    "notification",
 ]
 
 MIDDLEWARE = [

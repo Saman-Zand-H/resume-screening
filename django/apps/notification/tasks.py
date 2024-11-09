@@ -8,6 +8,7 @@ from flex_pubsub.types import SchedulerJob
 from django.db.models.lookups import IsNull
 from django.utils import timezone
 
+from .constants import scheduler_task_name
 from .models import Campaign
 from .senders import send_campaign_notifications
 
@@ -22,7 +23,7 @@ def sync_campaign_scheduler_task():
     inactive_campaigns = Campaign.objects.all().difference(active_campaigns)
     for campaign in inactive_campaigns:
         with contextlib.suppress(KeyError):
-            del task_registry.tasks[f"scheduler_for_campaign_{campaign.pk}"]
+            del task_registry.tasks[scheduler_task_name(campaign.pk)]
 
     task_registry.sync_registered_jobs()
 
@@ -38,7 +39,7 @@ def send_campaign_notifications_cronjob(campaign_id: int):
 
 
 def register_campaign_cronjob(campaign: Campaign):
-    task_name = f"scheduler_for_campaign_{campaign.pk}"
+    task_name = scheduler_task_name(campaign.pk)
 
     return register_task(
         [NotificationSubscription.CAMPAIGN],
@@ -49,7 +50,10 @@ def register_campaign_cronjob(campaign: Campaign):
 
 def register_campaign_cronjobs():
     campaigns = Campaign.objects.filter(
-        **{fields_join(Campaign.crontab, IsNull.lookup_name): False, fields_join(Campaign.is_scheduler_active): True}
+        **{
+            fields_join(Campaign.is_scheduler_active): True,
+            fields_join(Campaign.crontab, IsNull.lookup_name): False,
+        }
     )
 
     for campaign in campaigns:
