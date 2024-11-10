@@ -1813,9 +1813,22 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         otp = self.generate_otp()
         return otp
 
-    def send_otp(self):
-        otp = self.get_or_create_otp()  # noqa
-        # send_sms(self.phonenumber, otp)
+    def send_otp_sms(self, request):
+        from notification.models import SMSNotification
+        from notification.senders import NotificationContext, send_notifications
+
+        send_notifications(
+            NotificationContext(
+                notification=SMSNotification(
+                    user=request.user,
+                    phone_number=self.phonenumber,
+                    body=render_to_string(
+                        "sms/organization_sms_verification.html",
+                        {"otp": self.get_or_create_otp(), "organization": self.organization},
+                    ),
+                )
+            )
+        )
 
     def verify_otp(self, input_otp: str) -> bool:
         if cache.get(self.get_otp_cache_key()) != input_otp:
