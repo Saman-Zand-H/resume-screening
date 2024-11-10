@@ -718,7 +718,6 @@ class CommunicateOrganizationMethodAdmin(admin.ModelAdmin):
         CommunicateOrganizationMethod.organization.field.name,
         CommunicateOrganizationMethod.verified_at.field.name,
         CommunicateOrganizationMethod.created_at.field.name,
-        "get_otp",
     )
     search_fields = (CommunicateOrganizationMethod.organization.field.name,)
     list_filter = (
@@ -726,13 +725,7 @@ class CommunicateOrganizationMethodAdmin(admin.ModelAdmin):
         CommunicateOrganizationMethod.created_at.field.name,
     )
     autocomplete_fields = (CommunicateOrganizationMethod.organization.field.name,)
-
-    def get_otp(self, obj):
-        from django.core.cache import cache
-
-        return cache.get(obj.get_otp_cache_key())
-
-    get_otp.short_description = "OTP"
+    readonly_fields = (CommunicateOrganizationMethod.get_otp.__name__,)
 
 
 @register(UploadCompanyCertificateMethod)

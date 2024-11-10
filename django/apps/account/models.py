@@ -1799,14 +1799,22 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
     def get_otp(self):
-        if otp := cache.get(cache_key := self.get_otp_cache_key()):
-            return otp
+        return cache.get(self.get_otp_cache_key())
 
-        cache.set(cache_key, (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
+    get_otp.short_description = _("OTP")
+
+    def generate_otp(self):
+        cache.set(self.get_otp_cache_key(), (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
+        return otp
+
+    def get_or_create_otp(self):
+        if otp := self.get_otp():
+            return otp
+        otp = self.generate_otp()
         return otp
 
     def send_otp(self):
-        otp = self.get_otp()  # noqa
+        otp = self.get_or_create_otp()  # noqa
         # send_sms(self.phonenumber, otp)
 
     def verify_otp(self, input_otp: str) -> bool:
