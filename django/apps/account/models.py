@@ -878,6 +878,9 @@ class DocumentVerificationMethodAbstract(models.Model):
     def get_document(self):
         return getattr(self, self.DOCUMENT_FIELD)
 
+    def after_create(self, request):
+        pass
+
     def clean(self, *args, **kwargs):
         document = self.get_document()
         if (methods := list(document.get_verification_methods())) and len(methods) > 1:
@@ -1838,6 +1841,9 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         self.is_phonenumber_verified = True
         self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
         return True
+
+    def after_create(self, request):
+        self.send_otp_sms(request)
 
 
 class OrganizationMembership(models.Model):

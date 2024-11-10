@@ -1194,6 +1194,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
 
         method_model = {m.get_related_name(): m for m in Organization.get_method_models()}[method]
         method_instance = method_model.objects.create(organization=organization, **(input_data or {}))
+        method_instance.after_create(info.context)
         return cls(success=True, output=method_instance.get_output())
 
 
