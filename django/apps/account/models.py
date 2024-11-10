@@ -1795,19 +1795,19 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("Communicate Organization Method")
         verbose_name_plural = _("Communicate Organization Methods")
 
-    def get_otp_cache_key(self):
+    def get_otp_cache_key(self) -> str:
         return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
-    def get_otp(self):
+    def get_otp(self) -> Optional[str]:
         return cache.get(self.get_otp_cache_key())
 
     get_otp.short_description = _("OTP")
 
-    def generate_otp(self):
+    def generate_otp(self) -> str:
         cache.set(self.get_otp_cache_key(), (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
         return otp
 
-    def get_or_create_otp(self):
+    def get_or_create_otp(self) -> str:
         if otp := self.get_otp():
             return otp
         otp = self.generate_otp()
@@ -1831,7 +1831,7 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         )
 
     def verify_otp(self, input_otp: str) -> bool:
-        if cache.get(self.get_otp_cache_key()) != input_otp:
+        if self.get_otp() != input_otp:
             return False
 
         cache.delete(self.get_otp_cache_key())
