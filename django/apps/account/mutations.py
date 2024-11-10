@@ -1218,11 +1218,11 @@ class OrganizationCommunicationMethodVerify(BaseOrganizationVerifierMutation, gr
         organization = cls.get_access_object(organization=organization)
 
         try:
-            model = organization.communicateorganizationmethod
+            model: CommunicateOrganizationMethod = organization.communicateorganizationmethod
         except CommunicateOrganizationMethod.DoesNotExist:
-            raise GraphQLErrorBadRequest(_("Cannot verify OTP."))
+            return cls(success=False)
 
-        result = model.verify_otp(otp)
+        result = model.is_verified or model.verify_otp(otp)
         return cls(success=result)
 
 

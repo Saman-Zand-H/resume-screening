@@ -1834,13 +1834,16 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         )
 
     def verify_otp(self, input_otp: str) -> bool:
-        if self.get_otp() != input_otp:
-            return False
+        if (otp := self.get_otp()) and otp == input_otp:
+            cache.delete(self.get_otp_cache_key())
+            self.is_phonenumber_verified = True
+            self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
+            return True
+        return False
 
-        cache.delete(self.get_otp_cache_key())
-        self.is_phonenumber_verified = True
-        self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
-        return True
+    @property
+    def is_verified(self):
+        return self.is_phonenumber_verified
 
     def after_create(self, request):
         self.send_otp_sms(request)
