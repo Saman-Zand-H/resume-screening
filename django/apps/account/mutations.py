@@ -264,7 +264,7 @@ class UserRegister(RegisterBase):
         OrganizationInvitation.token.field.name,
     ]
 
-    EMAIL_RECEIVER_USER_TYPE = "USER"
+    EMAIL_RECEIVER_USER_TYPE = "job_seeker"
     EMAIL_RECEIVER_NAME = User.first_name.field.name
 
     @classmethod
@@ -298,8 +298,16 @@ class UserRegister(RegisterBase):
 class RegisterOrganization(RegisterBase):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
 
-    EMAIL_RECEIVER_USER_TYPE = "ORGANIZATION"
+    EMAIL_RECEIVER_USER_TYPE = "organization"
     EMAIL_RECEIVER_NAME = Organization.name.field.name
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        result = super().mutate(*args, **kwargs)
+        user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
+        user.registration_type = User.RegistrationType.ORGANIZATION
+        user.save(update_fields=[User.registration_type.field.name])
+        return result
 
     @classmethod
     def after_mutate(cls, *args, **kwargs):
@@ -352,7 +360,7 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
                     "email/welcome.html",
                     {
                         EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
-                        EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                        EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.registration_type,
                     },
                 ),
             )
@@ -375,7 +383,7 @@ class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.Resend
         set_template_context_variable(
             args[1].context,
             {
-                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.registration_type,
                 EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
@@ -389,7 +397,7 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
         set_template_context_variable(
             args[1].context,
             {
-                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.user_type,
+                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.registration_type,
                 EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )

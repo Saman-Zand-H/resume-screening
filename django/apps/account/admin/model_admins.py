@@ -115,6 +115,7 @@ class UserAdmin(UserAdminBase):
         User.first_name.field.name,
         User.last_name.field.name,
         User.is_staff.field.name,
+        User.registration_type.field.name,
     )
     search_fields = (User.EMAIL_FIELD, User.first_name.field.name, User.last_name.field.name)
 

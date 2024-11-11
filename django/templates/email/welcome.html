@@ -2,9 +2,9 @@
 
 
 {% block content %}
-{% if email_receiver_user_type == "USER" %}
+{% if email_receiver_user_type == "job_seeker" %}
     {% include "email/user_welcome.html" %}
-{% elif email_receiver_user_type == "ORGANIZATION" %}
+{% elif email_receiver_user_type == "organization" %}
     {% include "email/organization_welcome.html" %}
 {% endif %}
 {% endblock %}

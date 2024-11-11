@@ -1,7 +1,7 @@
 {% extends "email/base.html" %}
 
 {% block content %}
-{% if request.template_context.email_receiver_user_type == "USER" %}
+{% if request.template_context.email_receiver_user_type == "job_seeker" %}
     {% include "email/user_activation_email.html" %}
 {% else %}
     {% include "email/organization_activation_email.html" %}

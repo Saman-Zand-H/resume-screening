@@ -255,6 +255,17 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    class RegistrationType(models.TextChoices):
+        JOB_SEEKER = "job_seeker", _("Job Seeker")
+        ORGANIZATION = "organization", _("Organization")
+
+    registration_type = models.CharField(
+        max_length=50,
+        choices=RegistrationType.choices,
+        default=RegistrationType.JOB_SEEKER.value,
+        verbose_name=_("Registration Type"),
+    )
+
     def get_profile(self) -> "Profile":
         return (
             (profile := getattr(self, Profile.user.field.related_query_name(), None))
@@ -267,10 +278,6 @@ class User(AbstractUser):
         return f"{self.first_name} {self.last_name}"
 
     full_name.fget.verbose_name = _("Full Name")
-
-    @cached_property
-    def user_type(self):
-        return "USER" if self.organizations.count() == 0 else "ORGANIZATION"
 
     @property
     def has_resume(self):
@@ -2438,6 +2445,19 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
             raise ValidationError(
                 _("Job Position Assignment's job seeker must be the same as Organization Employee's user.")
             )
+
+        # TODO: test below before commit
+        if (
+            OrganizationEmployeeCooperation.objects.filter(
+                employee__user=self.employee.user,
+                status__in=[self.Status.AWAITING, self.Status.ACTIVE, self.Status.SUSPENDED],
+            )
+            .exclude(
+                employee=self.employee,
+            )
+            .exists()
+        ):
+            raise ValidationError(_("Employee already has an active cooperation."))
 
     def save(self, *args, **kwargs):
         self.clean()
