@@ -132,6 +132,8 @@ class JobSeekerEducationType(DjangoObjectType):
             Education.start.field.name,
             Education.end.field.name,
             Education.status.field.name,
+            *(m.get_related_name() for m in Education.get_method_models()),
+
         )
 
 
@@ -147,6 +149,7 @@ class JobSeekerWorkExperienceType(DjangoObjectType):
             WorkExperience.start.field.name,
             WorkExperience.end.field.name,
             WorkExperience.status.field.name,
+            *(m.get_related_name() for m in WorkExperience.get_method_models()),
         )
 
 
@@ -160,6 +163,8 @@ class JobSeekerLanguageCertificateType(DjangoObjectType):
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.status.field.name,
+            *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
+
         )
 
 
@@ -173,6 +178,7 @@ class JobSeekerCertificateAndLicenseType(DjangoObjectType):
             CertificateAndLicense.issued_at.field.name,
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
+            *(m.get_related_name() for m in CertificateAndLicense.get_method_models()),
         )
 
 
