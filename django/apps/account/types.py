@@ -133,7 +133,6 @@ class JobSeekerEducationType(DjangoObjectType):
             Education.end.field.name,
             Education.status.field.name,
             *(m.get_related_name() for m in Education.get_method_models()),
-
         )
 
 
@@ -164,7 +163,6 @@ class JobSeekerLanguageCertificateType(DjangoObjectType):
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.status.field.name,
             *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
-
         )
 
 
@@ -326,6 +324,7 @@ class EmployeeType(DjangoObjectType):
 
     def resolve_job_assessments(self, info, filters=None):
         qs = JobAssessment.objects.related_to_user(self)
+        info.context.job_assessment_user = self
         if filters:
             if filters.required is not None:
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
