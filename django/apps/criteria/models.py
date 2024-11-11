@@ -74,7 +74,7 @@ class JobAssessment(models.Model):
         verbose_name_plural = _("Job Assessments")
 
     def __str__(self):
-        return self.title
+        return f"{self.id}: {self.title}"
 
     def can_start(self, user) -> tuple[bool, str]:
         results = self.results.filter(user=user)
