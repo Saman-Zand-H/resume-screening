@@ -18,6 +18,7 @@ from common.utils import fields_join
 from config.settings.constants import Environment
 from config.utils import is_env
 from graphene.types.generic import GenericScalar
+from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django_cud.mutations import (
     DjangoBatchCreateMutation,
     DjangoCreateMutation,
@@ -606,6 +607,14 @@ USER_MUTATION_FIELDS = get_input_fields_for_model(
     optional_fields=fields,
     exclude=tuple(),
 )
+PROFILE_MUTATION_FIELDS = {
+    Profile.job_type.fget.__name__: graphene.List(
+        convert_choice_field_to_enum(Profile.job_type_exclude.field.base_field)
+    ),
+    Profile.job_location_type.fget.__name__: graphene.List(
+        convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field)
+    ),
+}
 
 
 class UserUpdateMutation(
@@ -632,13 +641,14 @@ class UserUpdateMutation(
             Profile.native_language.field.name,
             Profile.fluent_languages.field.name,
             Profile.job_cities.field.name,
-            Profile.job_type.field.name,
-            Profile.job_location_type.field.name,
             Profile.allow_notifications.field.name,
             Profile.accept_terms_and_conditions.field.name,
             Profile.skills.field.name,
         )
-        custom_fields = USER_MUTATION_FIELDS
+        custom_fields = {
+            **USER_MUTATION_FIELDS,
+            **PROFILE_MUTATION_FIELDS,
+        }
 
     @classmethod
     def get_object_id(cls, context):
@@ -652,6 +662,11 @@ class UserUpdateMutation(
         for user_field in user_fields:
             if (user_field_value := input.get(user_field)) is not None:
                 setattr(user, user_field, getattr(user_field_value, "value", user_field_value))
+
+        profile_fields = PROFILE_MUTATION_FIELDS.keys()
+        for profile_field in profile_fields:
+            if (profile_field_value := input.get(profile_field)) is not None:
+                setattr(obj, profile_field, profile_field_value)
 
         user.full_clean()
         user.save()
@@ -1179,6 +1194,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
 
         method_model = {m.get_related_name(): m for m in Organization.get_method_models()}[method]
         method_instance = method_model.objects.create(organization=organization, **(input_data or {}))
+        method_instance.after_create(info.context)
         return cls(success=True, output=method_instance.get_output())
 
 
@@ -1202,11 +1218,11 @@ class OrganizationCommunicationMethodVerify(BaseOrganizationVerifierMutation, gr
         organization = cls.get_access_object(organization=organization)
 
         try:
-            model = organization.communicateorganizationmethod
+            model: CommunicateOrganizationMethod = organization.communicateorganizationmethod
         except CommunicateOrganizationMethod.DoesNotExist:
-            raise GraphQLErrorBadRequest(_("Cannot verify OTP."))
+            return cls(success=False)
 
-        result = model.verify_otp(otp)
+        result = model.is_verified or model.verify_otp(otp)
         return cls(success=result)
 
 

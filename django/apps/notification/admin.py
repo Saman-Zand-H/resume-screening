@@ -106,7 +106,7 @@ class CampaignAdmin(admin.ModelAdmin):
         )
 
     @admin.action(description=_("Sync All Scheduler"))
-    def sync_schedulers(self, request, queryset: QuerySet[Campaign]):
+    def sync_schedulers(self, request, queryset: QuerySet[Campaign] = None):
         sync_campaign_scheduler_task()
         self.message_user(request, _("Campaigns synced with scheduler."))
 

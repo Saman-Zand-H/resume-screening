@@ -207,6 +207,8 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.scores.field.name,
         Profile.score.field.name,
         Profile.credits.field.name,
+        Profile.job_type.fget.__name__,
+        Profile.job_location_type.fget.__name__,
     )
 
     exclude = (Profile.interested_jobs.field.name,)
@@ -717,7 +719,6 @@ class CommunicateOrganizationMethodAdmin(admin.ModelAdmin):
         CommunicateOrganizationMethod.organization.field.name,
         CommunicateOrganizationMethod.verified_at.field.name,
         CommunicateOrganizationMethod.created_at.field.name,
-        "get_otp",
     )
     search_fields = (CommunicateOrganizationMethod.organization.field.name,)
     list_filter = (
@@ -725,13 +726,7 @@ class CommunicateOrganizationMethodAdmin(admin.ModelAdmin):
         CommunicateOrganizationMethod.created_at.field.name,
     )
     autocomplete_fields = (CommunicateOrganizationMethod.organization.field.name,)
-
-    def get_otp(self, obj):
-        from django.core.cache import cache
-
-        return cache.get(obj.get_otp_cache_key())
-
-    get_otp.short_description = "OTP"
+    readonly_fields = (CommunicateOrganizationMethod.get_otp.__name__,)
 
 
 @register(UploadCompanyCertificateMethod)

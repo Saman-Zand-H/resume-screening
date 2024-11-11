@@ -85,6 +85,7 @@ from .managers import (
     CertificateAndLicenseManager,
     FlexReportProfileManager,
     OrganizationInvitationManager,
+    ProfileManager,
     UserManager,
 )
 from .mixins import EmailVerificationMixin
@@ -631,15 +632,15 @@ class Profile(ComputedFieldsModel):
         blank=True,
     )
     job_cities = models.ManyToManyField(City, verbose_name=_("Job City"), related_name="job_profiles", blank=True)
-    job_type = ArrayField(
+    job_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobType.choices),
-        verbose_name=_("Job Type"),
+        verbose_name=_("Job Type Exclude"),
         null=True,
         blank=True,
     )
-    job_location_type = ArrayField(
+    job_location_type_exclude = ArrayField(
         models.CharField(max_length=50, choices=JobLocationType.choices),
-        verbose_name=_("Job Location Type"),
+        verbose_name=_("Job Location Type Exclude"),
         null=True,
         blank=True,
     )
@@ -659,7 +660,7 @@ class Profile(ComputedFieldsModel):
     allow_notifications = models.BooleanField(default=True, verbose_name=_("Allow Notifications"))
     accept_terms_and_conditions = models.BooleanField(default=False, verbose_name=_("Accept Terms"))
 
-    objects = models.Manager()
+    objects = ProfileManager()
     flex_report_custom_manager = FlexReportProfileManager()
 
     @computed(
@@ -767,6 +768,34 @@ class Profile(ComputedFieldsModel):
 
     has_appearance_related_data.fget.verbose_name = _("Has Appearance Related Data")
 
+    @property
+    def job_type(self):
+        return Profile.objects.filter(pk=self.pk).values_list(Profile.job_type.fget.annotation_name, flat=True).first()
+
+    @job_type.setter
+    def job_type(self, value: List[JobType]):
+        self.job_type_exclude = list(set(Profile.JobType.values) - set(map(attrgetter("value"), value)))
+
+    job_type.fget.annotation_name = f"{job_type.fget.__name__}_annotation"
+
+    @property
+    def job_location_type(self):
+        return (
+            Profile.objects.filter(
+                pk=self.pk,
+            )
+            .values_list(Profile.job_location_type.fget.annotation_name, flat=True)
+            .first()
+        )
+
+    @job_location_type.setter
+    def job_location_type(self, value: List[JobLocationType]):
+        self.job_location_type_exclude = list(
+            set(Profile.JobLocationType.values) - set(map(attrgetter("value"), value))
+        )
+
+    job_location_type.fget.annotation_name = f"{job_location_type.fget.__name__}_annotation"
+
 
 class DocumentAbstract(models.Model):
     class Status(models.TextChoices):
@@ -848,6 +877,9 @@ class DocumentVerificationMethodAbstract(models.Model):
 
     def get_document(self):
         return getattr(self, self.DOCUMENT_FIELD)
+
+    def after_create(self, request):
+        pass
 
     def clean(self, *args, **kwargs):
         document = self.get_document()
@@ -1766,28 +1798,55 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("Communicate Organization Method")
         verbose_name_plural = _("Communicate Organization Methods")
 
-    def get_otp_cache_key(self):
+    def get_otp_cache_key(self) -> str:
         return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
-    def get_otp(self):
-        if otp := cache.get(cache_key := self.get_otp_cache_key()):
-            return otp
+    def get_otp(self) -> Optional[str]:
+        return cache.get(self.get_otp_cache_key())
 
-        cache.set(cache_key, (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
+    get_otp.short_description = _("OTP")
+
+    def generate_otp(self) -> str:
+        cache.set(self.get_otp_cache_key(), (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
         return otp
 
-    def send_otp(self):
-        otp = self.get_otp()  # noqa
-        # send_sms(self.phonenumber, otp)
+    def get_or_create_otp(self) -> str:
+        if otp := self.get_otp():
+            return otp
+        otp = self.generate_otp()
+        return otp
+
+    def send_otp_sms(self, request):
+        from notification.models import SMSNotification
+        from notification.senders import NotificationContext, send_notifications
+
+        send_notifications(
+            NotificationContext(
+                notification=SMSNotification(
+                    user=request.user,
+                    phone_number=self.phonenumber,
+                    body=render_to_string(
+                        "sms/organization_sms_verification.html",
+                        {"otp": self.get_or_create_otp(), "organization": self.organization},
+                    ),
+                )
+            )
+        )
 
     def verify_otp(self, input_otp: str) -> bool:
-        if cache.get(self.get_otp_cache_key()) != input_otp:
-            return False
+        if (otp := self.get_otp()) and otp == input_otp:
+            cache.delete(self.get_otp_cache_key())
+            self.is_phonenumber_verified = True
+            self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
+            return True
+        return False
 
-        cache.delete(self.get_otp_cache_key())
-        self.is_phonenumber_verified = True
-        self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
-        return True
+    @property
+    def is_verified(self):
+        return self.is_phonenumber_verified
+
+    def after_create(self, request):
+        self.send_otp_sms(request)
 
 
 class OrganizationMembership(models.Model):
