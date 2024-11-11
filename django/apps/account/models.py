@@ -25,11 +25,7 @@ from common.models import (
     University,
 )
 from common.states import ChangeStateMixin, GenericState
-from common.utils import (
-    field_serializer,
-    fields_join,
-    get_all_subclasses,
-)
+from common.utils import field_serializer, fields_join, get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -1966,7 +1962,7 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
     fields = models.ManyToManyField(Field, verbose_name=_("Fields"), related_name="job_positions", blank=True)
     degrees = ArrayField(
         models.CharField(choices=Education.Degree.choices, max_length=50),
-        verbose_name=_("Degree"),
+        verbose_name=_("Degrees"),
         null=True,
         blank=True,
     )
