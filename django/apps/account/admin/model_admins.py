@@ -133,6 +133,7 @@ class UserAdmin(UserAdminBase):
                     User.first_name.field.name,
                     User.last_name.field.name,
                     User.username.field.name,
+                    User.registration_type.field.name,
                 )
             },
         )
