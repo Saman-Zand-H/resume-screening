@@ -45,6 +45,7 @@ from ..models import (
     OrganizationJobPositionStatusHistory,
     OrganizationMembership,
     OrganizationPlatformMessage,
+    OrganizationPlatformMessageLink,
     PaystubsMethod,
     Profile,
     ReferenceCheckEmployer,
@@ -903,6 +904,21 @@ class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
     search_fields = (OrganizationPlatformMessage.title.field.name,)
     list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
     autocomplete_fields = (OrganizationPlatformMessage.organization_employee_cooperation.field.name,)
+
+
+@register(OrganizationPlatformMessageLink)
+class OrganizationPlatformMessageLinkAdmin(admin.ModelAdmin):
+    list_display = (
+        OrganizationPlatformMessageLink.id.field.name,
+        OrganizationPlatformMessageLink.organization_platform_message.field.name,
+        OrganizationPlatformMessageLink.text.field.name,
+        OrganizationPlatformMessageLink.url.field.name,
+    )
+    search_fields = (
+        OrganizationPlatformMessageLink.text.field.name,
+        OrganizationPlatformMessageLink.url.field.name,
+    )
+    autocomplete_fields = (OrganizationPlatformMessageLink.organization_platform_message.field.name,)
 
 
 @register(OrganizationEmployeeCooperation)

@@ -2563,6 +2563,24 @@ class EmployeePlatformMessage(PlatformMessage):
         return f"{self.organization_employee_cooperation} - {self.title}"
 
 
+class OrganizationPlatformMessageLink(models.Model):
+    organization_platform_message = models.ForeignKey(
+        OrganizationPlatformMessage,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Platform Message"),
+        related_name="links",
+    )
+    text = models.CharField(max_length=255, verbose_name=_("Text"))
+    url = models.URLField(verbose_name=_("URL"))
+
+    class Meta:
+        verbose_name = _("Organization Platform Message Link")
+        verbose_name_plural = _("Organization Platform Message Links")
+
+    def __str__(self):
+        return f"{self.organization_platform_message} - {self.text}"
+
+
 class OrganizationEmployeePerformanceReport(models.Model):
     class Status(models.TextChoices):
         CREATED = "created", _("Created")

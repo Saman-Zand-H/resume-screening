@@ -77,6 +77,7 @@ from .models import (
     OrganizationJobPosition,
     OrganizationMembership,
     OrganizationPlatformMessage,
+    OrganizationPlatformMessageLink,
     PaystubsFile,
     PaystubsMethod,
     Profile,
@@ -1153,6 +1154,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessage.text.field.name,
             OrganizationPlatformMessage.read_at.field.name,
             OrganizationPlatformMessage.created_at.field.name,
+            OrganizationPlatformMessageLink.organization_platform_message.field.related_query_name(),
         )
 
         filter_fields = {
@@ -1172,6 +1174,16 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
                     OrganizationMembership.user,
                 ): user
             }
+        )
+
+
+class OrganizationPlatformMessageLinkType(DjangoObjectType):
+    class Meta:
+        model = OrganizationPlatformMessageLink
+        fields = (
+            OrganizationPlatformMessageLink.id.field.name,
+            OrganizationPlatformMessageLink.text.field.name,
+            OrganizationPlatformMessageLink.url.field.name,
         )
 
 
