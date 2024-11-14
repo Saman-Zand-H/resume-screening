@@ -484,6 +484,14 @@ class UserUploadedDocumentFile(UserFile):
     def get_validators(self):
         return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
 
+    def check_auth(self, request):
+        if not request.user.is_authenticated:
+            return False
+        return (
+            super().check_auth(request)
+            or self.uploaded_by.organization_employees.filter(organization__memberships__user=request.user).exists()
+        )
+
 
 class UserUploadedImageFile(UserFile):
     class Meta:
@@ -1406,8 +1414,6 @@ class ResumeFile(UserUploadedDocumentFile):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
 
     def check_auth(self, request):
-        if not request.user.is_authenticated:
-            return False
         return (
             super().check_auth(request)
             or self.uploaded_by.job_position_assignments.filter(
@@ -1773,6 +1779,9 @@ class OrganizationCertificateFile(UserUploadedDocumentFile):
 
     def get_upload_path(self, filename):
         return f"organization/certificate/{self.uploaded_by.id}/{filename}"
+
+    def check_auth(self, request):
+        return request.user == self.uploaded_by
 
     class Meta:
         verbose_name = _("Organization Certificate File")
