@@ -340,6 +340,8 @@ REPORT_FILTERSET_CLASS = "common.filterset.FilterSet"
 CORS_ALLOW_HEADERS = (
     *default_headers,
     "x-cpj-device-id",
+    "sentry-trace",
+    "baggage",
 )
 
 VALID_EMAIL_CALLBACK_URLS = os.environ.get("VALID_EMAIL_CALLBACK_URLS", "cpjcompany.com,cpj.ai").split(",")
