@@ -1,19 +1,32 @@
-from datetime import date
 from typing import Generic, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, EmailStr, HttpUrl, RootModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from ..choices import EducationDegree, IEEEvaluator, WorkExperienceGrade
+from ..constants import FileSlugs
 
 DocumentT = TypeVar("DocumentT")
 VerificationT = TypeVar("VerificationT")
 
 
-class BaseAnalysisResponse(BaseModel, Generic[DocumentT, VerificationT]):
+class IsValid(BaseModel):
     is_valid: bool
+
+
+class BaseAnalysisResponse(IsValid, Generic[DocumentT, VerificationT]):
     data: Optional[DocumentT] = None
     verification_method_data: Optional[VerificationT] = None
+
+
+VERIFICATION_METHOD_NAMES = Literal[
+    FileSlugs.EMPLOYER_LETTER,
+    FileSlugs.PAYSTUBS,
+    FileSlugs.EDUCATION_EVALUATION,
+    FileSlugs.DEGREE,
+    FileSlugs.LANGUAGE_CERTIFICATE,
+    FileSlugs.CERTIFICATE,
+]
 
 
 WorkExperienceGradeType = Literal[
@@ -52,8 +65,8 @@ class WorkExperienceData(BaseModel):
     job_title: Optional[str] = None
     job_grade: Optional[WorkExperienceGradeType] = None
     organization: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 
 class ReferenceCheckData(BaseModel):
@@ -73,14 +86,14 @@ WorkExperienceVerificationType = Union[ReferenceCheckData, PaystubsData]
 class CertificateAndLicenseData(BaseModel):
     title: Optional[str] = None
     certifier: Optional[str] = None
-    issued_at: Optional[date] = None
-    expired_at: Optional[date] = None
+    issued_at: Optional[str] = None
+    expired_at: Optional[str] = None
 
 
 class EducationData(BaseModel):
     degree: Optional[EducationDegreeType] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
 
 
 class IEEMethodData(BaseModel):
