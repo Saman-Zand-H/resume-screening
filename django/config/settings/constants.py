@@ -14,7 +14,8 @@ class Assistants:
     FIND_RELATIVE_SKILLS = "find-relative-skills"
     RESUME_JSON = "get-resume-json"
     GENERATE_RESUME = "get-resume-info"
-    DOCUMENT_ANALYSIS = "analyze-document"
+    DOCUMENT_VALIDATION = "document-validation"
+    DOCUMENT_DATA_ANALYSIS = "analyze-document-data"
     OCR = "get-file-text-content"
 
 

@@ -1,17 +1,16 @@
-import contextlib
 import json
+from collections import defaultdict
 from itertools import chain
 from operator import attrgetter
 from typing import Any, List, Literal, Optional
 
+from ai.assistants import AssistantPipeline
 from ai.google import GoogleServices
 from cities_light.models import City
 from common.models import Job, LanguageProficiencyTest, Skill, University
-from common.utils import fields_join, get_file_model_mimetype
+from common.utils import fields_join
 from config.settings.constants import Assistants
-from flex_blob.models import FileModel
 from google.genai import types
-from pydantic import ValidationError as PydanticValidationError
 
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.expressions import ArraySubquery
@@ -19,6 +18,7 @@ from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 
+from .assistants import DocumentDataAnalysisAssistant, DocumentValidationAssistant
 from .constants import FileSlugs, VectorStores
 from .typing import (
     AnalysisResponse,
@@ -87,40 +87,30 @@ def analyze_document(
         FileSlugs.CERTIFICATE,
     ],
 ) -> AnalysisResponse:
-    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
-        return
+    assistants = [
+        DocumentValidationAssistant().build(
+            file_model_id=file_model_id,
+            verification_method_name=verification_method_name,
+        ),
+        DocumentDataAnalysisAssistant().build(
+            file_model_id=file_model_id,
+            verification_method_name=verification_method_name,
+        ),
+    ]
 
-    service = GoogleServices(Assistants.DOCUMENT_ANALYSIS)
-    mime_type = get_file_model_mimetype(file_model)
-    with file_model.file.open("rb") as file:
-        content = file.file.read()
-
-    results = service.generate_text_content(
-        [
-            types.Part.from_bytes(data=content, mime_type=mime_type),
-            types.Part.from_text(text=json.dumps({"verification_method_name": verification_method_name})),
-        ]
-    )
-
-    if results:
-        with contextlib.suppress(PydanticValidationError):
-            return AnalysisResponse.model_validate(service.message_to_json(results))
-
-        return AnalysisResponse(is_valid=False)
+    results = AssistantPipeline(*assistants).run()
+    return AnalysisResponse.model_validate(defaultdict(list, results))
 
 
 def extract_resume_json(file_model_id: int):
-    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
-        return
-
     service = GoogleServices(Assistants.RESUME_JSON)
-    mime_type = get_file_model_mimetype(file_model)
-    with file_model.file.open("rb") as file:
-        content = file.file.read()
+
+    if not (file_part := service.get_file_part(file_model_id)):
+        return
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(data=content, mime_type=mime_type),
+            file_part,
             types.Part.from_text(text="extract resume JSON"),
         ]
     )
@@ -251,17 +241,14 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
 
 
 def extract_certificate_text_content(file_model_id: int):
-    if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
-        return ""
-
     service = GoogleServices(Assistants.OCR)
-    mimetype = get_file_model_mimetype(file_model)
-    with file_model.file.open("rb") as file:
-        content = file.file.read()
+
+    if not (file_part := service.get_file_part(file_model_id)):
+        return ""
 
     results = service.generate_text_content(
         [
-            types.Part.from_bytes(data=content, mime_type=mimetype),
+            file_part,
             types.Part.from_text(text="extract text content"),
         ]
     )

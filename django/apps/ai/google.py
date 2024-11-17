@@ -1,6 +1,8 @@
 from typing import Optional, Union
 
 import magic
+from common.utils import get_file_model_mimetype
+from flex_blob.models import FileModel
 from google import genai
 from google.cloud import vision
 from google.genai import types as genai_types
@@ -25,6 +27,19 @@ class GoogleServices:
             project=settings.GOOGLE_CLOUD_PROJECT,
             location=settings.GOOGLE_CLOUD_LOCATION,
             vertexai=True,
+        )
+
+    def get_file_part(self, file_model_id: int) -> genai_types.ContentUnion:
+        if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
+            return []
+
+        mime_type = get_file_model_mimetype(file_model)
+        with file_model.file.open("rb") as file:
+            file_bytes = file.read()
+
+        return genai_types.Part.from_bytes(
+            data=file_bytes,
+            mime_type=mime_type,
         )
 
     def generate_content(self, contents: genai_types.ContentListUnion):
