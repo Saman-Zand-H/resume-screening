@@ -5,7 +5,6 @@ from account.mixins import FilterQuerySetByUserMixin
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from django.db.models import Q
-from django.utils.timezone import make_aware
 
 from .models import JobAssessment, JobAssessmentJob, JobAssessmentResult
 

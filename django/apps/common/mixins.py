@@ -174,3 +174,16 @@ class CUDOutputTypeMixin:
 
         setattr(cls, output_field_name, base_field(cls.output_type))
         return super().__init_subclass_with_meta__(*args, output=cls, return_field_name=output_field_name, **kwargs)
+
+
+class UserContextMixin:
+    user_context_key: str
+
+    @classmethod
+    def get_user_context(cls, request):
+        return getattr(request, cls.user_context_key, request.user)
+
+    @classmethod
+    def set_user_context(cls, request, user):
+        setattr(request, cls.user_context_key, user)
+        return request
