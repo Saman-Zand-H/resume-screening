@@ -6,6 +6,7 @@ from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectT
 
 from django.db.models import Q
 
+from .mixins import JobAssessmentUserContextMixin
 from .models import JobAssessment, JobAssessmentJob, JobAssessmentResult
 
 
@@ -41,7 +42,7 @@ class JobAssessmentJobType(DjangoObjectType):
         )
 
 
-class JobAssessmentType(DjangoObjectType):
+class JobAssessmentType(JobAssessmentUserContextMixin, DjangoObjectType):
     jobs = graphene.List(JobAssessmentJobType)
     results = graphene.List(
         JobAssessmentResultType, filters=graphene.Argument(JobAssessmentResultFilterInput, required=False)
@@ -62,7 +63,7 @@ class JobAssessmentType(DjangoObjectType):
 
     @classmethod
     def get_user(cls, info):
-        return getattr(info.context, "job_assessment_user", info.context.user)
+        return cls.get_user_context(info.context)
 
     def resolve_jobs(self, info):
         interested_jobs = JobAssessmentType.get_user(info).profile.interested_jobs.values_list("pk", flat=True)
