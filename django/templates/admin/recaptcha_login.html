@@ -10,10 +10,10 @@
   function onClick(e) {
     e.preventDefault();
     grecaptcha.enterprise.ready(async () => {
-      const token = await grecaptcha.enterprise.execute('{{ recaptcha_site_key }}', {
-        action: '{{ recaptcha_action }}'
-      });
-      document.getElementById("g-recaptcha-response").value = token;
+      document.getElementById("g-recaptcha-response").value = await grecaptcha.enterprise.execute(
+        '{{ recaptcha_site_key }}', {
+          action: '{{ recaptcha_action }}'
+        });
       document.getElementById("login-form").submit();
     });
   }

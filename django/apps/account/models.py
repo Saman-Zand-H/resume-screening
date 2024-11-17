@@ -25,11 +25,7 @@ from common.models import (
     University,
 )
 from common.states import ChangeStateMixin, GenericState
-from common.utils import (
-    field_serializer,
-    fields_join,
-    get_all_subclasses,
-)
+from common.utils import field_serializer, fields_join, get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -259,6 +255,17 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    class RegistrationType(models.TextChoices):
+        JOB_SEEKER = "job_seeker", _("Job Seeker")
+        ORGANIZATION = "organization", _("Organization")
+
+    registration_type = models.CharField(
+        max_length=50,
+        choices=RegistrationType.choices,
+        default=RegistrationType.JOB_SEEKER.value,
+        verbose_name=_("Registration Type"),
+    )
+
     def get_profile(self) -> "Profile":
         return (
             (profile := getattr(self, Profile.user.field.related_query_name(), None))
@@ -271,10 +278,6 @@ class User(AbstractUser):
         return f"{self.first_name} {self.last_name}"
 
     full_name.fget.verbose_name = _("Full Name")
-
-    @cached_property
-    def user_type(self):
-        return "USER" if self.organizations.count() == 0 else "ORGANIZATION"
 
     @property
     def has_resume(self):
@@ -480,6 +483,14 @@ class UserUploadedDocumentFile(UserFile):
 
     def get_validators(self):
         return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
+
+    def check_auth(self, request):
+        if not request.user.is_authenticated:
+            return False
+        return (
+            super().check_auth(request)
+            or self.uploaded_by.organization_employees.filter(organization__memberships__user=request.user).exists()
+        )
 
 
 class UserUploadedImageFile(UserFile):
@@ -877,6 +888,9 @@ class DocumentVerificationMethodAbstract(models.Model):
 
     def get_document(self):
         return getattr(self, self.DOCUMENT_FIELD)
+
+    def after_create(self, request):
+        pass
 
     def clean(self, *args, **kwargs):
         document = self.get_document()
@@ -1400,8 +1414,6 @@ class ResumeFile(UserUploadedDocumentFile):
         return f"profile/{self.uploaded_by.id}/resume/{filename}"
 
     def check_auth(self, request):
-        if not request.user.is_authenticated:
-            return False
         return (
             super().check_auth(request)
             or self.uploaded_by.job_position_assignments.filter(
@@ -1768,6 +1780,9 @@ class OrganizationCertificateFile(UserUploadedDocumentFile):
     def get_upload_path(self, filename):
         return f"organization/certificate/{self.uploaded_by.id}/{filename}"
 
+    def check_auth(self, request):
+        return request.user == self.uploaded_by
+
     class Meta:
         verbose_name = _("Organization Certificate File")
         verbose_name_plural = _("Organization Certificate Files")
@@ -1795,28 +1810,55 @@ class CommunicateOrganizationMethod(OrganizationVerificationMethodAbstract):
         verbose_name = _("Communicate Organization Method")
         verbose_name_plural = _("Communicate Organization Methods")
 
-    def get_otp_cache_key(self):
+    def get_otp_cache_key(self) -> str:
         return ORGANIZATION_PHONE_OTP_CACHE_KEY % {"organization_id": self.organization.pk}
 
-    def get_otp(self):
-        if otp := cache.get(cache_key := self.get_otp_cache_key()):
-            return otp
+    def get_otp(self) -> Optional[str]:
+        return cache.get(self.get_otp_cache_key())
 
-        cache.set(cache_key, (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
+    get_otp.short_description = _("OTP")
+
+    def generate_otp(self) -> str:
+        cache.set(self.get_otp_cache_key(), (otp := get_phone_otp()), timeout=ORGANIZATION_PHONE_OTP_EXPIRY)
         return otp
 
-    def send_otp(self):
-        otp = self.get_otp()  # noqa
-        # send_sms(self.phonenumber, otp)
+    def get_or_create_otp(self) -> str:
+        if otp := self.get_otp():
+            return otp
+        otp = self.generate_otp()
+        return otp
+
+    def send_otp_sms(self, request):
+        from notification.models import SMSNotification
+        from notification.senders import NotificationContext, send_notifications
+
+        send_notifications(
+            NotificationContext(
+                notification=SMSNotification(
+                    user=request.user,
+                    phone_number=self.phonenumber,
+                    body=render_to_string(
+                        "sms/organization_sms_verification.html",
+                        {"otp": self.get_or_create_otp(), "organization": self.organization},
+                    ),
+                )
+            )
+        )
 
     def verify_otp(self, input_otp: str) -> bool:
-        if cache.get(self.get_otp_cache_key()) != input_otp:
-            return False
+        if (otp := self.get_otp()) and otp == input_otp:
+            cache.delete(self.get_otp_cache_key())
+            self.is_phonenumber_verified = True
+            self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
+            return True
+        return False
 
-        cache.delete(self.get_otp_cache_key())
-        self.is_phonenumber_verified = True
-        self.save(update_fields=[CommunicateOrganizationMethod.is_phonenumber_verified.field.name])
-        return True
+    @property
+    def is_verified(self):
+        return self.is_phonenumber_verified
+
+    def after_create(self, request):
+        self.send_otp_sms(request)
 
 
 class OrganizationMembership(models.Model):
@@ -1909,25 +1951,6 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
         SUSPENDED = "suspended", _("Suspended")
         EXPIRED = "expired", _("Expired")
 
-    class ContractType(models.TextChoices):
-        FULL_TIME = "full_time", _("Full Time")
-        PART_TIME = "part_time", _("Part Time")
-        PERMANENT = "permanent", _("Permanent")
-        FIX_TERM_CONTRACT = "fix_term_contract", _("Fix Term Contract")
-        SEASONAL = "seasonal", _("Seasonal")
-        FREELANCE = "freelance", _("Freelance")
-        APPRENTICESHIP = "apprenticeship", _("Apprenticeship")
-        PRINCE_EDWARD_ISLAND = "prince_edward_island", _("Prince Edward Island")
-        INTERNSHIP_CO_OP = "internship_co_op", _("Internship/Co-op")
-
-    class LocationType(models.TextChoices):
-        PRECISE_LOCATION = "precise_location", _("On-site (Precise Location)")
-        LIMITED_AREA = "limited_area", _("On-site (Within a Limited Area)")
-        REMOTE = "remote", _("Remote")
-        HYBRID = "hybrid", _("Hybrid")
-        ON_THE_ROAD = "on_the_road", _("On the road")
-        GLOBAL = "global", _("Global")
-
     class PaymentTerm(models.TextChoices):
         HOURLY = "hourly", _("Hourly")
         DAILY = "daily", _("Daily")
@@ -1955,7 +1978,7 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
     fields = models.ManyToManyField(Field, verbose_name=_("Fields"), related_name="job_positions", blank=True)
     degrees = ArrayField(
         models.CharField(choices=Education.Degree.choices, max_length=50),
-        verbose_name=_("Degree"),
+        verbose_name=_("Degrees"),
         null=True,
         blank=True,
     )
@@ -1981,13 +2004,13 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
     )
     contract_type = models.CharField(
         max_length=50,
-        choices=ContractType.choices,
+        choices=Profile.JobType.choices,
         verbose_name=_("Contract Type"),
         null=True,
         blank=True,
     )
     location_type = models.CharField(
-        max_length=50, choices=LocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
+        max_length=50, choices=Profile.JobLocationType.choices, verbose_name=_("Location Type"), null=True, blank=True
     )
     salary_range = IntegerRangeField(verbose_name=_("Salary Range"), null=True, blank=True)
     payment_term = models.CharField(
@@ -2432,6 +2455,19 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
                 _("Job Position Assignment's job seeker must be the same as Organization Employee's user.")
             )
 
+        # TODO: test below before commit
+        if (
+            OrganizationEmployeeCooperation.objects.filter(
+                employee__user=self.employee.user,
+                status__in=[self.Status.AWAITING, self.Status.ACTIVE, self.Status.SUSPENDED],
+            )
+            .exclude(
+                employee=self.employee,
+            )
+            .exists()
+        ):
+            raise ValidationError(_("Employee already has an active cooperation."))
+
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
@@ -2609,6 +2645,24 @@ class EmployeePlatformMessage(PlatformMessage):
 
     def __str__(self):
         return f"{self.organization_employee_cooperation} - {self.title}"
+
+
+class OrganizationPlatformMessageLink(models.Model):
+    organization_platform_message = models.ForeignKey(
+        OrganizationPlatformMessage,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Platform Message"),
+        related_name="links",
+    )
+    text = models.CharField(max_length=255, verbose_name=_("Text"))
+    url = models.URLField(verbose_name=_("URL"))
+
+    class Meta:
+        verbose_name = _("Organization Platform Message Link")
+        verbose_name_plural = _("Organization Platform Message Links")
+
+    def __str__(self):
+        return f"{self.organization_platform_message} - {self.text}"
 
 
 class OrganizationEmployeePerformanceReport(models.Model):

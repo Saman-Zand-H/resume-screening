@@ -61,17 +61,16 @@ class JobAssessmentType(DjangoObjectType):
             JobAssessment.resumable.field.name,
         )
 
+    @classmethod
+    def get_user(cls, info):
+        return getattr(info.context, "job_assessment_user", info.context.user)
+
     def resolve_jobs(self, info):
-        user = info.context.user
-        interested_jobs = user.profile.interested_jobs.values_list("pk", flat=True)
+        interested_jobs = JobAssessmentType.get_user(info).profile.interested_jobs.values_list("pk", flat=True)
         return self.job_assessment_jobs.filter(job__in=interested_jobs)
 
-    @classmethod
-    def fix_date(cls, date, time):
-        return make_aware(datetime.datetime.combine(date, time))
-
     def resolve_results(self, info, filters=None):
-        user = info.context.user
+        user = JobAssessmentType.get_user(info)
         if not user:
             return []
 
@@ -80,30 +79,17 @@ class JobAssessmentType(DjangoObjectType):
             user=user,
             status=JobAssessmentResult.Status.COMPLETED,
         )
+
         filter_conditions = Q()
-        fix_date = JobAssessmentType.fix_date
         if filters:
-            filter_conditions = (
-                Q(job_assessment=self, user=user)
-                & Q(
-                    created_at__range=(
-                        fix_date(filters.created_at_start, datetime.time.min),
-                        fix_date(filters.created_at_end, datetime.time.max),
-                    )
-                )
-                & Q(
-                    updated_at__range=(
-                        fix_date(filters.updated_at_start, datetime.time.min),
-                        fix_date(filters.updated_at_end, datetime.time.max),
-                    )
-                )
+            filter_conditions = Q(created_at__date__range=(filters.created_at_start, filters.created_at_end)) & Q(
+                updated_at__date__range=(filters.updated_at_start, filters.updated_at_end)
             )
+
         return results.filter(filter_conditions).order_by(f"-{JobAssessmentResult.updated_at.field.name}")
 
     def resolve_can_retry(self, info):
-        user = info.context.user
-        return self.can_start(user)[0]
+        return self.can_start(JobAssessmentType.get_user(info))[0]
 
     def resolve_required(self, info):
-        user = info.context.user
-        return self.is_required(user.profile.interested_jobs.all())
+        return self.is_required(JobAssessmentType.get_user(info).profile.interested_jobs.all())

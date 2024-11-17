@@ -77,6 +77,7 @@ from .models import (
     OrganizationJobPosition,
     OrganizationMembership,
     OrganizationPlatformMessage,
+    OrganizationPlatformMessageLink,
     PaystubsFile,
     PaystubsMethod,
     Profile,
@@ -131,6 +132,7 @@ class JobSeekerEducationType(DjangoObjectType):
             Education.start.field.name,
             Education.end.field.name,
             Education.status.field.name,
+            *(m.get_related_name() for m in Education.get_method_models()),
         )
 
 
@@ -146,6 +148,7 @@ class JobSeekerWorkExperienceType(DjangoObjectType):
             WorkExperience.start.field.name,
             WorkExperience.end.field.name,
             WorkExperience.status.field.name,
+            *(m.get_related_name() for m in WorkExperience.get_method_models()),
         )
 
 
@@ -159,6 +162,7 @@ class JobSeekerLanguageCertificateType(DjangoObjectType):
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.status.field.name,
+            *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
 
 
@@ -172,6 +176,7 @@ class JobSeekerCertificateAndLicenseType(DjangoObjectType):
             CertificateAndLicense.issued_at.field.name,
             CertificateAndLicense.expired_at.field.name,
             CertificateAndLicense.status.field.name,
+            *(m.get_related_name() for m in CertificateAndLicense.get_method_models()),
         )
 
 
@@ -319,6 +324,7 @@ class EmployeeType(DjangoObjectType):
 
     def resolve_job_assessments(self, info, filters=None):
         qs = JobAssessment.objects.related_to_user(self)
+        info.context.job_assessment_user = self
         if filters:
             if filters.required is not None:
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
@@ -1159,6 +1165,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessage.text.field.name,
             OrganizationPlatformMessage.read_at.field.name,
             OrganizationPlatformMessage.created_at.field.name,
+            OrganizationPlatformMessageLink.organization_platform_message.field.related_query_name(),
         )
 
         filter_fields = {
@@ -1178,6 +1185,16 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
                     OrganizationMembership.user,
                 ): user
             }
+        )
+
+
+class OrganizationPlatformMessageLinkType(DjangoObjectType):
+    class Meta:
+        model = OrganizationPlatformMessageLink
+        fields = (
+            OrganizationPlatformMessageLink.id.field.name,
+            OrganizationPlatformMessageLink.text.field.name,
+            OrganizationPlatformMessageLink.url.field.name,
         )
 
 

@@ -69,7 +69,7 @@ class ArrayChoiceTypeMixin:
 
     @classmethod
     def handle_array_choice_field(cls, value, *args, **kwargs):
-        return [v.value for v in value]
+        return [v.value for v in (value or [])]
 
 
 class FilePermissionMixin:
