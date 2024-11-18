@@ -50,7 +50,7 @@ from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
 from django.db.models.functions import Lower
-from django.db.models.lookups import IExact, In
+from django.db.models.lookups import Exact, IExact, In
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -973,7 +973,7 @@ class WorkExperienceSetVerificationMethodMutation(
                 "type": "WorkExperienceEmployerLetterMethodInput",
                 "many_to_one_extras": {
                     ReferenceCheckEmployer.work_experience_verification.field.related_query_name(): {
-                        "exact": {"type": "auto"},
+                        Exact.lookup_name: {"type": "auto"},
                     },
                 },
             }
@@ -1038,7 +1038,7 @@ class LanguageCertificateCreateMutation(CUDOutputTypeMixin, DocumentCreateMutati
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
         many_to_one_extras = {
             LanguageCertificateValue.language_certificate.field.related_query_name(): {
-                "exact": {
+                Exact.lookup_name: {
                     "type": "auto",
                 }
             }
@@ -1069,7 +1069,7 @@ class LanguageCertificateUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutatio
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
         many_to_one_extras = {
             LanguageCertificateValue.language_certificate.field.related_query_name(): {
-                "exact": {
+                Exact.lookup_name: {
                     "type": "auto",
                 }
             }

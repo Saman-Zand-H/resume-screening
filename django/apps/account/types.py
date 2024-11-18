@@ -40,7 +40,14 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.lookups import In, IsNull
+from django.db.models.lookups import (
+    Exact,
+    GreaterThanOrEqual,
+    IContains,
+    In,
+    IsNull,
+    LessThanOrEqual,
+)
 
 from .accesses import (
     JobPositionContainer,
@@ -1018,15 +1025,15 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             JobPositionAssignment.job_position.field.related_query_name(),
         )
         filter_fields = {
-            OrganizationJobPosition.organization.field.name: ["exact"],
-            OrganizationJobPosition.title.field.name: ["icontains"],
-            OrganizationJobPosition.status.field.name: ["exact"],
-            OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
-            OrganizationJobPosition.city.field.name: ["exact"],
+            OrganizationJobPosition.organization.field.name: [Exact.lookup_name],
+            OrganizationJobPosition.title.field.name: [IContains.lookup_name],
+            OrganizationJobPosition.status.field.name: [Exact.lookup_name],
+            OrganizationJobPosition.start_at.field.name: [LessThanOrEqual.lookup_name, GreaterThanOrEqual.lookup_name],
+            OrganizationJobPosition.city.field.name: [Exact.lookup_name],
             fields_join(
                 JobPositionAssignment.job_position.field.related_query_name(),
                 JobPositionAssignment.status.field.name,
-            ): ["exact"],
+            ): [Exact.lookup_name],
         }
 
     def resolve_status(self, info):
@@ -1149,7 +1156,7 @@ class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObje
         )
 
         filter_fields = {
-            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: ["exact"],
+            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: [Exact.lookup_name],
         }
 
     @classmethod
@@ -1183,7 +1190,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
         filter_fields = {
-            OrganizationPlatformMessage.organization_employee_cooperation.field.name: ["exact"],
+            OrganizationPlatformMessage.organization_employee_cooperation.field.name: [Exact.lookup_name],
         }
 
     @classmethod

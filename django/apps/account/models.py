@@ -47,13 +47,22 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField, IntegerRangeField
+from django.contrib.postgres.lookups import Overlap
 from django.core import checks
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models.constraints import UniqueConstraint
-from django.db.models.lookups import In, IsNull, LessThan
+from django.db.models.lookups import (
+    Exact,
+    GreaterThanOrEqual,
+    IExact,
+    In,
+    IsNull,
+    LessThan,
+    LessThanOrEqual,
+)
 from django.http import HttpRequest
 from django.template.loader import render_to_string
 from django.templatetags.static import static
@@ -749,25 +758,25 @@ class Profile(ComputedFieldsModel):
     @classmethod
     def flex_report_search_fields(cls):
         return {
-            cls.birth_date.field.name: ["gte", "lte"],
-            cls.email.field.name: ["iexact"],
-            cls.gender.field.name: ["exact"],
-            fields_join(cls.city, City.country): ["in", "iexact"],
-            ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: ["exact"],
-            ProfileAnnotationNames.HAS_EDUCATION: ["exact"],
-            ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: ["exact"],
-            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: ["exact"],
-            ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE: ["exact"],
-            ProfileAnnotationNames.HAS_CERTIFICATE: ["exact"],
-            ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: ["exact"],
-            ProfileAnnotationNames.HAS_CANADA_VISA: ["exact"],
-            ProfileAnnotationNames.DATE_JOINED: ["gte", "lte"],
-            ProfileAnnotationNames.LAST_LOGIN: ["gte", "lte"],
-            ProfileAnnotationNames.COMPLETED_STAGES: ["overlap"],
-            ProfileAnnotationNames.INCOMPLETE_STAGES: ["overlap"],
-            ProfileAnnotationNames.HAS_PROFILE_INFORMATION: ["exact"],
-            ProfileAnnotationNames.HAS_RESUME: ["exact"],
-            ProfileAnnotationNames.HAS_INTERESTED_JOBS: ["exact"],
+            cls.birth_date.field.name: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
+            cls.email.field.name: [IExact.lookup_name],
+            cls.gender.field.name: [Exact.lookup_name],
+            fields_join(cls.city, City.country): ["in", IExact.lookup_name],
+            ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_EDUCATION: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_WORK_EXPERIENCE: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_CERTIFICATE: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_CANADA_VISA: [Exact.lookup_name],
+            ProfileAnnotationNames.DATE_JOINED: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
+            ProfileAnnotationNames.LAST_LOGIN: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
+            ProfileAnnotationNames.COMPLETED_STAGES: [Overlap.lookup_name],
+            ProfileAnnotationNames.INCOMPLETE_STAGES: [Overlap.lookup_name],
+            ProfileAnnotationNames.HAS_PROFILE_INFORMATION: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_RESUME: [Exact.lookup_name],
+            ProfileAnnotationNames.HAS_INTERESTED_JOBS: [Exact.lookup_name],
         }
 
     @staticmethod
