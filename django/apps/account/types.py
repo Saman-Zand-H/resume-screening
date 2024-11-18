@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from academy.mixins import CourseUserContextMixin
 from academy.types import CourseNode
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
@@ -16,6 +17,7 @@ from common.types import (
     UniversityNode,
 )
 from common.utils import fields_join
+from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
@@ -332,11 +334,15 @@ class EmployeeType(DjangoObjectType):
 
     def resolve_job_assessments(self, info, filters=None):
         qs = JobAssessment.objects.related_to_user(self)
-        info.context.job_assessment_user = self
+        JobAssessmentUserContextMixin.set_user_context(info.context, self)
         if filters:
             if filters.required is not None:
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
+
+    def resolve_courses(self, info):
+        CourseUserContextMixin.set_user_context(info.context, self)
+        return CourseNode._meta.model.objects
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
