@@ -3,7 +3,6 @@ from typing import Optional
 from flex_blob.models import FileModel as BaseFileModel
 from flex_eav.models import EavAttribute
 
-from common.utils import fields_join
 from django.contrib.postgres.fields import ArrayField
 from django.core import checks
 from django.db import models
@@ -91,9 +90,13 @@ class SkillTopic(models.Model):
 
 class SkillQuerySet(models.QuerySet):
     def system(self):
+        from common.utils import fields_join
+
         return self.filter(**{fields_join(Skill.insert_type): Skill.InsertType.SYSTEM})
 
     def ai(self):
+        from common.utils import fields_join
+
         return self.filter(**{fields_join(Skill.insert_type): Skill.InsertType.AI})
 
 
