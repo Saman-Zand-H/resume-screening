@@ -40,6 +40,7 @@ from django.db.models import (
     Value,
     When,
 )
+from django.db.models.lookups import In, IsNull
 
 from .accesses import (
     JobPositionContainer,
@@ -380,7 +381,15 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             JobNode.get_queryset(JobNode._meta.model.objects.all(), info)
             .annotate(
                 _priority=Case(
-                    When(id__in=self.available_jobs.values("pk"), then=Value(1)),
+                    When(
+                        **{
+                            fields_join(
+                                Job._meta.pk.attname,
+                                In.lookup_name,
+                            ): self.available_jobs.values(Job._meta.pk.attname)
+                        },
+                        then=Value(1),
+                    ),
                     default=Value(2),
                     output_field=IntegerField(),
                 )
@@ -760,10 +769,13 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
     def resolve_accessed_roles(self, info):
         return Role.objects.filter(
             (
-                Q(managed_by_id=self.organization_id)
-                & Q(managed_by_model=ContentType.objects.get_for_model(Organization))
+                Q(**{fields_join(Role.managed_by_id): self.organization_id})
+                & Q(**{fields_join(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
             )
-            | (Q(managed_by_id__isnull=True) & Q(managed_by_model__isnull=True)),
+            | (
+                Q(**{fields_join(Role.managed_by_id, IsNull.lookup_name): True})
+                & Q(**{fields_join(Role.managed_by_model, IsNull): True})
+            ),
         ).distinct()
 
     @classmethod
@@ -784,7 +796,7 @@ class UserTaskType(DjangoObjectType):
     @login_required
     def get_queryset(cls, queryset: QuerySet[UserTask], info):
         return (
-            queryset.filter(user=info.context.user)
+            queryset.filter(**{fields_join(UserTask.user): info.context.user})
             .order_by(fields_join(UserTask.task_name), f"-{fields_join(UserTask.created)}")
             .distinct(fields_join(UserTask.task_name))
         )
@@ -853,7 +865,9 @@ class UserNode(BaseUserNode):
         return self.cv if hasattr(self, "cv") else None
 
     def resolve_notifications(self, info):
-        return InAppNotification.objects.filter(user=self).order_by("-created")
+        return InAppNotification.objects.filter(**{fields_join(InAppNotification.user): self}).order_by(
+            f"-{fields_join(InAppNotification.created)}"
+        )
 
 
 class OrganizationType(DjangoObjectType):
@@ -935,7 +949,7 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
 
     def resolve_assignment_status_counts(self, info, **kwargs):
         status_counts = (
-            JobPositionAssignment.objects.filter(job_position=self)
+            JobPositionAssignment.objects.filter(**{fields_join(JobPositionAssignment.job_position): self})
             .values(
                 JobPositionAssignment.status.field.name,
             )
@@ -1249,9 +1263,15 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
             .annotate(
                 last_cooperation_status=Subquery(
                     (
-                        OrganizationEmployeeCooperation.objects.filter(employee=OuterRef("pk"))
-                        .order_by("-id")
-                        .values("status")[:1]
+                        OrganizationEmployeeCooperation.objects.filter(
+                            **{
+                                fields_join(OrganizationEmployeeCooperation.employee): OuterRef(
+                                    OrganizationEmployeeCooperation._meta.pk.attname
+                                )
+                            }
+                        )
+                        .order_by(f"-{OrganizationEmployeeCooperation._meta.pk.attname}")
+                        .values(fields_join(OrganizationEmployeeCooperation.status))[:1]
                     )
                 ),
                 status_order=Case(

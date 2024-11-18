@@ -19,6 +19,8 @@ from twilio.rest import Client
 from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMessage
+from django.db.models import Model, QuerySet
+from django.db.models.lookups import In
 from django.utils import timezone
 
 from .constants import NotificationTypes
@@ -283,15 +285,17 @@ def send_notifications(*notifications: NotificationContext[Notification], **kwar
 
 @register_task([NotificationSubscription.CAMPAIGN])
 def send_campaign_notifications(campaign_id: int, pks=None):
-    campaign = Campaign.objects.filter(pk=campaign_id).first()
+    campaign = Campaign.objects.filter(**{Campaign._meta.pk.attname: campaign_id}).first()
 
     if not campaign:
         return
 
     campaign_notification_types = campaign.get_campaign_notification_types()
-    report_qs = campaign.saved_filter.get_queryset()
+    report_qs: QuerySet = campaign.saved_filter.get_queryset()
+    model: Model = report_qs.model
     if pks is not None:
-        report_qs = report_qs.filter(pk__in=pks)
+        report_qs = report_qs.filter(**{fields_join(model._meta.pk.attname, In.lookup_name): pks})
+
     if not report_qs.exists():
         return
 

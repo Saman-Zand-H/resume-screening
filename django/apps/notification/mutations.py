@@ -4,6 +4,7 @@ from graphene_django_cud.mutations import DjangoBatchPatchMutation
 from graphql_jwt.decorators import login_required
 from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 
+from django.db.models.lookups import In, IsNull
 from django.utils import timezone
 from notification.models import InAppNotification, UserPushNotificationToken
 
@@ -20,7 +21,12 @@ class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
     @classmethod
     def before_mutate(cls, root, info, input):
         ids = [item["id"] for item in input]
-        not_set_ids = InAppNotification.objects.filter(id__in=ids, read_at__isnull=True).values_list("id", flat=True)
+        not_set_ids = InAppNotification.objects.filter(
+            **{
+                fields_join(InAppNotification._meta.pk.attname, In.lookup_name): ids,
+                fields_join(InAppNotification.read_at, IsNull.lookup_name): True,
+            }
+        ).values_list("id", flat=True)
         for item in input:
             if int(item["id"]) in not_set_ids:
                 item["read_at"] = timezone.now()

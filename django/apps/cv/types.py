@@ -1,3 +1,4 @@
+from common.utils import fields_join
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from .models import CVTemplate, GeneratedCV, GeneratedCVContent
@@ -17,7 +18,7 @@ class CVTemplateNode(DjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        return super().get_queryset(queryset, info).filter(is_active=True)
+        return super().get_queryset(queryset, info).filter(**{fields_join(CVTemplate.is_active): True})
 
 
 class GeneratedCVNode(DjangoObjectType):

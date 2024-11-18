@@ -1,6 +1,9 @@
+from common.utils import fields_join
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
-from graphql_jwt.decorators import login_required
 from graphql_auth.queries import CountableConnection
+from graphql_jwt.decorators import login_required
+
+from django.db.models.lookups import Exact
 
 from .models import Course, CourseResult
 
@@ -20,7 +23,7 @@ class CourseNode(DjangoObjectType):
             CourseResult.course.field.related_query_name(),
         )
         filter_fields = {
-            Course.type.field.name: ["exact"],
+            Course.type.field.name: [Exact.lookup_name],
         }
 
     @classmethod
@@ -45,8 +48,11 @@ class CourseResultType(DjangoObjectType):
         )
 
         filter_fields = {
-            f"{CourseResult.course.field.name}__{Course.type.field.name}": ["exact"],
-            CourseResult.status.field.name: ["exact"],
+            fields_join(
+                CourseResult.course,
+                Course.type,
+            ): [Exact.lookup_name],
+            fields_join(CourseResult.status): [Exact.lookup_name],
         }
 
     @classmethod
@@ -54,4 +60,4 @@ class CourseResultType(DjangoObjectType):
         user = info.context.user
         if not user:
             return queryset.none()
-        return super().get_queryset(queryset, info).filter(user=user)
+        return super().get_queryset(queryset, info).filter(**{fields_join(CourseResult.user): user})

@@ -51,6 +51,10 @@ class ProfileAnnotationNames(NamedTuple):
     HAS_INCOMPLETE_STAGES = "has_incomplete_stages"
 
 
+class OrganizationEmployeeAnnotationNames(NamedTuple):
+    USER_FULL_NAME = "full_name"
+
+
 STAGE_ANNOTATIONS = [
     ProfileAnnotationNames.HAS_RESUME,
     ProfileAnnotationNames.HAS_PROFILE_INFORMATION,

@@ -17,6 +17,7 @@ from django.contrib.postgres.expressions import ArraySubquery
 from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
+from django.db.models.lookups import In
 
 from .assistants import DocumentDataAnalysisAssistant, DocumentValidationAssistant
 from .constants import FileSlugs, VectorStores
@@ -131,14 +132,16 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         WorkExperience,
     )
 
-    user = User.objects.filter(pk=user_id).first()
+    user = User.objects.filter(**{User._meta.pk.attname: user_id}).first()
     if not user:
         return {}
 
     profile: Profile = user.profile
     certifications = CertificateAndLicense.objects.filter(
-        user=user,
-        status__in=CertificateAndLicense.get_verified_statuses(),
+        **{
+            fields_join(CertificateAndLicense.user): user,
+            fields_join(CertificateAndLicense.status, In.lookup_name): CertificateAndLicense.get_verified_statuses(),
+        },
     ).values(
         CertificateAndLicense.certificate_text.field.name,
         CertificateAndLicense.title.field.name,
@@ -146,10 +149,12 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         CertificateAndLicense.certifier.field.name,
     )
     work_experiences = WorkExperience.objects.filter(
-        user=user,
-        status__in=WorkExperience.get_verified_statuses()
-        if verified_work_experiences
-        else map(attrgetter("value"), WorkExperience.Status),
+        **{
+            fields_join(WorkExperience.user): user,
+            fields_join(WorkExperience.status, In.lookup_name): WorkExperience.get_verified_statuses()
+            if verified_work_experiences
+            else map(attrgetter("value"), WorkExperience.Status),
+        },
     ).values(
         WorkExperience.job_title.field.name,
         WorkExperience.organization.field.name,
@@ -174,8 +179,10 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         )
     )
     language_certificates = LanguageCertificate.objects.filter(
-        user=user,
-        status__in=LanguageCertificate.get_verified_statuses(),
+        **{
+            fields_join(LanguageCertificate.user): user,
+            fields_join(LanguageCertificate.status, In.lookup_name): LanguageCertificate.get_verified_statuses(),
+        }
     ).values(
         fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
         LanguageCertificate.language.field.name,
@@ -184,10 +191,12 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
     )
 
     educations = Education.objects.filter(
-        user=user,
-        status__in=Education.get_verified_statuses()
-        if verified_educations
-        else map(attrgetter("value"), Education.Status),
+        **{
+            fields_join(Education.user): user,
+            fields_join(Education.status, In.lookup_name): Education.get_verified_statuses()
+            if verified_educations
+            else map(attrgetter("value"), Education.Status),
+        }
     ).values(
         Education.degree.field.name,
         fields_join(Education.university, University.name),
@@ -235,7 +244,13 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
         ]
     )
     if message:
-        return Job.objects.filter(pk__in=[j["pk"] for j in service.message_to_json(message)])
+        return Job.objects.filter(
+            **{
+                fields_join(Job._meta.pk.attname, In.lookup_name): [
+                    j[Job._meta.pk.attname] for j in service.message_to_json(message)
+                ]
+            }
+        )
 
     return Job.objects.none()
 
@@ -303,15 +318,23 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
                 get_or_create_skills["new_skills"],
             )
 
-            existing_skills = Skill.objects.filter(pk__in=[match.get("pk") for match in existing_skill_matches])
+            existing_skills = Skill.objects.filter(
+                **{
+                    fields_join(Skill._meta.pk.attname, In.lookup_name): [
+                        match.get("pk") for match in existing_skill_matches
+                    ]
+                }
+            )
             created_skills = Skill.objects.filter(
-                pk__in=[
-                    Skill.objects.get_or_create(
-                        title=skill_name,
-                        defaults={Skill.insert_type.field.name: Skill.InsertType.AI},
-                    )[0].pk
-                    for skill_name in new_skill_matches
-                ]
+                **{
+                    fields_join(Skill._meta.pk.attname, In.lookup_name): [
+                        Skill.objects.get_or_create(
+                            **{fields_join(Skill.title): skill_name},
+                            defaults={fields_join(Skill.insert_type): Skill.InsertType.AI},
+                        )[0].pk
+                        for skill_name in new_skill_matches
+                    ]
+                }
             )
             existing_skills = (existing_skills | created_skills).distinct()
 

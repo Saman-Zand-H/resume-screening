@@ -53,9 +53,10 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models.constraints import UniqueConstraint
+from django.db.models.lookups import In, IsNull, LessThan
+from django.http import HttpRequest
 from django.template.loader import render_to_string
 from django.templatetags.static import static
-from django.utils.functional import cached_property
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
@@ -342,9 +343,9 @@ class User(AbstractUser):
         organization_contacts = (
             Contact.objects.filter(
                 **{
-                    fields_join(Contact.contactable, "in"): Contactable.objects.filter(
+                    fields_join(Contact.contactable, In.lookup_name): Contactable.objects.filter(
                         **{
-                            fields_join(Organization.contactable, "in"): getattr(
+                            fields_join(Organization.contactable, In.lookup_name): getattr(
                                 self, Organization.user.field.related_query_name()
                             ).all()
                         }
@@ -357,7 +358,7 @@ class User(AbstractUser):
 
         return (
             (profile_contacts | organization_contacts)
-            .filter(**{Contact.type.field.name: contact_type, fields_join(Contact.value, "isnull"): False})
+            .filter(**{Contact.type.field.name: contact_type, fields_join(Contact.value, IsNull.lookup_name): False})
             .distinct()
         )
 
@@ -451,13 +452,14 @@ class UserFile(FileModel):
     @classmethod
     def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:
         return cls.objects.filter(
-            uploaded_by=user, **{field.field.related_query_name(): None for field in cls.get_related_fields()}
+            **{fields_join(cls.uploaded_by): user},
+            **{field.field.related_query_name(): None for field in cls.get_related_fields()},
         ).first()
 
     @classmethod
     def is_used(cls, user: User) -> bool:
         return (
-            cls.objects.filter(uploaded_by=user)
+            cls.objects.filter(**{fields_join(cls.uploaded_by): user})
             .exclude(**{field.field.related_query_name(): None for field in cls.get_related_fields()})
             .exists()
         )
@@ -465,7 +467,7 @@ class UserFile(FileModel):
     @classmethod
     @transaction.atomic
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
-        obj = cls(uploaded_by=user, file=file)
+        obj = cls(**{fields_join(cls.uploaded_by): user, fields_join(cls.file): file})
         obj.full_clean()
         obj.save()
         return obj
@@ -484,12 +486,22 @@ class UserUploadedDocumentFile(UserFile):
     def get_validators(self):
         return [DOCUMENT_FILE_EXTENSION_VALIDATOR, DOCUMENT_FILE_SIZE_VALIDATOR]
 
-    def check_auth(self, request):
+    def check_auth(self, request: HttpRequest):
         if not request.user.is_authenticated:
             return False
+
         return (
-            super().check_auth(request)
-            or self.uploaded_by.organization_employees.filter(organization__memberships__user=request.user).exists()
+            super().check_auth()
+            or OrganizationEmployee.objects.filter(
+                **{
+                    fields_join(OrganizationEmployee.user): self.uploaded_by,
+                    fields_join(
+                        OrganizationEmployee.organization,
+                        OrganizationMembership.organization.field.related_query_name(),
+                        OrganizationMembership.user,
+                    ): request.user,
+                }
+            ).exists()
         )
 
 
@@ -513,10 +525,19 @@ class AvatarFile(UserUploadedImageFile):
     def check_auth(self, request):
         if not request.user.is_authenticated:
             return False
+
         return (
-            super().check_auth(request)
-            or self.uploaded_by.job_position_assignments.filter(
-                job_position__organization__memberships__user=request.user
+            super().check_auth()
+            or JobPositionAssignment.objects.filter(
+                **{
+                    fields_join(JobPositionAssignment.job_seeker): self.uploaded_by,
+                    fields_join(
+                        JobPositionAssignment.job_position,
+                        OrganizationJobPosition.organization,
+                        OrganizationMembership.organization.field.related_query_name(),
+                        OrganizationMembership.user,
+                    ): request.user,
+                }
             ).exists()
         )
 
@@ -681,20 +702,32 @@ class Profile(ComputedFieldsModel):
         ],
     )
     def credits(self):
+        from graphql_auth.models import UserStatus
+
         _credits = 0
+        early_users_pks = User.objects.order_by(fields_join(User.date_joined))[:EARLY_USERS_COUNT].values_list(
+            User._meta.pk.attname,
+            flat=True,
+        )
         is_early_user = (
-            User.objects.filter(
-                id__in=User.objects.order_by(User.date_joined.field.name)[:EARLY_USERS_COUNT].values_list(
-                    "pk", flat=True
-                )
-            )
-            .filter(id=self.user.id)
+            User.objects.filter(**{fields_join(User._meta.pk.attname, In.lookup_name): early_users_pks})
+            .filter(**{fields_join(self._meta.pk.attname): self.user.pk})
             .exists()
         )
+
         with contextlib.suppress(ObjectDoesNotExist):
-            _credits += self.user.referral.referred_users.filter(user__status__verified=True).count() * (
-                150 if is_early_user else 100
+            verified_referrals = ReferralUser.objects.filter(
+                **{
+                    fields_join(ReferralUser.referral, Referral.user): self.user,
+                    fields_join(
+                        ReferralUser.user,
+                        UserStatus.user.field.related_query_name(),
+                        UserStatus.verified,
+                    ): User.Status.VERIFIED.value,
+                }
             )
+            _credits += verified_referrals.count() * (150 if is_early_user else 100)
+
         return _credits
 
     @property
@@ -781,7 +814,11 @@ class Profile(ComputedFieldsModel):
 
     @property
     def job_type(self):
-        return Profile.objects.filter(pk=self.pk).values_list(Profile.job_type.fget.annotation_name, flat=True).first()
+        return (
+            Profile.objects.filter(**{Profile._meta.pk.attname: self.pk})
+            .values_list(Profile.job_type.fget.annotation_name, flat=True)
+            .first()
+        )
 
     @job_type.setter
     def job_type(self, value: List[JobType]):
@@ -792,9 +829,7 @@ class Profile(ComputedFieldsModel):
     @property
     def job_location_type(self):
         return (
-            Profile.objects.filter(
-                pk=self.pk,
-            )
+            Profile.objects.filter(**{Profile._meta.pk.attname: self.pk})
             .values_list(Profile.job_location_type.fget.annotation_name, flat=True)
             .first()
         )
@@ -1162,7 +1197,13 @@ class LanguageCertificate(DocumentAbstract, HasDurationMixin):
 
     @property
     def scores(self):
-        return ", ".join(f"{skill}: {score}" for skill, score in self.values.values_list("skill__skill_name", "value"))
+        return ", ".join(
+            f"{skill}: {score}"
+            for skill, score in self.values.values_list(
+                fields_join(LanguageCertificateValue.skill, LanguageProficiencySkill.skill_name),
+                fields_join(LanguageCertificateValue.value),
+            )
+        )
 
     scores.fget.verbose_name = _("Scores")
 
@@ -1416,8 +1457,15 @@ class ResumeFile(UserUploadedDocumentFile):
     def check_auth(self, request):
         return (
             super().check_auth(request)
-            or self.uploaded_by.job_position_assignments.filter(
-                job_position__organization__memberships__user=request.user
+            or JobPositionAssignment.objects.filter(
+                **{
+                    fields_join(
+                        JobPositionAssignment.job_position,
+                        OrganizationJobPosition.organization,
+                        OrganizationMembership.organization.field.related_query_name(),
+                        OrganizationMembership.user,
+                    ): request.user,
+                }
             ).exists()
         )
 
@@ -2059,8 +2107,10 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
 
     @classmethod
     def set_expiry(cls):
-        expired_job_positions = cls.objects.filter(validity_date__lt=now().date()).exclude(status=cls.Status.EXPIRED)
-        expired_job_positions.update(status=cls.Status.EXPIRED)
+        expired_job_positions = cls.objects.filter(
+            **{fields_join(cls.validity_date, LessThan.lookup_name): now().date()}
+        ).exclude(**{fields_join(cls.status): cls.Status.EXPIRED})
+        expired_job_positions.update(**{fields_join(cls.status): cls.Status.EXPIRED})
         for job_position in expired_job_positions:
             job_position.set_status_history()
 
@@ -2399,10 +2449,16 @@ class AccptedState(GenericState):
 
 class OrganizationEmployee(TimeStampedModel):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name=_("User"), related_name="organization_employees"
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_("User"),
+        related_name="organization_employees",
     )
     organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, verbose_name=_("Organization"), related_name="organization_employees"
+        Organization,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization"),
+        related_name="organization_employees",
     )
 
     class Meta:
@@ -2458,11 +2514,19 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         # TODO: test below before commit
         if (
             OrganizationEmployeeCooperation.objects.filter(
-                employee__user=self.employee.user,
-                status__in=[self.Status.AWAITING, self.Status.ACTIVE, self.Status.SUSPENDED],
+                **{
+                    fields_join(
+                        OrganizationEmployeeCooperation.employee, OrganizationEmployee.user
+                    ): self.employee.user,
+                    fields_join(OrganizationEmployeeCooperation.status, In.lookup_name): [
+                        self.Status.AWAITING,
+                        self.Status.ACTIVE,
+                        self.Status.SUSPENDED,
+                    ],
+                }
             )
             .exclude(
-                employee=self.employee,
+                **{fields_join(OrganizationEmployeeCooperation.employee): self.employee},
             )
             .exists()
         ):

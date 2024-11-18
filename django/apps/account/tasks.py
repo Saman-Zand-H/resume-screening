@@ -18,7 +18,7 @@ from notification.senders import NotificationContext, send_notifications
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.mail import EmailMessage
-from django.db.models.lookups import In
+from django.db.models.lookups import In, IsNull, LessThanOrEqual
 from django.utils import timezone
 
 from .typing import ResumeJson
@@ -42,10 +42,12 @@ def self_verify_documents():
 
     for model in self_verifiable_models:
         model.objects.filter(
-            status=DocumentAbstract.Status.SUBMITTED,
-            updated_at__lte=timezone.now() - timedelta(days=7),
-            allow_self_verification=True,
-        ).update(status=DocumentAbstract.Status.SELF_VERIFIED)
+            **{
+                fields_join(model.status): DocumentAbstract.Status.SUBMITTED,
+                fields_join(model.updated_at, LessThanOrEqual.lookup_name): timezone.now() - timedelta(days=7),
+                fields_join(model.allow_self_verification): True,
+            }
+        ).update(**{fields_join(model.status): DocumentAbstract.Status.SELF_VERIFIED})
 
 
 @register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "0 0 * * *"})
@@ -58,7 +60,8 @@ def set_expiry():
 @register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "*/30 * * * *"})
 def clean_revoked_tokens():
     (
-        UserRefreshToken.objects.expired().filter(expired=True) | UserRefreshToken.objects.filter(revoked__isnull=False)
+        UserRefreshToken.objects.expired().filter(**{fields_join(UserRefreshToken.expired): True})
+        | UserRefreshToken.objects.filter(**{fields_join(UserRefreshToken.revoked, IsNull.lookup_name): False})
     ).delete()
 
 
@@ -73,15 +76,15 @@ def user_task_decorator(timeout_seconds: int) -> Callable:
 
         @wraps(func)
         def inner_wrapper(*args: Tuple[Any], **kwargs: Dict[str, Any]):
-            from .models import UserTask
+            from .models import User, UserTask
 
             task_user_id = kwargs.pop("task_user_id", None)
-            if not (user := get_user_model().objects.filter(pk=task_user_id).first()):
+            if not (user := get_user_model().objects.filter(**{User._meta.pk.attname: task_user_id}).first()):
                 logger.info(f"Running task {task_name}: user {task_user_id} not found.")
                 (
-                    user_task := UserTask.objects.filter(user_id=task_user_id, task_name=task_name).latest(
-                        UserTask.created
-                    )
+                    user_task := UserTask.objects.filter(
+                        **{UserTask.user.field.attname: task_user_id, fields_join(UserTask.task_name): task_name}
+                    ).latest(UserTask.created)
                 ) and user_task.change_status(UserTask.Status.FAILED, "User not found.")
                 return
 
@@ -163,7 +166,7 @@ def get_certificate_text(certificate_id: int) -> bool:
         )
 
     certificate_text = extract_certificate_text_content(certificate_verification.certificate_file.pk)
-    CertificateAndLicense.objects.filter(pk=certificate_id).update(
+    CertificateAndLicense.objects.filter(**{CertificateAndLicense.pk.attname: certificate_id}).update(
         **{CertificateAndLicense.certificate_text.field.name: certificate_text.get("text_content", "")}
     )
     return True
@@ -172,7 +175,9 @@ def get_certificate_text(certificate_id: int) -> bool:
 @register_task([AccountSubscription.ASSISTANTS])
 @user_task_decorator(timeout_seconds=120)
 def find_available_jobs(user_id: int) -> bool:
-    if not (user := get_user_model().objects.filter(pk=user_id).first()):
+    from .models import User
+
+    if not (user := get_user_model().objects.filter(**{User._meta.pk.attname: user_id}).first()):
         raise ValueError(f"User with id {user_id} not found.")
 
     resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json

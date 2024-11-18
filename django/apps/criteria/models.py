@@ -4,12 +4,14 @@ from datetime import timedelta
 
 from account.models import User
 from common.models import Job
+from common.utils import fields_join
 from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
 
 from django.db import models
+from django.db.models.lookups import In
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -23,26 +25,59 @@ def job_assessment_logo_path(instance, filename):
 
 class JobAssessmentQuerySet(models.QuerySet):
     def filter_by_required(self, required, jobs):
+        required_lookup = {
+            fields_join(
+                JobAssessmentJob.job_assessment.field.related_query_name(),
+                JobAssessment.required,
+            ): True,
+            fields_join(
+                JobAssessmentJob.job_assessment.field.related_query_name(),
+                JobAssessmentJob.job,
+                In.lookup_name,
+            ): jobs,
+        }
         if required:
-            return self.filter(
-                models.Q(job_assessment_jobs__required=True, job_assessment_jobs__job__in=jobs)
-                | models.Q(required=True)
-            )
+            return self.filter(models.Q(**required_lookup) | models.Q(**{fields_join(JobAssessment.required): True}))
+
         return self.annotate(
             required_job_assessments=models.Count(
                 "job_assessment_jobs",
-                filter=models.Q(job_assessment_jobs__required=True, job_assessment_jobs__job__in=jobs),
+                filter=models.Q(**required_lookup),
             )
         ).filter(required_job_assessments=0)
 
     def filter_by_optional(self, jobs):
-        return self.filter(job_assessment_jobs__required=False, job_assessment_jobs__job__in=jobs)
+        optional_lookup = {
+            fields_join(
+                JobAssessmentJob.job_assessment.field.related_query_name(),
+                JobAssessment.required,
+            ): False,
+            fields_join(
+                JobAssessmentJob.job_assessment.field.related_query_name(),
+                JobAssessmentJob.job,
+                In.lookup_name,
+            ): jobs,
+        }
+        return self.filter(**optional_lookup)
 
     def related_to_user(self, user):
+        from account.models import Profile
+
+        profile: Profile = user.profile
+
         return self.filter(
-            models.Q(results__user=user, results__status=JobAssessmentResult.Status.COMPLETED)
-            | models.Q(related_jobs__in=user.profile.interested_jobs.all())
-            | models.Q(required=True)
+            models.Q(
+                **{
+                    fields_join(
+                        JobAssessmentResult.job_assessment.field.related_query_name(), JobAssessmentResult.user
+                    ): user,
+                    fields_join(
+                        JobAssessmentResult.job_assessment.field.related_query_name(), JobAssessmentResult.status
+                    ): JobAssessmentResult.Status.COMPLETED,
+                }
+            )
+            | models.Q(**{fields_join(JobAssessment.related_jobs, In.lookup_name): profile.interested_jobs.all()})
+            | models.Q(**{fields_join(JobAssessment.required): True})
         ).distinct()
 
 
@@ -77,7 +112,7 @@ class JobAssessment(models.Model):
         return f"{self.id}: {self.title}"
 
     def can_start(self, user) -> tuple[bool, str]:
-        results = self.results.filter(user=user)
+        results = self.results.filter(**{fields_join(JobAssessmentResult.user): user})
         if results.exists():
             if results.count() >= self.count_limit:
                 return False, _("You have reached the limit of assessments.")
@@ -90,7 +125,11 @@ class JobAssessment(models.Model):
         return True, None
 
     def is_required(self, jobs):
-        return JobAssessment.objects.filter_by_required(True, jobs).filter(pk=self.pk).exists()
+        return (
+            JobAssessment.objects.filter_by_required(True, jobs)
+            .filter(**{JobAssessment._meta.pk.attname: self.pk})
+            .exists()
+        )
 
 
 class JobAssessmentJob(models.Model):

@@ -35,7 +35,9 @@ def send_campaign_notifications_cronjob(campaign_id: int):
         return
 
     send_campaign_notifications(campaign_id=campaign_id)
-    Campaign.objects.filter(pk=campaign_id).update(**{fields_join(Campaign.crontab_last_run): timezone.now()})
+    Campaign.objects.filter(**{Campaign._meta.pk.attname: campaign_id}).update(
+        **{fields_join(Campaign.crontab_last_run): timezone.now()}
+    )
 
 
 def register_campaign_cronjob(campaign: Campaign):

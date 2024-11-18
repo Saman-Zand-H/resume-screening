@@ -10,10 +10,12 @@ from .models import CVTemplate, GeneratedCV
 @register_task(subscriptions=[CVSubscription.CV])
 @user_task_decorator(timeout_seconds=120)
 def render_cv_template(user_id: int, template_id: int = None):
-    user = get_user_model().objects.get(pk=user_id)
-    template = CVTemplate.objects.filter(pk=template_id).first()
+    from account.models import Profile, User
 
-    if not hasattr(user, "profile"):
+    user = get_user_model().objects.get(**{User._meta.pk.attname: user_id})
+    template = CVTemplate.objects.filter(**{CVTemplate._meta.pk.attname: template_id}).first()
+
+    if not hasattr(user, Profile.user.field.related_query_name()):
         raise ValueError("User has no profile.")
 
     GeneratedCV.from_user(user, template)
