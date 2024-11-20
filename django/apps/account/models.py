@@ -732,7 +732,7 @@ class Profile(ComputedFieldsModel):
                         ReferralUser.user,
                         UserStatus.user.field.related_query_name(),
                         UserStatus.verified,
-                    ): User.Status.VERIFIED.value,
+                    ): True,
                 }
             )
             _credits += verified_referrals.count() * (150 if is_early_user else 100)
