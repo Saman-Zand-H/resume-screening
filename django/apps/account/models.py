@@ -732,7 +732,7 @@ class Profile(ComputedFieldsModel):
                         ReferralUser.user,
                         UserStatus.user.field.related_query_name(),
                         UserStatus.verified,
-                    ): User.Status.VERIFIED.value,
+                    ): True,
                 }
             )
             _credits += verified_referrals.count() * (150 if is_early_user else 100)
@@ -761,7 +761,7 @@ class Profile(ComputedFieldsModel):
             cls.birth_date.field.name: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
             cls.email.field.name: [IExact.lookup_name],
             cls.gender.field.name: [Exact.lookup_name],
-            fields_join(cls.city, City.country): ["in", IExact.lookup_name],
+            fields_join(cls.city, City.country): [In.lookup_name, IExact.lookup_name],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: [Exact.lookup_name],
             ProfileAnnotationNames.HAS_EDUCATION: [Exact.lookup_name],
             ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: [Exact.lookup_name],
