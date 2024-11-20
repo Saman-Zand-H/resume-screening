@@ -19,7 +19,11 @@ from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
 from django.db.models.lookups import In
 
-from .assistants import DocumentDataAnalysisAssistant, DocumentValidationAssistant
+from .assistants import (
+    DocumentDataAnalysisAssistant,
+    DocumentOcrAssistant,
+    DocumentValidationAssistant,
+)
 from .constants import FileSlugs, VectorStores
 from .typing import (
     AnalysisResponse,
@@ -93,10 +97,8 @@ def analyze_document(
             file_model_id=file_model_id,
             verification_method_name=verification_method_name,
         ),
-        DocumentDataAnalysisAssistant().build(
-            file_model_id=file_model_id,
-            verification_method_name=verification_method_name,
-        ),
+        DocumentOcrAssistant().build(file_model_id=file_model_id, verification_method_name=verification_method_name),
+        DocumentDataAnalysisAssistant().build(verification_method_name=verification_method_name),
     ]
 
     results = AssistantPipeline(*assistants).run()

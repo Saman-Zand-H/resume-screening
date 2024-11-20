@@ -441,8 +441,8 @@ class EducationAIType(graphene.ObjectType):
     degree = graphene.String()
     university = graphene.Field(UniversityNode)
     city = graphene.Field(CityNode)
-    start = graphene.Date()
-    end = graphene.Date()
+    start = graphene.String()
+    end = graphene.String()
 
     def resolve_degree(self, info):
         return self.get("degree", "").upper() or None
@@ -522,8 +522,8 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
 class WorkExperienceAIType(graphene.ObjectType):
     job_title = graphene.String()
     grade = graphene.String()
-    start = graphene.Date()
-    end = graphene.Date()
+    start = graphene.String()
+    end = graphene.String()
     organization = graphene.String()
     city = graphene.Field(CityNode)
     industry = graphene.Field(IndustryNode)
