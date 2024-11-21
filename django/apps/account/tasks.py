@@ -60,7 +60,7 @@ def set_expiry():
 @register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "*/30 * * * *"})
 def clean_revoked_tokens():
     (
-        UserRefreshToken.objects.expired().filter(**{fields_join(UserRefreshToken.expired): True})
+        UserRefreshToken.objects.expired().filter(expired=True)
         | UserRefreshToken.objects.filter(**{fields_join(UserRefreshToken.revoked, IsNull.lookup_name): False})
     ).delete()
 
