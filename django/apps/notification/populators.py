@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 from account.constants import ProfileAnnotationNames
 from account.models import Profile, User
+from cities_light.models import City, Country
 from common.populators import BasePopulator
 from common.utils import fields_join
 from flex_report.models import Column, Template, TemplateSavedFilter
@@ -120,6 +121,18 @@ class NotificationPopulator(BasePopulator):
             UpsertInfo(
                 data={
                     fields_join(Column.title): ProfileAnnotationNames.STAGE_DATA,
+                    fields_join(Column.model): profile_content_type,
+                }
+            ),
+            UpsertInfo(
+                data={
+                    fields_join(Column.title): ProfileAnnotationNames.AGE,
+                    fields_join(Column.model): profile_content_type,
+                }
+            ),
+            UpsertInfo(
+                data={
+                    fields_join(Column.title): fields_join(Profile.city, City.country, Country.name),
                     fields_join(Column.model): profile_content_type,
                 }
             ),
