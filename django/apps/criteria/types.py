@@ -70,7 +70,7 @@ class JobAssessmentType(JobAssessmentUserContextMixin, DjangoObjectType):
 
     def resolve_jobs(self, info):
         interested_jobs = JobAssessmentType.get_user(info).profile.interested_jobs.values_list("pk", flat=True)
-        return self.job_assessment_jobs.filter(**{fields_join(JobAssessmentType.jobs, In.lookup_name): interested_jobs})
+        return self.job_assessment_jobs.filter(**{fields_join(JobAssessmentJob.job, In.lookup_name): interested_jobs})
 
     def resolve_results(self, info, filters=None):
         user = JobAssessmentType.get_user(info)
