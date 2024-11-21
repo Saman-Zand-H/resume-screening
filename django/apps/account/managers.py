@@ -2,10 +2,10 @@ from common.db_functions import ArrayDifference, DateTimeAge, GetKeysByValue
 from common.utils import fields_join
 
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.contrib.postgres.fields.array import ArrayLenTransform
 from django.db import models
 from django.db.models.functions import JSONObject, Now
-from django.db.models.functions.datetime import TruncDate, TruncDay
-from django.db.models.functions.text import Length
+from django.db.models.functions.datetime import ExtractDay, ExtractYear, TruncDate
 from django.db.models.lookups import In, IsNull, LessThan
 
 from .constants import (
@@ -145,7 +145,7 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_SKILLS: models.Case(
                 models.When(
-                    models.Q(**{fields_join(Profile.raw_skills, Length.lookup_name): models.Value(0)}),
+                    models.Q(**{fields_join(Profile.raw_skills, ArrayLenTransform.lookup_name): models.Value(0)}),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -171,14 +171,29 @@ class FlexReportProfileManager(models.Manager):
                     }
                 )
             ),
+            ProfileAnnotationNames.AGE: models.F(
+                fields_join(
+                    Profile.birth_date,
+                    DateTimeAge.lookup_name,
+                    ExtractYear.lookup_name,
+                )
+            ),
             ProfileAnnotationNames.LAST_LOGIN: models.F(
                 fields_join(
-                    Profile.user, User.last_login, TruncDate.lookup_name, DateTimeAge.lookup_name, TruncDay.lookup_name
+                    Profile.user,
+                    User.last_login,
+                    TruncDate.lookup_name,
+                    DateTimeAge.lookup_name,
+                    ExtractDay.lookup_name,
                 )
             ),
             ProfileAnnotationNames.DATE_JOINED: models.F(
                 fields_join(
-                    Profile.user, User.date_joined, TruncDate.lookup_name, DateTimeAge.lookup_name, TruncDay.lookup_name
+                    Profile.user,
+                    User.date_joined,
+                    TruncDate.lookup_name,
+                    DateTimeAge.lookup_name,
+                    ExtractDay.lookup_name,
                 )
             ),
             ProfileAnnotationNames.HAS_RESUME: models.Exists(
@@ -207,7 +222,9 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: models.Case(
                 models.When(
-                    models.Q(**{fields_join(ProfileAnnotationNames.INCOMPLETE_STAGES, Length.lookup_name): 0}),
+                    models.Q(
+                        **{fields_join(ProfileAnnotationNames.INCOMPLETE_STAGES, ArrayLenTransform.lookup_name): 0}
+                    ),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),

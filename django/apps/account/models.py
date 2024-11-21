@@ -55,6 +55,7 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models, transaction
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.lookups import (
+    Contains,
     Exact,
     GreaterThanOrEqual,
     IExact,
@@ -759,9 +760,15 @@ class Profile(ComputedFieldsModel):
     def flex_report_search_fields(cls):
         return {
             cls.birth_date.field.name: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
-            cls.email.field.name: [IExact.lookup_name],
+            fields_join(cls.user, User.email): [IExact.lookup_name],
             cls.gender.field.name: [Exact.lookup_name],
+            cls.interested_jobs.field.name: [Contains.lookup_name],
             fields_join(cls.city, City.country): [In.lookup_name, IExact.lookup_name],
+            ProfileAnnotationNames.AGE: [
+                GreaterThanOrEqual.lookup_name,
+                LessThanOrEqual.lookup_name,
+                Exact.lookup_name,
+            ],
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: [Exact.lookup_name],
             ProfileAnnotationNames.HAS_EDUCATION: [Exact.lookup_name],
             ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: [Exact.lookup_name],
