@@ -26,7 +26,11 @@ class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         user = info.context.user
         job_assessment_id = input.get(JobAssessmentResult.job_assessment.field.name)
 
-        if not JobAssessment.objects.related_to_user(user).filter(pk=job_assessment_id).exists():
+        if (
+            not JobAssessment.objects.related_to_user(user)
+            .filter(**{JobAssessment._meta.pk.attname: job_assessment_id})
+            .exists()
+        ):
             raise ValidationError("Not related to the user.")
 
         job_assessment = JobAssessment.objects.get(id=job_assessment_id)

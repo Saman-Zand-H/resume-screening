@@ -1,11 +1,15 @@
+from common.utils import fields_join
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
-from graphql_jwt.decorators import login_required
 from graphql_auth.queries import CountableConnection
+from graphql_jwt.decorators import login_required
+
+from .mixins import CourseUserContextMixin
+from django.db.models.lookups import Exact
 
 from .models import Course, CourseResult
 
 
-class CourseNode(DjangoObjectType):
+class CourseNode(CourseUserContextMixin, DjangoObjectType):
     class Meta:
         model = Course
         use_connection = True
@@ -20,17 +24,16 @@ class CourseNode(DjangoObjectType):
             CourseResult.course.field.related_query_name(),
         )
         filter_fields = {
-            Course.type.field.name: ["exact"],
+            Course.type.field.name: [Exact.lookup_name],
         }
 
     @classmethod
     @login_required
     def get_queryset(cls, queryset, info):
-        user = info.context.user
-        return super().get_queryset(queryset, info).related_to_user(user)
+        return super().get_queryset(queryset, info).related_to_user(cls.get_user_context(info.context))
 
 
-class CourseResultType(DjangoObjectType):
+class CourseResultType(CourseUserContextMixin, DjangoObjectType):
     class Meta:
         model = CourseResult
         use_connection = True
@@ -45,13 +48,16 @@ class CourseResultType(DjangoObjectType):
         )
 
         filter_fields = {
-            f"{CourseResult.course.field.name}__{Course.type.field.name}": ["exact"],
-            CourseResult.status.field.name: ["exact"],
+            fields_join(
+                CourseResult.course,
+                Course.type,
+            ): [Exact.lookup_name],
+            fields_join(CourseResult.status): [Exact.lookup_name],
         }
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        user = info.context.user
+        user = cls.get_user_context(info.context)
         if not user:
             return queryset.none()
-        return super().get_queryset(queryset, info).filter(user=user)
+        return super().get_queryset(queryset, info).filter(**{fields_join(CourseResult.user): user})

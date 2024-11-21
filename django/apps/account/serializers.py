@@ -4,6 +4,7 @@ from typing import List, Optional
 from cities_light.models import City
 from common.choices import LANGUAGES
 from common.models import Field, Job, LanguageProficiencyTest, Skill, University
+from common.utils import fields_join
 from dj_rest_auth.registration.serializers import (
     SocialLoginSerializer as BaseSocialLoginSerializer,
 )
@@ -11,6 +12,8 @@ from phonenumber_field.validators import validate_phonenumber
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 from django.core.validators import URLValidator
+from django.db.models import Model
+from django.db.models.lookups import In
 from django.utils.translation import gettext_lazy as _
 
 from .models import Contact, Education, Profile, User
@@ -22,12 +25,17 @@ class SocialLoginSerializer(BaseSocialLoginSerializer):
 
     def get_social_login(self, *args, **kwargs):
         sociallogin = super().get_social_login(*args, **kwargs)
-        self.is_new_user = not User.objects.filter(email=sociallogin.user.email).exists()
+        self.is_new_user = not User.objects.filter(**{fields_join(User.email): sociallogin.user.email}).exists()
         return sociallogin
 
 
-def get_existing_foreign_keys(model, ids: List[int]) -> Optional[List[int]]:
-    existing_ids = set(model.objects.filter(id__in=ids).values_list("id", flat=True))
+def get_existing_foreign_keys(model: Model, ids: List[int]) -> Optional[List[int]]:
+    existing_ids = set(
+        model.objects.filter(**{fields_join(model._meta.pk.attname, In.lookup_name): ids}).values_list(
+            model._meta.pk.get_attname(),
+            flat=True,
+        )
+    )
     return existing_ids or None
 
 

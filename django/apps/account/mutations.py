@@ -17,6 +17,7 @@ from common.types import (
 from common.utils import fields_join
 from config.settings.constants import Environment
 from config.utils import is_env
+from flex_blob.models import FileModel
 from graphene.types.generic import GenericScalar
 from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django_cud.mutations import (
@@ -44,10 +45,12 @@ from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
+from account.models import LanguageProficiencySkill
 from django.contrib.auth.signals import user_logged_in
 from django.db import transaction
 from django.db.models import F
 from django.db.models.functions import Lower
+from django.db.models.lookups import Exact, IExact, In
 from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -147,7 +150,11 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                pk=kwargs.get("input", {}).get(OrganizationInvitation.organization.field.name)
+                **{
+                    Organization._meta.pk.attname: kwargs.get("input", {}).get(
+                        OrganizationInvitation.organization.field.name
+                    )
+                }
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -158,7 +165,12 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
     def before_create_obj(cls, info, input, obj):
         user = info.context.user
         obj.created_by = user
-        OrganizationInvitation.objects.filter(email=obj.email, organization=obj.organization).delete()
+        OrganizationInvitation.objects.filter(
+            **{
+                fields_join(OrganizationInvitation.email): obj.email,
+                fields_join(OrganizationInvitation.organization): obj.organization,
+            }
+        ).delete()
         cls.full_clean(obj)
 
     @classmethod
@@ -178,9 +190,11 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
 def referral_registration(user, referral_code):
     if not referral_code:
         return
-    referral = Referral.objects.filter(code__iexact=referral_code).first()
+    referral = Referral.objects.filter(**{fields_join(Referral.code, IExact.lookup_name): referral_code}).first()
     if referral:
-        ReferralUser.objects.create(user=user, referral=referral)
+        ReferralUser.objects.create(
+            **{fields_join(ReferralUser.user): user, fields_join(ReferralUser.referral): referral}
+        )
 
 
 def set_template_context_variable(context, data: dict):
@@ -273,7 +287,9 @@ class UserRegister(RegisterBase):
             User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)}), kwargs.pop("referral_code", None)
         )
         if organization_invitation_token := kwargs.pop(OrganizationInvitation.token.field.name, None):
-            organization_invitation = OrganizationInvitation.objects.filter(token=organization_invitation_token).first()
+            organization_invitation = OrganizationInvitation.objects.filter(
+                **{fields_join(OrganizationInvitation.token): organization_invitation_token}
+            ).first()
             if not organization_invitation:
                 raise GraphQLErrorBadRequest(_("Organization invitation token is invalid."))
 
@@ -497,7 +513,9 @@ class RevokeTokenMutation(graphql_auth_mutations.RevokeToken):
         result = super().mutate(*args, **kwargs)
         refresh_token = kwargs.get("refresh_token")
         if result.success:
-            UserDevice.objects.filter(refresh_token__token=refresh_token).delete()
+            UserDevice.objects.filter(
+                **{fields_join(UserDevice.refresh_token, UserRefreshToken.token): refresh_token}
+            ).delete()
         return result
 
 
@@ -511,7 +529,9 @@ class OrganizationUpdateMutation(
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        if not (organization := Organization.objects.filter(pk=kwargs.get("id")).first()):
+        if not (
+            organization := Organization.objects.filter(**{Organization._meta.pk.attname: kwargs.get("id")}).first()
+        ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
 
         return organization
@@ -575,7 +595,9 @@ class SetContactableMixin:
     @classmethod
     def after_mutate(cls, root, info, input, created_objs, return_data):
         contactable = cls.get_contactable_object(info, input)
-        Contact.objects.filter(contactable=contactable).exclude(pk__in=[obj.pk for obj in created_objs]).delete()
+        Contact.objects.filter(**{fields_join(Contact.contactable): contactable}).exclude(
+            **{fields_join(Contact._meta.pk.attname, In.lookup_name): [obj.pk for obj in created_objs]}
+        ).delete()
 
     @classmethod
     def get_contactable_object(cls, info, input):
@@ -593,7 +615,9 @@ class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactabl
     def get_access_object(cls, *args, **kwargs):
         input = kwargs.get("input")
         organization_id = input[0].get("organization_id") if type(input) is list else input.get("organization_id")
-        if not (organization := Organization.objects.filter(pk=organization_id).first()):
+        if not (
+            organization := Organization.objects.filter(**{Organization._meta.pk.attname: organization_id}).first()
+        ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
 
         return organization
@@ -689,16 +713,21 @@ class UserUpdateMutation(
         profile = user.profile
 
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
-            if Job.objects.filter(id__in=interested_jobs, require_appearance_data=True).exists():
+            if Job.objects.filter(
+                **{
+                    fields_join(Job.id, In.lookup_name): interested_jobs,
+                    fields_join(Job.require_appearance_data): True,
+                }
+            ).exists():
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
                     raise GraphQLErrorBadRequest(_("Appearance related data cannot be unset."))
 
                 if not (profile.has_appearance_related_data):
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
-        if (skills := input.get(Profile.skills.field.name)) and profile.skills.filter(pk__in=skills).count() != len(
-            skills
-        ):
+        if (skills := input.get(Profile.skills.field.name)) and profile.skills.filter(
+            **{fields_join(Skill._meta.pk.attname, In.lookup_name): skills}
+        ).count() != len(skills):
             raise GraphQLErrorBadRequest(_("Skills must be selected from the list."))
 
         return super().validate(*args, **kwargs)
@@ -870,7 +899,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     def mutate(cls, root, info, file_id, verification_type=None):
         file_model = cls.get_file_model(verification_type)
 
-        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
+        if not (file_model and (obj := file_model.objects.filter(**{FileModel._meta.pk.attname: file_id}).first())):
             raise GraphQLErrorBadRequest(_("File not found."))
 
         if info.context.user != obj.uploaded_by:
@@ -944,7 +973,7 @@ class WorkExperienceSetVerificationMethodMutation(
                 "type": "WorkExperienceEmployerLetterMethodInput",
                 "many_to_one_extras": {
                     ReferenceCheckEmployer.work_experience_verification.field.related_query_name(): {
-                        "exact": {"type": "auto"},
+                        Exact.lookup_name: {"type": "auto"},
                     },
                 },
             }
@@ -992,7 +1021,12 @@ def validate_language_certificate_skills(test, values):
     if not test_skills.exists():
         raise GraphQLErrorBadRequest(_("Test has no skills."))
 
-    if test_skills.count() != test_skills.filter(pk__in=set(skills)).count():
+    if (
+        test_skills.count()
+        != test_skills.filter(
+            **{fields_join(LanguageProficiencySkill._meta.pk.attname, In.lookup_name): set(skills)}
+        ).count()
+    ):
         raise GraphQLErrorBadRequest(_("All skills must be provided."))
 
 
@@ -1004,7 +1038,7 @@ class LanguageCertificateCreateMutation(CUDOutputTypeMixin, DocumentCreateMutati
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
         many_to_one_extras = {
             LanguageCertificateValue.language_certificate.field.related_query_name(): {
-                "exact": {
+                Exact.lookup_name: {
                     "type": "auto",
                 }
             }
@@ -1035,7 +1069,7 @@ class LanguageCertificateUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutatio
         fields = LANGUAGE_CERTIFICATE_MUTATION_FIELDS
         many_to_one_extras = {
             LanguageCertificateValue.language_certificate.field.related_query_name(): {
-                "exact": {
+                Exact.lookup_name: {
                     "type": "auto",
                 }
             }
@@ -1170,7 +1204,9 @@ class BaseOrganizationVerifierMutation(MutationAccessRequiredMixin):
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        if not (organization := Organization.objects.filter(pk=kwargs.get("id")).first()):
+        if not (
+            organization := Organization.objects.filter(**{Organization._meta.pk.attname: kwargs.get("id")}).first()
+        ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
 
         return organization
@@ -1215,7 +1251,11 @@ class OrganizationCommunicationMethodVerify(BaseOrganizationVerifierMutation, gr
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        if not (organization := Organization.objects.filter(pk=kwargs.get("organization")).first()):
+        if not (
+            organization := Organization.objects.filter(
+                **{Organization._meta.pk.attname: kwargs.get("organization")}
+            ).first()
+        ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
 
         return organization
@@ -1274,7 +1314,11 @@ class OrganizationJobPositionCreateMutation(
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                pk=kwargs.get("input", {}).get(OrganizationJobPosition.organization.field.name)
+                **{
+                    Organization._meta.pk.attname: kwargs.get("input", {}).get(
+                        OrganizationJobPosition.organization.field.name
+                    )
+                }
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1303,7 +1347,12 @@ class OrganizationJobPositionUpdateMutation(
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                **{fields_join(OrganizationJobPosition.organization.field.related_query_name(), "pk"): kwargs.get("id")}
+                **{
+                    fields_join(
+                        OrganizationJobPosition.organization.field.related_query_name(),
+                        OrganizationJobPosition._meta.pk.attname,
+                    ): kwargs.get("id")
+                }
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1336,7 +1385,12 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
     def get_access_object(cls, *args, **kwargs):
         if not (
             organization := Organization.objects.filter(
-                **{fields_join(OrganizationJobPosition.organization.field.related_query_name(), "pk"): kwargs.get("id")}
+                **{
+                    fields_join(
+                        OrganizationJobPosition.organization.field.related_query_name(),
+                        OrganizationJobPosition._meta.pk.attname,
+                    ): kwargs.get("id")
+                }
             ).first()
         ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
@@ -1354,7 +1408,7 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
     @transaction.atomic
     def mutate(cls, root, info, input, id):
         status = input.get(OrganizationJobPosition.status.field.name)
-        if not (obj := OrganizationJobPosition.objects.get(pk=id)):
+        if not (obj := OrganizationJobPosition.objects.get(**{Organization._meta.pk.attname: id})):
             raise GraphQLErrorBadRequest(_("Job position not found."))
 
         obj.change_status(status)
@@ -1372,7 +1426,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
                     fields_join(
                         OrganizationJobPosition.organization.field.related_query_name(),
                         JobPositionAssignment.job_position.field.related_query_name(),
-                        "pk",
+                        JobPositionAssignment._meta.pk.attname,
                     ): kwargs.get("id")
                 }
             ).first()
@@ -1396,7 +1450,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
     @transaction.atomic
     def mutate(cls, root, info, input, id):
         status = input.get(JobPositionAssignment.status.field.name)
-        if not (obj := JobPositionAssignment.objects.get(pk=id)):
+        if not (obj := JobPositionAssignment.objects.get(**{Organization._meta.pk.attname: id})):
             raise GraphQLErrorBadRequest(_("Job position assignment not found."))
 
         if obj.status not in obj.organization_related_statuses:
@@ -1422,7 +1476,7 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
                     fields_join(
                         OrganizationEmployee.organization.field.related_query_name(),
                         OrganizationEmployeeCooperation.employee.field.related_query_name(),
-                        "pk",
+                        OrganizationEmployeeCooperation._meta.pk.attname,
                     ): kwargs.get("id")
                 }
             ).first()
@@ -1446,7 +1500,9 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
     @transaction.atomic
     def mutate(cls, root, info, input, id):
         status = input.get(OrganizationEmployeeCooperation.status.field.name)
-        if not (obj := OrganizationEmployeeCooperation.objects.get(pk=id)):
+        if not (
+            obj := OrganizationEmployeeCooperation.objects.get(**{OrganizationEmployeeCooperation._meta.pk.attname: id})
+        ):
             raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
         if status.value not in obj.organization_related_statuses:
             raise GraphQLErrorBadRequest(_("Cannot modify status of the organization employee cooperation."))
@@ -1465,7 +1521,11 @@ class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Muta
 
     @classmethod
     def get_access_object(cls, *args, **kwargs):
-        if not (organization := Organization.objects.filter(pk=kwargs.get("organization")).first()):
+        if not (
+            organization := Organization.objects.filter(
+                **{Organization._meta.pk.attname: kwargs.get("organization")}
+            ).first()
+        ):
             raise GraphQLErrorBadRequest(_("Organization not found."))
         return organization
 
@@ -1525,7 +1585,11 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         file = context.get("input").get(Resume.file.field.name)
         resume = Resume.objects.get_or_create(
             user=info.context.user,
-            defaults={"file": Resume.file.field.related_model.objects.get(pk=file)},
+            defaults={
+                fields_join(Resume.file): Resume.file.field.related_model.objects.get(
+                    **{Organization._meta.pk.attname: file}
+                )
+            },
         )[0]
         return resume.pk
 

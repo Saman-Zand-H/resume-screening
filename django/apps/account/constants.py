@@ -31,6 +31,7 @@ class FileSlugs(Enum):
 
 
 class ProfileAnnotationNames(NamedTuple):
+    AGE = "user_age"
     IS_ORGANIZATION_MEMBER = "is_organization_member"
     HAS_PROFILE_INFORMATION = "has_profile_information"
     HAS_EDUCATION = "has_education"
@@ -49,6 +50,10 @@ class ProfileAnnotationNames(NamedTuple):
     COMPLETED_STAGES = "completed_stages"
     INCOMPLETE_STAGES = "incomplete_stages"
     HAS_INCOMPLETE_STAGES = "has_incomplete_stages"
+
+
+class OrganizationEmployeeAnnotationNames(NamedTuple):
+    USER_FULL_NAME = "full_name"
 
 
 STAGE_ANNOTATIONS = [

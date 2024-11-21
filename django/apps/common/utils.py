@@ -2,16 +2,16 @@ import contextlib
 from functools import lru_cache, reduce
 from typing import Dict, List, Set, Type
 
-import django.apps
 import graphene
-from django.db.models import Model, OneToOneField
-from django.db.models.constants import LOOKUP_SEP
 from flex_blob.builders import BlobResponseBuilder
 from graphene_django.converter import convert_choice_field_to_enum
 
+import django.apps
+from django.db.models import Model, OneToOneField
+from django.db.models.constants import LOOKUP_SEP
+
 from .constants import GRAPHQL_ERROR_FIELD_SEP
 from .errors import EXCEPTION_ERROR_MAP, EXCEPTION_ERROR_TEXT_MAP, Error, Errors
-from .models import FileModel
 
 
 def merge_relations[T: Model](source: T, *target_objs: T, skipped_relations=[]):
@@ -58,7 +58,7 @@ def deserialize_field_error(field_error: str) -> Dict[str, str]:
     return dict(zip(["field", "error_message"], splitted_error))
 
 
-def get_file_model_mimetype(file_model_instance: FileModel):
+def get_file_model_mimetype(file_model_instance: Model):
     blob_builder = BlobResponseBuilder.get_response_builder()
     return blob_builder.get_content_type(file_model_instance)
 
@@ -102,6 +102,8 @@ def fix_array_choice_type_fields(*fields):
 
 
 def get_file_models():
+    from .models import FileModel
+
     return (model for model in django.apps.apps.get_models() if issubclass(model, FileModel))
 
 
@@ -110,6 +112,8 @@ def get_file_model(slug: str):
 
 
 def get_verification_method_file_models(base_model: Type[Model]) -> List[Model]:
+    from .models import FileModel
+
     return (
         field.related_model
         for model in base_model.get_method_models()

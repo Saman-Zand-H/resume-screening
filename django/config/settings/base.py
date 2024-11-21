@@ -16,8 +16,10 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+import sentry_sdk
 from corsheaders.defaults import default_headers
 from import_export.formats.base_formats import XLSX
+from sentry_sdk.integrations.django import DjangoIntegration
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
@@ -93,6 +95,7 @@ INSTALLED_APPS += [
 ]
 
 MIDDLEWARE = [
+    "common.middlewares.DjangoErrorHandlingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -345,3 +348,28 @@ CORS_ALLOW_HEADERS = (
 )
 
 VALID_EMAIL_CALLBACK_URLS = os.environ.get("VALID_EMAIL_CALLBACK_URLS", "cpjcompany.com,cpj.ai").split(",")
+
+SENTRY_DSN = os.environ.get("SENTRY_DSN")
+if SENTRY_DSN:
+
+    def before_send(event, hint):
+        if getattr(hint.get("log_record"), "sentry_ignore", False):
+            return None
+
+        return event
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        send_default_pii=True,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+        _experiments={
+            "continuous_profiling_auto_start": True,
+        },
+        integrations=[
+            DjangoIntegration(cache_spans=True),
+        ],
+        environment=f"js-api-{os.environ.get('DJANGO_SETTINGS_MODULE')}",
+        attach_stacktrace=True,
+        before_send=before_send,
+    )

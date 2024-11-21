@@ -2,11 +2,14 @@ import datetime
 
 import graphene
 from account.mixins import FilterQuerySetByUserMixin
+from common.utils import fields_join
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from django.db.models import Q
-from django.utils.timezone import make_aware
+from django.db.models.functions.datetime import TruncDate
+from django.db.models.lookups import In, Range
 
+from .mixins import JobAssessmentUserContextMixin
 from .models import JobAssessment, JobAssessmentJob, JobAssessmentResult
 
 
@@ -42,7 +45,7 @@ class JobAssessmentJobType(DjangoObjectType):
         )
 
 
-class JobAssessmentType(DjangoObjectType):
+class JobAssessmentType(JobAssessmentUserContextMixin, DjangoObjectType):
     jobs = graphene.List(JobAssessmentJobType)
     results = graphene.List(
         JobAssessmentResultType, filters=graphene.Argument(JobAssessmentResultFilterInput, required=False)
@@ -63,11 +66,11 @@ class JobAssessmentType(DjangoObjectType):
 
     @classmethod
     def get_user(cls, info):
-        return getattr(info.context, "job_assessment_user", info.context.user)
+        return cls.get_user_context(info.context)
 
     def resolve_jobs(self, info):
         interested_jobs = JobAssessmentType.get_user(info).profile.interested_jobs.values_list("pk", flat=True)
-        return self.job_assessment_jobs.filter(job__in=interested_jobs)
+        return self.job_assessment_jobs.filter(**{fields_join(JobAssessmentType.jobs, In.lookup_name): interested_jobs})
 
     def resolve_results(self, info, filters=None):
         user = JobAssessmentType.get_user(info)
@@ -75,15 +78,29 @@ class JobAssessmentType(DjangoObjectType):
             return []
 
         results = JobAssessmentResult.objects.filter(
-            job_assessment=self,
-            user=user,
-            status=JobAssessmentResult.Status.COMPLETED,
+            **{
+                fields_join(JobAssessmentResult.job_assessment): self,
+                fields_join(JobAssessmentResult.user): user,
+                fields_join(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
+            }
         )
 
         filter_conditions = Q()
         if filters:
-            filter_conditions = Q(created_at__date__range=(filters.created_at_start, filters.created_at_end)) & Q(
-                updated_at__date__range=(filters.updated_at_start, filters.updated_at_end)
+            filter_conditions = Q(
+                **{
+                    fields_join(JobAssessmentResult.created_at, TruncDate.lookup_name, Range.lookup_name): (
+                        filters.created_at_start,
+                        filters.created_at_end,
+                    )
+                }
+            ) & Q(
+                **{
+                    fields_join(JobAssessmentResult.updated_at, TruncDate.lookup_name, Range.lookup_name): (
+                        filters.updated_at_start,
+                        filters.updated_at_end,
+                    )
+                }
             )
 
         return results.filter(filter_conditions).order_by(f"-{JobAssessmentResult.updated_at.field.name}")

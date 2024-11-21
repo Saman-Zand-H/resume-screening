@@ -1,6 +1,7 @@
 from operator import itemgetter
 
 import graphene
+from account.models import Education, WorkExperience
 from cities_light.graphql.types import City as CityTypeBase
 from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
@@ -8,6 +9,9 @@ from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
 from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
+
+from common.utils import fields_join
+from django.db.models.lookups import Contains, Exact, IContains
 
 from .exceptions import Error, Errors
 from .mixins import ArrayChoiceTypeMixin
@@ -23,8 +27,6 @@ from .models import (
     University,
 )
 from .utils import get_file_models, get_verification_method_file_models
-from account.models import WorkExperience, Education
-
 
 enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
 ErrorType = graphene.Enum("Errors", enum_values)
@@ -39,8 +41,8 @@ class JobBenefitNode(DjangoObjectType):
             JobBenefit.name.field.name,
         )
         filter_fields = {
-            JobBenefit.id.field.name: ["exact"],
-            JobBenefit.name.field.name: ["icontains"],
+            JobBenefit.id.field.name: [Exact.lookup_name],
+            JobBenefit.name.field.name: [IContains.lookup_name],
         }
 
 
@@ -62,8 +64,8 @@ class IndustryNode(DjangoObjectType):
             Industry.title.field.name,
         )
         filter_fields = {
-            Industry.id.field.name: ["exact"],
-            Industry.title.field.name: ["icontains"],
+            Industry.id.field.name: [Exact.lookup_name],
+            Industry.title.field.name: [IContains.lookup_name],
         }
 
 
@@ -78,8 +80,8 @@ class JobNode(DjangoObjectType):
             Job.require_appearance_data.field.name,
         )
         filter_fields = {
-            Job.id.field.name: ["exact"],
-            Job.title.field.name: ["icontains"],
+            Job.id.field.name: [Exact.lookup_name],
+            Job.title.field.name: [IContains.lookup_name],
         }
 
 
@@ -93,8 +95,8 @@ class UniversityNode(DjangoObjectType):
             University.websites.field.name,
         )
         filter_fields = {
-            University.id.field.name: ["exact"],
-            University.name.field.name: ["icontains"],
+            University.id.field.name: [Exact.lookup_name],
+            University.name.field.name: [IContains.lookup_name],
         }
 
 
@@ -107,8 +109,8 @@ class FieldNode(DjangoObjectType):
             Field.name.field.name,
         )
         filter_fields = {
-            Field.id.field.name: ["exact"],
-            Field.name.field.name: ["icontains"],
+            Field.id.field.name: [Exact.lookup_name],
+            Field.name.field.name: [IContains.lookup_name],
         }
 
 
@@ -127,8 +129,8 @@ class CountryNode(DjangoObjectType):
         use_connection = True
         fields = [Country.id.field.name] + list(CountryTypeBase._meta.fields.keys())
         filter_fields = {
-            Country.id.field.name: ["exact"],
-            Country.name.field.name: ["icontains"],
+            Country.id.field.name: [Exact.lookup_name],
+            Country.name.field.name: [IContains.lookup_name],
         }
 
 
@@ -138,9 +140,9 @@ class RegionNode(DjangoObjectType):
         use_connection = True
         fields = [Region.id.field.name] + list(RegionTypeBase._meta.fields.keys())
         filter_fields = {
-            Region.id.field.name: ["exact"],
-            Region.name.field.name: ["icontains"],
-            Region.country.field.name: ["exact"],
+            Region.id.field.name: [Exact.lookup_name],
+            Region.name.field.name: [IContains.lookup_name],
+            Region.country.field.name: [Exact.lookup_name],
         }
 
 
@@ -157,10 +159,10 @@ class CityNode(DjangoObjectType):
         use_connection = True
         fields = [City.id.field.name] + list(CityTypeBase._meta.fields.keys())
         filter_fields = {
-            City.id.field.name: ["exact"],
-            City.name.field.name: ["icontains"],
-            City.region.field.name: ["exact"],
-            "country__code2": ["exact"],
+            City.id.field.name: [Exact.lookup_name],
+            City.name.field.name: [IContains.lookup_name],
+            City.region.field.name: [Exact.lookup_name],
+            fields_join(City.country, Country.code2): [Exact.lookup_name],
         }
 
 
@@ -175,9 +177,9 @@ class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
             LanguageProficiencySkill.test.field.related_query_name(),
         )
         filter_fields = {
-            LanguageProficiencyTest.id.field.name: ["exact"],
-            LanguageProficiencyTest.title.field.name: ["icontains"],
-            LanguageProficiencyTest.languages.field.name: ["contains"],
+            LanguageProficiencyTest.id.field.name: [Exact.lookup_name],
+            LanguageProficiencyTest.title.field.name: [IContains.lookup_name],
+            LanguageProficiencyTest.languages.field.name: [Contains.lookup_name],
         }
 
 
@@ -202,8 +204,8 @@ class SkillNode(DjangoObjectType):
             Skill.title.field.name,
         )
         filter_fields = {
-            Skill.id.field.name: ["exact"],
-            Skill.title.field.name: ["icontains"],
+            Skill.id.field.name: [Exact.lookup_name],
+            Skill.title.field.name: [IContains.lookup_name],
         }
 
 

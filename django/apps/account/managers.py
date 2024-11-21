@@ -1,10 +1,12 @@
-from common.db_functions import ArrayDifference, GetKeysByValue
+from common.db_functions import ArrayDifference, DateTimeAge, GetKeysByValue
 from common.utils import fields_join
 
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.contrib.postgres.fields.array import ArrayLenTransform
 from django.db import models
 from django.db.models.functions import JSONObject, Now
-from django.db.models.lookups import In
+from django.db.models.functions.datetime import ExtractDay, ExtractYear, TruncDate
+from django.db.models.lookups import In, IsNull, LessThan
 
 from .constants import (
     ORGANIZATION_INVITATION_EXPIRY_DELTA,
@@ -64,7 +66,7 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_PROFILE_INFORMATION: models.Case(
                 models.When(
-                    models.Q(**{fields_join(Profile.gender, "isnull"): True}),
+                    models.Q(**{fields_join(Profile.gender, IsNull.lookup_name): True}),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -143,7 +145,7 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_SKILLS: models.Case(
                 models.When(
-                    models.Q(**{fields_join(Profile.raw_skills, "len"): models.Value(0)}),
+                    models.Q(**{fields_join(Profile.raw_skills, ArrayLenTransform.lookup_name): models.Value(0)}),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -169,11 +171,30 @@ class FlexReportProfileManager(models.Manager):
                     }
                 )
             ),
+            ProfileAnnotationNames.AGE: models.F(
+                fields_join(
+                    Profile.birth_date,
+                    DateTimeAge.lookup_name,
+                    ExtractYear.lookup_name,
+                )
+            ),
             ProfileAnnotationNames.LAST_LOGIN: models.F(
-                fields_join(Profile.user, User.last_login, "date", "age", "day")
+                fields_join(
+                    Profile.user,
+                    User.last_login,
+                    TruncDate.lookup_name,
+                    DateTimeAge.lookup_name,
+                    ExtractDay.lookup_name,
+                )
             ),
             ProfileAnnotationNames.DATE_JOINED: models.F(
-                fields_join(Profile.user, User.date_joined, "date", "age", "day")
+                fields_join(
+                    Profile.user,
+                    User.date_joined,
+                    TruncDate.lookup_name,
+                    DateTimeAge.lookup_name,
+                    ExtractDay.lookup_name,
+                )
             ),
             ProfileAnnotationNames.HAS_RESUME: models.Exists(
                 Resume.objects.filter(
@@ -201,7 +222,9 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: models.Case(
                 models.When(
-                    models.Q(**{fields_join(ProfileAnnotationNames.INCOMPLETE_STAGES, "len"): 0}),
+                    models.Q(
+                        **{fields_join(ProfileAnnotationNames.INCOMPLETE_STAGES, ArrayLenTransform.lookup_name): 0}
+                    ),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -225,23 +248,37 @@ CertificateAndLicenseManager = models.Manager.from_queryset(CertificateAndLicens
 
 class UserManager(BaseUserManager):
     def create_user(self, **kwargs):
-        kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
+        from .models import User
+
+        kwargs.setdefault(fields_join(User.username), kwargs.get(self.model.USERNAME_FIELD))
         return super().create_user(**kwargs)
 
     def create_superuser(self, **kwargs):
-        kwargs.setdefault("username", kwargs.get(self.model.USERNAME_FIELD))
+        from .models import User
+
+        kwargs.setdefault(fields_join(User.username), kwargs.get(self.model.USERNAME_FIELD))
         return super().create_superuser(**kwargs)
 
 
 class OrganizationInvitationManager(models.Manager):
     def get_queryset(self):
+        from .models import OrganizationInvitation
+
         return (
             super()
             .get_queryset()
             .annotate(
                 is_expired=models.Case(
                     models.When(
-                        models.Q(created_at__lt=Now() - ORGANIZATION_INVITATION_EXPIRY_DELTA), then=models.Value(True)
+                        models.Q(
+                            **{
+                                fields_join(
+                                    OrganizationInvitation.created_at,
+                                    LessThan.lookup_name,
+                                ): Now() - ORGANIZATION_INVITATION_EXPIRY_DELTA
+                            }
+                        ),
+                        then=models.Value(True),
                     ),
                     default=False,
                     output_field=models.BooleanField(),

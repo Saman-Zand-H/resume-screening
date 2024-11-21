@@ -5,15 +5,29 @@ from pydantic import BaseModel, EmailStr, HttpUrl, RootModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from ..choices import EducationDegree, IEEEvaluator, WorkExperienceGrade
+from ..constants import FileSlugs
 
 DocumentT = TypeVar("DocumentT")
 VerificationT = TypeVar("VerificationT")
 
 
-class BaseAnalysisResponse(BaseModel, Generic[DocumentT, VerificationT]):
+class IsValid(BaseModel):
     is_valid: bool
+
+
+class BaseAnalysisResponse(IsValid, Generic[DocumentT, VerificationT]):
     data: Optional[DocumentT] = None
     verification_method_data: Optional[VerificationT] = None
+
+
+VERIFICATION_METHOD_NAMES = Literal[
+    FileSlugs.EMPLOYER_LETTER,
+    FileSlugs.PAYSTUBS,
+    FileSlugs.EDUCATION_EVALUATION,
+    FileSlugs.DEGREE,
+    FileSlugs.LANGUAGE_CERTIFICATE,
+    FileSlugs.CERTIFICATE,
+]
 
 
 WorkExperienceGradeType = Literal[
@@ -52,8 +66,8 @@ class WorkExperienceData(BaseModel):
     job_title: Optional[str] = None
     job_grade: Optional[WorkExperienceGradeType] = None
     organization: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class ReferenceCheckData(BaseModel):
@@ -77,10 +91,15 @@ class CertificateAndLicenseData(BaseModel):
     expired_at: Optional[date] = None
 
 
+class LanguageCertificateData(BaseModel):
+    issued_at: Optional[date] = None
+    expired_at: Optional[date] = None
+
+
 class EducationData(BaseModel):
     degree: Optional[EducationDegreeType] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class IEEMethodData(BaseModel):
@@ -109,10 +128,19 @@ class CertificateAndLicenseAnalysisResponse(BaseAnalysisResponse[CertificateAndL
     pass
 
 
+class LanguageCertificateAnalysisResponse(BaseAnalysisResponse[LanguageCertificateData, None]):
+    pass
+
+
 AnalysisResponse = RootModel[
     Union[
         WorkExperienceAnalysisResponse,
         EducationAnalysisResponse,
         CertificateAndLicenseAnalysisResponse,
+        LanguageCertificateData,
     ]
 ]
+
+
+class OcrResponse(BaseModel):
+    text_content: str

@@ -93,7 +93,7 @@ class ProfileResource(ModelResource):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                contactable__profile=obj
+                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name())}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -185,7 +185,7 @@ class EducationResource(ModelResource):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                contactable__profile__user=obj.user
+                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -231,7 +231,7 @@ class WorkExperienceResource(ModelResource):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                contactable__profile__user=obj.user
+                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -273,7 +273,7 @@ class LanguageCertificateResource(ModelResource):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                contactable__profile__user=obj.user
+                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -312,7 +312,13 @@ class CertificateAndLicenseResource(ModelResource):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                contactable__profile__user=obj.user,
+                **{
+                    fields_join(
+                        Contact.contactable,
+                        Profile.contactable.field.related_query_name(),
+                        Profile.user,
+                    ): obj.user
+                },
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )

@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from academy.mixins import CourseUserContextMixin
 from academy.types import CourseNode
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
@@ -16,6 +17,9 @@ from common.types import (
     UniversityNode,
 )
 from common.utils import fields_join
+from criteria.mixins import JobAssessmentUserContextMixin
+from criteria.models import JobAssessment
+from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
 from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django.filter import DjangoFilterConnectionField
@@ -26,8 +30,6 @@ from graphql_auth.settings import graphql_auth_settings
 from graphql_jwt.decorators import login_required
 from notification.models import InAppNotification
 
-from criteria.models import JobAssessment
-from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (
     Case,
@@ -39,6 +41,14 @@ from django.db.models import (
     Subquery,
     Value,
     When,
+)
+from django.db.models.lookups import (
+    Exact,
+    GreaterThanOrEqual,
+    IContains,
+    In,
+    IsNull,
+    LessThanOrEqual,
 )
 
 from .accesses import (
@@ -324,11 +334,15 @@ class EmployeeType(DjangoObjectType):
 
     def resolve_job_assessments(self, info, filters=None):
         qs = JobAssessment.objects.related_to_user(self)
-        info.context.job_assessment_user = self
+        JobAssessmentUserContextMixin.set_user_context(info.context, self)
         if filters:
             if filters.required is not None:
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
+
+    def resolve_courses(self, info):
+        CourseUserContextMixin.set_user_context(info.context, self)
+        return CourseNode._meta.model.objects
 
 
 class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -380,7 +394,15 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
             JobNode.get_queryset(JobNode._meta.model.objects.all(), info)
             .annotate(
                 _priority=Case(
-                    When(id__in=self.available_jobs.values("pk"), then=Value(1)),
+                    When(
+                        **{
+                            fields_join(
+                                Job._meta.pk.attname,
+                                In.lookup_name,
+                            ): self.available_jobs.values(Job._meta.pk.attname)
+                        },
+                        then=Value(1),
+                    ),
                     default=Value(2),
                     output_field=IntegerField(),
                 )
@@ -419,8 +441,8 @@ class EducationAIType(graphene.ObjectType):
     degree = graphene.String()
     university = graphene.Field(UniversityNode)
     city = graphene.Field(CityNode)
-    start = graphene.Date()
-    end = graphene.Date()
+    start = graphene.String()
+    end = graphene.String()
 
     def resolve_degree(self, info):
         return self.get("degree", "").upper() or None
@@ -500,8 +522,8 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
 class WorkExperienceAIType(graphene.ObjectType):
     job_title = graphene.String()
     grade = graphene.String()
-    start = graphene.Date()
-    end = graphene.Date()
+    start = graphene.String()
+    end = graphene.String()
     organization = graphene.String()
     city = graphene.Field(CityNode)
     industry = graphene.Field(IndustryNode)
@@ -760,10 +782,13 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
     def resolve_accessed_roles(self, info):
         return Role.objects.filter(
             (
-                Q(managed_by_id=self.organization_id)
-                & Q(managed_by_model=ContentType.objects.get_for_model(Organization))
+                Q(**{fields_join(Role.managed_by_id): self.organization_id})
+                & Q(**{fields_join(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
             )
-            | (Q(managed_by_id__isnull=True) & Q(managed_by_model__isnull=True)),
+            | (
+                Q(**{fields_join(Role.managed_by_id, IsNull.lookup_name): True})
+                & Q(**{fields_join(Role.managed_by_model, IsNull): True})
+            ),
         ).distinct()
 
     @classmethod
@@ -784,7 +809,7 @@ class UserTaskType(DjangoObjectType):
     @login_required
     def get_queryset(cls, queryset: QuerySet[UserTask], info):
         return (
-            queryset.filter(user=info.context.user)
+            queryset.filter(**{fields_join(UserTask.user): info.context.user})
             .order_by(fields_join(UserTask.task_name), f"-{fields_join(UserTask.created)}")
             .distinct(fields_join(UserTask.task_name))
         )
@@ -853,7 +878,9 @@ class UserNode(BaseUserNode):
         return self.cv if hasattr(self, "cv") else None
 
     def resolve_notifications(self, info):
-        return InAppNotification.objects.filter(user=self).order_by("-created")
+        return InAppNotification.objects.filter(**{fields_join(InAppNotification.user): self}).order_by(
+            f"-{fields_join(InAppNotification.created)}"
+        )
 
 
 class OrganizationType(DjangoObjectType):
@@ -935,7 +962,7 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
 
     def resolve_assignment_status_counts(self, info, **kwargs):
         status_counts = (
-            JobPositionAssignment.objects.filter(job_position=self)
+            JobPositionAssignment.objects.filter(**{fields_join(JobPositionAssignment.job_position): self})
             .values(
                 JobPositionAssignment.status.field.name,
             )
@@ -1004,15 +1031,15 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             JobPositionAssignment.job_position.field.related_query_name(),
         )
         filter_fields = {
-            OrganizationJobPosition.organization.field.name: ["exact"],
-            OrganizationJobPosition.title.field.name: ["icontains"],
-            OrganizationJobPosition.status.field.name: ["exact"],
-            OrganizationJobPosition.start_at.field.name: ["lte", "gte"],
-            OrganizationJobPosition.city.field.name: ["exact"],
+            OrganizationJobPosition.organization.field.name: [Exact.lookup_name],
+            OrganizationJobPosition.title.field.name: [IContains.lookup_name],
+            OrganizationJobPosition.status.field.name: [Exact.lookup_name],
+            OrganizationJobPosition.start_at.field.name: [LessThanOrEqual.lookup_name, GreaterThanOrEqual.lookup_name],
+            OrganizationJobPosition.city.field.name: [Exact.lookup_name],
             fields_join(
                 JobPositionAssignment.job_position.field.related_query_name(),
                 JobPositionAssignment.status.field.name,
-            ): ["exact"],
+            ): [Exact.lookup_name],
         }
 
     def resolve_status(self, info):
@@ -1135,7 +1162,7 @@ class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObje
         )
 
         filter_fields = {
-            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: ["exact"],
+            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: [Exact.lookup_name],
         }
 
     @classmethod
@@ -1169,7 +1196,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
         filter_fields = {
-            OrganizationPlatformMessage.organization_employee_cooperation.field.name: ["exact"],
+            OrganizationPlatformMessage.organization_employee_cooperation.field.name: [Exact.lookup_name],
         }
 
     @classmethod
@@ -1249,9 +1276,15 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
             .annotate(
                 last_cooperation_status=Subquery(
                     (
-                        OrganizationEmployeeCooperation.objects.filter(employee=OuterRef("pk"))
-                        .order_by("-id")
-                        .values("status")[:1]
+                        OrganizationEmployeeCooperation.objects.filter(
+                            **{
+                                fields_join(OrganizationEmployeeCooperation.employee): OuterRef(
+                                    OrganizationEmployeeCooperation._meta.pk.attname
+                                )
+                            }
+                        )
+                        .order_by(f"-{OrganizationEmployeeCooperation._meta.pk.attname}")
+                        .values(fields_join(OrganizationEmployeeCooperation.status))[:1]
                     )
                 ),
                 status_order=Case(

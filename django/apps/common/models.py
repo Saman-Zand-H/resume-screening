@@ -90,10 +90,14 @@ class SkillTopic(models.Model):
 
 class SkillQuerySet(models.QuerySet):
     def system(self):
-        return self.filter(insert_type=Skill.InsertType.SYSTEM)
+        from common.utils import fields_join
+
+        return self.filter(**{fields_join(Skill.insert_type): Skill.InsertType.SYSTEM})
 
     def ai(self):
-        return self.filter(insert_type=Skill.InsertType.AI)
+        from common.utils import fields_join
+
+        return self.filter(**{fields_join(Skill.insert_type): Skill.InsertType.AI})
 
 
 class Skill(models.Model):

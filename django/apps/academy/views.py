@@ -1,3 +1,4 @@
+from common.utils import fields_join
 from common.views import WebhookView
 from common.webhook import WebhookEvent, WebhookHandlerResponse
 
@@ -5,7 +6,7 @@ from django.conf import settings
 
 from .client.types import CollegeCourseStatus, CourseCompletaionResponse
 from .forms import StatusWebhookForm
-from .models import CourseResult
+from .models import Course, CourseResult
 
 COURSE_RESULT_STATUS = {
     CollegeCourseStatus.PASSED: CourseResult.Status.COMPLETED,
@@ -24,9 +25,12 @@ class AcademyWebhookView(WebhookView):
 def handle_status_update(payload: dict) -> WebhookHandlerResponse:
     status_response = CourseCompletaionResponse.model_validate(payload)
 
-    CourseResult.objects.filter(user=status_response.external_id, course__external_id=status_response.course_id).update(
-        status=COURSE_RESULT_STATUS[status_response.status]
-    )
+    CourseResult.objects.filter(
+        **{
+            fields_join(CourseResult.user): status_response.external_id,
+            fields_join(CourseResult.course, Course.external_id): status_response.course_id,
+        }
+    ).update(**{CourseResult.status: COURSE_RESULT_STATUS[status_response.status]})
 
     return WebhookHandlerResponse(status="success")
 

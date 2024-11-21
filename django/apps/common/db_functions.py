@@ -41,7 +41,6 @@ class GetKeysByValue(Func):
         return sql, params
 
 
-@DateTimeField.register_lookup
 class DateTimeAge(Transform):
     lookup_name = "age"
     output_field = DateTimeField()
@@ -53,11 +52,11 @@ class DateTimeAge(Transform):
         return sql, lhs_params
 
 
-@DateField.register_lookup
 class DateAge(DateTimeAge):
     output_field = DateField()
 
 
+DateTimeField.register_lookup(DateTimeAge)
 DateTimeAge.register_lookup(ExtractYear)
 DateTimeAge.register_lookup(ExtractMonth)
 DateTimeAge.register_lookup(ExtractDay)
@@ -69,6 +68,7 @@ DateTimeAge.register_lookup(ExtractIsoYear)
 DateTimeAge.register_lookup(ExtractWeek)
 DateTimeAge.register_lookup(ExtractWeekDay)
 
+DateField.register_lookup(DateAge)
 DateAge.register_lookup(ExtractYear)
 DateAge.register_lookup(ExtractMonth)
 DateAge.register_lookup(ExtractDay)
