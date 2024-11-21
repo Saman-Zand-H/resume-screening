@@ -31,6 +31,7 @@ class FileSlugs(Enum):
 
 
 class ProfileAnnotationNames(NamedTuple):
+    AGE = "user_age"
     IS_ORGANIZATION_MEMBER = "is_organization_member"
     HAS_PROFILE_INFORMATION = "has_profile_information"
     HAS_EDUCATION = "has_education"

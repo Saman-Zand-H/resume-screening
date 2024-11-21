@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Generic, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, EmailStr, HttpUrl, RootModel
@@ -65,8 +66,8 @@ class WorkExperienceData(BaseModel):
     job_title: Optional[str] = None
     job_grade: Optional[WorkExperienceGradeType] = None
     organization: Optional[str] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class ReferenceCheckData(BaseModel):
@@ -86,14 +87,19 @@ WorkExperienceVerificationType = Union[ReferenceCheckData, PaystubsData]
 class CertificateAndLicenseData(BaseModel):
     title: Optional[str] = None
     certifier: Optional[str] = None
-    issued_at: Optional[str] = None
-    expired_at: Optional[str] = None
+    issued_at: Optional[date] = None
+    expired_at: Optional[date] = None
+
+
+class LanguageCertificateData(BaseModel):
+    issued_at: Optional[date] = None
+    expired_at: Optional[date] = None
 
 
 class EducationData(BaseModel):
     degree: Optional[EducationDegreeType] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    start: Optional[str] = None
+    end: Optional[str] = None
 
 
 class IEEMethodData(BaseModel):
@@ -122,10 +128,19 @@ class CertificateAndLicenseAnalysisResponse(BaseAnalysisResponse[CertificateAndL
     pass
 
 
+class LanguageCertificateAnalysisResponse(BaseAnalysisResponse[LanguageCertificateData, None]):
+    pass
+
+
 AnalysisResponse = RootModel[
     Union[
         WorkExperienceAnalysisResponse,
         EducationAnalysisResponse,
         CertificateAndLicenseAnalysisResponse,
+        LanguageCertificateData,
     ]
 ]
+
+
+class OcrResponse(BaseModel):
+    text_content: str
