@@ -50,3 +50,4 @@ croniter~=6.0.0
 firebase-admin~=6.6.0
 django-ratelimit~=4.1.0
 google-cloud-recaptcha-enterprise~=1.26.1
+sentry-sdk[django]~=2.20.0

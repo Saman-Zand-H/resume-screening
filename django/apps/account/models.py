@@ -1764,6 +1764,10 @@ class Organization(DocumentAbstract):
         verbose_name = _("Organization")
         verbose_name_plural = _("Organizations")
 
+    def __init__(self, *args, **kwargs):
+        self._meta.get_field(Organization.user.field.name).verbose_name = _("Owner")
+        super().__init__(*args, **kwargs)
+
     def __str__(self):
         return self.name
 
