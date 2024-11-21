@@ -600,23 +600,16 @@ class OrganizationRolesGenericInline(GenericStackedInline):
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = (
         Organization.name.field.name,
-        Organization.type.field.name,
-        Organization.established_at.field.name,
-        Organization.size.field.name,
-        Organization.city.field.name,
         Organization.user.field.name,
+        Organization.type.field.name,
+        Organization.city.field.name,
     )
     search_fields = (
         Organization.name.field.name,
         Organization.short_name.field.name,
         Organization.national_number.field.name,
     )
-    list_filter = (
-        Organization.type.field.name,
-        Organization.business_type.field.name,
-        Organization.size.field.name,
-        Organization.established_at.field.name,
-    )
+    list_filter = (Organization.status.field.name,)
     raw_id_fields = (Organization.contactable.field.name,)
     autocomplete_fields = (
         Organization.industry.field.name,
