@@ -1,20 +1,28 @@
-from functools import wraps
-from django.utils.translation import gettext as _
+from functools import partial, wraps
+
 from django_ratelimit import ALL, UNSAFE
 from django_ratelimit.core import is_ratelimited
+from graphql import GraphQLResolveInfo
+
 from common.exceptions import GraphQLErrorTooManyRequests
+from django.utils.translation import gettext as _
+
+from .mixins import MutateDecoratorMixin
 
 
-def ratelimit(group=None, key=None, rate=None, method=ALL, block=False):
-    def decorator(fn):
+class RateLimit:
+    @classmethod
+    def _apply_ratelimit(cls, fn, group=None, key=None, rate=None, method=ALL, block=True):
+        """Applies rate limiting to the given function."""
+
         @wraps(fn)
-        def _wrapped(*args, **kwargs):
-            root, info = args[-2], args[-1]
+        def wrapped(*args, **kwargs):
+            info = next((arg for arg in args if isinstance(arg, GraphQLResolveInfo)), None)
+            if not info:
+                return fn(*args, **kwargs)
+
             request = info.context
-
-            old_limited = getattr(request, "limited", False)
-
-            ratelimited = is_ratelimited(
+            request.limited = is_ratelimited(
                 request=request,
                 group=group,
                 fn=fn,
@@ -22,17 +30,31 @@ def ratelimit(group=None, key=None, rate=None, method=ALL, block=False):
                 rate=rate,
                 method=method,
                 increment=True,
-            )
-            request.limited = ratelimited or old_limited
+            ) or getattr(request, "limited", False)
 
-            if ratelimited and block:
+            if request.limited and block:
                 raise GraphQLErrorTooManyRequests(_("Too many requests"))
+
             return fn(*args, **kwargs)
 
-        return _wrapped
+        return wrapped
 
-    return decorator
+    @classmethod
+    def __call__(cls, **rate_kwargs):
+        """Decorator to apply rate limiting on functions or classes."""
+
+        def decorator(fn):
+            if isinstance(fn, type):
+                return type(
+                    fn.__name__,
+                    (MutateDecoratorMixin, fn),
+                    {MutateDecoratorMixin.decorator.fget.__name__: partial(cls._apply_ratelimit, **rate_kwargs)},
+                )
+            return cls._apply_ratelimit(fn, **rate_kwargs)
+
+        return decorator
 
 
+ratelimit = RateLimit()
 ratelimit.ALL = ALL
 ratelimit.UNSAFE = UNSAFE
