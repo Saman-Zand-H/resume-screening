@@ -7,6 +7,7 @@ from common.mixins import (
     CUDOutputTypeMixin,
     DocumentFilePermissionMixin,
     FilePermissionMixin,
+    ReCaptchaMixin,
 )
 from common.models import Job, Skill
 from common.types import (
@@ -236,7 +237,7 @@ class EmailCallbackUrlMixin:
         return super().Field(*args, **kwargs)
 
 
-class RegisterBase(EmailCallbackUrlMixin, graphql_auth_mutations.Register):
+class RegisterBase(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
 
     @classmethod
@@ -392,7 +393,7 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         return response
 
 
-class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
+class ResendActivationEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
         user = get_user_by_email(kwargs.get("email"))
@@ -406,7 +407,7 @@ class ResendActivationEmail(EmailCallbackUrlMixin, graphql_auth_mutations.Resend
         return super().mutate(*args, **kwargs)
 
 
-class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
+class SendPasswordResetEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
         user = get_user_by_email(kwargs.get("email"))
@@ -418,6 +419,10 @@ class SendPasswordResetEmail(EmailCallbackUrlMixin, graphql_auth_mutations.SendP
             },
         )
         return super().mutate(*args, **kwargs)
+
+
+class PasswordReset(ReCaptchaMixin, graphql_auth_mutations.PasswordReset):
+    pass
 
 
 class RefreshToken(graphql_auth_mutations.RefreshToken):
@@ -489,7 +494,7 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
-class ObtainJSONWebToken(DeviceIDMixin, graphql_auth_mutations.ObtainJSONWebToken):
+class ObtainJSONWebToken(ReCaptchaMixin, DeviceIDMixin, graphql_auth_mutations.ObtainJSONWebToken):
     @classmethod
     def Field(cls, *args, **kwargs):
         cls._meta.arguments.update({"device_id": graphene.String(required=True)})
@@ -1687,7 +1692,7 @@ class AccountMutation(graphene.ObjectType):
     verify = VerifyAccount.Field()
     resend_activation_email = ResendActivationEmail.Field()
     send_password_reset_email = SendPasswordResetEmail.Field()
-    password_reset = graphql_auth_mutations.PasswordReset.Field()
+    password_reset = PasswordReset.Field()
     token_auth = ObtainJSONWebToken.Field()
     refresh_token = RefreshToken.Field()
     revoke_token = RevokeTokenMutation.Field()

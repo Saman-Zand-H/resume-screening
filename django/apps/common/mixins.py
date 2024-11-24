@@ -2,17 +2,16 @@ from datetime import date, datetime
 
 import graphene
 import graphene_django
+from config.settings.constants import Environment
+from config.utils import is_env, is_recaptcha_token_valid
 from graphene_django_cud.mutations.core import DjangoCudBaseOptions
 from graphene_django_cud.util import to_snake_case
 
 from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.db.models.fields.related import RelatedField
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
-
-from config.utils import is_recaptcha_token_valid
-from config.settings.constants import RecaptchaAction
 
 from .models import FileModel
 from .utils import get_file_models
@@ -227,5 +226,7 @@ class ReCaptchaMixin:
 
     @classmethod
     def _validate_recaptcha(cls, g_recaptcha_token):
-        if not is_recaptcha_token_valid(g_recaptcha_token, RecaptchaAction.login):
+        if is_env(Environment.LOCAL):
+            return
+        if not is_recaptcha_token_valid(g_recaptcha_token):
             raise ValidationError({cls.recaptcha_field: _("Invalid reCAPTCHA token.")})
