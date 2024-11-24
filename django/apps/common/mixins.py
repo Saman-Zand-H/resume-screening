@@ -112,7 +112,7 @@ class FilePermissionMixin:
             if not field_model:
                 continue
 
-            file_obj: FileModel = field_model.objects.filter(**{FileModel._meta.pk.attname: value}).first()
+            file_obj = field_model.objects.filter(**{FileModel._meta.pk.attname: value}).first()
             if not file_obj:
                 continue
 
