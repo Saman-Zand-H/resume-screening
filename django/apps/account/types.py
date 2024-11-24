@@ -11,7 +11,6 @@ from common.types import (
     IndustryNode,
     JobBenefitType,
     JobNode,
-    LanguageProficiencySkillNode,
     LanguageProficiencyTestNode,
     SkillType,
     UniversityNode,
@@ -606,8 +605,13 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class LanguageCertificateValueSkillAIType(graphene.ObjectType):
+    id = graphene.ID()
+    skill_name = graphene.String()
+
+
 class LanguageCertificateValueAIType(graphene.ObjectType):
-    skill = graphene.Field(LanguageProficiencySkillNode)
+    skill = graphene.Field(LanguageCertificateValueSkillAIType)
     value = graphene.String()
 
 

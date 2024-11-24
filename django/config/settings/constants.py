@@ -16,6 +16,7 @@ class Assistants:
     GENERATE_RESUME = "get-resume-info"
     DOCUMENT_VALIDATION = "document-validation"
     DOCUMENT_DATA_ANALYSIS = "analyze-document-data"
+    LANGUAGE_CERTIFICATE_ANALYSIS = "language-certificate-analysis"
     OCR = "get-file-text-content"
 
 

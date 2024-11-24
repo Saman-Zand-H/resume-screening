@@ -3,7 +3,7 @@ from collections import deque
 from typing import ClassVar, List
 
 from google.genai.types import ContentListUnion
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .google import GoogleServices
 
@@ -39,7 +39,7 @@ class AssistantPipeline:
     def run(self):
         results = deque()
         for assistant in self.assistants:
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(ValidationError):
                 result = assistant.execute(old_results=results.copy())
                 results.append(result)
                 if assistant.should_pass(result):
