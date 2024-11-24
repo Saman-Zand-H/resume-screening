@@ -11,9 +11,8 @@
     e.preventDefault();
     grecaptcha.enterprise.ready(async () => {
       document.getElementById("g-recaptcha-response").value = await grecaptcha.enterprise.execute(
-        '{{ recaptcha_site_key }}', {
-          action: '{{ recaptcha_action }}'
-        });
+        '{{ recaptcha_site_key }}'
+      );
       document.getElementById("login-form").submit();
     });
   }

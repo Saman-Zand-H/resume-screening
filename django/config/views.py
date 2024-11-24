@@ -5,7 +5,6 @@ from django.shortcuts import redirect, resolve_url
 from django.urls import reverse
 from django.utils.translation import gettext as _
 
-from .settings.constants import RecaptchaAction
 from .utils import get_recaptcha_site_key, is_recaptcha_token_valid
 
 
@@ -14,7 +13,7 @@ class AdminLoginView(LoginView):
 
     def post(self, request: HttpRequest, *args, **kwargs):
         token = request.POST.get("g-recaptcha-response")
-        if not is_recaptcha_token_valid(token, RecaptchaAction.login):
+        if not is_recaptcha_token_valid(token):
             messages.error(request, _("reCAPTCHA token is invalid"))
             return redirect(reverse("admin:login"))
 
@@ -22,9 +21,7 @@ class AdminLoginView(LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.update(
-            {"recaptcha_site_key": get_recaptcha_site_key(), "recaptcha_action": RecaptchaAction.login.value}
-        )
+        context.update({"recaptcha_site_key": get_recaptcha_site_key()})
         return context
 
     def get_default_redirect_url(self):
