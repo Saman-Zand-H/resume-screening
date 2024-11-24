@@ -436,7 +436,7 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class EducationAIType(graphene.ObjectType):
     field = graphene.Field(FieldType)
-    degree = graphene.String()
+    degree = graphene.Field(convert_choice_field_to_enum(Education.degree.field))
     university = graphene.Field(UniversityNode)
     city = graphene.Field(CityNode)
     start = graphene.String()
@@ -456,7 +456,7 @@ class IEEMethodType(DjangoObjectType):
 
 
 class IEEMethodAIType(graphene.ObjectType):
-    evaluator = graphene.String()
+    evaluator = graphene.Field(convert_choice_field_to_enum(IEEMethod.evaluator.field))
 
     def resolve_evaluator(self, info):
         return self.get("evaluator", "").upper() or None
@@ -519,7 +519,7 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class WorkExperienceAIType(graphene.ObjectType):
     job_title = graphene.String()
-    grade = graphene.String()
+    grade = graphene.Field(convert_choice_field_to_enum(WorkExperience.grade.field))
     start = graphene.String()
     end = graphene.String()
     organization = graphene.String()
@@ -606,6 +606,7 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class LanguageCertificateValueSkillAIType(graphene.ObjectType):
     id = graphene.ID()
+    slug = graphene.String()
     skill_name = graphene.String()
 
 
