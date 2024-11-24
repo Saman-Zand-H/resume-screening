@@ -11,7 +11,6 @@ from common.types import (
     IndustryNode,
     JobBenefitType,
     JobNode,
-    LanguageProficiencyTestNode,
     SkillType,
     UniversityNode,
 )
@@ -615,9 +614,14 @@ class LanguageCertificateValueAIType(graphene.ObjectType):
     value = graphene.String()
 
 
+class LanguageCertificateTypeAIType(graphene.ObjectType):
+    id = graphene.ID()
+    title = graphene.String()
+
+
 class LanguageCertificateAIType(graphene.ObjectType):
     language = graphene.String()
-    test = graphene.Field(LanguageProficiencyTestNode)
+    test = graphene.Field(LanguageCertificateTypeAIType)
     issued_at = graphene.Date()
     expired_at = graphene.Date()
     values = graphene.List(LanguageCertificateValueAIType)
