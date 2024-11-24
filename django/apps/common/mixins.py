@@ -9,6 +9,10 @@ from common.utils import fix_array_choice_type, fix_array_choice_type_fields
 from django.contrib.postgres.fields import ArrayField
 from django.db.models.fields.related import RelatedField
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+
+from config.utils import is_recaptcha_token_valid
+from config.settings.constants import RecaptchaAction
 
 from .models import FileModel
 from .utils import get_file_models
@@ -205,3 +209,23 @@ class MutateDecoratorMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
         return cls.decorator(super().mutate)(*args, **kwargs)
+
+
+class ReCaptchaMixin:
+    recaptcha_field = "g_recaptcha_token"
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        super().__init_subclass_with_meta__(*args, **kwargs)
+        cls._meta.arguments.update({cls.recaptcha_field: graphene.String(required=True)})
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        g_recaptcha_token = kwargs.pop(cls.recaptcha_field, None)
+        cls._validate_recaptcha(g_recaptcha_token)
+        return super().mutate(*args, **kwargs)
+
+    @classmethod
+    def _validate_recaptcha(cls, g_recaptcha_token):
+        if not is_recaptcha_token_valid(g_recaptcha_token, RecaptchaAction.login):
+            raise ValidationError({cls.recaptcha_field: _("Invalid reCAPTCHA token.")})
