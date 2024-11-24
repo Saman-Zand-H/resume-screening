@@ -1,6 +1,7 @@
 import contextlib
 
 import graphene
+from common.decorators import ratelimit
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -187,6 +188,11 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
         )
         return super().after_mutate(root, info, input, obj, return_data)
 
+    @classmethod
+    @ratelimit(key="user", rate="5/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
+
 
 def referral_registration(user, referral_code):
     if not referral_code:
@@ -237,6 +243,7 @@ class EmailCallbackUrlMixin:
         return super().Field(*args, **kwargs)
 
 
+@ratelimit(key="ip", rate="10/m")
 class RegisterBase(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
 
@@ -359,6 +366,7 @@ class RegisterOrganization(RegisterBase):
             raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
 
 
+@ratelimit(key="ip", rate="10/m")
 class VerifyAccount(graphql_auth_mutations.VerifyAccount):
     token = graphene.String(description="The token required to set password after registration with password_reset")
 
@@ -393,6 +401,7 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
         return response
 
 
+@ratelimit(key="ip", rate="1/m")
 class ResendActivationEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
@@ -407,6 +416,7 @@ class ResendActivationEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_
         return super().mutate(*args, **kwargs)
 
 
+@ratelimit(key="ip", rate="1/m")
 class SendPasswordResetEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
@@ -421,10 +431,12 @@ class SendPasswordResetEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth
         return super().mutate(*args, **kwargs)
 
 
+@ratelimit(key="ip", rate="5/m")
 class PasswordReset(ReCaptchaMixin, graphql_auth_mutations.PasswordReset):
     pass
 
 
+@ratelimit(key="ip", rate="5/m")
 class RefreshToken(graphql_auth_mutations.RefreshToken):
     @classmethod
     def Field(cls, *args, **kwargs):
@@ -494,6 +506,7 @@ class LinkedInAuth(BaseSocialAuth):
         }
 
 
+@ratelimit(key="ip", rate="15/m")
 class ObtainJSONWebToken(ReCaptchaMixin, DeviceIDMixin, graphql_auth_mutations.ObtainJSONWebToken):
     @classmethod
     def Field(cls, *args, **kwargs):
@@ -712,8 +725,7 @@ class UserUpdateMutation(
 
     @classmethod
     def validate(cls, *args, **kwargs):
-        info = args[1]
-        input = args[2]
+        info, input = args[1], args[2]
         user: User = info.context.user
         profile = user.profile
 
@@ -737,11 +749,17 @@ class UserUpdateMutation(
 
         return super().validate(*args, **kwargs)
 
+    @classmethod
+    @ratelimit(key="user", rate="20/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
+
 
 class UserSkillInput(graphene.InputObjectType):
     skills = graphene.List(graphene.String, required=True)
 
 
+@ratelimit(key="user", rate="5/m")
 class UserSetSkillsMutation(graphene.Mutation):
     class Arguments:
         input = UserSkillInput(required=True)
@@ -857,6 +875,11 @@ class EducationCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
         model = Education
         fields = EDUCATION_MUTATION_FIELDS
 
+    @classmethod
+    @ratelimit(key="user", rate="4/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
+
 
 class EducationUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
     output_type = EducationNode
@@ -880,6 +903,7 @@ class EducationSetVerificationMethodMutation(
         model = Education
 
 
+@ratelimit(key="user", rate="4/m")
 class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
     data = graphene.Field(graphene.ObjectType)
@@ -947,6 +971,11 @@ class WorkExperienceCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBas
     class Meta:
         model = WorkExperience
         fields = WORK_EXPERIENCE_MUTATION_FIELDS
+
+    @classmethod
+    @ratelimit(key="user", rate="4/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
 
 
 class WorkExperienceUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
@@ -1065,6 +1094,11 @@ class LanguageCertificateCreateMutation(CUDOutputTypeMixin, DocumentCreateMutati
             values = input.get(LanguageCertificateValue.language_certificate.field.related_query_name())
             validate_language_certificate_skills(obj.test, values)
 
+    @classmethod
+    @ratelimit(key="user", rate="4/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
+
 
 class LanguageCertificateUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
     output_type = LanguageCertificateNode
@@ -1139,6 +1173,11 @@ class CertificateAndLicenseCreateMutation(CUDOutputTypeMixin, DocumentCreateMuta
     class Meta:
         model = CertificateAndLicense
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
+
+    @classmethod
+    @ratelimit(key="user", rate="4/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
 
 
 class CertificateAndLicenseUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
@@ -1217,6 +1256,7 @@ class BaseOrganizationVerifierMutation(MutationAccessRequiredMixin):
         return organization
 
 
+@ratelimit(key="user", rate="2/m")
 class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
         id = graphene.ID(required=True)
@@ -1578,6 +1618,11 @@ class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         obj.user = info.context.user
         cls.full_clean(obj)
 
+    @classmethod
+    @ratelimit(key="user", rate="2/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
+
 
 class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
@@ -1608,6 +1653,11 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         user_task_runner(set_user_resume_json, obj.user.id, user_id=obj.user_id)
 
         return super().after_mutate(root, info, id, input, obj, return_data)
+
+    @classmethod
+    @ratelimit(key="user", rate="2/m")
+    def mutate(cls, *args, **kwargs):
+        return super().mutate(*args, **kwargs)
 
 
 class UserDeleteMutation(graphene.Mutation):
