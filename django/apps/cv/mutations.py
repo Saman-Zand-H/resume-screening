@@ -1,10 +1,12 @@
 import graphene
 from account.tasks import user_task_runner
+from common.decorators import ratelimit
 from graphql_jwt.decorators import login_required
 
 from .tasks import render_cv_template
 
 
+@ratelimit(key="user", rate="5/m")
 class GenerateResumeMutation(graphene.Mutation):
     class Arguments:
         template_id = graphene.ID(required=False)
