@@ -187,3 +187,21 @@ class UserContextMixin:
     def set_user_context(cls, request, user):
         setattr(request, cls.user_context_key, user)
         return request
+
+
+class MutateDecoratorMixin:
+    """Mixin to integrate decorators into class-based mutations."""
+
+    _decorator = None
+
+    @property
+    def decorator(self):
+        return self._decorator
+
+    @decorator.setter
+    def decorator(self, value):
+        self._decorator = value
+
+    @classmethod
+    def mutate(cls, *args, **kwargs):
+        return cls.decorator(super().mutate)(*args, **kwargs)
