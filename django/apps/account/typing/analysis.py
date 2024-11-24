@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Generic, Literal, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, EmailStr, HttpUrl, RootModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
@@ -94,6 +94,9 @@ class CertificateAndLicenseData(BaseModel):
 class LanguageCertificateData(BaseModel):
     issued_at: Optional[date] = None
     expired_at: Optional[date] = None
+    language: Optional[str] = None
+    test: Dict[str, Any] = {}
+    values: List[Any]
 
 
 class EducationData(BaseModel):
@@ -137,7 +140,7 @@ AnalysisResponse = RootModel[
         WorkExperienceAnalysisResponse,
         EducationAnalysisResponse,
         CertificateAndLicenseAnalysisResponse,
-        LanguageCertificateData,
+        LanguageCertificateAnalysisResponse,
     ]
 ]
 

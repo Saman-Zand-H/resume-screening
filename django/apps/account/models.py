@@ -759,6 +759,7 @@ class Profile(ComputedFieldsModel):
     @classmethod
     def flex_report_search_fields(cls):
         return {
+            cls.native_language.field.name: [Exact.lookup_name],
             cls.birth_date.field.name: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
             fields_join(cls.user, User.email): [IExact.lookup_name],
             cls.gender.field.name: [Exact.lookup_name],

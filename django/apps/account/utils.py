@@ -23,6 +23,7 @@ from .assistants import (
     DocumentDataAnalysisAssistant,
     DocumentOcrAssistant,
     DocumentValidationAssistant,
+    LanguageCertificateAnalysisAssistant,
 )
 from .constants import FileSlugs, VectorStores
 from .typing import (
@@ -98,8 +99,14 @@ def analyze_document(
             verification_method_name=verification_method_name,
         ),
         DocumentOcrAssistant().build(file_model_id=file_model_id, verification_method_name=verification_method_name),
-        DocumentDataAnalysisAssistant().build(verification_method_name=verification_method_name),
     ]
+
+    if verification_method_name == FileSlugs.LANGUAGE_CERTIFICATE.value:
+        assistants.append(
+            LanguageCertificateAnalysisAssistant().build(verification_method_name=verification_method_name)
+        )
+    else:
+        assistants.append(DocumentDataAnalysisAssistant().build(verification_method_name=verification_method_name))
 
     results = AssistantPipeline(*assistants).run()
     return AnalysisResponse.model_validate(defaultdict(list, results))

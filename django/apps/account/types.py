@@ -11,8 +11,6 @@ from common.types import (
     IndustryNode,
     JobBenefitType,
     JobNode,
-    LanguageProficiencySkillNode,
-    LanguageProficiencyTestNode,
     SkillType,
     UniversityNode,
 )
@@ -438,7 +436,7 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class EducationAIType(graphene.ObjectType):
     field = graphene.Field(FieldType)
-    degree = graphene.String()
+    degree = graphene.Field(convert_choice_field_to_enum(Education.degree.field))
     university = graphene.Field(UniversityNode)
     city = graphene.Field(CityNode)
     start = graphene.String()
@@ -458,7 +456,7 @@ class IEEMethodType(DjangoObjectType):
 
 
 class IEEMethodAIType(graphene.ObjectType):
-    evaluator = graphene.String()
+    evaluator = graphene.Field(convert_choice_field_to_enum(IEEMethod.evaluator.field))
 
     def resolve_evaluator(self, info):
         return self.get("evaluator", "").upper() or None
@@ -521,7 +519,7 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
 
 class WorkExperienceAIType(graphene.ObjectType):
     job_title = graphene.String()
-    grade = graphene.String()
+    grade = graphene.Field(convert_choice_field_to_enum(WorkExperience.grade.field))
     start = graphene.String()
     end = graphene.String()
     organization = graphene.String()
@@ -606,14 +604,25 @@ class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
+class LanguageCertificateValueSkillAIType(graphene.ObjectType):
+    id = graphene.ID()
+    slug = graphene.String()
+    skill_name = graphene.String()
+
+
 class LanguageCertificateValueAIType(graphene.ObjectType):
-    skill = graphene.Field(LanguageProficiencySkillNode)
+    skill = graphene.Field(LanguageCertificateValueSkillAIType)
     value = graphene.String()
+
+
+class LanguageCertificateTypeAIType(graphene.ObjectType):
+    id = graphene.ID()
+    title = graphene.String()
 
 
 class LanguageCertificateAIType(graphene.ObjectType):
     language = graphene.String()
-    test = graphene.Field(LanguageProficiencyTestNode)
+    test = graphene.Field(LanguageCertificateTypeAIType)
     issued_at = graphene.Date()
     expired_at = graphene.Date()
     values = graphene.List(LanguageCertificateValueAIType)

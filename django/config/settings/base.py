@@ -373,3 +373,6 @@ if SENTRY_DSN:
         attach_stacktrace=True,
         before_send=before_send,
     )
+
+
+RECAPTCHA_SITE_KEY = os.environ.get("GOOGLE_CLOUD_RECAPTCHA_SITE_KEY")

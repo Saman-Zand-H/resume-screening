@@ -6,7 +6,7 @@ from google.cloud.recaptchaenterprise_v1 import Assessment
 
 from django.conf import settings
 
-from .settings.constants import Environment, RecaptchaAction
+from .settings.constants import Environment
 
 
 def get_recaptcha_site_key() -> str:
@@ -16,7 +16,7 @@ def get_recaptcha_site_key() -> str:
         return ""
 
 
-def create_recaptcha_assessment(token: str, recaptcha_action: RecaptchaAction) -> Assessment:
+def create_recaptcha_assessment(token: str) -> Assessment:
     _, project_id = google.auth.default()
 
     recaptcha_site_key = get_recaptcha_site_key()
@@ -44,14 +44,11 @@ def create_recaptcha_assessment(token: str, recaptcha_action: RecaptchaAction) -
     if not response.token_properties.valid:
         return
 
-    if response.token_properties.action != recaptcha_action.value:
-        return
-
     return response
 
 
-def is_recaptcha_token_valid(token: str, recaptcha_action: RecaptchaAction) -> bool:
-    assessment = create_recaptcha_assessment(token, recaptcha_action)
+def is_recaptcha_token_valid(token: str) -> bool:
+    assessment = create_recaptcha_assessment(token)
     return assessment and assessment.risk_analysis.score >= 0.7
 
 

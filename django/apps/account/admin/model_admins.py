@@ -603,6 +603,8 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.user.field.name,
         Organization.type.field.name,
         Organization.city.field.name,
+        Organization.user.field.name,
+        Organization.verified_at.field.name,
     )
     search_fields = (
         Organization.name.field.name,
