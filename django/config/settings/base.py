@@ -377,6 +377,7 @@ if SENTRY_DSN:
         environment=f"js-api-{os.environ.get('DJANGO_SETTINGS_MODULE')}",
         attach_stacktrace=True,
         before_send=before_send,
+        keep_alive=True,
     )
 
 
