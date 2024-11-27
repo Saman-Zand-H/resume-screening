@@ -1,3 +1,4 @@
+from account.models import User
 from common.utils import fields_join
 from flex_report.mixins import TablePageMixin
 
@@ -156,98 +157,77 @@ class CampaignAdmin(admin.ModelAdmin):
         ]
 
 
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = (
+class BaseNotificationAdmin(admin.ModelAdmin):
+    list_display = [
         Notification.user.field.name,
         Notification.created.field.name,
         Notification.status.field.name,
-    )
-    list_filter = (Notification.status.field.name,)
-    search_fields = (Notification.user.field.name,)
-    autocomplete_fields = (Notification.user.field.name,)
+    ]
+    list_filter = [
+        Notification.status.field.name,
+    ]
+    search_fields = [
+        fields_join(Notification.user, User.email),
+    ]
+    autocomplete_fields = [
+        Notification.user.field.name,
+    ]
+
+
+@admin.register(Notification)
+class NotificationAdmin(BaseNotificationAdmin):
+    pass
 
 
 @admin.register(EmailNotification)
-class EmailNotificationAdmin(admin.ModelAdmin):
-    list_display = (
+class EmailNotificationAdmin(BaseNotificationAdmin):
+    list_display = BaseNotificationAdmin.list_display + [
         EmailNotification.email.field.name,
         EmailNotification.title.field.name,
-        EmailNotification.user.field.name,
-        EmailNotification.created.field.name,
-        EmailNotification.status.field.name,
-    )
-    list_filter = (EmailNotification.status.field.name,)
-    search_fields = (
-        EmailNotification.email.field.name,
-        EmailNotification.title.field.name,
-        EmailNotification.user.field.name,
-    )
-    autocomplete_fields = (EmailNotification.user.field.name,)
+    ]
 
 
 @admin.register(SMSNotification)
-class SMSNotificationAdmin(admin.ModelAdmin):
-    list_display = (
+class SMSNotificationAdmin(BaseNotificationAdmin):
+    list_display = BaseNotificationAdmin.list_display + [
         SMSNotification.phone_number.field.name,
-        SMSNotification.user.field.name,
-        SMSNotification.created.field.name,
-        SMSNotification.status.field.name,
-    )
-    list_filter = (SMSNotification.status.field.name,)
-    search_fields = (
+    ]
+    search_fields = BaseNotificationAdmin.search_fields + [
         SMSNotification.phone_number.field.name,
-        SMSNotification.user.field.name,
-    )
-    autocomplete_fields = (SMSNotification.user.field.name,)
+    ]
 
 
 @admin.register(WhatsAppNotification)
-class WhatsAppNotificationAdmin(admin.ModelAdmin):
-    list_display = (
+class WhatsAppNotificationAdmin(BaseNotificationAdmin):
+    list_display = BaseNotificationAdmin.list_display + [
         WhatsAppNotification.phone_number.field.name,
-        WhatsAppNotification.user.field.name,
-        WhatsAppNotification.created.field.name,
-        WhatsAppNotification.status.field.name,
-    )
-    list_filter = (WhatsAppNotification.status.field.name,)
-    search_fields = (
+    ]
+    search_fields = BaseNotificationAdmin.search_fields + [
         WhatsAppNotification.phone_number.field.name,
-        WhatsAppNotification.user.field.name,
-    )
-    autocomplete_fields = (WhatsAppNotification.user.field.name,)
+    ]
 
 
 @admin.register(PushNotification)
-class PushNotificationAdmin(admin.ModelAdmin):
-    list_display = (
+class PushNotificationAdmin(BaseNotificationAdmin):
+    list_display = BaseNotificationAdmin.list_display + [
         PushNotification.short_token.fget.__name__,
         PushNotification.title.field.name,
-        PushNotification.user.field.name,
-        PushNotification.created.field.name,
-        PushNotification.status.field.name,
-    )
-    list_filter = (PushNotification.status.field.name,)
-    search_fields = (
+    ]
+    search_fields = BaseNotificationAdmin.search_fields + [
         PushNotification.token.field.name,
         PushNotification.title.field.name,
-        PushNotification.user.field.name,
-    )
-    autocomplete_fields = (PushNotification.user.field.name,)
+    ]
 
 
 @admin.register(InAppNotification)
-class InAppNotificationAdmin(admin.ModelAdmin):
-    list_display = (
+class InAppNotificationAdmin(BaseNotificationAdmin):
+    list_display = BaseNotificationAdmin.list_display + [
         InAppNotification.title.field.name,
-        InAppNotification.user.field.name,
-        InAppNotification.created.field.name,
-        InAppNotification.status.field.name,
+    ]
+    search_fields = BaseNotificationAdmin.search_fields + [
+        InAppNotification.title.field.name,
         InAppNotification.read_at.field.name,
-    )
-    list_filter = (InAppNotification.status.field.name,)
-    search_fields = (InAppNotification.title.field.name, InAppNotification.user.field.name)
-    autocomplete_fields = (InAppNotification.user.field.name,)
+    ]
 
 
 @admin.register(UserPushNotificationToken)

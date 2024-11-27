@@ -314,7 +314,7 @@ class UserRegister(RegisterBase):
                     }
                 )
             except IntegrityError:
-                raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
+                raise GraphQLErrorBadRequest(_("Cannot join the organization."))
             organization_invitation.delete()
 
 
@@ -335,7 +335,7 @@ class RegisterOrganization(RegisterBase):
     @classmethod
     def after_mutate(cls, *args, **kwargs):
         if not (role := Role.objects.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
-            raise GraphQLError(_("Owner role not found."))
+            raise GraphQLError(_("Default role not found."))
 
         user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
 
@@ -362,7 +362,7 @@ class RegisterOrganization(RegisterBase):
                 }
             )
         except IntegrityError:
-            raise GraphQLErrorBadRequest(_("User has already membership in an organization."))
+            raise GraphQLErrorBadRequest(_("Cannot join the organization."))
 
 
 @ratelimit(key="ip", rate="10/m")
@@ -842,7 +842,7 @@ class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoU
             raise GraphQLErrorBadRequest("At least one method must be provided.")
 
         if sum(method_inputs_exist) > 1:
-            raise GraphQLErrorBadRequest("Only one of the methods can be provided.")
+            raise GraphQLErrorBadRequest("Only one method can be set.")
 
         return super().validate(root, info, input, id, obj)
 
@@ -1052,7 +1052,7 @@ def validate_language_certificate_skills(test, values):
     skills = [value.get(LanguageCertificateValue.skill.field.name) for value in values]
 
     if not test_skills.exists():
-        raise GraphQLErrorBadRequest(_("Test has no skills."))
+        raise GraphQLErrorBadRequest(_("Test has no skill."))
 
     if (
         test_skills.count()
