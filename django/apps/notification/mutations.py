@@ -2,13 +2,10 @@ import graphene
 from common.utils import fields_join
 from graphene_django_cud.mutations import DjangoBatchPatchMutation
 from graphql_jwt.decorators import login_required
-from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 
 from django.db.models.lookups import In, IsNull
 from django.utils import timezone
 from notification.models import InAppNotification, UserPushNotificationToken
-
-from .models import UserDevice
 
 
 class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
@@ -56,31 +53,8 @@ class RegisterPushNotificationTokenMutation(graphene.Mutation):
         return RegisterPushNotificationTokenMutation(success=True)
 
 
-class RemovePushNotificationTokenMutation(graphene.Mutation):
-    class Arguments:
-        token = graphene.String(required=True)
-
-    success = graphene.Boolean()
-
-    @login_required
-    def mutate(root, info, token):
-        user = info.context.user
-        UserPushNotificationToken.objects.filter(
-            **{
-                UserPushNotificationToken.token.field.name: token,
-                fields_join(
-                    UserPushNotificationToken.device.field.name,
-                    UserDevice.refresh_token.field.name,
-                    UserRefreshToken.user.field.name,
-                ): user,
-            }
-        ).delete()
-        return RemovePushNotificationTokenMutation(success=True)
-
-
 class PushNotificationMutation(graphene.ObjectType):
     register_token = RegisterPushNotificationTokenMutation.Field()
-    remove_token = RemovePushNotificationTokenMutation.Field()
 
 
 class NotificationMutation(graphene.ObjectType):
