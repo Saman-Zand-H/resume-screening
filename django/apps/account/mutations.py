@@ -19,7 +19,6 @@ from common.types import (
 from common.utils import fields_join
 from config.settings.constants import Environment
 from config.utils import is_env
-from flex_blob.models import FileModel
 from graphene.types.generic import GenericScalar
 from graphene_django.converter import convert_choice_field_to_enum
 from graphene_django_cud.mutations import (
@@ -928,7 +927,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     def mutate(cls, root, info, file_id, verification_type=None):
         file_model = cls.get_file_model(verification_type)
 
-        if not (file_model and (obj := file_model.objects.filter(**{FileModel._meta.pk.attname: file_id}).first())):
+        if not (file_model and (obj := file_model.objects.filter(pk=file_id).first())):
             raise GraphQLErrorBadRequest(_("File not found."))
 
         if info.context.user != obj.uploaded_by:

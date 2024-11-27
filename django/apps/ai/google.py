@@ -30,7 +30,7 @@ class GoogleServices:
         )
 
     def get_file_part(self, file_model_id: int) -> genai_types.ContentUnion:
-        if not (file_model := FileModel.objects.filter(**{FileModel._meta.pk.attname: file_model_id}).first()):
+        if not (file_model := FileModel.objects.filter(pk=file_model_id).first()):
             return []
 
         mime_type = get_file_model_mimetype(file_model)
