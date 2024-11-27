@@ -3,6 +3,8 @@ import traceback
 from sentry_sdk import capture_exception, get_current_scope
 
 from common.logging import get_logger
+from django.conf import settings
+from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 from django.views.debug import ExceptionReporter
 
@@ -11,21 +13,27 @@ from .exceptions import GraphQLError
 from .utils import map_exception_to_error
 
 graphql_logger = get_logger("graphql.error")
-django_logger = get_logger("django.error")
 
 
 class GrapheneErrorHandlingMiddleware:
-    def on_error(self, request, exc_type, exc_value, tb):
-        reporter = ExceptionReporter(request, exc_type, exc_value, tb, is_email=False)
-        html = reporter.get_traceback_html()
+    def on_error(self, request, exc_type, exc_value, tb, error_kwargs):
+        if settings.DEBUG:
+            graphql_logger.error(
+                "".join(traceback.TracebackException.from_exception(exc_value).format()),
+                extra={"sentry_ignore": True},
+            )
 
-        graphql_logger.error(
-            "".join(traceback.TracebackException.from_exception(exc_value).format()),
-            extra={"html_error": html, "sentry_ignore": True},
-        )
+        if error_kwargs.get("error") is not Errors.INTERNAL_SERVER_ERROR:
+            return
 
         scope = get_current_scope()
-        scope.add_attachment(bytes=html.encode("utf-8"), filename="error.html", content_type="text/html")
+        scope.add_attachment(
+            bytes=ExceptionReporter(request, exc_type, exc_value, tb, is_email=False)
+            .get_traceback_html()
+            .encode("utf-8"),
+            filename=f"{exc_type.__name__}_{timezone.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}",
+            content_type="text/html",
+        )
         capture_exception(exc_value)
 
     def resolve(self, next_resolver, root, info, **args):
@@ -35,16 +43,14 @@ class GrapheneErrorHandlingMiddleware:
             base_exception = GraphQLError
             kwargs = {}
 
-            error = map_exception_to_error(e.__class__, str(e))
             if isinstance(e, GraphQLError):
                 base_exception = e.__class__
                 kwargs.update(e.asdict())
             else:
-                kwargs.update({"error": error})
+                kwargs.update({"error": map_exception_to_error(e.__class__, str(e))})
             kwargs.update({"exception": e})
 
-            if error is Errors.INTERNAL_SERVER_ERROR:
-                self.on_error(info.context, type(e), e, e.__traceback__)
+            self.on_error(info.context, type(e), e, e.__traceback__, kwargs)
 
             raise base_exception(**kwargs)
 
@@ -58,6 +64,11 @@ class GrapheneDisableIntrospectionMiddleware:
 
 class DjangoErrorHandlingMiddleware(MiddlewareMixin):
     def process_exception(self, request, exception):
-        reporter = ExceptionReporter(request, type(exception), exception, exception.__traceback__, is_email=False)
-        html = reporter.get_traceback_html()
-        django_logger.error("", extra={"html_error": html, "sentry_ignore": True})
+        scope = get_current_scope()
+        scope.add_attachment(
+            bytes=ExceptionReporter(request, type(exception), exception, exception.__traceback__, is_email=False)
+            .get_traceback_html()
+            .encode("utf-8"),
+            filename=f"{type(exception).__name__}_{timezone.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}",
+            content_type="text/html",
+        )

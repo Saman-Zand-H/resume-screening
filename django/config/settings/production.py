@@ -39,49 +39,6 @@ CACHES = {
     }
 }
 
-GOOGLE_CLOUD_ERROR_BUCKET_NAME = os.environ.get("GOOGLE_CLOUD_ERROR_BUCKET_NAME")
-
-if GOOGLE_CLOUD_ERROR_BUCKET_NAME:
-    MIDDLEWARE = ["common.middlewares.DjangoErrorHandlingMiddleware"] + MIDDLEWARE  # noqa
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "handlers": {
-            "gcs": {
-                "level": "ERROR",
-                "class": "config.log_handlers.GCSHandler",
-                "bucket_name": GOOGLE_CLOUD_ERROR_BUCKET_NAME,
-                "log_file_name": "errors",
-            },
-            "console": {
-                "level": "DEBUG",
-                "class": "logging.StreamHandler",
-            },
-        },
-        "loggers": {
-            "django": {
-                "handlers": ["gcs", "console"],
-                "level": "ERROR",
-                "propagate": True,
-            },
-            "graphql.error": {
-                "handlers": ["gcs", "console"],
-                "level": "ERROR",
-                "propagate": True,
-            },
-            "django.error": {
-                "handlers": ["gcs", "console"],
-                "level": "ERROR",
-                "propagate": False,
-            },
-            "django.pubsub": {
-                "handlers": ["gcs", "console"],
-                "level": "INFO",
-                "propagate": False,
-            },
-        },
-    }
-
 if not DEBUG:
     GRAPHENE["MIDDLEWARE"] += ["common.middlewares.GrapheneDisableIntrospectionMiddleware"]  # noqa
 
