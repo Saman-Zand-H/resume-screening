@@ -643,7 +643,6 @@ class LanguageCertificateOnlineVerificationMethodType(DjangoObjectType):
 class LanguageCertificateValueNode(DjangoObjectType):
     class Meta:
         model = LanguageCertificateValue
-        use_connection = True
         fields = (
             LanguageCertificateValue.id.field.name,
             LanguageCertificateValue.skill.field.name,
