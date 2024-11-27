@@ -1,76 +1,36 @@
-{% extends "admin/base_site.html" %}
+{% extends "admin/login.html" %}
 {% load i18n static %}
 
 {% block extrastyle %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static "admin/css/login.css" %}">
-{{ form.media }}
 <script src="https://www.google.com/recaptcha/enterprise.js?render={{ recaptcha_site_key }}"></script>
 <script>
   function onClick(e) {
     e.preventDefault();
     grecaptcha.enterprise.ready(async () => {
       document.getElementById("g-recaptcha-response").value = await grecaptcha.enterprise.execute(
-        '{{ recaptcha_site_key }}'
-      );
+        '{{ recaptcha_site_key }}', {
+        action: 'login'
+      });
       document.getElementById("login-form").submit();
     });
   }
 </script>
 {% endblock %}
 
-{% block bodyclass %}{{ block.super }} login{% endblock %}
-{% block usertools %}{% endblock %}
-{% block nav-global %}{% endblock %}
-{% block nav-sidebar %}{% endblock %}
-{% block content_title %}{% endblock %}
-{% block nav-breadcrumbs %}{% endblock %}
-
 {% block content %}
-{% if form.errors and not form.non_field_errors %}
-<p class="errornote">
-  {% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct
-  the errors below.{% endblocktranslate %}
-</p>
-{% endif %}
-
-{% if form.non_field_errors %}
-{% for error in form.non_field_errors %}
-<p class="errornote">{{ error }}</p>
-{% endfor %}
-{% endif %}
-
-<div id="content-main">
-  {% if user.is_authenticated %}
-  <p class="errornote">
-    {% blocktranslate trimmed %}
-    You are authenticated as {{ username }}, but are not authorized to
-    access this page. Would you like to login to a different account?
-    {% endblocktranslate %}
-  </p>
-  {% endif %}
-
-  <form action="{% url 'admin:login' %}" method="post" id="login-form">
-    {% csrf_token %}
-    <div class="form-row">
-      {{ form.username.errors }}
-      {{ form.username.label_tag }} {{ form.username }}
-    </div>
-    <div class="form-row">
-      {{ form.password.errors }}
-      {{ form.password.label_tag }} {{ form.password }}
-      <input type="hidden" name="next" value="{{ next }}">
-      <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response">
-    </div>
-    {% url 'admin_password_reset' as password_reset_url %}
-    {% if password_reset_url %}
-    <div class="password-reset-link">
-      <a href="{{ password_reset_url }}">{% translate 'Forgotten your password or username?' %}</a>
-    </div>
-    {% endif %}
-    <div class="submit-row">
-      <input type="submit" value="{% translate 'Log in' %}" onclick="onClick(event)">
-    </div>
-  </form>
-</div>
+{{ block.super }}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("login-form");
+    if (form && !document.getElementById("g-recaptcha-response")) {
+      const recaptchaInput = document.createElement("input");
+      recaptchaInput.type = "hidden";
+      recaptchaInput.id = "g-recaptcha-response";
+      recaptchaInput.name = "g-recaptcha-response";
+      form.appendChild(recaptchaInput);
+    }
+  });
+  document.querySelector("#login-form input[type=submit]").setAttribute("onclick", "onClick(event)");
+</script>
 {% endblock %}
