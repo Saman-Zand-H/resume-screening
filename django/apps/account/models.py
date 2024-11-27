@@ -501,7 +501,7 @@ class UserUploadedDocumentFile(UserFile):
             return False
 
         return (
-            super().check_auth()
+            super().check_auth(request)
             or OrganizationEmployee.objects.filter(
                 **{
                     fields_join(OrganizationEmployee.user): self.uploaded_by,
@@ -537,7 +537,7 @@ class AvatarFile(UserUploadedImageFile):
             return False
 
         return (
-            super().check_auth()
+            super().check_auth(request)
             or JobPositionAssignment.objects.filter(
                 **{
                     fields_join(JobPositionAssignment.job_seeker): self.uploaded_by,
