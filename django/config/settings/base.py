@@ -21,6 +21,8 @@ from corsheaders.defaults import default_headers
 from import_export.formats.base_formats import XLSX
 from sentry_sdk.integrations.django import DjangoIntegration
 
+from django.core.exceptions import DisallowedHost
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, os.path.join(BASE_DIR, "apps"))
 
@@ -353,7 +355,10 @@ SENTRY_DSN = os.environ.get("SENTRY_DSN")
 if SENTRY_DSN:
 
     def before_send(event, hint):
-        if getattr(hint.get("log_record"), "sentry_ignore", False):
+        exc_info = hint.get("exc_info", [None])[0]
+        log_record = hint.get("log_record")
+
+        if exc_info is DisallowedHost or getattr(log_record, "sentry_ignore", False):
             return None
 
         return event
