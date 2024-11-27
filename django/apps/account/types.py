@@ -610,9 +610,9 @@ class LanguageCertificateValueSkillAIType(graphene.ObjectType):
     skill_name = graphene.String()
 
 
-class LanguageCertificateValueSkillAIConnection(graphene.Connection):
-    class Meta:
-        node = LanguageCertificateValueSkillAIType
+class LanguageCertificateValueAIType(graphene.ObjectType):
+    skill = graphene.Field(LanguageCertificateValueSkillAIType)
+    value = graphene.String()
 
 
 class LanguageCertificateTypeAIType(graphene.ObjectType):
@@ -620,22 +620,12 @@ class LanguageCertificateTypeAIType(graphene.ObjectType):
     title = graphene.String()
 
 
-class LanguageCertificateValueAIType(graphene.ObjectType):
-    skill = graphene.Field(LanguageCertificateValueSkillAIType)
-    value = graphene.String()
-
-
-class LanguageCertificateValueConnection(graphene.Connection):
-    class Meta:
-        node = LanguageCertificateValueAIType
-
-
 class LanguageCertificateAIType(graphene.ObjectType):
     language = graphene.Field(convert_choice_field_to_enum(LanguageCertificate.language.field))
     test = graphene.Field(LanguageCertificateTypeAIType)
     issued_at = graphene.Date()
     expired_at = graphene.Date()
-    values = graphene.ConnectionField(LanguageCertificateValueConnection)
+    values = graphene.List(LanguageCertificateValueAIType)
 
 
 class LanguageCertificateOfflineVerificationMethodType(DjangoObjectType):
