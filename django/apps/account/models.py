@@ -1280,10 +1280,14 @@ class LanguageCertificateValue(EavValue):
         except ValidationError as e:
             message = ""
 
-            if error := getattr(e, "error_dict", None):
-                message = list(map(field_serializer(self.skill.skill_name), map(attrgetter("message"), error.values())))
-            elif error := getattr(e, "error_list", None):
-                message = list(map(field_serializer(self.skill.skill_name), map(attrgetter("message"), error)))
+            error = getattr(e, "error_dict", None) or getattr(e, "error_list", None)
+            if error:
+                message = list(
+                    map(
+                        field_serializer(self.skill.skill_name, self.skill.pk),
+                        map(attrgetter("message"), error.values() if isinstance(error, dict) else error),
+                    )
+                )
 
             raise ValidationError({LanguageCertificateValue.value.field.name: message})
 

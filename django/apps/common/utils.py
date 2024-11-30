@@ -1,6 +1,6 @@
 import contextlib
 from functools import lru_cache, reduce
-from typing import Dict, List, Set, Type
+from typing import Dict, List, Optional, Set, Type
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
@@ -40,22 +40,28 @@ def merge_relations[T: Model](source: T, *target_objs: T, skipped_relations=[]):
     return source
 
 
-def seiralize_field_error(field_name: str, error_message: str) -> str:
-    return "".join([field_name, GRAPHQL_ERROR_FIELD_SEP, error_message])
+def serialize_field_error(field_name: str, field_id: str, error_message: str) -> str:
+    return GRAPHQL_ERROR_FIELD_SEP.join([field_name, str(field_id), str(error_message)])
 
 
-def field_serializer(field_name: str):
+def field_serializer(field_name: str, field_id: Optional[str] = ""):
     def inner(error_message: str):
-        return seiralize_field_error(field_name, error_message)
+        return serialize_field_error(field_name, field_id, error_message)
 
     return inner
 
 
 def deserialize_field_error(field_error: str) -> Dict[str, str]:
-    if not ((splitted_error := field_error.split(GRAPHQL_ERROR_FIELD_SEP)) and len(splitted_error) == 2):
+    if not ((splitted_error := field_error.split(GRAPHQL_ERROR_FIELD_SEP)) and len(splitted_error) == 3):
         return field_error
 
-    return dict(zip(["field", "error_message"], splitted_error))
+    field_name, field_id, error_message = splitted_error
+
+    return {
+        "field_id": field_id or None,
+        "field_name": field_name,
+        "error_message": error_message,
+    }
 
 
 def get_file_model_mimetype(file_model_instance: Model):
