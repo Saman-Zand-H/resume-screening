@@ -323,8 +323,8 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
         if get_or_create_skills_message:
             get_or_create_skills = GoogleServices.message_to_json(get_or_create_skills_message)
             existing_skill_matches, new_skill_matches = (
-                get_or_create_skills["matched_skills"],
-                get_or_create_skills["new_skills"],
+                get_or_create_skills.get("matched_skills", []),
+                get_or_create_skills.get("new_skills", []),
             )
 
             existing_skills = Skill.objects.filter(
