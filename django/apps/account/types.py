@@ -14,7 +14,7 @@ from common.types import (
     SkillType,
     UniversityNode,
 )
-from common.utils import fields_join
+from common.utils import fj
 from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -394,7 +394,7 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
                 _priority=Case(
                     When(
                         **{
-                            fields_join(
+                            fj(
                                 Job._meta.pk.attname,
                                 In.lookup_name,
                             ): self.available_jobs.values(Job._meta.pk.attname)
@@ -790,12 +790,11 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
     def resolve_accessed_roles(self, info):
         return Role.objects.filter(
             (
-                Q(**{fields_join(Role.managed_by_id): self.organization_id})
-                & Q(**{fields_join(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
+                Q(**{fj(Role.managed_by_id): self.organization_id})
+                & Q(**{fj(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
             )
             | (
-                Q(**{fields_join(Role.managed_by_id, IsNull.lookup_name): True})
-                & Q(**{fields_join(Role.managed_by_model, IsNull): True})
+                Q(**{fj(Role.managed_by_id, IsNull.lookup_name): True}) & Q(**{fj(Role.managed_by_model, IsNull): True})
             ),
         ).distinct()
 
@@ -817,9 +816,9 @@ class UserTaskType(DjangoObjectType):
     @login_required
     def get_queryset(cls, queryset: QuerySet[UserTask], info):
         return (
-            queryset.filter(**{fields_join(UserTask.user): info.context.user})
-            .order_by(fields_join(UserTask.task_name), f"-{fields_join(UserTask.created)}")
-            .distinct(fields_join(UserTask.task_name))
+            queryset.filter(**{fj(UserTask.user): info.context.user})
+            .order_by(fj(UserTask.task_name), f"-{fj(UserTask.created)}")
+            .distinct(fj(UserTask.task_name))
         )
 
     class Meta:
@@ -886,8 +885,8 @@ class UserNode(BaseUserNode):
         return self.cv if hasattr(self, "cv") else None
 
     def resolve_notifications(self, info):
-        return InAppNotification.objects.filter(**{fields_join(InAppNotification.user): self}).order_by(
-            f"-{fields_join(InAppNotification.created)}"
+        return InAppNotification.objects.filter(**{fj(InAppNotification.user): self}).order_by(
+            f"-{fj(InAppNotification.created)}"
         )
 
 
@@ -970,7 +969,7 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
 
     def resolve_assignment_status_counts(self, info, **kwargs):
         status_counts = (
-            JobPositionAssignment.objects.filter(**{fields_join(JobPositionAssignment.job_position): self})
+            JobPositionAssignment.objects.filter(**{fj(JobPositionAssignment.job_position): self})
             .values(
                 JobPositionAssignment.status.field.name,
             )
@@ -1044,7 +1043,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.status.field.name: [Exact.lookup_name],
             OrganizationJobPosition.start_at.field.name: [LessThanOrEqual.lookup_name, GreaterThanOrEqual.lookup_name],
             OrganizationJobPosition.city.field.name: [Exact.lookup_name],
-            fields_join(
+            fj(
                 JobPositionAssignment.job_position.field.related_query_name(),
                 JobPositionAssignment.status.field.name,
             ): [Exact.lookup_name],
@@ -1088,7 +1087,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
         user = info.context.user
         return queryset.filter(
             **{
-                fields_join(
+                fj(
                     OrganizationJobPosition.organization,
                     OrganizationMembership.organization.field.related_query_name(),
                     OrganizationMembership.user,
@@ -1178,7 +1177,7 @@ class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObje
         user = info.context.user
         return queryset.filter(
             **{
-                fields_join(
+                fj(
                     OrganizationPlatformMessage.organization_employee_cooperation,
                     OrganizationEmployeeCooperation.employee,
                     OrganizationEmployee.organization,
@@ -1212,7 +1211,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         user = info.context.user
         return queryset.filter(
             **{
-                fields_join(
+                fj(
                     OrganizationPlatformMessage.organization_employee_cooperation,
                     OrganizationEmployeeCooperation.employee,
                     OrganizationEmployee.organization,
@@ -1274,7 +1273,7 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
         return (
             queryset.filter(
                 **{
-                    fields_join(
+                    fj(
                         OrganizationEmployee.organization,
                         OrganizationMembership.organization.field.related_query_name(),
                         OrganizationMembership.user,
@@ -1286,13 +1285,13 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
                     (
                         OrganizationEmployeeCooperation.objects.filter(
                             **{
-                                fields_join(OrganizationEmployeeCooperation.employee): OuterRef(
+                                fj(OrganizationEmployeeCooperation.employee): OuterRef(
                                     OrganizationEmployeeCooperation._meta.pk.attname
                                 )
                             }
                         )
                         .order_by(f"-{OrganizationEmployeeCooperation._meta.pk.attname}")
-                        .values(fields_join(OrganizationEmployeeCooperation.status))[:1]
+                        .values(fj(OrganizationEmployeeCooperation.status))[:1]
                     )
                 ),
                 status_order=Case(

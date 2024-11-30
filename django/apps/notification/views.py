@@ -1,5 +1,5 @@
 from account.models import Profile, User
-from common.utils import fields_join
+from common.utils import fj
 
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import QuerySet
@@ -64,7 +64,7 @@ class CampaignNotifyView(BaseView, FormView, SingleObjectMixin):
         form_data = NotifyCampaignFilterForm(self.request.GET)
         if form_data.is_valid():
             queryset = queryset.filter(
-                **{fields_join(Profile.user, User.email, "icontains"): form_data.cleaned_data.get("email")}
+                **{fj(Profile.user, User.email, "icontains"): form_data.cleaned_data.get("email")}
             )
         return queryset
 
@@ -94,7 +94,7 @@ class CampaginNotifyFailedView(BaseView, SingleObjectMixin, View):
         send_campaign_notifications(
             campaign_id=self.get_object().pk,
             pks=failed_campaign_notifications.values_list(
-                fields_join(
+                fj(
                     CampaignNotification.notification,
                     Notification.user,
                     Profile.user.field.related_query_name(),

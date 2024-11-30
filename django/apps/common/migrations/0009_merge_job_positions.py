@@ -4,16 +4,14 @@ from django.db import migrations
 
 
 def merge_duplicate_jobs(apps, schema_editor):
-    from common.utils import fields_join, merge_relations
+    from common.utils import fj, merge_relations
 
     from ..models import Job as JobModel
 
     Job: JobModel = apps.get_model("common", "Job")
-    duplicate_jobs = Job.objects.all().difference(
-        Job.objects.order_by(fields_join(Job.title)).distinct(fields_join(Job.title))
-    )
+    duplicate_jobs = Job.objects.all().difference(Job.objects.order_by(fj(Job.title)).distinct(fj(Job.title)))
     for job in duplicate_jobs:
-        jobs = Job.objects.filter(**{fields_join(Job.title, "iexact"): job.title})
+        jobs = Job.objects.filter(**{fj(Job.title, "iexact"): job.title})
         merge_relations(job, *(target_objs := jobs[1:]))
         Job.objects.filter(pk__in=target_objs.values("pk")).delete()
 

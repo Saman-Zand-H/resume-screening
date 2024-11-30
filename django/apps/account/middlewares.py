@@ -1,4 +1,4 @@
-from common.utils import fields_join
+from common.utils import fj
 from graphql_jwt.middleware import _authenticate, get_http_authorization
 from graphql_jwt.refresh_token.models import RefreshToken
 
@@ -28,7 +28,7 @@ class DeviceMiddleware(MiddlewareMixin):
             request.user_device = UserDevice.objects.get(
                 **{
                     UserDevice.device_id.field.name: device_id,
-                    fields_join(UserDevice.refresh_token, RefreshToken.user): request.user,
+                    fj(UserDevice.refresh_token, RefreshToken.user): request.user,
                 }
             )
         except UserDevice.DoesNotExist:

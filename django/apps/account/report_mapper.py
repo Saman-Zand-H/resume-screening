@@ -1,4 +1,4 @@
-from common.utils import fields_join
+from common.utils import fj
 from notification.models import (
     EmailNotification,
     InAppNotification,
@@ -53,11 +53,7 @@ def profile_push_mapper(instance: Profile):
             PushNotification.token.field.name: device.token,
         }
         for device in UserPushNotificationToken.objects.filter(
-            **{
-                fields_join(
-                    UserPushNotificationToken.device, UserDevice.refresh_token, RefreshToken.user
-                ): instance.user
-            }
+            **{fj(UserPushNotificationToken.device, UserDevice.refresh_token, RefreshToken.user): instance.user}
         )
     ]
 

@@ -1,5 +1,5 @@
 from account.models import User
-from common.utils import fields_join
+from common.utils import fj
 
 from django.contrib import admin
 
@@ -34,7 +34,7 @@ class CourseResultAdmin(admin.ModelAdmin):
         CourseResult.updated_at.field.name,
     ]
     search_fields = [
-        fields_join(CourseResult.course.field.name, Course.name.field.name),
-        fields_join(CourseResult.user.field.name, User.email.field.name),
+        fj(CourseResult.course.field.name, Course.name.field.name),
+        fj(CourseResult.user.field.name, User.email.field.name),
     ]
     list_filter = [CourseResult.status.field.name]

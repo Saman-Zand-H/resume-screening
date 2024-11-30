@@ -1,6 +1,6 @@
 import contextlib
 
-from common.utils import fields_join
+from common.utils import fj
 from config.settings.subscriptions import NotificationSubscription
 from flex_pubsub.tasks import register_task, task_registry
 from flex_pubsub.types import SchedulerJob
@@ -15,7 +15,7 @@ from .senders import send_campaign_notifications
 
 def sync_campaign_scheduler_task():
     active_campaigns = Campaign.objects.filter(
-        **{fields_join(Campaign.is_scheduler_active): True, fields_join(Campaign.crontab, IsNull.lookup_name): False}
+        **{fj(Campaign.is_scheduler_active): True, fj(Campaign.crontab, IsNull.lookup_name): False}
     )
     for campaign in active_campaigns:
         register_campaign_cronjob(campaign)
@@ -30,13 +30,13 @@ def sync_campaign_scheduler_task():
 
 def send_campaign_notifications_cronjob(campaign_id: int):
     if not Campaign.objects.filter(
-        **{Campaign._meta.pk.attname: campaign_id, fields_join(Campaign.is_scheduler_active): True}
+        **{Campaign._meta.pk.attname: campaign_id, fj(Campaign.is_scheduler_active): True}
     ).exists():
         return
 
     send_campaign_notifications(campaign_id=campaign_id)
     Campaign.objects.filter(**{Campaign._meta.pk.attname: campaign_id}).update(
-        **{fields_join(Campaign.crontab_last_run): timezone.now()}
+        **{fj(Campaign.crontab_last_run): timezone.now()}
     )
 
 
@@ -53,8 +53,8 @@ def register_campaign_cronjob(campaign: Campaign):
 def register_campaign_cronjobs():
     campaigns = Campaign.objects.filter(
         **{
-            fields_join(Campaign.is_scheduler_active): True,
-            fields_join(Campaign.crontab, IsNull.lookup_name): False,
+            fj(Campaign.is_scheduler_active): True,
+            fj(Campaign.crontab, IsNull.lookup_name): False,
         }
     )
 

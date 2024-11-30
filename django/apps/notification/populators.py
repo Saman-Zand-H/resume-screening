@@ -4,7 +4,7 @@ from account.constants import ProfileAnnotationNames
 from account.models import Profile, User
 from cities_light.models import City, Country
 from common.populators import BasePopulator
-from common.utils import fields_join
+from common.utils import fj
 from flex_report.models import Column, Template, TemplateSavedFilter
 
 from django.contrib.contenttypes.models import ContentType
@@ -72,68 +72,68 @@ class NotificationPopulator(BasePopulator):
 
         template = Template.objects.update_or_create(
             **{
-                fields_join(Template.model): profile_content_type,
-                fields_join(Template.filters): {},
+                fj(Template.model): profile_content_type,
+                fj(Template.filters): {},
             },
             defaults={
-                fields_join(Template.title): "Profiles",
-                fields_join(Template.status): Template.Status.complete,
+                fj(Template.title): "Profiles",
+                fj(Template.status): Template.Status.complete,
             },
         )[0]
 
         columns_data = [
             UpsertInfo(
                 data={
-                    fields_join(Column.title): fields_join(Profile.user, User.first_name),
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): fj(Profile.user, User.first_name),
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): fields_join(Profile.user, User.last_name),
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): fj(Profile.user, User.last_name),
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): fields_join(Profile.user, User.email),
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): fj(Profile.user, User.email),
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): fields_join(Profile.user, User.date_joined),
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): fj(Profile.user, User.date_joined),
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): fields_join(Profile.user, User.last_login),
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): fj(Profile.user, User.last_login),
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): ProfileAnnotationNames.HAS_RESUME,
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): ProfileAnnotationNames.HAS_RESUME,
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): ProfileAnnotationNames.STAGE_DATA,
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): ProfileAnnotationNames.STAGE_DATA,
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): ProfileAnnotationNames.AGE,
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): ProfileAnnotationNames.AGE,
+                    fj(Column.model): profile_content_type,
                 }
             ),
             UpsertInfo(
                 data={
-                    fields_join(Column.title): fields_join(Profile.city, City.country, Country.name),
-                    fields_join(Column.model): profile_content_type,
+                    fj(Column.title): fj(Profile.city, City.country, Country.name),
+                    fj(Column.model): profile_content_type,
                 }
             ),
         ]
@@ -151,81 +151,81 @@ class NotificationPopulator(BasePopulator):
         filters_data = {
             SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION: UpsertInfo(
                 defaults={
-                    fields_join(TemplateSavedFilter.template): template,
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_RESUME, Exact.lookup_name): True,
-                        fields_join(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): False,
+                    fj(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_RESUME, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): False,
                     },
                 },
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION,
                 },
             ),
             SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED: UpsertInfo(
                 defaults={
-                    fields_join(TemplateSavedFilter.template): template,
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fields_join(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): True,
+                    fj(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): True,
                     },
                 },
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED,
                 },
             ),
             SavedFilterNames.NO_WORK_EXPERIENCE: UpsertInfo(
                 defaults={
-                    fields_join(TemplateSavedFilter.template): template,
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): False,
+                    fj(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): False,
                     },
                 },
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.NO_WORK_EXPERIENCE,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_WORK_EXPERIENCE,
                 },
             ),
             SavedFilterNames.NO_CERTIFICATE: UpsertInfo(
                 defaults={
-                    fields_join(TemplateSavedFilter.template): template,
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): False,
+                    fj(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): False,
                     },
                 },
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.NO_CERTIFICATE,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_CERTIFICATE,
                 },
             ),
             SavedFilterNames.NO_LANGUAGE_CERTIFICATE: UpsertInfo(
                 defaults={
-                    fields_join(TemplateSavedFilter.template): template,
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): False,
+                    fj(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): False,
                     },
                 },
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.NO_LANGUAGE_CERTIFICATE,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_LANGUAGE_CERTIFICATE,
                 },
             ),
             SavedFilterNames.NO_VISA_STATUS: UpsertInfo(
                 defaults={
-                    fields_join(TemplateSavedFilter.template): template,
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_CANADA_VISA, Exact.lookup_name): False,
+                    fj(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_CANADA_VISA, Exact.lookup_name): False,
                     },
                 },
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.NO_VISA_STATUS,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_VISA_STATUS,
                 },
             ),
             SavedFilterNames.NO_JOB_INTEREST: UpsertInfo(
                 data={
-                    fields_join(TemplateSavedFilter.title): SavedFilterNames.NO_JOB_INTEREST,
+                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_JOB_INTEREST,
                 },
                 defaults={
-                    fields_join(TemplateSavedFilter.filters): {
-                        fields_join(ProfileAnnotationNames.HAS_INTERESTED_JOBS, Exact.lookup_name): False,
+                    fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_INTERESTED_JOBS, Exact.lookup_name): False,
                     },
-                    fields_join(TemplateSavedFilter.template): template,
+                    fj(TemplateSavedFilter.template): template,
                 },
             ),
         }
@@ -245,72 +245,72 @@ class NotificationPopulator(BasePopulator):
         campaigns_data = {
             SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION,
-                    fields_join(Campaign.crontab): "0 0 */3 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION,
+                    fj(Campaign.crontab): "0 0 */3 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
             SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED,
-                    fields_join(Campaign.crontab): "0 0 */4 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED,
+                    fj(Campaign.crontab): "0 0 */4 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
             SavedFilterNames.NO_WORK_EXPERIENCE: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.NO_WORK_EXPERIENCE),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.NO_WORK_EXPERIENCE),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.NO_WORK_EXPERIENCE,
-                    fields_join(Campaign.crontab): "0 0 */5 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.NO_WORK_EXPERIENCE,
+                    fj(Campaign.crontab): "0 0 */5 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
             SavedFilterNames.NO_CERTIFICATE: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.NO_CERTIFICATE),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.NO_CERTIFICATE),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.NO_CERTIFICATE,
-                    fields_join(Campaign.crontab): "0 0 */6 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.NO_CERTIFICATE,
+                    fj(Campaign.crontab): "0 0 */6 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
             SavedFilterNames.NO_LANGUAGE_CERTIFICATE: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.NO_LANGUAGE_CERTIFICATE),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.NO_LANGUAGE_CERTIFICATE),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.NO_LANGUAGE_CERTIFICATE,
-                    fields_join(Campaign.crontab): "0 0 */7 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.NO_LANGUAGE_CERTIFICATE,
+                    fj(Campaign.crontab): "0 0 */7 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
             SavedFilterNames.NO_VISA_STATUS: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.NO_VISA_STATUS),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.NO_VISA_STATUS),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.NO_VISA_STATUS,
-                    fields_join(Campaign.crontab): "0 0 */3 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.NO_VISA_STATUS,
+                    fj(Campaign.crontab): "0 0 */3 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
             SavedFilterNames.NO_JOB_INTEREST: UpsertInfo(
                 data={
-                    fields_join(Campaign.saved_filter): filters.get(SavedFilterNames.NO_JOB_INTEREST),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.NO_JOB_INTEREST),
                 },
                 defaults={
-                    fields_join(Campaign.title): SavedFilterNames.NO_JOB_INTEREST,
-                    fields_join(Campaign.crontab): "0 0 */4 * *",
-                    fields_join(Campaign.max_attempts): 3,
+                    fj(Campaign.title): SavedFilterNames.NO_JOB_INTEREST,
+                    fj(Campaign.crontab): "0 0 */4 * *",
+                    fj(Campaign.max_attempts): 3,
                 },
             ),
         }
@@ -326,22 +326,20 @@ class NotificationPopulator(BasePopulator):
             campaign_title: {
                 "body": UpsertInfo(
                     data={
-                        fields_join(NotificationTemplate.title): f"{campaign_title} Body",
+                        fj(NotificationTemplate.title): f"{campaign_title} Body",
                     },
                     defaults={
-                        fields_join(NotificationTemplate.content_template): render_to_string(
+                        fj(NotificationTemplate.content_template): render_to_string(
                             template_name=FILTER_TEMPLATE_MAPPER[campaign_title]["body"]
                         ),
                     },
                 ),
                 "subject": UpsertInfo(
                     data={
-                        fields_join(NotificationTemplate.title): f"{campaign_title} Subject",
+                        fj(NotificationTemplate.title): f"{campaign_title} Subject",
                     },
                     defaults={
-                        fields_join(NotificationTemplate.content_template): FILTER_TEMPLATE_MAPPER[campaign_title][
-                            "subject"
-                        ]
+                        fj(NotificationTemplate.content_template): FILTER_TEMPLATE_MAPPER[campaign_title]["subject"]
                     },
                 ),
             }
@@ -363,8 +361,8 @@ class NotificationPopulator(BasePopulator):
         campaign_notification_type_data = [
             UpsertInfo(
                 data={
-                    fields_join(CampaignNotificationType.campaign): campaign,
-                    fields_join(CampaignNotificationType.notification_type): notification_type,
+                    fj(CampaignNotificationType.campaign): campaign,
+                    fj(CampaignNotificationType.notification_type): notification_type,
                 },
                 defaults={
                     CampaignNotificationType.body.field.name: templates[campaign_title]["body"],

@@ -1,5 +1,5 @@
 from account.models import UserDevice
-from common.utils import fields_join, get_all_subclasses
+from common.utils import fj, get_all_subclasses
 from croniter import croniter
 from flex_report.models import TemplateSavedFilter
 from model_utils.models import TimeStampedModel
@@ -86,50 +86,50 @@ class Campaign(TimeStampedModel):
     def get_user_latest_statuses(self, user):
         campaign_notification = CampaignNotification.objects.filter(
             **{
-                fields_join(CampaignNotification.campaign_notification_type, CampaignNotificationType.campaign): self,
-                fields_join(CampaignNotification.notification, Notification.user): user,
+                fj(CampaignNotification.campaign_notification_type, CampaignNotificationType.campaign): self,
+                fj(CampaignNotification.notification, Notification.user): user,
             }
         )
 
         return campaign_notification.order_by(
-            fields_join(CampaignNotification.campaign_notification_type),
-            f"-{fields_join(CampaignNotification.created)}",
-        ).distinct(fields_join(CampaignNotification.campaign_notification_type))
+            fj(CampaignNotification.campaign_notification_type),
+            f"-{fj(CampaignNotification.created)}",
+        ).distinct(fj(CampaignNotification.campaign_notification_type))
 
     def get_latest_failed_campaign_notifications(self):
         return (
             CampaignNotification.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         CampaignNotification.campaign_notification_type,
                         CampaignNotificationType.campaign,
                     ): self
                 }
             )
             .order_by(
-                fields_join(
+                fj(
                     CampaignNotification.notification,
                     Notification.user,
                 ),
-                fields_join(
+                fj(
                     CampaignNotification.campaign_notification_type,
                     CampaignNotificationType.notification_type,
                 ),
-                f"-{fields_join(CampaignNotification.created)}",
+                f"-{fj(CampaignNotification.created)}",
             )
             .distinct(
-                fields_join(
+                fj(
                     CampaignNotification.notification,
                     Notification.user,
                 ),
-                fields_join(
+                fj(
                     CampaignNotification.campaign_notification_type,
                     CampaignNotificationType.notification_type,
                 ),
             )
             .filter(
                 **{
-                    fields_join(
+                    fj(
                         CampaignNotification.notification,
                         Notification.status,
                     ): Notification.Status.FAILED,
@@ -140,7 +140,7 @@ class Campaign(TimeStampedModel):
     def clean(self):
         if self.crontab:
             if not croniter.is_valid(self.crontab):
-                raise ValidationError({fields_join(Campaign.crontab): _("Invalid crontab value.")})
+                raise ValidationError({fj(Campaign.crontab): _("Invalid crontab value.")})
 
     def get_campaign_notification_types(self):
         campaign_notification_manager: models.BaseManager[CampaignNotificationType] = getattr(
@@ -193,12 +193,12 @@ class CampaignNotificationType(TimeStampedModel):
     def successful_notifications_count(self, user):
         return Notification.objects.filter(
             **{
-                fields_join(
+                fj(
                     CampaignNotification.notification.field.related_query_name(),
                     CampaignNotification.campaign_notification_type,
                 ): self,
-                fields_join(Notification.user): user,
-                fields_join(Notification.status): Notification.Status.SENT,
+                fj(Notification.user): user,
+                fj(Notification.status): Notification.Status.SENT,
             }
         ).count()
 

@@ -16,7 +16,7 @@ from common.types import (
     SkillType,
     WorkExperienceVerificationMethodUploadType,
 )
-from common.utils import fields_join
+from common.utils import fj
 from config.settings.constants import Environment
 from config.utils import is_env
 from graphene.types.generic import GenericScalar
@@ -168,8 +168,8 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
         obj.created_by = user
         OrganizationInvitation.objects.filter(
             **{
-                fields_join(OrganizationInvitation.email): obj.email,
-                fields_join(OrganizationInvitation.organization): obj.organization,
+                fj(OrganizationInvitation.email): obj.email,
+                fj(OrganizationInvitation.organization): obj.organization,
             }
         ).delete()
         cls.full_clean(obj)
@@ -196,11 +196,9 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
 def referral_registration(user, referral_code):
     if not referral_code:
         return
-    referral = Referral.objects.filter(**{fields_join(Referral.code, IExact.lookup_name): referral_code}).first()
+    referral = Referral.objects.filter(**{fj(Referral.code, IExact.lookup_name): referral_code}).first()
     if referral:
-        ReferralUser.objects.create(
-            **{fields_join(ReferralUser.user): user, fields_join(ReferralUser.referral): referral}
-        )
+        ReferralUser.objects.create(**{fj(ReferralUser.user): user, fj(ReferralUser.referral): referral})
 
 
 def set_template_context_variable(context, data: dict):
@@ -295,7 +293,7 @@ class UserRegister(RegisterBase):
         )
         if organization_invitation_token := kwargs.pop(OrganizationInvitation.token.field.name, None):
             organization_invitation = OrganizationInvitation.objects.filter(
-                **{fields_join(OrganizationInvitation.token): organization_invitation_token}
+                **{fj(OrganizationInvitation.token): organization_invitation_token}
             ).first()
             if not organization_invitation:
                 raise GraphQLErrorBadRequest(_("Organization invitation token is invalid."))
@@ -530,9 +528,7 @@ class RevokeTokenMutation(graphql_auth_mutations.RevokeToken):
         result = super().mutate(*args, **kwargs)
         refresh_token = kwargs.get("refresh_token")
         if result.success:
-            UserDevice.objects.filter(
-                **{fields_join(UserDevice.refresh_token, UserRefreshToken.token): refresh_token}
-            ).delete()
+            UserDevice.objects.filter(**{fj(UserDevice.refresh_token, UserRefreshToken.token): refresh_token}).delete()
         return result
 
 
@@ -612,8 +608,8 @@ class SetContactableMixin:
     @classmethod
     def after_mutate(cls, root, info, input, created_objs, return_data):
         contactable = cls.get_contactable_object(info, input)
-        Contact.objects.filter(**{fields_join(Contact.contactable): contactable}).exclude(
-            **{fields_join(Contact._meta.pk.attname, In.lookup_name): [obj.pk for obj in created_objs]}
+        Contact.objects.filter(**{fj(Contact.contactable): contactable}).exclude(
+            **{fj(Contact._meta.pk.attname, In.lookup_name): [obj.pk for obj in created_objs]}
         ).delete()
 
     @classmethod
@@ -731,8 +727,8 @@ class UserUpdateMutation(
         if interested_jobs := set(input.get(Profile.interested_jobs.field.name, set())):
             if Job.objects.filter(
                 **{
-                    fields_join(Job.id, In.lookup_name): interested_jobs,
-                    fields_join(Job.require_appearance_data): True,
+                    fj(Job.id, In.lookup_name): interested_jobs,
+                    fj(Job.require_appearance_data): True,
                 }
             ).exists():
                 if any(input.get(item, object()) in (None, "") for item in Profile.get_appearance_related_fields()):
@@ -742,7 +738,7 @@ class UserUpdateMutation(
                     if any(input.get(item) is None for item in Profile.get_appearance_related_fields()):
                         raise GraphQLErrorBadRequest(_("Appearance related data is required."))
         if (skills := input.get(Profile.skills.field.name)) and profile.skills.filter(
-            **{fields_join(Skill._meta.pk.attname, In.lookup_name): skills}
+            **{fj(Skill._meta.pk.attname, In.lookup_name): skills}
         ).count() != len(skills):
             raise GraphQLErrorBadRequest(_("Skills must be selected from the list."))
 
@@ -1056,9 +1052,7 @@ def validate_language_certificate_skills(test, values):
 
     if (
         test_skills.count()
-        != test_skills.filter(
-            **{fields_join(LanguageProficiencySkill._meta.pk.attname, In.lookup_name): set(skills)}
-        ).count()
+        != test_skills.filter(**{fj(LanguageProficiencySkill._meta.pk.attname, In.lookup_name): set(skills)}).count()
     ):
         raise GraphQLErrorBadRequest(_("All skills must be provided."))
 
@@ -1392,7 +1386,7 @@ class OrganizationJobPositionUpdateMutation(
         if not (
             organization := Organization.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         OrganizationJobPosition.organization.field.related_query_name(),
                         OrganizationJobPosition._meta.pk.attname,
                     ): kwargs.get("id")
@@ -1430,7 +1424,7 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
         if not (
             organization := Organization.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         OrganizationJobPosition.organization.field.related_query_name(),
                         OrganizationJobPosition._meta.pk.attname,
                     ): kwargs.get("id")
@@ -1467,7 +1461,7 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
         if not (
             organization := Organization.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         OrganizationJobPosition.organization.field.related_query_name(),
                         JobPositionAssignment.job_position.field.related_query_name(),
                         JobPositionAssignment._meta.pk.attname,
@@ -1517,7 +1511,7 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
         if not (
             organization := Organization.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         OrganizationEmployee.organization.field.related_query_name(),
                         OrganizationEmployeeCooperation.employee.field.related_query_name(),
                         OrganizationEmployeeCooperation._meta.pk.attname,
@@ -1635,9 +1629,7 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         resume = Resume.objects.get_or_create(
             user=info.context.user,
             defaults={
-                fields_join(Resume.file): Resume.file.field.related_model.objects.get(
-                    **{Organization._meta.pk.attname: file}
-                )
+                fj(Resume.file): Resume.file.field.related_model.objects.get(**{Organization._meta.pk.attname: file})
             },
         )[0]
         return resume.pk
