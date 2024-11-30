@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from account.models import User
 from common.models import Job
-from common.utils import fields_join
+from common.utils import fj
 from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
@@ -26,18 +26,18 @@ def job_assessment_logo_path(instance, filename):
 class JobAssessmentQuerySet(models.QuerySet):
     def filter_by_required(self, required, jobs):
         required_lookup = {
-            fields_join(
+            fj(
                 JobAssessmentJob.job_assessment.field.related_query_name(),
                 JobAssessment.required,
             ): True,
-            fields_join(
+            fj(
                 JobAssessmentJob.job_assessment.field.related_query_name(),
                 JobAssessmentJob.job,
                 In.lookup_name,
             ): jobs,
         }
         if required:
-            return self.filter(models.Q(**required_lookup) | models.Q(**{fields_join(JobAssessment.required): True}))
+            return self.filter(models.Q(**required_lookup) | models.Q(**{fj(JobAssessment.required): True}))
 
         return self.annotate(
             required_job_assessments=models.Count(
@@ -48,11 +48,11 @@ class JobAssessmentQuerySet(models.QuerySet):
 
     def filter_by_optional(self, jobs):
         optional_lookup = {
-            fields_join(
+            fj(
                 JobAssessmentJob.job_assessment.field.related_query_name(),
                 JobAssessment.required,
             ): False,
-            fields_join(
+            fj(
                 JobAssessmentJob.job_assessment.field.related_query_name(),
                 JobAssessmentJob.job,
                 In.lookup_name,
@@ -68,16 +68,14 @@ class JobAssessmentQuerySet(models.QuerySet):
         return self.filter(
             models.Q(
                 **{
-                    fields_join(
-                        JobAssessmentResult.job_assessment.field.related_query_name(), JobAssessmentResult.user
-                    ): user,
-                    fields_join(
+                    fj(JobAssessmentResult.job_assessment.field.related_query_name(), JobAssessmentResult.user): user,
+                    fj(
                         JobAssessmentResult.job_assessment.field.related_query_name(), JobAssessmentResult.status
                     ): JobAssessmentResult.Status.COMPLETED,
                 }
             )
-            | models.Q(**{fields_join(JobAssessment.related_jobs, In.lookup_name): profile.interested_jobs.all()})
-            | models.Q(**{fields_join(JobAssessment.required): True})
+            | models.Q(**{fj(JobAssessment.related_jobs, In.lookup_name): profile.interested_jobs.all()})
+            | models.Q(**{fj(JobAssessment.required): True})
         ).distinct()
 
 
@@ -112,7 +110,7 @@ class JobAssessment(models.Model):
         return f"{self.id}: {self.title}"
 
     def can_start(self, user) -> tuple[bool, str]:
-        results = self.results.filter(**{fields_join(JobAssessmentResult.user): user})
+        results = self.results.filter(**{fj(JobAssessmentResult.user): user})
         if results.exists():
             if results.count() >= self.count_limit:
                 return False, _("You have reached the limit of assessments.")

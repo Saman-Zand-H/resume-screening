@@ -1,5 +1,5 @@
 from account.models import User
-from common.utils import fields_join
+from common.utils import fj
 from flex_report.mixins import TablePageMixin
 
 from django.contrib import admin
@@ -40,21 +40,21 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
         CampaignNotification.campaign_notification_type.field.name,
         CampaignNotification.notification.field.name,
         CampaignNotification.created.field.name,
-        fields_join(CampaignNotification.notification, Notification.status),
-        fields_join(
+        fj(CampaignNotification.notification, Notification.status),
+        fj(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.campaign,
         ),
     )
     list_filter = (
-        fields_join(CampaignNotification.notification, Notification.status),
-        fields_join(
+        fj(CampaignNotification.notification, Notification.status),
+        fj(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.notification_type,
         ),
     )
     search_fields = [
-        fields_join(
+        fj(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.campaign,
             Campaign.title,
@@ -62,7 +62,7 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
     ]
 
     def lookup_allowed(self, lookup, value, request=None):
-        if lookup == fields_join(
+        if lookup == fj(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.campaign,
             Campaign._meta.pk.attname,
@@ -83,8 +83,8 @@ class CampaignNotificationTypeAdmin(admin.ModelAdmin):
         CampaignNotificationType.campaign.field.name,
     )
     search_fields = (
-        fields_join(CampaignNotificationType.campaign, Campaign.title),
-        fields_join(CampaignNotificationType.body, NotificationTemplate.title),
+        fj(CampaignNotificationType.campaign, Campaign.title),
+        fj(CampaignNotificationType.body, NotificationTemplate.title),
         CampaignNotificationType.notification_type.field.name,
     )
     autocomplete_fields = (CampaignNotificationType.campaign.field.name,)
@@ -113,12 +113,12 @@ class CampaignAdmin(admin.ModelAdmin):
 
     @admin.action(description=_("Activate Schedulers"))
     def activate_schedulers(self, request, queryset: QuerySet[Campaign]):
-        queryset.update(**{fields_join(Campaign.is_scheduler_active): True})
+        queryset.update(**{fj(Campaign.is_scheduler_active): True})
         self.message_user(request, _("Schedulers activated."))
 
     @admin.action(description=_("Deactivate Schedulers"))
     def deactivate_schedulers(self, request, queryset: QuerySet[Campaign]):
-        queryset.update(**{fields_join(Campaign.is_scheduler_active): False})
+        queryset.update(**{fj(Campaign.is_scheduler_active): False})
         self.message_user(request, _("Schedulers deactivated."))
 
     inlines = (CampaignNotificationTypeInline,)
@@ -167,7 +167,7 @@ class BaseNotificationAdmin(admin.ModelAdmin):
         Notification.status.field.name,
     ]
     search_fields = [
-        fields_join(Notification.user, User.email),
+        fj(Notification.user, User.email),
     ]
     autocomplete_fields = [
         Notification.user.field.name,

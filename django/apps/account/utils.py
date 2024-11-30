@@ -8,7 +8,7 @@ from ai.assistants import AssistantPipeline
 from ai.google import GoogleServices
 from cities_light.models import City
 from common.models import Job, LanguageProficiencyTest, Skill, University
-from common.utils import fields_join
+from common.utils import fj
 from config.settings.constants import Assistants
 from google.genai import types
 
@@ -36,21 +36,21 @@ def set_contacts_from_resume_json(user, resume_json: dict):
     from .models import Contact, Contactable, Profile
 
     contactable = Contactable.objects.filter(
-        **{fields_join(Profile.contactable.field.related_query_name(), Profile.user): user}
+        **{fj(Profile.contactable.field.related_query_name(), Profile.user): user}
     ).first()
 
     if not (contactable and (resume_json_model := ResumeJson.model_validate(resume_json)).contact_informations):
         return
 
-    user_contact_types = Contact.objects.filter(**{fields_join(Contact.contactable): contactable}).values_list(
-        fields_join(Contact.type), flat=True
+    user_contact_types = Contact.objects.filter(**{fj(Contact.contactable): contactable}).values_list(
+        fj(Contact.type), flat=True
     )
     contacts = [
         Contact(
             **{
-                fields_join(Contact.contactable): contactable,
-                fields_join(Contact.value): contact_information.value,
-                fields_join(Contact.type): contact_information.type,
+                fj(Contact.contactable): contactable,
+                fj(Contact.value): contact_information.value,
+                fj(Contact.type): contact_information.type,
             }
         )
         for contact_information in resume_json_model.contact_informations
@@ -68,10 +68,10 @@ def set_profile_from_resume_json(user, resume_json: dict):
         return
 
     if resume_json_model.gender and not profile.gender:
-        changes.update(**{fields_join(Profile.gender): resume_json_model.gender})
+        changes.update(**{fj(Profile.gender): resume_json_model.gender})
 
     if resume_json_model.birth_date and not profile.birth_date:
-        changes.update(**{fields_join(Profile.birth_date): resume_json_model.birth_date})
+        changes.update(**{fj(Profile.birth_date): resume_json_model.birth_date})
 
     if not changes:
         return
@@ -148,8 +148,8 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
     profile: Profile = user.profile
     certifications = CertificateAndLicense.objects.filter(
         **{
-            fields_join(CertificateAndLicense.user): user,
-            fields_join(CertificateAndLicense.status, In.lookup_name): CertificateAndLicense.get_verified_statuses(),
+            fj(CertificateAndLicense.user): user,
+            fj(CertificateAndLicense.status, In.lookup_name): CertificateAndLicense.get_verified_statuses(),
         },
     ).values(
         CertificateAndLicense.certificate_text.field.name,
@@ -159,8 +159,8 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
     )
     work_experiences = WorkExperience.objects.filter(
         **{
-            fields_join(WorkExperience.user): user,
-            fields_join(WorkExperience.status, In.lookup_name): WorkExperience.get_verified_statuses()
+            fj(WorkExperience.user): user,
+            fj(WorkExperience.status, In.lookup_name): WorkExperience.get_verified_statuses()
             if verified_work_experiences
             else map(attrgetter("value"), WorkExperience.Status),
         },
@@ -169,7 +169,7 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         WorkExperience.organization.field.name,
         WorkExperience.start.field.name,
         WorkExperience.end.field.name,
-        fields_join(WorkExperience.city.field.name, City.display_name.field.name),
+        fj(WorkExperience.city.field.name, City.display_name.field.name),
     )
 
     language_certificates_values = Subquery(
@@ -179,7 +179,7 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
             JSONObject(
                 **{
                     LanguageProficiencySkill.skill_name.field.name: F(
-                        fields_join(LanguageCertificateValue.skill, LanguageProficiencySkill.skill_name)
+                        fj(LanguageCertificateValue.skill, LanguageProficiencySkill.skill_name)
                     ),
                     LanguageCertificateValue.value.field.name: F(LanguageCertificateValue.value.field.name),
                 }
@@ -189,11 +189,11 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
     )
     language_certificates = LanguageCertificate.objects.filter(
         **{
-            fields_join(LanguageCertificate.user): user,
-            fields_join(LanguageCertificate.status, In.lookup_name): LanguageCertificate.get_verified_statuses(),
+            fj(LanguageCertificate.user): user,
+            fj(LanguageCertificate.status, In.lookup_name): LanguageCertificate.get_verified_statuses(),
         }
     ).values(
-        fields_join(LanguageCertificate.test, LanguageProficiencyTest.title),
+        fj(LanguageCertificate.test, LanguageProficiencyTest.title),
         LanguageCertificate.language.field.name,
         LanguageCertificate.issued_at.field.name,
         scores=ArraySubquery(language_certificates_values),
@@ -201,14 +201,14 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
 
     educations = Education.objects.filter(
         **{
-            fields_join(Education.user): user,
-            fields_join(Education.status, In.lookup_name): Education.get_verified_statuses()
+            fj(Education.user): user,
+            fj(Education.status, In.lookup_name): Education.get_verified_statuses()
             if verified_educations
             else map(attrgetter("value"), Education.Status),
         }
     ).values(
         Education.degree.field.name,
-        fields_join(Education.university, University.name),
+        fj(Education.university, University.name),
         Education.city.field.name,
         Education.start.field.name,
         Education.end.field.name,
@@ -255,7 +255,7 @@ def extract_available_jobs(resume_json: dict[str, Any], **additional_information
     if message:
         return Job.objects.filter(
             **{
-                fields_join(Job._meta.pk.attname, In.lookup_name): [
+                fj(Job._meta.pk.attname, In.lookup_name): [
                     j[Job._meta.pk.attname] for j in service.message_to_json(message)
                 ]
             }
@@ -328,16 +328,14 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
             existing_skill_ids = [match.get("pk") for match in existing_skill_matches]
             new_skill_ids = [
                 Skill.objects.get_or_create(
-                    **{fields_join(Skill.title): skill_name},
-                    defaults={fields_join(Skill.insert_type): Skill.InsertType.AI},
+                    **{fj(Skill.title): skill_name},
+                    defaults={fj(Skill.insert_type): Skill.InsertType.AI},
                 )[0].pk
                 for skill_name in new_skill_matches
             ]
 
             all_skill_ids = existing_skill_ids + new_skill_ids
-            skills = Skill.objects.filter(
-                **{fields_join(Skill._meta.pk.attname, In.lookup_name): all_skill_ids}
-            ).distinct()
+            skills = Skill.objects.filter(**{fj(Skill._meta.pk.attname, In.lookup_name): all_skill_ids}).distinct()
 
             return skills
 

@@ -2,7 +2,7 @@ from typing import List, NamedTuple
 
 from cities_light.models import City, Country
 from common.populators import BasePopulator
-from common.utils import fields_join
+from common.utils import fj
 from flex_report.models import Column
 
 from django.contrib.contenttypes.models import ContentType
@@ -24,9 +24,9 @@ class ColumnPopulator(BasePopulator):
             ColumnInitialData(
                 model=Profile,
                 columns=[
-                    fields_join(Profile.user, User.first_name),
-                    fields_join(Profile.user, User.last_name),
-                    fields_join(Profile.user, User.email),
+                    fj(Profile.user, User.first_name),
+                    fj(Profile.user, User.last_name),
+                    fj(Profile.user, User.email),
                     Profile.gender.field.name,
                     Profile.avatar.field.name,
                     Profile.employment_status.field.name,
@@ -34,7 +34,7 @@ class ColumnPopulator(BasePopulator):
                     Profile.skills.field.name,
                     Profile.raw_skills.field.name,
                     Profile.city.field.name,
-                    fields_join(Profile.city, City.country, Country.name),
+                    fj(Profile.city, City.country, Country.name),
                     Profile.native_language.field.name,
                     Profile.fluent_languages.field.name,
                     Profile.score.field.name,

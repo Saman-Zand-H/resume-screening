@@ -1,5 +1,5 @@
 from common.db_functions import ArrayDifference, DateTimeAge, GetKeysByValue
-from common.utils import fields_join
+from common.utils import fj
 
 from django.contrib.auth.models import UserManager as BaseUserManager
 from django.contrib.postgres.fields.array import ArrayLenTransform
@@ -56,7 +56,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.IS_ORGANIZATION_MEMBER: models.Exists(
                 OrganizationMembership.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             OrganizationMembership.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -66,7 +66,7 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_PROFILE_INFORMATION: models.Case(
                 models.When(
-                    models.Q(**{fields_join(Profile.gender, IsNull.lookup_name): True}),
+                    models.Q(**{fj(Profile.gender, IsNull.lookup_name): True}),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -74,7 +74,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_EDUCATION: models.Exists(
                 Education.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             Education.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -85,7 +85,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION: models.Exists(
                 Education.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             Education.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -93,14 +93,14 @@ class FlexReportProfileManager(models.Manager):
                     }
                 ).exclude(
                     **{
-                        fields_join(Education.status, In.lookup_name): Education.get_verified_statuses(),
+                        fj(Education.status, In.lookup_name): Education.get_verified_statuses(),
                     }
                 ),
             ),
             ProfileAnnotationNames.HAS_WORK_EXPERIENCE: models.Exists(
                 WorkExperience.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             WorkExperience.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -111,7 +111,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_UNVERIFIED_WORK_EXPERIENCE: models.Exists(
                 WorkExperience.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             WorkExperience.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -124,7 +124,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE: models.Exists(
                 LanguageCertificate.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             LanguageCertificate.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -135,7 +135,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_CERTIFICATE: models.Exists(
                 CertificateAndLicense.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             CertificateAndLicense.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -145,7 +145,7 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_SKILLS: models.Case(
                 models.When(
-                    models.Q(**{fields_join(Profile.raw_skills, ArrayLenTransform.lookup_name): models.Value(0)}),
+                    models.Q(**{fj(Profile.raw_skills, ArrayLenTransform.lookup_name): models.Value(0)}),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -153,7 +153,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_CANADA_VISA: models.Exists(
                 CanadaVisa.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             CanadaVisa.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -164,7 +164,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_INTERESTED_JOBS: models.Exists(
                 Profile.interested_jobs.field.related_model.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             Profile.interested_jobs.field.related_query_name(),
                             Profile._meta.pk.attname,
                         ): models.OuterRef(Profile._meta.pk.attname)
@@ -172,14 +172,14 @@ class FlexReportProfileManager(models.Manager):
                 )
             ),
             ProfileAnnotationNames.AGE: models.F(
-                fields_join(
+                fj(
                     Profile.birth_date,
                     DateTimeAge.lookup_name,
                     ExtractYear.lookup_name,
                 )
             ),
             ProfileAnnotationNames.LAST_LOGIN: models.F(
-                fields_join(
+                fj(
                     Profile.user,
                     User.last_login,
                     TruncDate.lookup_name,
@@ -188,7 +188,7 @@ class FlexReportProfileManager(models.Manager):
                 )
             ),
             ProfileAnnotationNames.DATE_JOINED: models.F(
-                fields_join(
+                fj(
                     Profile.user,
                     User.date_joined,
                     TruncDate.lookup_name,
@@ -199,7 +199,7 @@ class FlexReportProfileManager(models.Manager):
             ProfileAnnotationNames.HAS_RESUME: models.Exists(
                 Resume.objects.filter(
                     **{
-                        fields_join(
+                        fj(
                             Resume.user,
                             Profile.user.field.related_query_name(),
                             Profile._meta.pk.attname,
@@ -222,9 +222,7 @@ class FlexReportProfileManager(models.Manager):
             ),
             ProfileAnnotationNames.HAS_INCOMPLETE_STAGES: models.Case(
                 models.When(
-                    models.Q(
-                        **{fields_join(ProfileAnnotationNames.INCOMPLETE_STAGES, ArrayLenTransform.lookup_name): 0}
-                    ),
+                    models.Q(**{fj(ProfileAnnotationNames.INCOMPLETE_STAGES, ArrayLenTransform.lookup_name): 0}),
                     then=models.Value(False),
                 ),
                 default=models.Value(True),
@@ -250,13 +248,13 @@ class UserManager(BaseUserManager):
     def create_user(self, **kwargs):
         from .models import User
 
-        kwargs.setdefault(fields_join(User.username), kwargs.get(self.model.USERNAME_FIELD))
+        kwargs.setdefault(fj(User.username), kwargs.get(self.model.USERNAME_FIELD))
         return super().create_user(**kwargs)
 
     def create_superuser(self, **kwargs):
         from .models import User
 
-        kwargs.setdefault(fields_join(User.username), kwargs.get(self.model.USERNAME_FIELD))
+        kwargs.setdefault(fj(User.username), kwargs.get(self.model.USERNAME_FIELD))
         return super().create_superuser(**kwargs)
 
 
@@ -272,7 +270,7 @@ class OrganizationInvitationManager(models.Manager):
                     models.When(
                         models.Q(
                             **{
-                                fields_join(
+                                fj(
                                     OrganizationInvitation.created_at,
                                     LessThan.lookup_name,
                                 ): Now() - ORGANIZATION_INVITATION_EXPIRY_DELTA

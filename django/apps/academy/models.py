@@ -1,6 +1,6 @@
 from account.models import User
 from common.models import Industry, Job
-from common.utils import fields_join
+from common.utils import fj
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -28,25 +28,25 @@ def get_logo_upload_path(instance, filename):
 class CourseQuerySet(models.QuerySet):
     def related_to_user(self, user):
         return (
-            self.filter(**{fields_join(Course.is_active): True})
+            self.filter(**{fj(Course.is_active): True})
             .filter(
                 (
-                    Q(**{fields_join(Course.is_required): True})
+                    Q(**{fj(Course.is_required): True})
                     | Q(
                         **{
-                            fields_join(CourseResult.course.field.related_query_name(), CourseResult.user): user,
-                            fields_join(
-                                CourseResult.course.field.related_query_name(),
-                                CourseResult.status,
+                            fj(CourseResult.course.field.related_query_name(), CourseResult.user): user,
+                            fj(
+                                CourseResult.course.field.related_query_name(), CourseResult.status
                             ): CourseResult.Status.COMPLETED,
                         }
                     )
                     | Q(
                         **{
-                            fields_join(Course.industries, In.lookup_name): Industry.objects.filter(
+                            fj(Course.industries, In.lookup_name): Industry.objects.filter(
                                 **{
-                                    fields_join(
-                                        Job.industries.field.related_query_name(), In.lookup_name
+                                    fj(
+                                        Job.industries.field.related_query_name(),
+                                        In.lookup_name,
                                     ): user.profile.interested_jobs.all()
                                 }
                             )

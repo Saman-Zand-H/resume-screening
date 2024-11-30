@@ -5,7 +5,7 @@ from typing import List
 from ai.assistants import Assistant
 from common.logging import get_logger
 from common.models import LanguageProficiencySkill, LanguageProficiencyTest
-from common.utils import fields_join
+from common.utils import fj
 from config.settings.constants import Assistants
 from google.genai import types as genai_types
 from pydantic import ValidationError
@@ -121,18 +121,16 @@ class LanguageCertificateAnalysisAssistant(DocumentDataAnalysisAssistant, Assist
             skills_subq = Subquery(
                 LanguageProficiencySkill.objects.filter(
                     **{
-                        fields_join(
-                            LanguageProficiencySkill.test, LanguageProficiencyTest._meta.pk.get_attname()
-                        ): OuterRef(LanguageProficiencyTest._meta.pk.get_attname())
+                        fj(LanguageProficiencySkill.test, LanguageProficiencyTest._meta.pk.get_attname()): OuterRef(
+                            LanguageProficiencyTest._meta.pk.get_attname()
+                        )
                     }
                 ).values_list(
                     JSONObject(
                         **{
-                            fields_join(LanguageProficiencySkill.skill_name): F(
-                                fields_join(LanguageProficiencySkill.skill_name)
-                            ),
-                            fields_join(LanguageProficiencySkill._meta.pk.get_attname()): F(
-                                fields_join(LanguageProficiencySkill._meta.pk.get_attname())
+                            fj(LanguageProficiencySkill.skill_name): F(fj(LanguageProficiencySkill.skill_name)),
+                            fj(LanguageProficiencySkill._meta.pk.get_attname()): F(
+                                fj(LanguageProficiencySkill._meta.pk.get_attname())
                             ),
                         }
                     ),
@@ -144,8 +142,8 @@ class LanguageCertificateAnalysisAssistant(DocumentDataAnalysisAssistant, Assist
                 LanguageProficiencySkill.test.field.related_query_name()
             ).values(
                 LanguageProficiencyTest._meta.pk.get_attname(),
-                fields_join(LanguageProficiencyTest.title),
-                fields_join(LanguageProficiencyTest.languages),
+                fj(LanguageProficiencyTest.title),
+                fj(LanguageProficiencyTest.languages),
                 skills_data=ArraySubquery(skills_subq),
             )
 

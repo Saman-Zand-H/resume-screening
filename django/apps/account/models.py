@@ -25,7 +25,7 @@ from common.models import (
     University,
 )
 from common.states import ChangeStateMixin, GenericState
-from common.utils import field_serializer, fields_join, get_all_subclasses
+from common.utils import field_serializer, fj, get_all_subclasses
 from common.validators import (
     DOCUMENT_FILE_EXTENSION_VALIDATOR,
     DOCUMENT_FILE_SIZE_VALIDATOR,
@@ -317,7 +317,7 @@ class User(AbstractUser):
             or User.objects.filter(
                 models.Q(
                     **{
-                        fields_join(
+                        fj(
                             Profile.user.field.related_query_name(),
                             Profile.role,
                             Role.accesses,
@@ -327,7 +327,7 @@ class User(AbstractUser):
                 )
                 | models.Q(
                     **{
-                        fields_join(
+                        fj(
                             OrganizationMembership.user.field.related_query_name(),
                             OrganizationMembership.role,
                             Role.accesses,
@@ -342,7 +342,7 @@ class User(AbstractUser):
     def get_contacts_by_type(self, contact_type: Contact.Type, *, include_organization: bool = False) -> List[Contact]:
         profile_contacts = Contact.objects.filter(
             **{
-                fields_join(
+                fj(
                     Contact.contactable,
                     Profile.contactable.field.related_query_name(),
                     Profile.user,
@@ -353,9 +353,9 @@ class User(AbstractUser):
         organization_contacts = (
             Contact.objects.filter(
                 **{
-                    fields_join(Contact.contactable, In.lookup_name): Contactable.objects.filter(
+                    fj(Contact.contactable, In.lookup_name): Contactable.objects.filter(
                         **{
-                            fields_join(Organization.contactable, In.lookup_name): getattr(
+                            fj(Organization.contactable, In.lookup_name): getattr(
                                 self, Organization.user.field.related_query_name()
                             ).all()
                         }
@@ -368,7 +368,7 @@ class User(AbstractUser):
 
         return (
             (profile_contacts | organization_contacts)
-            .filter(**{Contact.type.field.name: contact_type, fields_join(Contact.value, IsNull.lookup_name): False})
+            .filter(**{Contact.type.field.name: contact_type, fj(Contact.value, IsNull.lookup_name): False})
             .distinct()
         )
 
@@ -462,14 +462,14 @@ class UserFile(FileModel):
     @classmethod
     def get_user_temporary_file(cls, user: User) -> Optional["UserFile"]:
         return cls.objects.filter(
-            **{fields_join(cls.uploaded_by): user},
+            **{fj(cls.uploaded_by): user},
             **{field.field.related_query_name(): None for field in cls.get_related_fields()},
         ).first()
 
     @classmethod
     def is_used(cls, user: User) -> bool:
         return (
-            cls.objects.filter(**{fields_join(cls.uploaded_by): user})
+            cls.objects.filter(**{fj(cls.uploaded_by): user})
             .exclude(**{field.field.related_query_name(): None for field in cls.get_related_fields()})
             .exists()
         )
@@ -477,7 +477,7 @@ class UserFile(FileModel):
     @classmethod
     @transaction.atomic
     def create_temporary_file(cls, file: InMemoryUploadedFile, user: User):
-        obj = cls(**{fields_join(cls.uploaded_by): user, fields_join(cls.file): file})
+        obj = cls(**{fj(cls.uploaded_by): user, fj(cls.file): file})
         obj.full_clean()
         obj.save()
         return obj
@@ -504,8 +504,8 @@ class UserUploadedDocumentFile(UserFile):
             super().check_auth(request)
             or OrganizationEmployee.objects.filter(
                 **{
-                    fields_join(OrganizationEmployee.user): self.uploaded_by,
-                    fields_join(
+                    fj(OrganizationEmployee.user): self.uploaded_by,
+                    fj(
                         OrganizationEmployee.organization,
                         OrganizationMembership.organization.field.related_query_name(),
                         OrganizationMembership.user,
@@ -540,8 +540,8 @@ class AvatarFile(UserUploadedImageFile):
             super().check_auth(request)
             or JobPositionAssignment.objects.filter(
                 **{
-                    fields_join(JobPositionAssignment.job_seeker): self.uploaded_by,
-                    fields_join(
+                    fj(JobPositionAssignment.job_seeker): self.uploaded_by,
+                    fj(
                         JobPositionAssignment.job_position,
                         OrganizationJobPosition.organization,
                         OrganizationMembership.organization.field.related_query_name(),
@@ -715,21 +715,21 @@ class Profile(ComputedFieldsModel):
         from graphql_auth.models import UserStatus
 
         _credits = 0
-        early_users_pks = User.objects.order_by(fields_join(User.date_joined))[:EARLY_USERS_COUNT].values_list(
+        early_users_pks = User.objects.order_by(fj(User.date_joined))[:EARLY_USERS_COUNT].values_list(
             User._meta.pk.attname,
             flat=True,
         )
         is_early_user = (
-            User.objects.filter(**{fields_join(User._meta.pk.attname, In.lookup_name): early_users_pks})
-            .filter(**{fields_join(self._meta.pk.attname): self.user.pk})
+            User.objects.filter(**{fj(User._meta.pk.attname, In.lookup_name): early_users_pks})
+            .filter(**{fj(self._meta.pk.attname): self.user.pk})
             .exists()
         )
 
         with contextlib.suppress(ObjectDoesNotExist):
             verified_referrals = ReferralUser.objects.filter(
                 **{
-                    fields_join(ReferralUser.referral, Referral.user): self.user,
-                    fields_join(
+                    fj(ReferralUser.referral, Referral.user): self.user,
+                    fj(
                         ReferralUser.user,
                         UserStatus.user.field.related_query_name(),
                         UserStatus.verified,
@@ -761,10 +761,10 @@ class Profile(ComputedFieldsModel):
         return {
             cls.native_language.field.name: [Exact.lookup_name],
             cls.birth_date.field.name: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
-            fields_join(cls.user, User.email): [IExact.lookup_name],
+            fj(cls.user, User.email): [IExact.lookup_name],
             cls.gender.field.name: [Exact.lookup_name],
             cls.interested_jobs.field.name: [Contains.lookup_name],
-            fields_join(cls.city, City.country): [In.lookup_name, IExact.lookup_name],
+            fj(cls.city, City.country): [In.lookup_name, IExact.lookup_name],
             ProfileAnnotationNames.AGE: [
                 GreaterThanOrEqual.lookup_name,
                 LessThanOrEqual.lookup_name,
@@ -1217,8 +1217,8 @@ class LanguageCertificate(DocumentAbstract, HasDurationMixin):
         return ", ".join(
             f"{skill}: {score}"
             for skill, score in self.values.values_list(
-                fields_join(LanguageCertificateValue.skill, LanguageProficiencySkill.skill_name),
-                fields_join(LanguageCertificateValue.value),
+                fj(LanguageCertificateValue.skill, LanguageProficiencySkill.skill_name),
+                fj(LanguageCertificateValue.value),
             )
         )
 
@@ -1480,7 +1480,7 @@ class ResumeFile(UserUploadedDocumentFile):
             super().check_auth(request)
             or JobPositionAssignment.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         JobPositionAssignment.job_position,
                         OrganizationJobPosition.organization,
                         OrganizationMembership.organization.field.related_query_name(),
@@ -1966,8 +1966,8 @@ class OrganizationMembership(models.Model):
     @classmethod
     def flex_report_search_fields(cls):
         return [
-            fields_join(cls.user, User.email),
-            fields_join(
+            fj(cls.user, User.email),
+            fj(
                 cls.user,
                 Profile.user.field.related_query_name(),
                 Profile.gender,
@@ -2133,9 +2133,9 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
     @classmethod
     def set_expiry(cls):
         expired_job_positions = cls.objects.filter(
-            **{fields_join(cls.validity_date, LessThan.lookup_name): now().date()}
-        ).exclude(**{fields_join(cls.status): cls.Status.EXPIRED})
-        expired_job_positions.update(**{fields_join(cls.status): cls.Status.EXPIRED})
+            **{fj(cls.validity_date, LessThan.lookup_name): now().date()}
+        ).exclude(**{fj(cls.status): cls.Status.EXPIRED})
+        expired_job_positions.update(**{fj(cls.status): cls.Status.EXPIRED})
         for job_position in expired_job_positions:
             job_position.set_status_history()
 
@@ -2540,10 +2540,8 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         if (
             OrganizationEmployeeCooperation.objects.filter(
                 **{
-                    fields_join(
-                        OrganizationEmployeeCooperation.employee, OrganizationEmployee.user
-                    ): self.employee.user,
-                    fields_join(OrganizationEmployeeCooperation.status, In.lookup_name): [
+                    fj(OrganizationEmployeeCooperation.employee, OrganizationEmployee.user): self.employee.user,
+                    fj(OrganizationEmployeeCooperation.status, In.lookup_name): [
                         self.Status.AWAITING,
                         self.Status.ACTIVE,
                         self.Status.SUSPENDED,
@@ -2551,7 +2549,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
                 }
             )
             .exclude(
-                **{fields_join(OrganizationEmployeeCooperation.employee): self.employee},
+                **{fj(OrganizationEmployeeCooperation.employee): self.employee},
             )
             .exists()
         ):

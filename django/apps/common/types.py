@@ -10,7 +10,7 @@ from cities_light.models import City, Country, Region, SubRegion
 from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from common.utils import fields_join
+from common.utils import fj
 from django.db.models.lookups import Contains, Exact, IContains
 
 from .exceptions import Error, Errors
@@ -162,7 +162,7 @@ class CityNode(DjangoObjectType):
             City.id.field.name: [Exact.lookup_name],
             City.name.field.name: [IContains.lookup_name],
             City.region.field.name: [Exact.lookup_name],
-            fields_join(City.country, Country.code2): [Exact.lookup_name],
+            fj(City.country, Country.code2): [Exact.lookup_name],
         }
 
 

@@ -95,7 +95,7 @@ def map_exception_to_error(exception_class: type, exception_text: str = None) ->
     return Errors.INTERNAL_SERVER_ERROR
 
 
-def fields_join(*fields):
+def fj(*fields):
     return LOOKUP_SEP.join((hasattr(field, "field") and field.field.name) or field for field in fields)
 
 

@@ -5,7 +5,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, List, Protocol, Tuple
 
 from common.logging import get_logger
-from common.utils import fields_join
+from common.utils import fj
 from config.settings.subscriptions import AccountSubscription
 from flex_blob.builders import BlobResponseBuilder
 from flex_blob.models import FileModel
@@ -43,11 +43,11 @@ def self_verify_documents():
     for model in self_verifiable_models:
         model.objects.filter(
             **{
-                fields_join(model.status): DocumentAbstract.Status.SUBMITTED,
-                fields_join(model.updated_at, LessThanOrEqual.lookup_name): timezone.now() - timedelta(days=7),
-                fields_join(model.allow_self_verification): True,
+                fj(model.status): DocumentAbstract.Status.SUBMITTED,
+                fj(model.updated_at, LessThanOrEqual.lookup_name): timezone.now() - timedelta(days=7),
+                fj(model.allow_self_verification): True,
             }
-        ).update(**{fields_join(model.status): DocumentAbstract.Status.SELF_VERIFIED})
+        ).update(**{fj(model.status): DocumentAbstract.Status.SELF_VERIFIED})
 
 
 @register_task([AccountSubscription.DAILY_EXECUTION], schedule={"schedule": "0 0 * * *"})
@@ -61,7 +61,7 @@ def set_expiry():
 def clean_revoked_tokens():
     (
         UserRefreshToken.objects.expired().filter(expired=True)
-        | UserRefreshToken.objects.filter(**{fields_join(UserRefreshToken.revoked, IsNull.lookup_name): False})
+        | UserRefreshToken.objects.filter(**{fj(UserRefreshToken.revoked, IsNull.lookup_name): False})
     ).delete()
 
 
@@ -83,14 +83,14 @@ def user_task_decorator(timeout_seconds: int) -> Callable:
                 logger.info(f"Running task {task_name}: user {task_user_id} not found.")
                 (
                     user_task := UserTask.objects.filter(
-                        **{UserTask.user.field.attname: task_user_id, fields_join(UserTask.task_name): task_name}
+                        **{UserTask.user.field.attname: task_user_id, fj(UserTask.task_name): task_name}
                     ).latest(UserTask.created)
                 ) and user_task.change_status(UserTask.Status.FAILED, "User not found.")
                 return
 
             user_task = UserTask.objects.filter(
                 **{
-                    fields_join(UserTask.status, In.lookup_name): [
+                    fj(UserTask.status, In.lookup_name): [
                         UserTask.Status.IN_PROGRESS,
                         UserTask.Status.SCHEDULED,
                     ]
@@ -129,7 +129,7 @@ def user_task_runner(task: Task, task_user_id: int, *args, **kwargs):
     task_name = task.name
     user_task, *_ = UserTask.objects.filter(
         **{
-            fields_join(UserTask.status, In.lookup_name): [
+            fj(UserTask.status, In.lookup_name): [
                 UserTask.Status.IN_PROGRESS,
                 UserTask.Status.SCHEDULED,
             ],

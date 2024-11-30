@@ -1,5 +1,5 @@
 import django_filters
-from common.utils import fields_join
+from common.utils import fj
 
 from django.db.models import CharField, QuerySet, Value
 from django.db.models.functions import Concat
@@ -22,8 +22,8 @@ from .models import (
 
 class OrganizationEmployeeFilterset(django_filters.FilterSet):
     def filter_full_name(self, queryset: QuerySet[OrganizationEmployee], name, value: str):
-        first_name = fields_join(OrganizationEmployee.user, User.first_name)
-        last_name = fields_join(OrganizationEmployee.user, User.last_name)
+        first_name = fj(OrganizationEmployee.user, User.first_name)
+        last_name = fj(OrganizationEmployee.user, User.last_name)
         full_name_concat = Concat(
             first_name,
             Value(" "),
@@ -32,13 +32,13 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
         )
 
         return queryset.annotate(**{OrganizationEmployeeAnnotationNames.USER_FULL_NAME: full_name_concat}).filter(
-            **{fields_join(OrganizationEmployeeAnnotationNames.USER_FULL_NAME, IContains.lookup_name): value}
+            **{fj(OrganizationEmployeeAnnotationNames.USER_FULL_NAME, IContains.lookup_name): value}
         )
 
     def _filter_cooperation_start_at(self, queryset, value, opt=Exact.lookup_name):
         return queryset.filter(
             **{
-                fields_join(
+                fj(
                     OrganizationEmployeeCooperation.employee.field.related_query_name(),
                     OrganizationEmployeeCooperation.start_at,
                     opt,
@@ -64,12 +64,12 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
         model = OrganizationEmployee
         fields = {
             OrganizationEmployee.organization.field.name: [Exact.lookup_name],
-            fields_join(
+            fj(
                 OrganizationEmployee.user,
                 JobPositionAssignment.job_seeker.field.related_query_name(),
                 JobPositionAssignment.job_position,
             ): [Exact.lookup_name],
-            fields_join(
+            fj(
                 OrganizationEmployeeCooperation.employee.field.related_query_name(),
                 OrganizationEmployeeCooperation.status,
             ): [Exact.lookup_name],

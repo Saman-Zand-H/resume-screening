@@ -1,11 +1,11 @@
-from common.utils import fields_join
+from common.utils import fj
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_jwt.decorators import login_required
 
-from .mixins import CourseUserContextMixin
 from django.db.models.lookups import Exact
 
+from .mixins import CourseUserContextMixin
 from .models import Course, CourseResult
 
 
@@ -48,11 +48,8 @@ class CourseResultType(CourseUserContextMixin, DjangoObjectType):
         )
 
         filter_fields = {
-            fields_join(
-                CourseResult.course,
-                Course.type,
-            ): [Exact.lookup_name],
-            fields_join(CourseResult.status): [Exact.lookup_name],
+            fj(CourseResult.course, Course.type): [Exact.lookup_name],
+            fj(CourseResult.status): [Exact.lookup_name],
         }
 
     @classmethod
@@ -60,4 +57,4 @@ class CourseResultType(CourseUserContextMixin, DjangoObjectType):
         user = cls.get_user_context(info.context)
         if not user:
             return queryset.none()
-        return super().get_queryset(queryset, info).filter(**{fields_join(CourseResult.user): user})
+        return super().get_queryset(queryset, info).filter(**{fj(CourseResult.user): user})
