@@ -293,7 +293,7 @@ def set_user_skills(user_id: int, raw_skills: List[str]) -> bool:
         **get_user_additional_information(user_id),
     )
 
-    profile.skills.clear() if not extracted_skills else profile.skills.set(chain.from_iterable(extracted_skills))
+    profile.skills.clear() if not extracted_skills else profile.skills.set(chain(extracted_skills))
     return True
 
 
