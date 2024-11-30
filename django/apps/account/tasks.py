@@ -189,8 +189,6 @@ def find_available_jobs(user_id: int) -> bool:
     return True
 
 
-@register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator(timeout_seconds=120)
 def set_user_resume_json(user_id: str) -> bool:
     from .models import Resume
 

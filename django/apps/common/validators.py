@@ -20,6 +20,4 @@ IMAGE_FILE_SIZE_VALIDATOR = ValidateFileSize(max=5)
 DOCUMENT_FILE_SIZE_VALIDATOR = ValidateFileSize(max=5)
 
 IMAGE_FILE_EXTENSION_VALIDATOR = FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"])
-DOCUMENT_FILE_EXTENSION_VALIDATOR = FileExtensionValidator(
-    allowed_extensions=["pdf", "doc", "docx", "jpg", "jpeg", "png", "webp"]
-)
+DOCUMENT_FILE_EXTENSION_VALIDATOR = FileExtensionValidator(allowed_extensions=["pdf", "jpg", "jpeg", "png", "webp"])
