@@ -310,9 +310,7 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
         ]
     )
 
-    if related_skills_message:
-        related_skills = GoogleServices.message_to_json(related_skills_message)
-
+    if related_skills_message and (related_skills := GoogleServices.message_to_json(related_skills_message)):
         get_or_create_skills_message = GoogleServices(Assistants.SKILL).generate_text_content(
             [
                 types.Part.from_text(text=json.dumps(related_skills)),
