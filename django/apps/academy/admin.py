@@ -34,7 +34,7 @@ class CourseResultAdmin(admin.ModelAdmin):
         CourseResult.updated_at.field.name,
     ]
     search_fields = [
-        fj(CourseResult.course.field.name, Course.name.field.name),
-        fj(CourseResult.user.field.name, User.email.field.name),
+        fj(CourseResult.course, Course.name),
+        fj(CourseResult.user, User.email),
     ]
     list_filter = [CourseResult.status.field.name]
