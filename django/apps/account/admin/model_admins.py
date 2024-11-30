@@ -522,7 +522,7 @@ class ResumeAdmin(admin.ModelAdmin):
     @admin.action(description="Re-Evaluate Resume JSON")
     def reevaluate_resume_json(self, request, queryset: QuerySet[Resume]):
         for resume in queryset:
-            user_task_runner(set_user_resume_json, user_id=resume.user.pk, task_user_id=resume.user.pk)
+            set_user_resume_json(user_id=resume.user.pk)
 
     list_display = (
         Resume.user.field.name,

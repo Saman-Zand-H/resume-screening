@@ -1649,7 +1649,7 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
 
     @classmethod
     def after_mutate(cls, root, info, id, input, obj, return_data):
-        user_task_runner(set_user_resume_json, obj.user.id, user_id=obj.user_id)
+        set_user_resume_json(user_id=obj.user_id)
 
         return super().after_mutate(root, info, id, input, obj, return_data)
 
