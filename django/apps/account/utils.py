@@ -325,27 +325,21 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
                 get_or_create_skills.get("new_skills", []),
             )
 
-            existing_skills = Skill.objects.filter(
-                **{
-                    fields_join(Skill._meta.pk.attname, In.lookup_name): [
-                        match.get("pk") for match in existing_skill_matches
-                    ]
-                }
-            )
-            created_skills = Skill.objects.filter(
-                **{
-                    fields_join(Skill._meta.pk.attname, In.lookup_name): [
-                        Skill.objects.get_or_create(
-                            **{fields_join(Skill.title): skill_name},
-                            defaults={fields_join(Skill.insert_type): Skill.InsertType.AI},
-                        )[0].pk
-                        for skill_name in new_skill_matches
-                    ]
-                }
-            )
-            existing_skills = (existing_skills | created_skills).distinct()
+            existing_skill_ids = [match.get("pk") for match in existing_skill_matches]
+            new_skill_ids = [
+                Skill.objects.get_or_create(
+                    **{fields_join(Skill.title): skill_name},
+                    defaults={fields_join(Skill.insert_type): Skill.InsertType.AI},
+                )[0].pk
+                for skill_name in new_skill_matches
+            ]
 
-            return existing_skills, created_skills.ai()
+            all_skill_ids = existing_skill_ids + new_skill_ids
+            skills = Skill.objects.filter(
+                **{fields_join(Skill._meta.pk.attname, In.lookup_name): all_skill_ids}
+            ).distinct()
+
+            return skills
 
     return Skill.objects.none()
 
