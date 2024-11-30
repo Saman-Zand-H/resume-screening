@@ -42,7 +42,7 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
     )
     search_fields = (
         fj(JobAssessmentResult.user, User.email),
-        fj(JobAssessmentResult.job_assessment.field.name, JobAssessment.title),
+        fj(JobAssessmentResult.job_assessment, JobAssessment.title),
         JobAssessmentResult.order_id.field.name,
     )
     list_filter = (

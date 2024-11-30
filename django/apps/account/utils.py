@@ -169,7 +169,7 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         WorkExperience.organization.field.name,
         WorkExperience.start.field.name,
         WorkExperience.end.field.name,
-        fj(WorkExperience.city.field.name, City.display_name.field.name),
+        fj(WorkExperience.city, City.display_name),
     )
 
     language_certificates_values = Subquery(
