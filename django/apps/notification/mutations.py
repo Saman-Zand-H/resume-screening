@@ -1,5 +1,5 @@
 import graphene
-from common.utils import fields_join
+from common.utils import fj
 from graphene_django_cud.mutations import DjangoBatchPatchMutation
 from graphql_jwt.decorators import login_required
 
@@ -20,8 +20,8 @@ class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
         ids = [item["id"] for item in input]
         not_set_ids = InAppNotification.objects.filter(
             **{
-                fields_join(InAppNotification._meta.pk.attname, In.lookup_name): ids,
-                fields_join(InAppNotification.read_at, IsNull.lookup_name): True,
+                fj(InAppNotification._meta.pk.attname, In.lookup_name): ids,
+                fj(InAppNotification.read_at, IsNull.lookup_name): True,
             }
         ).values_list("id", flat=True)
         for item in input:

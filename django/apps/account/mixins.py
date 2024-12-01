@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
-from common.utils import fields_join
+from common.utils import fj
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
 from graphql import GraphQLResolveInfo
@@ -287,7 +287,7 @@ class FilterQuerySetByUserMixin:
 
         if not (user := info.context.user):
             return queryset.none()
-        return super().get_queryset(queryset, info).filter(**{fields_join(DocumentAbstract.user): user})
+        return super().get_queryset(queryset, info).filter(**{fj(DocumentAbstract.user): user})
 
 
 class CRUDWithoutIDMutationMixin:

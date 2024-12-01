@@ -58,7 +58,7 @@ class GraphQLError(BaseGraphQLError):
         extensions.update(asdict(self.error))
 
         if settings.DEBUG and exception:
-            extensions.update({"details": str(exception)})
+            extensions.update({"DEBUG_DETAIL": str(exception)})
 
         if (exception_class := type(exception)) in EXCEPTION_SERIALIZERS:
             extensions.update(EXCEPTION_SERIALIZERS[exception_class](exception))

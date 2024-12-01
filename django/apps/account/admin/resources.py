@@ -1,4 +1,4 @@
-from common.utils import LOOKUP_SEP, fields_join, nested_getattr
+from common.utils import LOOKUP_SEP, fj, nested_getattr
 from import_export import fields
 from import_export.resources import ModelResource
 
@@ -93,7 +93,7 @@ class ProfileResource(ModelResource):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name())}
+                **{fj(Contact.contactable, Profile.contactable.field.related_query_name())}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -179,13 +179,13 @@ class EducationResource(ModelResource):
         return obj.university.name
 
     def dehydrate_email(self, obj: Education):
-        return nested_getattr(obj, fields_join(Education.user, User.email), LOOKUP_SEP)
+        return nested_getattr(obj, fj(Education.user, User.email), LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: Education):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
+                **{fj(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -225,13 +225,13 @@ class WorkExperienceResource(ModelResource):
         return obj.city.display_name
 
     def dehydrate_email(self, obj: WorkExperience):
-        return nested_getattr(obj, fields_join(WorkExperience.user, User.email), delimeter=LOOKUP_SEP)
+        return nested_getattr(obj, fj(WorkExperience.user, User.email), delimeter=LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: WorkExperience):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
+                **{fj(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -267,13 +267,13 @@ class LanguageCertificateResource(ModelResource):
         return obj.scores
 
     def dehydrate_email(self, obj: LanguageCertificate):
-        return nested_getattr(obj, fields_join(LanguageCertificate.user, User.email), delimeter=LOOKUP_SEP)
+        return nested_getattr(obj, fj(LanguageCertificate.user, User.email), delimeter=LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: LanguageCertificate):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
-                **{fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
+                **{fj(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user)}
             )
             if (display_dict := instance.get_display_name_and_link()) and (display_value := display_dict.get("display"))
         )
@@ -306,14 +306,14 @@ class CertificateAndLicenseResource(ModelResource):
         return obj.duration
 
     def dehydrate_email(self, obj: CertificateAndLicense):
-        return nested_getattr(obj, fields_join(CertificateAndLicense.user, User.email), delimeter=LOOKUP_SEP)
+        return nested_getattr(obj, fj(CertificateAndLicense.user, User.email), delimeter=LOOKUP_SEP)
 
     def dehydrate_phone_number(self, obj: CertificateAndLicense):
         return ", ".join(
             display_value
             for instance in Contact.objects.filter(**{Contact.type.field.name: Contact.Type.PHONE}).filter(
                 **{
-                    fields_join(
+                    fj(
                         Contact.contactable,
                         Profile.contactable.field.related_query_name(),
                         Profile.user,

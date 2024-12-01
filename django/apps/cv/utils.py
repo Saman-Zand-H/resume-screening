@@ -6,7 +6,7 @@ import re
 from account.models import Contact, Profile
 from account.utils import get_user_additional_information
 from ai.google import GoogleServices
-from common.utils import fields_join
+from common.utils import fj
 from config.settings.constants import Assistants
 from PIL import Image, ImageChops
 
@@ -89,7 +89,7 @@ def get_resume_info_input(user) -> dict:
     data.update(
         contacts=Contact.objects.filter(
             **{
-                fields_join(
+                fj(
                     Contact.contactable.field.name,
                     Profile.contactable.field.related_query_name(),
                     Profile.user.field.name,

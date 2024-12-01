@@ -18,7 +18,7 @@ from django.http import (
 class Error:
     code: str
     message: str
-    staus_code: Optional[int] = 500
+    status_code: Optional[int] = 500
 
 
 @dataclasses.dataclass

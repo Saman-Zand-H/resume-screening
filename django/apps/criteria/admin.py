@@ -1,5 +1,5 @@
 from account.models import User
-from common.utils import fields_join
+from common.utils import fj
 
 from django.contrib import admin
 from django.contrib.admin import register
@@ -41,14 +41,8 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         JobAssessmentResult.updated_at.field.name,
     )
     search_fields = (
-        fields_join(
-            JobAssessmentResult.user.field.name,
-            User.email.field.name,
-        ),
-        fields_join(
-            JobAssessmentResult.job_assessment.field.name,
-            JobAssessment.title.field.name,
-        ),
+        fj(JobAssessmentResult.user, User.email),
+        fj(JobAssessmentResult.job_assessment, JobAssessment.title),
         JobAssessmentResult.order_id.field.name,
     )
     list_filter = (

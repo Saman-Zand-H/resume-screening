@@ -4,7 +4,7 @@ from typing import List, Optional
 from cities_light.models import City
 from common.choices import LANGUAGES
 from common.models import Field, Job, LanguageProficiencyTest, Skill, University
-from common.utils import fields_join
+from common.utils import fj
 from dj_rest_auth.registration.serializers import (
     SocialLoginSerializer as BaseSocialLoginSerializer,
 )
@@ -25,13 +25,13 @@ class SocialLoginSerializer(BaseSocialLoginSerializer):
 
     def get_social_login(self, *args, **kwargs):
         sociallogin = super().get_social_login(*args, **kwargs)
-        self.is_new_user = not User.objects.filter(**{fields_join(User.email): sociallogin.user.email}).exists()
+        self.is_new_user = not User.objects.filter(**{fj(User.email): sociallogin.user.email}).exists()
         return sociallogin
 
 
 def get_existing_foreign_keys(model: Model, ids: List[int]) -> Optional[List[int]]:
     existing_ids = set(
-        model.objects.filter(**{fields_join(model._meta.pk.attname, In.lookup_name): ids}).values_list(
+        model.objects.filter(**{fj(model._meta.pk.attname, In.lookup_name): ids}).values_list(
             model._meta.pk.get_attname(),
             flat=True,
         )

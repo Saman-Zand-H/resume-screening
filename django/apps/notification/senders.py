@@ -7,7 +7,7 @@ from typing import Generic, List, Optional, TypeVar, Union
 
 import firebase_admin
 from common.logging import get_logger
-from common.utils import fields_join, get_all_subclasses
+from common.utils import fj, get_all_subclasses
 from config.settings.subscriptions import NotificationSubscription
 from firebase_admin import messaging
 from flex_blob.models import FileModel
@@ -228,14 +228,14 @@ class PushNotificationSender(NotificationSender):
         for response, notification in zip(responses.responses, notifications):
             if not response.success and isinstance(response.exception, messaging.UnregisteredError):
                 UserPushNotificationToken.objects.filter(
-                    **{fields_join(UserPushNotificationToken.token): notification.notification.token}
+                    **{fj(UserPushNotificationToken.token): notification.notification.token}
                 ).delete()
         return [response.exception for response in responses.responses]
 
     def handle_exception(self, exception: Exception, notification: NotificationContext[PushNotification]):
         if isinstance(exception, messaging.UnregisteredError):
             UserPushNotificationToken.objects.filter(
-                **{fields_join(UserPushNotificationToken.token): notification.notification.token}
+                **{fj(UserPushNotificationToken.token): notification.notification.token}
             ).delete()
         return super().handle_exception(exception, notification)
 
@@ -294,7 +294,7 @@ def send_campaign_notifications(campaign_id: int, pks=None):
     report_qs: QuerySet = campaign.saved_filter.get_queryset()
     model: Model = report_qs.model
     if pks is not None:
-        report_qs = report_qs.filter(**{fields_join(model._meta.pk.attname, In.lookup_name): pks})
+        report_qs = report_qs.filter(**{fj(model._meta.pk.attname, In.lookup_name): pks})
 
     if not report_qs.exists():
         return
@@ -347,5 +347,5 @@ def send_campaign_notifications(campaign_id: int, pks=None):
 
     send_notifications(*notification_contexts)
     campaign.sent_at = timezone.now()
-    campaign.save(update_fields=[fields_join(Campaign.sent_at)])
+    campaign.save(update_fields=[fj(Campaign.sent_at)])
     CampaignNotification.objects.bulk_create(campaign_notifications, batch_size=20)

@@ -1,4 +1,4 @@
-from common.utils import fields_join
+from common.utils import fj
 from common.views import WebhookView
 from common.webhook import WebhookEvent, WebhookHandlerResponse
 
@@ -27,8 +27,8 @@ def handle_status_update(payload: dict) -> WebhookHandlerResponse:
 
     CourseResult.objects.filter(
         **{
-            fields_join(CourseResult.user): status_response.external_id,
-            fields_join(CourseResult.course, Course.external_id): status_response.course_id,
+            fj(CourseResult.user): status_response.external_id,
+            fj(CourseResult.course, Course.external_id): status_response.course_id,
         }
     ).update(**{CourseResult.status: COURSE_RESULT_STATUS[status_response.status]})
 

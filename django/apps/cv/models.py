@@ -5,7 +5,7 @@ from typing import Tuple
 
 import pdfkit
 from account.models import Contact, User
-from common.utils import fields_join
+from common.utils import fj
 from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, FileExtensionValidator
 from flex_blob.models import FileModel
 from model_utils.models import TimeStampedModel
@@ -101,9 +101,9 @@ class GeneratedCVContent(models.Model):
     @classmethod
     def get_resume_info(cls, user: User) -> Tuple[dict, bool]:
         input_json = get_resume_info_input(user)
-        if (
-            instance := cls.objects.filter(**{fields_join(cls.user): user}).first()
-        ) and instance.input_json == json.loads(json.dumps(input_json)):
+        if (instance := cls.objects.filter(**{fj(cls.user): user}).first()) and instance.input_json == json.loads(
+            json.dumps(input_json)
+        ):
             return {
                 "work_experiences": instance.work_experiences,
                 "educations": instance.educations,
@@ -114,18 +114,18 @@ class GeneratedCVContent(models.Model):
             }, False
 
         if not instance:
-            instance = cls.objects.create(**{fields_join(cls.user): user})
+            instance = cls.objects.create(**{fj(cls.user): user})
 
         resume_info = extract_generated_resume_info(user)
         cls.objects.filter(**{cls._meta.pk.attname: instance.pk}).update(
             **{
-                fields_join(cls.work_experiences): resume_info.get("work_experiences"),
-                fields_join(cls.educations): resume_info.get("educations"),
-                fields_join(cls.certifications): resume_info.get("certifications"),
-                fields_join(cls.input_json): input_json,
-                fields_join(cls.additional_sections): resume_info.get("additional_sections"),
-                fields_join(cls.about_me): resume_info.get("about_me"),
-                fields_join(cls.headline): resume_info.get("headline"),
+                fj(cls.work_experiences): resume_info.get("work_experiences"),
+                fj(cls.educations): resume_info.get("educations"),
+                fj(cls.certifications): resume_info.get("certifications"),
+                fj(cls.input_json): input_json,
+                fj(cls.additional_sections): resume_info.get("additional_sections"),
+                fj(cls.about_me): resume_info.get("about_me"),
+                fj(cls.headline): resume_info.get("headline"),
             }
         )
         return resume_info, True
@@ -180,8 +180,8 @@ class GeneratedCV(TimeStampedModel, FileModel):
         profile = user.profile
         contacts = Contact.objects.filter(
             **{
-                fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user): user,
-                fields_join(Contact.type, In.lookup_name): [
+                fj(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user): user,
+                fj(Contact.type, In.lookup_name): [
                     Contact.Type.LINKEDIN,
                     Contact.Type.WHATSAPP,
                     Contact.Type.WEBSITE,
@@ -206,16 +206,16 @@ class GeneratedCV(TimeStampedModel, FileModel):
             template = CVTemplate.objects.latest("created")
 
         context, generated = cls.get_user_context(user)
-        if not generated and cls.objects.filter(**{fields_join(cls.user): user}).exists():
+        if not generated and cls.objects.filter(**{fj(cls.user): user}).exists():
             with contextlib.suppress(GeneratedCV.DoesNotExist):
-                return cls.objects.get(**{fields_join(cls.user): user}).file.read()
+                return cls.objects.get(**{fj(cls.user): user}).file.read()
         return template.render_pdf(context)
 
     @classmethod
     def from_user(cls, user, template: CVTemplate = None):
         pdf = cls.generate(user, template)
         file = ContentFile(pdf, name=f"cpj_cv_{user.first_name.lower()}_{user.last_name.lower()}.pdf")
-        return cls.objects.update_or_create(**{fields_join(cls.user): user}, defaults={"file": file})
+        return cls.objects.update_or_create(**{fj(cls.user): user}, defaults={"file": file})
 
     class Meta:
         verbose_name = _("CV File")

@@ -2,7 +2,7 @@ from itertools import chain
 from operator import methodcaller
 from typing import Callable, List, Optional, Type
 
-from common.utils import fields_join, get_all_subclasses
+from common.utils import fj, get_all_subclasses
 from pydantic import BaseModel, InstanceOf
 from rules import predicates
 from rules.rulesets import add_rule
@@ -76,7 +76,7 @@ def has_organization_membership(kwargs: dict):
     return OrganizationMembership.objects.filter(
         **{
             OrganizationMembership.user.field.name: user,
-            fields_join(
+            fj(
                 OrganizationMembership.organization,
                 Organization.status,
                 In.lookup_name,

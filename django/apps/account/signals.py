@@ -1,5 +1,5 @@
 from common.models import Job, Skill
-from common.utils import fields_join
+from common.utils import fj
 from flex_observer.types import FieldsObserverRegistry
 
 from django.core.cache import cache
@@ -19,8 +19,8 @@ def support_ticket_notification(instance, **kwargs):
 @receiver(post_save, sender=User)
 def user_create_one_to_one_objetcs(sender, instance, created, **kwargs):
     if created:
-        Referral.objects.create(**{fields_join(Referral.user): instance})
-        Profile.objects.create(**{fields_join(Profile.user): instance})
+        Referral.objects.create(**{fj(Referral.user): instance})
+        Profile.objects.create(**{fj(Profile.user): instance})
 
 
 @receiver(pre_save, sender=Profile)

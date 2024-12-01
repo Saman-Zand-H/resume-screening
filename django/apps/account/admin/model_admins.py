@@ -1,6 +1,6 @@
 from cities_light.models import City
 from common.models import Field
-from common.utils import fields_join
+from common.utils import fj
 from graphql_auth.models import UserStatus
 from import_export.admin import ExportMixin
 
@@ -160,7 +160,7 @@ class UserStatusAdmin(admin.ModelAdmin):
         UserStatus.archived.field.name,
         UserStatus.secondary_email.field.name,
     )
-    search_fields = (fields_join(UserStatus.user, User.email),)
+    search_fields = (fj(UserStatus.user, User.email),)
     list_filter = (
         UserStatus.verified.field.name,
         UserStatus.archived.field.name,
@@ -187,7 +187,7 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.hair_color.field.name,
         Profile.eye_color.field.name,
     )
-    search_fields = (fields_join(Profile.user, User.email),)
+    search_fields = (fj(Profile.user, User.email),)
     list_filter = (
         Profile.height.field.name,
         Profile.weight.field.name,
@@ -231,7 +231,7 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
 class ContactAdmin(admin.ModelAdmin):
     list_display = (Contact.contactable.field.name, Contact.type.field.name, Contact.value.field.name)
     search_fields = (
-        fields_join(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user, User.email),
+        fj(Contact.contactable, Profile.contactable.field.related_query_name(), Profile.user, User.email),
         Contact.type.field.name,
         Contact.value.field.name,
     )
@@ -252,9 +252,9 @@ class EducationAdmin(ExportMixin, admin.ModelAdmin):
     )
     search_fields = (
         Education.degree.field.name,
-        fields_join(Education.user, User.email),
-        fields_join(Education.field, Field.name),
-        fields_join(Education.city, City.name),
+        fj(Education.user, User.email),
+        fj(Education.field, Field.name),
+        fj(Education.city, City.name),
     )
     list_filter = (
         Education.degree.field.name,
@@ -276,7 +276,7 @@ class IEEMethodAdmin(admin.ModelAdmin):
         IEEMethod.evaluator.field.name,
     )
     search_fields = (
-        fields_join(IEEMethod.education, Education.user, User.email),
+        fj(IEEMethod.education, Education.user, User.email),
         IEEMethod.evaluator.field.name,
     )
     list_filter = (IEEMethod.evaluator.field.name,)
@@ -295,7 +295,7 @@ class CommunicationMethodAdmin(admin.ModelAdmin):
         CommunicationMethod.degree_file.field.name,
     )
     search_fields = (
-        fields_join(CommunicationMethod.education, Education.user, User.email),
+        fj(CommunicationMethod.education, Education.user, User.email),
         CommunicationMethod.website.field.name,
         CommunicationMethod.email.field.name,
         CommunicationMethod.department.field.name,
@@ -318,7 +318,7 @@ class WorkExperienceAdmin(ExportMixin, admin.ModelAdmin):
         WorkExperience.end.field.name,
     )
     search_fields = (
-        fields_join(WorkExperience.user, User.email),
+        fj(WorkExperience.user, User.email),
         WorkExperience.organization.field.name,
     )
     autocomplete_fields = (
@@ -335,7 +335,7 @@ class EmployerLetterMethodAdmin(admin.ModelAdmin):
         EmployerLetterMethod.verified_at.field.name,
         EmployerLetterMethod.created_at.field.name,
     )
-    search_fields = (fields_join(EmployerLetterMethod.work_experience, WorkExperience.user, User.email),)
+    search_fields = (fj(EmployerLetterMethod.work_experience, WorkExperience.user, User.email),)
     raw_id_fields = (EmployerLetterMethod.employer_letter.field.name,)
     autocomplete_fields = (EmployerLetterMethod.work_experience.field.name,)
 
@@ -348,7 +348,7 @@ class PaystubsMethodAdmin(admin.ModelAdmin):
         PaystubsMethod.verified_at.field.name,
         PaystubsMethod.created_at.field.name,
     )
-    search_fields = (fields_join(PaystubsMethod.work_experience, WorkExperience.user, User.email),)
+    search_fields = (fj(PaystubsMethod.work_experience, WorkExperience.user, User.email),)
     raw_id_fields = (PaystubsMethod.paystubs.field.name,)
     autocomplete_fields = (PaystubsMethod.work_experience.field.name,)
 
@@ -373,19 +373,19 @@ class ReferenceCheckEmployerAdmin(admin.ModelAdmin):
 class LanguageCertificateAdmin(ExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageCertificateResource]
     list_display = (LanguageCertificate.user.field.name,)
-    search_fields = (fields_join(LanguageCertificate.user, User.email),)
+    search_fields = (fj(LanguageCertificate.user, User.email),)
     autocomplete_fields = (LanguageCertificate.user.field.name,)
 
 
 @register(LanguageCertificateValue)
 class LanguageCertificateValueAdmin(admin.ModelAdmin):
     list_display = (
-        fields_join(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
+        fj(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
         LanguageCertificateValue.skill.field.name,
         LanguageCertificateValue.value.field.name,
     )
     search_fields = (
-        fields_join(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
+        fj(LanguageCertificateValue.language_certificate, LanguageCertificate.user, User.email),
         LanguageCertificateValue.value.field.name,
     )
     autocomplete_fields = (LanguageCertificateValue.language_certificate.field.name,)
@@ -403,7 +403,7 @@ class CertificateAndLicenseAdmin(ExportMixin, admin.ModelAdmin):
         CertificateAndLicense.expired_at.field.name,
     )
     search_fields = (
-        fields_join(CertificateAndLicense.user, User.email),
+        fj(CertificateAndLicense.user, User.email),
         CertificateAndLicense.title.field.name,
     )
     list_filter = (
@@ -421,7 +421,7 @@ class OfflineMethodAdmin(admin.ModelAdmin):
         OfflineMethod.verified_at.field.name,
         OfflineMethod.created_at.field.name,
     )
-    search_fields = (fields_join(OfflineMethod.language_certificate, LanguageCertificate.user, User.email),)
+    search_fields = (fj(OfflineMethod.language_certificate, LanguageCertificate.user, User.email),)
     list_filter = (
         OfflineMethod.verified_at.field.name,
         OfflineMethod.created_at.field.name,
@@ -436,7 +436,7 @@ class OnlineMethodAdmin(admin.ModelAdmin):
         OnlineMethod.verified_at.field.name,
         OnlineMethod.created_at.field.name,
     )
-    search_fields = (fields_join(OnlineMethod.language_certificate, LanguageCertificate.user, User.email),)
+    search_fields = (fj(OnlineMethod.language_certificate, LanguageCertificate.user, User.email),)
     list_filter = (
         OnlineMethod.verified_at.field.name,
         OnlineMethod.created_at.field.name,
@@ -463,7 +463,7 @@ class CertificateAndLicenseVerificationMethodAdmin(admin.ModelAdmin):
         CertificateAndLicenseOfflineVerificationMethod.created_at.field.name,
     )
     search_fields = (
-        fields_join(
+        fj(
             CertificateAndLicenseOfflineVerificationMethod.certificate_and_license,
             CertificateAndLicense.user,
             User.email,
@@ -485,7 +485,7 @@ class CertificateAndLicenseOnlineVerificationMethodAdmin(admin.ModelAdmin):
         CertificateAndLicenseOnlineVerificationMethod.created_at.field.name,
     )
     search_fields = (
-        fields_join(
+        fj(
             CertificateAndLicenseOnlineVerificationMethod.certificate_and_license,
             CertificateAndLicense.user,
             User.email,
@@ -506,7 +506,7 @@ class CanadaVisaAdmin(admin.ModelAdmin):
         CanadaVisa.status.field.name,
     )
     search_fields = (
-        fields_join(CanadaVisa.user, User.email),
+        fj(CanadaVisa.user, User.email),
         CanadaVisa.nationality.field.name,
     )
     list_filter = (CanadaVisa.status.field.name,)
@@ -522,13 +522,13 @@ class ResumeAdmin(admin.ModelAdmin):
     @admin.action(description="Re-Evaluate Resume JSON")
     def reevaluate_resume_json(self, request, queryset: QuerySet[Resume]):
         for resume in queryset:
-            user_task_runner(set_user_resume_json, user_id=resume.user.pk, task_user_id=resume.user.pk)
+            set_user_resume_json(user_id=resume.user.pk)
 
     list_display = (
         Resume.user.field.name,
         Resume.file.field.name,
     )
-    search_fields = (fields_join(Resume.user, User.email),)
+    search_fields = (fj(Resume.user, User.email),)
     raw_id_fields = (Resume.file.field.name,)
     autocomplete_fields = (Resume.user.field.name,)
     actions = (reevaluate_resume_json.__name__,)
@@ -547,7 +547,7 @@ class ReferralAdmin(admin.ModelAdmin):
         Referral.user.field.name,
         Referral.code.field.name,
     )
-    search_fields = (fields_join(Referral.user, User.email), Referral.code.field.name)
+    search_fields = (fj(Referral.user, User.email), Referral.code.field.name)
     autocomplete_fields = (Referral.user.field.name,)
     inlines = (ReferralUserInline,)
 
@@ -569,7 +569,7 @@ class SupportTicketAdmin(admin.ModelAdmin):
         SupportTicket.status.field.name,
         SupportTicket.category.field.name,
     )
-    search_fields = (fields_join(SupportTicket.user, User.email), SupportTicket.title.field.name)
+    search_fields = (fj(SupportTicket.user, User.email), SupportTicket.title.field.name)
     list_filter = (SupportTicket.status.field.name, SupportTicket.category.field.name)
     autocomplete_fields = (SupportTicket.user.field.name,)
 
@@ -583,7 +583,7 @@ class UserTaskAdmin(admin.ModelAdmin):
         UserTask.created.field.name,
         UserTask.modified.field.name,
     )
-    search_fields = (fields_join(UserTask.user, User.email), UserTask.task_name.field.name)
+    search_fields = (fj(UserTask.user, User.email), UserTask.task_name.field.name)
     list_filter = (UserTask.status.field.name,)
     autocomplete_fields = (UserTask.user.field.name,)
 
@@ -754,7 +754,7 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
     )
     search_fields = (
         OrganizationJobPosition.title.field.name,
-        fields_join(OrganizationJobPosition.organization, Organization.name),
+        fj(OrganizationJobPosition.organization, Organization.name),
     )
     list_filter = (
         OrganizationJobPosition.status.field.name,
@@ -799,8 +799,8 @@ class JobPositionAssignmentAdmin(admin.ModelAdmin):
         JobPositionAssignment.created_at.field.name,
     )
     search_fields = (
-        fields_join(JobPositionAssignment.job_seeker, User.email),
-        fields_join(JobPositionAssignment.job_position, OrganizationJobPosition.title),
+        fj(JobPositionAssignment.job_seeker, User.email),
+        fj(JobPositionAssignment.job_position, OrganizationJobPosition.title),
     )
     autocomplete_fields = (JobPositionAssignment.job_position.field.name, JobPositionAssignment.job_seeker.field.name)
 
@@ -818,12 +818,12 @@ class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
         JobPositionAssignmentStatusHistory.created_at.field.name,
     )
     search_fields = (
-        fields_join(
+        fj(
             JobPositionAssignmentStatusHistory.job_position_assignment,
             JobPositionAssignment.job_seeker,
             User.email,
         ),
-        fields_join(
+        fj(
             JobPositionAssignmentStatusHistory.job_position_assignment,
             JobPositionAssignment.job_position,
             OrganizationJobPosition.title,
@@ -861,8 +861,8 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
         OrganizationEmployee.created.field.name,
     )
     search_fields = (
-        fields_join(OrganizationEmployee.user, User.email),
-        fields_join(OrganizationEmployee.organization, Organization.name),
+        fj(OrganizationEmployee.user, User.email),
+        fj(OrganizationEmployee.organization, Organization.name),
     )
     list_filter = (OrganizationEmployee.created.field.name,)
     autocomplete_fields = (OrganizationEmployee.user.field.name, OrganizationEmployee.organization.field.name)
@@ -925,17 +925,17 @@ class OrganizationEmployeeCooperationAdmin(admin.ModelAdmin):
         OrganizationEmployeeCooperation.created_at.field.name,
     )
     search_fields = (
-        fields_join(
+        fj(
             OrganizationEmployeeCooperation.employee,
             OrganizationEmployee.user,
             User.email,
         ),
-        fields_join(
+        fj(
             OrganizationEmployeeCooperation.employee,
             OrganizationEmployee.organization,
             Organization.name,
         ),
-        fields_join(
+        fj(
             OrganizationEmployeeCooperation.job_position_assignment,
             JobPositionAssignment.job_position,
             OrganizationJobPosition.title,
@@ -979,7 +979,7 @@ class OrganizationEmployeePerformanceReportAdmin(admin.ModelAdmin):
         OrganizationEmployeePerformanceReport.created_at.field.name,
     )
     search_fields = (
-        fields_join(
+        fj(
             OrganizationEmployeePerformanceReport.organization_employee_cooperation,
             OrganizationEmployeeCooperation.employee,
             User.email,

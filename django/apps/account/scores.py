@@ -4,7 +4,7 @@ import math
 from typing import ClassVar
 
 from academy.models import CourseResult
-from common.utils import fields_join
+from common.utils import fj
 from criteria.models import JobAssessment, JobAssessmentResult
 from pydantic import BaseModel
 from score.types import ExistingScore, Score, ScorePack
@@ -96,7 +96,7 @@ class UploadResumeScore(Score):
     observed_fields = [Resume.id.field.name]
 
     def calculate(self, user) -> int:
-        return Scores.UPLOAD_RESUME.value if Resume.objects.filter(**{fields_join(Resume.user): user}).exists() else 0
+        return Scores.UPLOAD_RESUME.value if Resume.objects.filter(**{fj(Resume.user): user}).exists() else 0
 
 
 @register_score
@@ -118,13 +118,13 @@ class EarlyUsersScore(Score):
 
     @classmethod
     def test_func(cls, instance: User):
-        early_users = User.objects.order_by(fields_join(User.date_joined))[:EARLY_USERS_COUNT].values_list(
+        early_users = User.objects.order_by(fj(User.date_joined))[:EARLY_USERS_COUNT].values_list(
             User._meta.pk.attname,
             flat=True,
         )
 
         return (
-            User.objects.filter(**{fields_join(User._meta.pk.attname, In.lookup_name): early_users})
+            User.objects.filter(**{fj(User._meta.pk.attname, In.lookup_name): early_users})
             .filter(**{User._meta.pk.attname: instance.id})
             .exists()
         )
@@ -155,12 +155,12 @@ class MobileScore(Score):
             Scores.CONTACT_INFORMATION.value
             if Contact.objects.filter(
                 **{
-                    fields_join(
+                    fj(
                         Contact.contactable,
                         Profile.contactable.field.related_query_name(),
                         Profile.user,
                     ): user,
-                    fields_join(Contact.type): Contact.Type.PHONE,
+                    fj(Contact.type): Contact.Type.PHONE,
                 }
             ).exists()
             else 0
@@ -206,11 +206,7 @@ class EducationNewScore(Score):
     slug = "education_new"
 
     def calculate(self, user) -> int:
-        return (
-            Scores.EDUCATION_ADD.value
-            if Education.objects.filter(**{fields_join(Education.user): user}).exists()
-            else 0
-        )
+        return Scores.EDUCATION_ADD.value if Education.objects.filter(**{fj(Education.user): user}).exists() else 0
 
 
 @register_score
@@ -226,7 +222,7 @@ class EducationVerificationScore(Score):
         return (
             Scores.EDUCATION_VERIFICATION.value
             if Education.objects.filter(
-                **{fields_join(Education.user): user, fields_join(Education.status): Education.get_verified_statuses()}
+                **{fj(Education.user): user, fj(Education.status): Education.get_verified_statuses()}
             ).exists()
             else 0
         )
@@ -244,12 +240,12 @@ class WorkExperienceNewScore(Score):
 
     def calculate(self, user) -> int:
         years = (
-            WorkExperience.objects.filter(**{fields_join(WorkExperience.user): user})
+            WorkExperience.objects.filter(**{fj(WorkExperience.user): user})
             .annotate(
                 duration_years=ExpressionWrapper(
                     (
                         Case(
-                            When(**{fields_join(WorkExperience.end, IsNull.lookup_name): True}, then=Now()),
+                            When(**{fj(WorkExperience.end, IsNull.lookup_name): True}, then=Now()),
                             default=F(WorkExperience.end.field.name),
                         )
                         - F(WorkExperience.start.field.name)
@@ -277,8 +273,8 @@ class WorkExperienceVerificationScore(Score):
         return (
             WorkExperience.objects.filter(
                 **{
-                    fields_join(WorkExperience.user): user,
-                    fields_join(WorkExperience.status, In.lookup_name): WorkExperience.get_verified_statuses(),
+                    fj(WorkExperience.user): user,
+                    fj(WorkExperience.status, In.lookup_name): WorkExperience.get_verified_statuses(),
                 }
             ).count()
             * Scores.WORK_EXPERIENCE_VERIFICATION.value
@@ -293,7 +289,7 @@ class LanguageScore(Score):
     def calculate(self, user) -> int:
         return (
             Scores.LANGUAGE_ADD.value
-            if LanguageCertificate.objects.filter(**{fields_join(LanguageCertificate.user): user}).exists()
+            if LanguageCertificate.objects.filter(**{fj(LanguageCertificate.user): user}).exists()
             else 0
         )
 
@@ -306,7 +302,7 @@ class CertificationScore(Score):
     def calculate(self, user) -> int:
         return (
             Scores.CERTIFICATION_ADD.value
-            if CertificateAndLicense.objects.filter(**{fields_join(CertificateAndLicense.user): user}).exists()
+            if CertificateAndLicense.objects.filter(**{fj(CertificateAndLicense.user): user}).exists()
             else 0
         )
 
@@ -326,11 +322,7 @@ class VisaStatusScore(Score):
     slug = "visa_status"
 
     def calculate(self, user) -> int:
-        return (
-            Scores.VISA_STATUS.value
-            if CanadaVisa.objects.filter(**{fields_join(CanadaVisa.user): user}).exists()
-            else 0
-        )
+        return Scores.VISA_STATUS.value if CanadaVisa.objects.filter(**{fj(CanadaVisa.user): user}).exists() else 0
 
 
 @register_score
@@ -354,13 +346,13 @@ class AssessmentScore(Score):
         scores = (
             JobAssessmentResult.objects.filter(
                 **{
-                    fields_join(JobAssessmentResult.user): user,
-                    fields_join(JobAssessmentResult.job_assessment, In.lookup_name): required,
-                    fields_join(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
+                    fj(JobAssessmentResult.user): user,
+                    fj(JobAssessmentResult.job_assessment, In.lookup_name): required,
+                    fj(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
                 },
             )
-            .values(fields_join(JobAssessmentResult.score))
-            .annotate(count=Count(fields_join(JobAssessmentResult.job_assessment), distinct=True))
+            .values(fj(JobAssessmentResult.score))
+            .annotate(count=Count(fj(JobAssessmentResult.job_assessment), distinct=True))
         )
 
         if not scores:
@@ -370,7 +362,7 @@ class AssessmentScore(Score):
 
         return int(
             sum(
-                JOB_ASSESSMENT_SCORES_PERCENTAGE.get(score[fields_join(JobAssessmentResult.score)], 0)
+                JOB_ASSESSMENT_SCORES_PERCENTAGE.get(score[fj(JobAssessmentResult.score)], 0)
                 * total_scores
                 * score["count"]
                 for score in scores
@@ -391,9 +383,9 @@ class OptionalAssessmentScore(Score):
         return (
             JobAssessmentResult.objects.filter(
                 **{
-                    fields_join(JobAssessmentResult.user): user,
-                    fields_join(JobAssessmentResult.job_assessment, In.lookup_name): optional,
-                    fields_join(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
+                    fj(JobAssessmentResult.user): user,
+                    fj(JobAssessmentResult.job_assessment, In.lookup_name): optional,
+                    fj(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
                 },
             ).count()
             * Scores.ASSESSMENT_ADD.value
@@ -409,8 +401,8 @@ class CourseGeneralScore(Score):
         return (
             CourseResult.objects.filter(
                 **{
-                    fields_join(CourseResult.user): user,
-                    fields_join(CourseResult.status): CourseResult.Status.COMPLETED,
+                    fj(CourseResult.user): user,
+                    fj(CourseResult.status): CourseResult.Status.COMPLETED,
                 }
             ).count()
             * Scores.COURSE_GENERAL.value
