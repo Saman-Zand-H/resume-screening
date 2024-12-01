@@ -779,38 +779,6 @@ class RoleType(DjangoObjectType):
         )
 
 
-class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
-    fields_access = {
-        "__all__": OrganizationMembershipContainer.get_accesses(),
-    }
-
-    user = graphene.Field(OrganizationMembershipUserType, source=OrganizationMembership.user.field.name)
-    accessed_roles = graphene.List(RoleType)
-
-    def resolve_accessed_roles(self, info):
-        return Role.objects.filter(
-            (
-                Q(**{fj(Role.managed_by_id): self.organization_id})
-                & Q(**{fj(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
-            )
-            | (
-                Q(**{fj(Role.managed_by_id, IsNull.lookup_name): True}) & Q(**{fj(Role.managed_by_model, IsNull): True})
-            ),
-        ).distinct()
-
-    @classmethod
-    def get_access_object(cls, *args, **kwargs):
-        membership: OrganizationMembership = cls.get_obj_from_args(args)
-        if not membership:
-            return None
-
-        return membership.organization
-
-    class Meta:
-        model = OrganizationMembership
-        fields = (OrganizationMembership.role.field.name, OrganizationMembership.organization.field.name)
-
-
 class UserTaskType(DjangoObjectType):
     @classmethod
     @login_required
@@ -826,67 +794,6 @@ class UserTaskType(DjangoObjectType):
         fields = (
             UserTask.task_name.field.name,
             UserTask.status.field.name,
-        )
-
-
-class UserNode(BaseUserNode):
-    profile = graphene.Field(ProfileType)
-    educations = graphene.List(EducationNode)
-    workexperiences = graphene.List(WorkExperienceNode)
-    languagecertificates = graphene.List(LanguageCertificateNode)
-    certificateandlicenses = graphene.List(CertificateAndLicenseNode)
-    job_assessments = graphene.List(
-        JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
-    )
-    has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
-    cv = graphene.Field(GeneratedCVNode)
-    notifications = graphene.List(InAppNotificationNode)
-
-    class Meta:
-        model = User
-        filter_fields = graphql_auth_settings.USER_NODE_FILTER_FIELDS
-        use_connection = True
-        connection_class = CountableConnection
-        fields = (
-            User.first_name.field.name,
-            User.last_name.field.name,
-            User.email.field.name,
-            CanadaVisa.user.field.related_query_name(),
-            Referral.user.field.related_query_name(),
-            Resume.user.field.related_query_name(),
-            SupportTicket.user.field.related_query_name(),
-            UserTask.user.field.related_query_name(),
-            OrganizationMembership.user.field.related_query_name(),
-        )
-
-    def resolve_profile(self, info):
-        return self.profile
-
-    def resolve_educations(self, info):
-        return self.educations.all().order_by("-id")
-
-    def resolve_workexperiences(self, info):
-        return self.workexperiences.all().order_by("-id")
-
-    def resolve_languagecertificates(self, info):
-        return self.languagecertificates.all().order_by("-id")
-
-    def resolve_certificateandlicenses(self, info):
-        return self.certificateandlicenses.all().order_by("-id")
-
-    def resolve_job_assessments(self, info, filters=None):
-        qs = JobAssessment.objects.related_to_user(self)
-        if filters:
-            if filters.required is not None:
-                qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
-        return qs.order_by("-id")
-
-    def resolve_cv(self, info):
-        return self.cv if hasattr(self, "cv") else None
-
-    def resolve_notifications(self, info):
-        return InAppNotification.objects.filter(**{fj(InAppNotification.user): self}).order_by(
-            f"-{fj(InAppNotification.created)}"
         )
 
 
@@ -923,6 +830,39 @@ class OrganizationType(DjangoObjectType):
 
     def resolve_has_financial_data(self, info):
         return True
+
+
+class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": OrganizationMembershipContainer.get_accesses(),
+    }
+
+    user = graphene.Field(OrganizationMembershipUserType, source=OrganizationMembership.user.field.name)
+    accessed_roles = graphene.List(RoleType)
+
+    def resolve_accessed_roles(self, info):
+        return Role.objects.filter(
+            (
+                Q(**{fj(Role.managed_by_id): self.organization_id})
+                & Q(**{fj(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
+            )
+            | (
+                Q(**{fj(Role.managed_by_id, IsNull.lookup_name): True})
+                & Q(**{fj(Role.managed_by_model, IsNull): True})
+            ),
+        ).distinct()
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        membership: OrganizationMembership = cls.get_obj_from_args(args)
+        if not membership:
+            return None
+
+        return membership.organization
+
+    class Meta:
+        model = OrganizationMembership
+        fields = (OrganizationMembership.role.field.name, OrganizationMembership.organization.field.name)
 
 
 class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
@@ -1304,4 +1244,65 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
             )
             .distinct()
             .order_by("status_order", "-created")
+        )
+
+
+class UserNode(BaseUserNode):
+    profile = graphene.Field(ProfileType)
+    educations = graphene.List(EducationNode)
+    workexperiences = graphene.List(WorkExperienceNode)
+    languagecertificates = graphene.List(LanguageCertificateNode)
+    certificateandlicenses = graphene.List(CertificateAndLicenseNode)
+    job_assessments = graphene.List(
+        JobAssessmentType, filters=graphene.Argument(JobAssessmentFilterInput, required=False)
+    )
+    has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
+    cv = graphene.Field(GeneratedCVNode)
+    notifications = graphene.List(InAppNotificationNode)
+
+    class Meta:
+        model = User
+        filter_fields = graphql_auth_settings.USER_NODE_FILTER_FIELDS
+        use_connection = True
+        connection_class = CountableConnection
+        fields = (
+            User.first_name.field.name,
+            User.last_name.field.name,
+            User.email.field.name,
+            CanadaVisa.user.field.related_query_name(),
+            Referral.user.field.related_query_name(),
+            Resume.user.field.related_query_name(),
+            SupportTicket.user.field.related_query_name(),
+            UserTask.user.field.related_query_name(),
+            OrganizationMembership.user.field.related_query_name(),
+        )
+
+    def resolve_profile(self, info):
+        return self.profile
+
+    def resolve_educations(self, info):
+        return self.educations.all().order_by("-id")
+
+    def resolve_workexperiences(self, info):
+        return self.workexperiences.all().order_by("-id")
+
+    def resolve_languagecertificates(self, info):
+        return self.languagecertificates.all().order_by("-id")
+
+    def resolve_certificateandlicenses(self, info):
+        return self.certificateandlicenses.all().order_by("-id")
+
+    def resolve_job_assessments(self, info, filters=None):
+        qs = JobAssessment.objects.related_to_user(self)
+        if filters:
+            if filters.required is not None:
+                qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
+        return qs.order_by("-id")
+
+    def resolve_cv(self, info):
+        return self.cv if hasattr(self, "cv") else None
+
+    def resolve_notifications(self, info):
+        return InAppNotification.objects.filter(**{fj(InAppNotification.user): self}).order_by(
+            f"-{fj(InAppNotification.created)}"
         )
