@@ -860,9 +860,14 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
         return membership.organization
 
+    organization = graphene.Field(OrganizationType)
+
     class Meta:
         model = OrganizationMembership
-        fields = (OrganizationMembership.role.field.name, OrganizationMembership.organization.field.name)
+        fields = (OrganizationMembership.role.field.name,)
+
+    def resolve_organization(self, info):
+        return self.organization
 
 
 class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
@@ -881,16 +886,20 @@ class OrganizationInvitationType(ObjectTypeAccessRequiredMixin, DjangoObjectType
 
         return invitation.organization
 
+    organization = graphene.Field(OrganizationType)
+
     class Meta:
         model = OrganizationInvitation
         fields = (
             OrganizationInvitation.id.field.name,
             OrganizationInvitation.email.field.name,
-            OrganizationInvitation.organization.field.name,
             OrganizationInvitation.role.field.name,
             OrganizationInvitation.created_at.field.name,
             OrganizationInvitation.created_by.field.name,
         )
+
+    def resolve_organization(self, info):
+        return self.organization
 
     @classmethod
     def get_node_by_token(cls, info, token):
@@ -1034,6 +1043,36 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
                 ): user
             }
         ).order_by("-id")
+
+
+class JobSeekerJobPositionType(DjangoObjectType):
+    work_experience_years_range = graphene.List(graphene.Int)
+    benefits = graphene.List(JobBenefitType)
+
+    class Meta:
+        model = OrganizationJobPosition
+        fields = (
+            OrganizationJobPosition.id.field.name,
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.contract_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.payment_term.field.name,
+            OrganizationJobPosition.working_start_at.field.name,
+            OrganizationJobPosition.working_end_at.field.name,
+            OrganizationJobPosition.other_benefits.field.name,
+            OrganizationJobPosition.days_off.field.name,
+            OrganizationJobPosition.job_restrictions.field.name,
+            OrganizationJobPosition.city.field.name,
+        )
+
+    def resolve_work_experience_years_range(self, info):
+        if self.work_experience_years_range is None:
+            return None
+        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
+
+    def resolve_benefits(self, info):
+        return self.benefits.all()
 
 
 class JobPositionInterviewType(DjangoObjectType):
@@ -1191,6 +1230,25 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
         return self.job_position_assignment.job_position
 
 
+class JobSeekerCooperationType(DjangoObjectType):
+    job_position = graphene.Field(JobSeekerJobPositionType)
+    platform_messages = DjangoFilterConnectionField(OrganizationPlatformMessageNode)
+    performance_report = DjangoFilterConnectionField(OrganizationEmployeePerformanceReportNode)
+
+    class Meta:
+        model = OrganizationEmployeeCooperation
+        fields = (
+            OrganizationEmployeeCooperation.id.field.name,
+            OrganizationEmployeeCooperation.status.field.name,
+            OrganizationEmployeeCooperation.start_at.field.name,
+            OrganizationEmployeeCooperation.end_at.field.name,
+            OrganizationEmployeeCooperation.created_at.field.name,
+        )
+
+    def resolve_job_position(self, info):
+        return self.job_position_assignment.job_position
+
+
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
     employee = graphene.Field(EmployeeType)
     cooperations = graphene.List(OrganizationEmployeeCooperationType)
@@ -1247,6 +1305,40 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
 
+class JobSeekerOrganizationType(DjangoObjectType):
+    contacts = graphene.List(ContactType)
+
+    class Meta:
+        model = Organization
+        fields = (
+            Organization.id.field.name,
+            Organization.name.field.name,
+            Organization.logo.field.name,
+            Organization.short_name.field.name,
+            Organization.established_at.field.name,
+            Organization.size.field.name,
+            Organization.city.field.name,
+        )
+
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
+
+
+class JobSeekerEmployeeType(DjangoObjectType):
+    organization = graphene.Field(JobSeekerOrganizationType)
+    cooperations = graphene.Field(JobSeekerCooperationType)
+
+    class Meta:
+        model = OrganizationEmployee
+        fields = (OrganizationEmployee.id.field.name,)
+
+    def resolve_organization(self, info):
+        return self.organization
+
+    def resolve_cooperations(self, info):
+        return self.cooperations.filter(end_at__isnull=True).latest("created_at")
+
+
 class UserNode(BaseUserNode):
     profile = graphene.Field(ProfileType)
     educations = graphene.List(EducationNode)
@@ -1259,6 +1351,7 @@ class UserNode(BaseUserNode):
     has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
     cv = graphene.Field(GeneratedCVNode)
     notifications = graphene.List(InAppNotificationNode)
+    current_employement = graphene.Field(JobSeekerEmployeeType)
 
     class Meta:
         model = User
@@ -1306,3 +1399,6 @@ class UserNode(BaseUserNode):
         return InAppNotification.objects.filter(**{fj(InAppNotification.user): self}).order_by(
             f"-{fj(InAppNotification.created)}"
         )
+
+    def resolve_current_employement(self, info):
+        return self.organization_employees.filter(cooperations__end_at__isnull=True).latest("cooperations__created_at")
