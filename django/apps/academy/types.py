@@ -1,3 +1,4 @@
+import graphene
 from common.utils import fj
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -10,6 +11,8 @@ from .models import Course, CourseResult
 
 
 class CourseNode(CourseUserContextMixin, DjangoObjectType):
+    is_general = graphene.Boolean(source=Course.is_general.fget.__name__)
+
     class Meta:
         model = Course
         use_connection = True
@@ -19,13 +22,10 @@ class CourseNode(CourseUserContextMixin, DjangoObjectType):
             Course.description.field.name,
             Course.logo.field.name,
             Course.external_id.field.name,
-            Course.type.field.name,
             Course.industries.field.name,
             CourseResult.course.field.related_query_name(),
         )
-        filter_fields = {
-            Course.type.field.name: [Exact.lookup_name],
-        }
+        filter_fields = {}
 
     @classmethod
     @login_required
@@ -48,7 +48,6 @@ class CourseResultType(CourseUserContextMixin, DjangoObjectType):
         )
 
         filter_fields = {
-            fj(CourseResult.course, Course.type): [Exact.lookup_name],
             fj(CourseResult.status): [Exact.lookup_name],
         }
 
