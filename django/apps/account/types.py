@@ -847,8 +847,7 @@ class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType
                 & Q(**{fj(Role.managed_by_model): ContentType.objects.get_for_model(Organization)})
             )
             | (
-                Q(**{fj(Role.managed_by_id, IsNull.lookup_name): True})
-                & Q(**{fj(Role.managed_by_model, IsNull): True})
+                Q(**{fj(Role.managed_by_id, IsNull.lookup_name): True}) & Q(**{fj(Role.managed_by_model, IsNull): True})
             ),
         ).distinct()
 

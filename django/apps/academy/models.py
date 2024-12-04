@@ -5,7 +5,7 @@ from common.utils import fj
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
-from django.db.models.lookups import In
+from django.db.models.lookups import In, IsNull
 from django.utils.translation import gettext_lazy as _
 
 from .client.client import academy_client
@@ -31,8 +31,7 @@ class CourseQuerySet(models.QuerySet):
             self.filter(**{fj(Course.is_active): True})
             .filter(
                 (
-                    Q(**{fj(Course.is_required): True})
-                    | Q(
+                    Q(
                         **{
                             fj(CourseResult.course.field.related_query_name(), CourseResult.user): user,
                             fj(
@@ -54,6 +53,7 @@ class CourseQuerySet(models.QuerySet):
                             .values_list("id", flat=True)
                         }
                     )
+                    | Q(**{fj(Course.industries, IsNull.lookup_name): True})
                 )
             )
             .distinct()
@@ -61,16 +61,11 @@ class CourseQuerySet(models.QuerySet):
 
 
 class Course(models.Model):
-    class Type(models.TextChoices):
-        GENERAL = "general", _("General")
-        OTHER = "other", _("Other")
-
     name = models.CharField(max_length=100)
     description = models.TextField()
     logo = models.ImageField(upload_to=get_logo_upload_path, blank=True, null=True)
     external_id = models.CharField(max_length=100, unique=True)
-    type = models.CharField(max_length=20, choices=Type.choices, default=Type.GENERAL)
-    industries = models.ManyToManyField(Industry)
+    industries = models.ManyToManyField(Industry, related_name="courses", blank=True)
     is_required = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     objects = CourseQuerySet.as_manager()
@@ -81,6 +76,10 @@ class Course(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_general(self):
+        return not self.industries.exists()
 
 
 class CourseResult(models.Model):
