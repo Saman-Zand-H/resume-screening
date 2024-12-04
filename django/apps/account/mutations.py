@@ -124,7 +124,9 @@ from .types import (
     EducationVerificationMethodType,
     LanguageCertificateAIType,
     LanguageCertificateNode,
+    OrganizationEmployeeCooperationType,
     OrganizationJobPositionNode,
+    OrganizationType,
     ProfileType,
     UserNode,
     WorkExperienceAIType,
@@ -533,11 +535,13 @@ class RevokeTokenMutation(graphql_auth_mutations.RevokeToken):
 
 
 class OrganizationUpdateMutation(
+    CUDOutputTypeMixin,
     MutationAccessRequiredMixin,
     FilePermissionMixin,
     DocumentCUDMixin,
     DjangoPatchMutation,
 ):
+    output_type = OrganizationType
     accesses = [OrganizationProfileContainer.COMPANY_EDITOR, OrganizationProfileContainer.ADMIN]
 
     @classmethod
@@ -1502,8 +1506,9 @@ class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, Arr
 
 
 class OrganizationEmployeeCooperationStatusUpdateMutation(
-    MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
+    CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
+    output_type = OrganizationEmployeeCooperationType
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
 
     @classmethod
