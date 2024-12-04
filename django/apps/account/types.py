@@ -933,6 +933,56 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
 
 
+class JobPositionInterviewType(DjangoObjectType):
+    class Meta:
+        model = JobPositionInterview
+        fields = (
+            JobPositionInterview.id.field.name,
+            JobPositionInterview.interview_date.field.name,
+            JobPositionInterview.result_date.field.name,
+        )
+
+
+class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
+    class Meta:
+        model = JobPositionAssignmentStatusHistory
+        fields = (
+            JobPositionAssignmentStatusHistory.status.field.name,
+            JobPositionAssignmentStatusHistory.created_at.field.name,
+            JobPositionInterview.assignment_status_history.field.related_query_name(),
+        )
+
+
+class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": JobPositionContainer.get_accesses(),
+    }
+
+    job_seeker = graphene.Field(JobSeekerUnionType)
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        assignment: JobPositionAssignment = cls.get_obj_from_args(args)
+        if not assignment:
+            return None
+
+        return assignment.job_position.organization
+
+    class Meta:
+        model = JobPositionAssignment
+        fields = (
+            JobPositionAssignment.id.field.name,
+            JobPositionAssignment.status.field.name,
+            JobPositionAssignment.created_at.field.name,
+            JobPositionInterview.job_position_assignment.field.related_query_name(),
+            JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
+        )
+
+    def resolve_job_seeker(self, info):
+        info.context.assignment_status = self.status
+        return self.job_seeker
+
+
 class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
     fields_access = {
         "__all__": JobPositionContainer.get_accesses(),
@@ -1072,56 +1122,6 @@ class JobSeekerJobPositionType(DjangoObjectType):
 
     def resolve_benefits(self, info):
         return self.benefits.all()
-
-
-class JobPositionInterviewType(DjangoObjectType):
-    class Meta:
-        model = JobPositionInterview
-        fields = (
-            JobPositionInterview.id.field.name,
-            JobPositionInterview.interview_date.field.name,
-            JobPositionInterview.result_date.field.name,
-        )
-
-
-class JobPositionAssignmentStatusHistoryType(DjangoObjectType):
-    class Meta:
-        model = JobPositionAssignmentStatusHistory
-        fields = (
-            JobPositionAssignmentStatusHistory.status.field.name,
-            JobPositionAssignmentStatusHistory.created_at.field.name,
-            JobPositionInterview.assignment_status_history.field.related_query_name(),
-        )
-
-
-class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
-    fields_access = {
-        "__all__": JobPositionContainer.get_accesses(),
-    }
-
-    job_seeker = graphene.Field(JobSeekerUnionType)
-
-    @classmethod
-    def get_access_object(cls, *args, **kwargs):
-        assignment: JobPositionAssignment = cls.get_obj_from_args(args)
-        if not assignment:
-            return None
-
-        return assignment.job_position.organization
-
-    class Meta:
-        model = JobPositionAssignment
-        fields = (
-            JobPositionAssignment.id.field.name,
-            JobPositionAssignment.status.field.name,
-            JobPositionAssignment.created_at.field.name,
-            JobPositionInterview.job_position_assignment.field.related_query_name(),
-            JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
-        )
-
-    def resolve_job_seeker(self, info):
-        info.context.assignment_status = self.status
-        return self.job_seeker
 
 
 class OrganizationEmployeePerformanceReportStatusHistoryType(DjangoObjectType):
