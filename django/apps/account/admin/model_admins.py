@@ -24,7 +24,6 @@ from ..models import (
     Contactable,
     DNSTXTRecordMethod,
     Education,
-    EmployeePlatformMessage,
     EmployerLetterMethod,
     IEEMethod,
     JobPositionAssignment,
@@ -870,33 +869,23 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
     autocomplete_fields = (OrganizationEmployee.user.field.name, OrganizationEmployee.organization.field.name)
 
 
-@register(EmployeePlatformMessage)
-class EmployeePlatformMessageAdmin(admin.ModelAdmin):
-    list_display = (
-        EmployeePlatformMessage.id.field.name,
-        EmployeePlatformMessage.source.field.name,
-        EmployeePlatformMessage.title.field.name,
-        EmployeePlatformMessage.organization_employee_cooperation.field.name,
-        EmployeePlatformMessage.read_at.field.name,
-        EmployeePlatformMessage.created_at.field.name,
-    )
-    search_fields = (EmployeePlatformMessage.title.field.name,)
-    list_filter = (EmployeePlatformMessage.created_at.field.name, EmployeePlatformMessage.read_at.field.name)
-    autocomplete_fields = (EmployeePlatformMessage.organization_employee_cooperation.field.name,)
-
-
 @register(OrganizationPlatformMessage)
 class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
     list_display = (
         OrganizationPlatformMessage.id.field.name,
+        OrganizationPlatformMessage.assignee_type.field.name,
         OrganizationPlatformMessage.source.field.name,
         OrganizationPlatformMessage.title.field.name,
         OrganizationPlatformMessage.organization_employee_cooperation.field.name,
         OrganizationPlatformMessage.read_at.field.name,
-        OrganizationPlatformMessage.created_at.field.name,
+        OrganizationPlatformMessage.created.field.name,
     )
     search_fields = (OrganizationPlatformMessage.title.field.name,)
-    list_filter = (OrganizationPlatformMessage.created_at.field.name, OrganizationPlatformMessage.read_at.field.name)
+    list_filter = (
+        OrganizationPlatformMessage.assignee_type.field.name,
+        OrganizationPlatformMessage.created.field.name,
+        OrganizationPlatformMessage.read_at.field.name,
+    )
     autocomplete_fields = (OrganizationPlatformMessage.organization_employee_cooperation.field.name,)
 
 

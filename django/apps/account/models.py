@@ -2690,16 +2690,22 @@ class OrganizationEmployeeCooperationStatusHistory(models.Model):
         return f"{self.organization_employee_cooperation} - {self.status}"
 
 
-class PlatformMessage(models.Model):
+class OrganizationPlatformMessage(TimeStampedModel):
     class Source(models.TextChoices):
         AI = "ai", _("AI")
         HUMAN = "human", _("Human")
 
+    assignee_type = models.CharField(
+        max_length=50,
+        choices=User.RegistrationType.choices,
+        verbose_name=_("Assignee"),
+        default=User.RegistrationType.ORGANIZATION.value,
+    )
     source = models.CharField(
         max_length=8,
         choices=Source.choices,
         verbose_name=_("Source"),
-        default=Source.HUMAN,
+        default=Source.HUMAN.value,
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"))
     text = models.TextField(verbose_name=_("Text"))
@@ -2710,28 +2716,13 @@ class PlatformMessage(models.Model):
         related_name="%(class)s",
     )
     read_at = models.DateTimeField(verbose_name=_("Read At"), null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
-    class Meta:
-        abstract = True
-
-
-class OrganizationPlatformMessage(PlatformMessage):
     class Meta:
         verbose_name = _("Organization Platform Message")
         verbose_name_plural = _("Organization Platform Messages")
 
     def __str__(self):
-        return f"{self.organization_employee_cooperation} - {self.title}"
-
-
-class EmployeePlatformMessage(PlatformMessage):
-    class Meta:
-        verbose_name = _("Employee Platform Message")
-        verbose_name_plural = _("Employee Platform Messages")
-
-    def __str__(self):
-        return f"{self.organization_employee_cooperation} - {self.title}"
+        return f"{self.title} - {self.organization_employee_cooperation}"
 
 
 class OrganizationPlatformMessageLink(models.Model):

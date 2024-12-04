@@ -1156,17 +1156,17 @@ class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObje
     def get_queryset(cls, queryset, info):
         user = info.context.user
         if user.registration_type == User.RegistrationType.ORGANIZATION:
-        return queryset.filter(
-            **{
-                fj(
+            return queryset.filter(
+                **{
+                    fj(
                         OrganizationEmployeePerformanceReport.organization_employee_cooperation,
-                    OrganizationEmployeeCooperation.employee,
-                    OrganizationEmployee.organization,
-                    OrganizationMembership.organization.field.related_query_name(),
-                    OrganizationMembership.user,
-                ): user
-            }
-        )
+                        OrganizationEmployeeCooperation.employee,
+                        OrganizationEmployee.organization,
+                        OrganizationMembership.organization.field.related_query_name(),
+                        OrganizationMembership.user,
+                    ): user
+                }
+            )
         return queryset.filter(
             **{
                 fj(
@@ -1188,7 +1188,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessage.title.field.name,
             OrganizationPlatformMessage.text.field.name,
             OrganizationPlatformMessage.read_at.field.name,
-            OrganizationPlatformMessage.created_at.field.name,
+            OrganizationPlatformMessage.created.field.name,
             OrganizationPlatformMessageLink.organization_platform_message.field.related_query_name(),
         )
 
@@ -1199,15 +1199,27 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
     @classmethod
     def get_queryset(cls, queryset, info):
         user = info.context.user
+        if user.registration_type == User.RegistrationType.ORGANIZATION:
+            return queryset.filter(
+                **{
+                    fj(
+                        OrganizationPlatformMessage.organization_employee_cooperation,
+                        OrganizationEmployeeCooperation.employee,
+                        OrganizationEmployee.organization,
+                        OrganizationMembership.organization.field.related_query_name(),
+                        OrganizationMembership.user,
+                    ): user,
+                    OrganizationPlatformMessage.assignee_type.field.name: User.RegistrationType.ORGANIZATION,
+                }
+            )
         return queryset.filter(
             **{
                 fj(
                     OrganizationPlatformMessage.organization_employee_cooperation,
                     OrganizationEmployeeCooperation.employee,
-                    OrganizationEmployee.organization,
-                    OrganizationMembership.organization.field.related_query_name(),
-                    OrganizationMembership.user,
-                ): user
+                    OrganizationEmployee.user,
+                ): user,
+                OrganizationPlatformMessage.assignee_type.field.name: User.RegistrationType.JOB_SEEKER,
             }
         )
 
