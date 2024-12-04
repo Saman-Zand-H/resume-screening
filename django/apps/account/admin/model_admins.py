@@ -47,6 +47,8 @@ from ..models import (
     OrganizationPlatformMessage,
     OrganizationPlatformMessageLink,
     PaystubsMethod,
+    PerformanceReportAnswer,
+    PerformanceReportQuestion,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -976,7 +978,7 @@ class OrganizationEmployeePerformanceReportAdmin(admin.ModelAdmin):
         OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name,
         OrganizationEmployeePerformanceReport.title.field.name,
         OrganizationEmployeePerformanceReport.date.field.name,
-        OrganizationEmployeePerformanceReport.created_at.field.name,
+        OrganizationEmployeePerformanceReport.created.field.name,
     )
     search_fields = (
         fj(
@@ -988,9 +990,37 @@ class OrganizationEmployeePerformanceReportAdmin(admin.ModelAdmin):
     list_filter = (
         OrganizationEmployeePerformanceReport.date.field.name,
         OrganizationEmployeePerformanceReport.status.field.name,
-        OrganizationEmployeePerformanceReport.created_at.field.name,
+        OrganizationEmployeePerformanceReport.created.field.name,
     )
     autocomplete_fields = (OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name,)
+
+
+@register(PerformanceReportQuestion)
+class PerformanceReportQuestionAdmin(admin.ModelAdmin):
+    list_display = (
+        PerformanceReportQuestion.id.field.name,
+        PerformanceReportQuestion.title.field.name,
+        PerformanceReportQuestion.type.field.name,
+        PerformanceReportQuestion.weight.field.name,
+    )
+    search_fields = (PerformanceReportQuestion.title.field.name,)
+    list_filter = (PerformanceReportQuestion.type.field.name,)
+
+
+@register(PerformanceReportAnswer)
+class PerformanceReportAnswerAdmin(admin.ModelAdmin):
+    list_display = (
+        PerformanceReportAnswer.id.field.name,
+        PerformanceReportAnswer.organization_employee_performance_report.field.name,
+        PerformanceReportAnswer.question.field.name,
+        PerformanceReportAnswer.respondent.field.name,
+    )
+    search_fields = (PerformanceReportAnswer.question.field.name,)
+    list_filter = (PerformanceReportAnswer.respondent.field.name,)
+    autocomplete_fields = (
+        PerformanceReportAnswer.organization_employee_performance_report.field.name,
+        PerformanceReportAnswer.question.field.name,
+    )
 
 
 @register(OrganizationEmployeePerformanceReportStatusHistory)

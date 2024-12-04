@@ -34,7 +34,7 @@ from common.validators import (
     ValidateFileSize,
 )
 from computedfields.models import ComputedFieldsModel, computed
-from flex_eav.models import EavValue
+from flex_eav.models import EavValue, EavAttribute
 from flex_report import report_model
 from graphql_jwt.refresh_token.models import RefreshToken
 from markdownfield.models import MarkdownField
@@ -2752,9 +2752,11 @@ class OrganizationPlatformMessageLink(models.Model):
         return f"{self.organization_platform_message} - {self.text}"
 
 
-class OrganizationEmployeePerformanceReport(models.Model):
+class OrganizationEmployeePerformanceReport(TimeStampedModel):
     class Status(models.TextChoices):
         CREATED = "created", _("Created")
+        COMPLETED_BY_ORGANIZATION = "completed_by_organization", _("Completed By Organization")
+        COMPLETED_BY_JOB_SEEKER = "completed_by_job_seeker", _("Completed By Job Seeker")
         COMPLETED = "completed", _("Completed")
 
     status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.CREATED)
@@ -2765,9 +2767,9 @@ class OrganizationEmployeePerformanceReport(models.Model):
         related_name="%(class)s",
     )
     title = models.CharField(max_length=255, verbose_name=_("Title"), null=True, blank=True)
-    text = models.TextField(verbose_name=_("Text"))
+    report_summary = models.TextField(verbose_name=_("Summary"), null=True, blank=True)
+    report_text = models.TextField(verbose_name=_("Text"))
     date = models.DateField(verbose_name=_("Date"), null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
         verbose_name = _("Organization Employee Performance Report")
@@ -2775,6 +2777,60 @@ class OrganizationEmployeePerformanceReport(models.Model):
 
     def __str__(self):
         return f"{self.organization_employee_cooperation} - {self.title}"
+
+
+class PerformanceReportQuestion(EavAttribute):
+    class QuestionType(models.TextChoices):
+        TRUE_FALSE = "true_false", _("True/False")
+        MULTIPLE_CHOICE = "multiple_choice", _("Multiple Choice")
+        OPEN_ENDED = "open_ended", _("Open Ended")
+
+    title = models.CharField(max_length=255, verbose_name=_("Title"))
+    type = models.CharField(max_length=20, choices=QuestionType.choices, verbose_name=_("Type"))
+    weight = models.PositiveIntegerField(verbose_name=_("Weight"), default=1)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = _("Performance Report Question")
+        verbose_name_plural = _("Performance Report Questions")
+
+
+class PerformanceReportAnswer(EavValue):
+    attribute_field_name = "question"
+    organization_employee_performance_report = models.ForeignKey(
+        OrganizationEmployeePerformanceReport,
+        on_delete=models.CASCADE,
+        verbose_name=_("Organization Employee Performance Report"),
+        related_name="answers",
+    )
+    question = models.ForeignKey(PerformanceReportQuestion, on_delete=models.CASCADE, related_name="answers")
+    respondent = models.CharField(
+        max_length=20,
+        choices=User.RegistrationType.choices,
+        verbose_name=_("Respondent"),
+    )
+
+    def __str__(self):
+        return f"{self.question} - {self.value}"
+
+    class Meta:
+        verbose_name = _("Performance Report Answer")
+        verbose_name_plural = _("Performance Report Answers")
+
+    def clean(self):
+        try:
+            super().clean()
+        except ValidationError as e:
+            message = ""
+
+            if error := getattr(e, "error_dict", None):
+                message = list(map(field_serializer(self.question.title), map(attrgetter("message"), error.values())))
+            elif error := getattr(e, "error_list", None):
+                message = list(map(field_serializer(self.question.title), map(attrgetter("message"), error)))
+
+            raise ValidationError({PerformanceReportAnswer.value.field.name: message})
 
 
 class OrganizationEmployeePerformanceReportStatusHistory(models.Model):
