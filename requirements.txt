@@ -27,7 +27,7 @@ google-cloud-scheduler~=2.15.1
 google-cloud-pubsub~=2.28.0
 django-storages[google]~=1.14.4
 django-flex-blob==0.0.12
-django-flex-pubsub==0.0.17
+django-flex-pubsub==0.0.18
 func_timeout~=4.3.5
 django-flex-report==0.9.13
 google-auth~=2.38.0
