@@ -2282,13 +2282,10 @@ class JobPositionAssignment(ChangeStateMixin, models.Model):
         ]
 
     @property
-    def jobseeker_related_statuses(self):
+    def job_seeker_related_statuses(self):
         return [
             self.Status.AWAITING_JOBSEEKER_APPROVAL,
             self.Status.REJECTED_BY_JOBSEEKER,
-            self.Status.AWAITING_INTERVIEW_DATE,
-            self.Status.INTERVIEW_SCHEDULED,
-            self.Status.INTERVIEW_CANCELED_BY_JOBSEEKER,
         ]
 
     @staticmethod
@@ -2611,7 +2608,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         ]
 
     @property
-    def jobseeker_related_statuses(self):
+    def job_seeker_related_statuses(self):
         return [
             self.Status.RESIGNED,
         ]

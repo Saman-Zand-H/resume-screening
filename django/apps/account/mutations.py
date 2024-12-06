@@ -1513,6 +1513,41 @@ class JobPositionAssignmentStatusUpdateMutation(
         return cls(**{cls._meta.return_field_name: obj})
 
 
+class JobSeekerJobPositionAssignmentStatusUpdateMutation(
+    CUDOutputTypeMixin,
+    ArrayChoiceTypeMixin,
+    DjangoPatchMutation,
+):
+    output_type = JobSeekerJobPositionAssignmentNode
+
+    class Meta:
+        model = JobPositionAssignment
+        login_required = True
+        fields = [JobPositionAssignment.status.field.name]
+        required_fields = [JobPositionAssignment.status.field.name]
+        type_name = "JobSeekerJobPositionAssignmentStatusUpdateInput"
+
+    @classmethod
+    @transaction.atomic
+    def mutate(cls, root, info, input, id):
+        status = input.get(JobPositionAssignment.status.field.name)
+        if not (
+            obj := JobPositionAssignment.objects.filter(
+                **{
+                    JobPositionAssignment._meta.pk.attname: id,
+                    fj(JobPositionAssignment.job_seeker): info.context.user,
+                }
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Job position assignment not found."))
+
+        if obj.status not in obj.job_seeker_related_statuses:
+            raise GraphQLErrorBadRequest(_("Cannot modify status of the job position assignment."))
+
+        obj.change_status(status)
+        return cls(**{cls._meta.return_field_name: obj})
+
+
 class OrganizationEmployeeCooperationStatusUpdateMutation(
     CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
@@ -1741,6 +1776,10 @@ class SupportTicketMutation(graphene.ObjectType):
     create = SupportTicketCreateMutation.Field()
 
 
+class EmploymentMutation(graphene.ObjectType):
+    update_job_position_assignment_status = JobSeekerJobPositionAssignmentStatusUpdateMutation.Field()
+
+
 class AccountMutation(graphene.ObjectType):
     register = UserRegister.Field()
     verify = VerifyAccount.Field()
@@ -1760,6 +1799,7 @@ class AccountMutation(graphene.ObjectType):
     certificate_and_license = graphene.Field(CertificateAndLicenseMutation)
     canada_visa = graphene.Field(CanadaVisaMutation)
     support_ticket = graphene.Field(SupportTicketMutation)
+    employment = graphene.Field(EmploymentMutation)
 
     def resolve_profile(self, *args, **kwargs):
         return ProfileMutation()
@@ -1784,6 +1824,9 @@ class AccountMutation(graphene.ObjectType):
 
     def resolve_support_ticket(self, *args, **kwargs):
         return SupportTicketMutation()
+
+    def resolve_employment(self, *args, **kwargs):
+        return EmploymentMutation()
 
 
 class Mutation(graphene.ObjectType):
