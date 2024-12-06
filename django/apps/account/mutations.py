@@ -122,6 +122,8 @@ from .types import (
     EducationAIType,
     EducationNode,
     EducationVerificationMethodType,
+    JobPositionAssignmentNode,
+    JobSeekerJobPositionAssignmentNode,
     LanguageCertificateAIType,
     LanguageCertificateNode,
     OrganizationEmployeeCooperationType,
@@ -1457,7 +1459,13 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
         return cls(**{cls._meta.return_field_name: obj})
 
 
-class JobPositionAssignmentStatusUpdateMutation(MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation):
+class JobPositionAssignmentStatusUpdateMutation(
+    CUDOutputTypeMixin,
+    MutationAccessRequiredMixin,
+    ArrayChoiceTypeMixin,
+    DjangoPatchMutation,
+):
+    output_type = JobPositionAssignmentNode
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
 
     @classmethod
