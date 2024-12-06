@@ -1,10 +1,12 @@
 import graphene
+from common.exceptions import GraphQLErrorBadRequest
 from common.utils import fj
 from graphene_django_cud.mutations import DjangoBatchPatchMutation
 from graphql_jwt.decorators import login_required
 
 from django.db.models.lookups import In, IsNull
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from notification.models import InAppNotification, UserPushNotificationToken
 
 
@@ -18,15 +20,21 @@ class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
     @classmethod
     def before_mutate(cls, root, info, input):
         ids = [item["id"] for item in input]
-        not_set_ids = InAppNotification.objects.filter(
-            **{
-                fj(InAppNotification._meta.pk.attname, In.lookup_name): ids,
-                fj(InAppNotification.read_at, IsNull.lookup_name): True,
-            }
-        ).values_list("id", flat=True)
+        notifications = InAppNotification.objects.filter(
+            **{fj(InAppNotification._meta.pk.attname, In.lookup_name): ids}
+        )
+
+        if notifications.count() != ids:
+            raise GraphQLErrorBadRequest(_("Some of the notifications do not exist."))
+
+        not_read_notifications = notifications.filter(
+            **{fj(InAppNotification.read_at, IsNull.lookup_name): True}
+        ).values_list(InAppNotification._meta.pk.attname, flat=True)
+
         for item in input:
-            if int(item["id"]) in not_set_ids:
+            if int(item["id"]) in not_read_notifications:
                 item["read_at"] = timezone.now()
+
         return super().before_mutate(root, info, input)
 
 
