@@ -1,7 +1,9 @@
 import dataclasses
 from typing import Optional
 
+from google.genai.errors import APIError
 from graphql_jwt.exceptions import PermissionDenied as JWTPermissionDenied
+from rest_framework import status
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
@@ -23,14 +25,15 @@ class Error:
 
 @dataclasses.dataclass
 class Errors:
-    UNAUTHORIZED = Error("UNAUTHORIZED", "Unauthorized", 401)
+    UNAUTHORIZED = Error("UNAUTHORIZED", "Unauthorized", status.HTTP_401_UNAUTHORIZED)
     BAD_REQUEST = Error("BAD_REQUEST", "Bad request", HttpResponseBadRequest.status_code)
     PERMISSION_DENIED = Error("PERMISSION_DENIED", "Permission denied", HttpResponseForbidden.status_code)
     NOT_FOUND = Error("NOT_FOUND", "Not found", HttpResponseNotFound.status_code)
     INTERNAL_SERVER_ERROR = Error(
         "INTERNAL_SERVER_ERROR", "An unexpected error occurred", HttpResponseServerError.status_code
     )
-    TOO_MANY_REQUESTS = Error("TOO_MANY_REQUESTS", "Too many requests", 429)
+    TOO_MANY_REQUESTS = Error("TOO_MANY_REQUESTS", "Too many requests", status.HTTP_429_TOO_MANY_REQUESTS)
+    SERVICE_UNAVAILABLE = Error("SERVICE_UNAVAILABLE", "Service Unavailable", status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 EXCEPTION_ERROR_MAP = {
@@ -40,6 +43,7 @@ EXCEPTION_ERROR_MAP = {
     PermissionDenied: Errors.PERMISSION_DENIED,
     PermissionError: Errors.PERMISSION_DENIED,
     JWTPermissionDenied: Errors.UNAUTHORIZED,
+    APIError: Errors.SERVICE_UNAVAILABLE,
 }
 
 EXCEPTION_ERROR_TEXT_MAP = {
