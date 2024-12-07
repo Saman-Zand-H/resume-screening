@@ -53,7 +53,7 @@ from .accesses import (
     JobPositionContainer,
     OrganizationMembershipContainer,
 )
-from .filterset import OrganizationEmployeeFilterset
+from .filterset import OrganizationEmployeeFilterset, JobPositionAssignmentFilterset
 from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
     Access,
@@ -832,6 +832,25 @@ class OrganizationType(DjangoObjectType):
         return True
 
 
+class JobSeekerOrganizationType(DjangoObjectType):
+    contacts = graphene.List(ContactType)
+
+    class Meta:
+        model = Organization
+        fields = (
+            Organization.id.field.name,
+            Organization.name.field.name,
+            Organization.logo.field.name,
+            Organization.short_name.field.name,
+            Organization.established_at.field.name,
+            Organization.size.field.name,
+            Organization.city.field.name,
+        )
+
+    def resolve_contacts(self, info):
+        return self.contactable.contacts.all()
+
+
 class OrganizationMembershipType(ObjectTypeAccessRequiredMixin, DjangoObjectType):
     fields_access = {
         "__all__": OrganizationMembershipContainer.get_accesses(),
@@ -933,147 +952,6 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
 JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
 
 
-class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
-    fields_access = {
-        "__all__": JobPositionContainer.get_accesses(),
-    }
-    status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
-    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
-    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
-    work_experience_years_range = graphene.List(
-        graphene.Int, description="The work experience years range of the job position."
-    )
-    report = graphene.Field(OrganizationJobPositionReportType)
-    skills = graphene.List(SkillType)
-    fields = graphene.List(FieldType)
-    benefits = graphene.List(JobBenefitType)
-    is_editable = graphene.Boolean()
-
-    @classmethod
-    def get_access_object(cls, *args, **kwargs):
-        job_position: OrganizationJobPosition = cls.get_obj_from_args(args)
-        if not job_position:
-            return None
-
-        return job_position.organization
-
-    class Meta:
-        model = OrganizationJobPosition
-        use_connection = True
-        connection_class = CountableConnection
-        fields = (
-            OrganizationJobPosition.id.field.name,
-            OrganizationJobPosition.title.field.name,
-            OrganizationJobPosition.vaccancy.field.name,
-            OrganizationJobPosition.start_at.field.name,
-            OrganizationJobPosition.validity_date.field.name,
-            OrganizationJobPosition.description.field.name,
-            OrganizationJobPosition.degrees.field.name,
-            OrganizationJobPosition.languages.field.name,
-            OrganizationJobPosition.native_languages.field.name,
-            OrganizationJobPosition.required_documents.field.name,
-            OrganizationJobPosition.performance_expectation.field.name,
-            OrganizationJobPosition.contract_type.field.name,
-            OrganizationJobPosition.location_type.field.name,
-            OrganizationJobPosition.payment_term.field.name,
-            OrganizationJobPosition.working_start_at.field.name,
-            OrganizationJobPosition.working_end_at.field.name,
-            OrganizationJobPosition.other_benefits.field.name,
-            OrganizationJobPosition.days_off.field.name,
-            OrganizationJobPosition.job_restrictions.field.name,
-            OrganizationJobPosition.employer_questions.field.name,
-            OrganizationJobPosition.city.field.name,
-            JobPositionAssignment.job_position.field.related_query_name(),
-        )
-        filter_fields = {
-            OrganizationJobPosition.organization.field.name: [Exact.lookup_name],
-            OrganizationJobPosition.title.field.name: [IContains.lookup_name],
-            OrganizationJobPosition.status.field.name: [Exact.lookup_name],
-            OrganizationJobPosition.start_at.field.name: [LessThanOrEqual.lookup_name, GreaterThanOrEqual.lookup_name],
-            OrganizationJobPosition.city.field.name: [Exact.lookup_name],
-            fj(
-                JobPositionAssignment.job_position.field.related_query_name(),
-                JobPositionAssignment.status.field.name,
-            ): [Exact.lookup_name],
-        }
-
-    def resolve_status(self, info):
-        return self.status
-
-    def resolve_age_range(self, info):
-        if self.age_range is None:
-            return None
-        return [self.age_range.lower, self.age_range.upper]
-
-    def resolve_salary_range(self, info):
-        if self.salary_range is None:
-            return None
-        return [self.salary_range.lower, self.salary_range.upper]
-
-    def resolve_work_experience_years_range(self, info):
-        if self.work_experience_years_range is None:
-            return None
-        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
-
-    def resolve_report(self, info):
-        return self
-
-    def resolve_skills(self, info):
-        return self.skills.all()
-
-    def resolve_fields(self, info):
-        return self.fields.all()
-
-    def resolve_benefits(self, info):
-        return self.benefits.all()
-
-    def resolve_is_editable(self, info):
-        return self.is_editable
-
-    @classmethod
-    def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
-        user = info.context.user
-        return queryset.filter(
-            **{
-                fj(
-                    OrganizationJobPosition.organization,
-                    OrganizationMembership.organization.field.related_query_name(),
-                    OrganizationMembership.user,
-                ): user
-            }
-        ).order_by("-id")
-
-
-class JobSeekerJobPositionType(DjangoObjectType):
-    work_experience_years_range = graphene.List(graphene.Int)
-    benefits = graphene.List(JobBenefitType)
-
-    class Meta:
-        model = OrganizationJobPosition
-        fields = (
-            OrganizationJobPosition.id.field.name,
-            OrganizationJobPosition.title.field.name,
-            OrganizationJobPosition.description.field.name,
-            OrganizationJobPosition.contract_type.field.name,
-            OrganizationJobPosition.location_type.field.name,
-            OrganizationJobPosition.payment_term.field.name,
-            OrganizationJobPosition.working_start_at.field.name,
-            OrganizationJobPosition.working_end_at.field.name,
-            OrganizationJobPosition.other_benefits.field.name,
-            OrganizationJobPosition.days_off.field.name,
-            OrganizationJobPosition.job_restrictions.field.name,
-            OrganizationJobPosition.city.field.name,
-        )
-
-    def resolve_work_experience_years_range(self, info):
-        if self.work_experience_years_range is None:
-            return None
-        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
-
-    def resolve_benefits(self, info):
-        return self.benefits.all()
-
-
 class JobPositionInterviewType(DjangoObjectType):
     class Meta:
         model = JobPositionInterview
@@ -1122,6 +1000,210 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
     def resolve_job_seeker(self, info):
         info.context.assignment_status = self.status
         return self.job_seeker
+
+
+class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
+    fields_access = {
+        "__all__": JobPositionContainer.get_accesses(),
+    }
+    status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
+    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
+    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
+    work_experience_years_range = graphene.List(
+        graphene.Int, description="The work experience years range of the job position."
+    )
+    report = graphene.Field(OrganizationJobPositionReportType)
+    skills = graphene.List(SkillType)
+    fields = graphene.List(FieldType)
+    benefits = graphene.List(JobBenefitType)
+    is_editable = graphene.Boolean()
+
+    assignments = graphene.List(JobPositionAssignmentNode)
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        job_position: OrganizationJobPosition = cls.get_obj_from_args(args)
+        if not job_position:
+            return None
+
+        return job_position.organization
+
+    class Meta:
+        model = OrganizationJobPosition
+        use_connection = True
+        connection_class = CountableConnection
+        fields = (
+            OrganizationJobPosition.id.field.name,
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.degrees.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.required_documents.field.name,
+            OrganizationJobPosition.performance_expectation.field.name,
+            OrganizationJobPosition.contract_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.payment_term.field.name,
+            OrganizationJobPosition.working_start_at.field.name,
+            OrganizationJobPosition.working_end_at.field.name,
+            OrganizationJobPosition.other_benefits.field.name,
+            OrganizationJobPosition.days_off.field.name,
+            OrganizationJobPosition.job_restrictions.field.name,
+            OrganizationJobPosition.employer_questions.field.name,
+            OrganizationJobPosition.city.field.name,
+        )
+        filter_fields = {
+            OrganizationJobPosition.organization.field.name: [Exact.lookup_name],
+            OrganizationJobPosition.title.field.name: [IContains.lookup_name],
+            OrganizationJobPosition.status.field.name: [Exact.lookup_name],
+            OrganizationJobPosition.start_at.field.name: [LessThanOrEqual.lookup_name, GreaterThanOrEqual.lookup_name],
+            OrganizationJobPosition.city.field.name: [Exact.lookup_name],
+            fj(
+                JobPositionAssignment.job_position.field.related_query_name(),
+                JobPositionAssignment.status.field.name,
+            ): [Exact.lookup_name],
+        }
+
+    def resolve_status(self, info):
+        return self.status
+
+    def resolve_age_range(self, info):
+        if self.age_range is None:
+            return None
+        return [self.age_range.lower, self.age_range.upper]
+
+    def resolve_salary_range(self, info):
+        if self.salary_range is None:
+            return None
+        return [self.salary_range.lower, self.salary_range.upper]
+
+    def resolve_work_experience_years_range(self, info):
+        if self.work_experience_years_range is None:
+            return None
+        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
+
+    def resolve_report(self, info):
+        return self
+
+    def resolve_skills(self, info):
+        return self.skills.all()
+
+    def resolve_fields(self, info):
+        return self.fields.all()
+
+    def resolve_benefits(self, info):
+        return self.benefits.all()
+
+    def resolve_is_editable(self, info):
+        return self.is_editable
+
+    def resolve_assignments(self, info):
+        return self.assignments.all()
+
+    @classmethod
+    def get_queryset(cls, queryset: QuerySet[OrganizationJobPosition], info):
+        user = info.context.user
+        return queryset.filter(
+            **{
+                fj(
+                    OrganizationJobPosition.organization,
+                    OrganizationMembership.organization.field.related_query_name(),
+                    OrganizationMembership.user,
+                ): user
+            }
+        ).order_by("-id")
+
+
+class JobSeekerJobPositionType(DjangoObjectType):
+    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
+    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
+    work_experience_years_range = graphene.List(
+        graphene.Int, description="The work experience years range of the job position."
+    )
+    report = graphene.Field(OrganizationJobPositionReportType)
+    skills = graphene.List(SkillType)
+    fields = graphene.List(FieldType)
+    benefits = graphene.List(JobBenefitType)
+    organization = graphene.Field(JobSeekerOrganizationType)
+
+    class Meta:
+        model = OrganizationJobPosition
+        fields = (
+            OrganizationJobPosition.id.field.name,
+            OrganizationJobPosition.title.field.name,
+            OrganizationJobPosition.vaccancy.field.name,
+            OrganizationJobPosition.start_at.field.name,
+            OrganizationJobPosition.validity_date.field.name,
+            OrganizationJobPosition.description.field.name,
+            OrganizationJobPosition.degrees.field.name,
+            OrganizationJobPosition.languages.field.name,
+            OrganizationJobPosition.native_languages.field.name,
+            OrganizationJobPosition.required_documents.field.name,
+            OrganizationJobPosition.performance_expectation.field.name,
+            OrganizationJobPosition.contract_type.field.name,
+            OrganizationJobPosition.location_type.field.name,
+            OrganizationJobPosition.payment_term.field.name,
+            OrganizationJobPosition.working_start_at.field.name,
+            OrganizationJobPosition.working_end_at.field.name,
+            OrganizationJobPosition.other_benefits.field.name,
+            OrganizationJobPosition.days_off.field.name,
+            OrganizationJobPosition.job_restrictions.field.name,
+            OrganizationJobPosition.employer_questions.field.name,
+            OrganizationJobPosition.city.field.name,
+        )
+
+    def resolve_age_range(self, info):
+        if self.age_range is None:
+            return None
+        return [self.age_range.lower, self.age_range.upper]
+
+    def resolve_salary_range(self, info):
+        if self.salary_range is None:
+            return None
+        return [self.salary_range.lower, self.salary_range.upper]
+
+    def resolve_work_experience_years_range(self, info):
+        if self.work_experience_years_range is None:
+            return None
+        return [self.work_experience_years_range.lower, self.work_experience_years_range.upper]
+
+    def resolve_report(self, info):
+        return self
+
+    def resolve_skills(self, info):
+        return self.skills.all()
+
+    def resolve_fields(self, info):
+        return self.fields.all()
+
+    def resolve_benefits(self, info):
+        return self.benefits.all()
+
+    def resolve_organization(self, info):
+        return self.organization
+
+
+class JobSeekerJobPositionAssignmentNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    job_position = graphene.Field(JobSeekerJobPositionType)
+
+    class Meta:
+        model = JobPositionAssignment
+        use_connection = True
+        fields = (
+            JobPositionAssignment.id.field.name,
+            JobPositionAssignment.status.field.name,
+            JobPositionAssignment.created_at.field.name,
+            JobPositionInterview.job_position_assignment.field.related_query_name(),
+            JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
+        )
+
+        filterset_class = JobPositionAssignmentFilterset
+
+    def resolve_job_position(self, info):
+        return self.job_position
 
 
 class OrganizationEmployeePerformanceReportStatusHistoryType(DjangoObjectType):
@@ -1327,25 +1409,6 @@ class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
 
-class JobSeekerOrganizationType(DjangoObjectType):
-    contacts = graphene.List(ContactType)
-
-    class Meta:
-        model = Organization
-        fields = (
-            Organization.id.field.name,
-            Organization.name.field.name,
-            Organization.logo.field.name,
-            Organization.short_name.field.name,
-            Organization.established_at.field.name,
-            Organization.size.field.name,
-            Organization.city.field.name,
-        )
-
-    def resolve_contacts(self, info):
-        return self.contactable.contacts.all()
-
-
 class JobSeekerEmployeeType(DjangoObjectType):
     organization = graphene.Field(JobSeekerOrganizationType)
     cooperations = graphene.Field(JobSeekerCooperationType)
@@ -1373,6 +1436,7 @@ class UserNode(BaseUserNode):
     has_resume = graphene.Boolean(source=User.has_resume.fget.__name__)
     cv = graphene.Field(GeneratedCVNode)
     notifications = graphene.List(InAppNotificationNode)
+    job_position_assignments = DjangoFilterConnectionField(JobSeekerJobPositionAssignmentNode)
     current_employement = graphene.Field(JobSeekerEmployeeType)
 
     class Meta:
@@ -1420,6 +1484,11 @@ class UserNode(BaseUserNode):
     def resolve_notifications(self, info):
         return InAppNotification.objects.filter(**{fj(InAppNotification.user): self}).order_by(
             f"-{fj(InAppNotification.created)}"
+        )
+
+    def resolve_job_position_assignments(self, info, **kwargs):
+        return JobPositionAssignment.objects.filter(**{fj(JobPositionAssignment.job_seeker): self}).order_by(
+            f"-{fj(JobPositionAssignment.created_at)}"
         )
 
     def resolve_current_employement(self, info):

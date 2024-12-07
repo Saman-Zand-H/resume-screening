@@ -74,3 +74,16 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
                 OrganizationEmployeeCooperation.status,
             ): [Exact.lookup_name],
         }
+
+
+class JobPositionAssignmentFilterset(django_filters.FilterSet):
+    status = django_filters.MultipleChoiceFilter(
+        field_name=JobPositionAssignment.status.field.name,
+        choices=JobPositionAssignment.Status,
+    )
+
+    class Meta:
+        model = JobPositionAssignment
+        fields = [
+            JobPositionAssignment._meta.pk.attname,
+        ]
