@@ -946,9 +946,6 @@ class OrganizationJobPositionReportType(graphene.ObjectType):
         ]
 
 
-JobPositionStatusEnum = graphene.Enum("JobPositionStatusEnum", OrganizationJobPosition.Status.choices)
-
-
 class JobPositionInterviewType(DjangoObjectType):
     class Meta:
         model = JobPositionInterview
@@ -999,16 +996,13 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         return self.job_seeker
 
 
-class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
+class OrganizationJobPositionNode(DjangoObjectType):
     fields_access = {
         "__all__": JobPositionContainer.get_accesses(),
     }
-    status = graphene.Field(JobPositionStatusEnum, description="The current status of the job position.")
-    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
-    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
-    work_experience_years_range = graphene.List(
-        graphene.Int, description="The work experience years range of the job position."
-    )
+    age_range = graphene.List(graphene.Int)
+    salary_range = graphene.List(graphene.Int)
+    work_experience_years_range = graphene.List(graphene.Int)
     report = graphene.Field(OrganizationJobPositionReportType)
     skills = graphene.List(SkillType)
     fields = graphene.List(FieldType)
@@ -1044,6 +1038,7 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
             OrganizationJobPosition.contract_type.field.name,
             OrganizationJobPosition.location_type.field.name,
             OrganizationJobPosition.payment_term.field.name,
+            OrganizationJobPosition.status.field.name,
             OrganizationJobPosition.working_start_at.field.name,
             OrganizationJobPosition.working_end_at.field.name,
             OrganizationJobPosition.other_benefits.field.name,
@@ -1063,9 +1058,6 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
                 JobPositionAssignment.status.field.name,
             ): [Exact.lookup_name],
         }
-
-    def resolve_status(self, info):
-        return self.status
 
     def resolve_age_range(self, info):
         if self.age_range is None:
@@ -1115,11 +1107,9 @@ class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceType
 
 
 class JobSeekerJobPositionType(DjangoObjectType):
-    age_range = graphene.List(graphene.Int, description="The age range of the job position.")
-    salary_range = graphene.List(graphene.Int, description="The salary range of the job position.")
-    work_experience_years_range = graphene.List(
-        graphene.Int, description="The work experience years range of the job position."
-    )
+    age_range = graphene.List(graphene.Int)
+    salary_range = graphene.List(graphene.Int)
+    work_experience_years_range = graphene.List(graphene.Int)
     report = graphene.Field(OrganizationJobPositionReportType)
     skills = graphene.List(SkillType)
     fields = graphene.List(FieldType)
@@ -1150,6 +1140,7 @@ class JobSeekerJobPositionType(DjangoObjectType):
             OrganizationJobPosition.job_restrictions.field.name,
             OrganizationJobPosition.employer_questions.field.name,
             OrganizationJobPosition.city.field.name,
+            OrganizationJobPosition.status.field.name,
         )
 
     def resolve_age_range(self, info):

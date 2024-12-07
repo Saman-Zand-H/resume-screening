@@ -1,7 +1,11 @@
 import json
 import warnings
 
+import graphene
 from django_filters import BaseCSVFilter, CharFilter
+from django_filters.filters import ChoiceFilter
+from graphene_django.converter import convert_choice_field_to_enum
+from graphene_django.filter.fields import DjangoFilterConnectionField
 from graphene_django.filter.filterset import (
     FILTER_FOR_DBFIELD_DEFAULTS,
     GRAPHENE_FILTER_SET_OVERRIDES,
@@ -71,3 +75,25 @@ def custom_showwarning(message, category, filename, lineno, file=None, line=None
 original_showwarning = warnings.showwarning
 
 warnings.showwarning = custom_showwarning
+
+
+original_django_filter_connection_field_filtering_args = DjangoFilterConnectionField.filtering_args
+
+
+@property
+def django_filter_connection_field_filtering_args(self):
+    filtering_args = original_django_filter_connection_field_filtering_args.fget(self)
+    if self._filtering_args:
+        model = self.filterset_class._meta.model
+        for field_name, filter_field in self.filterset_class.base_filters.items():
+            required = filter_field.extra.get("required", False)
+            if type(filter_field) is ChoiceFilter and filtering_args[field_name].type == graphene.String:
+                filtering_args[field_name] = graphene.Argument(
+                    convert_choice_field_to_enum(getattr(model, field_name).field),
+                    description=filter_field.label,
+                    required=required,
+                )
+    return filtering_args
+
+
+DjangoFilterConnectionField.filtering_args = django_filter_connection_field_filtering_args

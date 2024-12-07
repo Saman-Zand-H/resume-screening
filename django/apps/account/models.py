@@ -2120,7 +2120,12 @@ class OrganizationJobPosition(ChangeStateMixin, models.Model):
     job_seeker_assignment = models.ManyToManyField(
         User, through="JobPositionAssignment", verbose_name=_("Job Seeker Assignment")
     )
-    status = models.CharField(max_length=50, choices=Status.choices, verbose_name=_("Status"), default=Status.DRAFTED)
+    status = models.CharField(
+        max_length=50,
+        choices=Status.choices,
+        verbose_name=_("Status"),
+        default=Status.DRAFTED.value,
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
