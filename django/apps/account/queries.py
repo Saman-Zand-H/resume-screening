@@ -1,4 +1,5 @@
 import graphene
+from common.scalars import NotEmptyID
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql_auth.queries import MeQuery
 from graphql_jwt.decorators import login_required
@@ -18,7 +19,7 @@ from .types import (
 
 
 class OrganizationJobPositionQuery(graphene.ObjectType):
-    get = graphene.Field(OrganizationJobPositionNode, id=graphene.ID(required=True))
+    get = graphene.Field(OrganizationJobPositionNode, id=NotEmptyID(required=True))
     list = DjangoFilterConnectionField(OrganizationJobPositionNode)
 
     @login_required
@@ -27,7 +28,7 @@ class OrganizationJobPositionQuery(graphene.ObjectType):
 
 
 class OrganizationEmployeeQuery(graphene.ObjectType):
-    get = graphene.Field(OrganizationEmployeeNode, id=graphene.ID(required=True))
+    get = graphene.Field(OrganizationEmployeeNode, id=NotEmptyID(required=True))
     list = DjangoFilterConnectionField(OrganizationEmployeeNode)
 
     @login_required
@@ -36,9 +37,9 @@ class OrganizationEmployeeQuery(graphene.ObjectType):
 
 
 class OrganizationQuery(graphene.ObjectType):
-    invitation = graphene.Field(OrganizationInvitationType, token=graphene.String(required=True))
+    invitation = graphene.Field(OrganizationInvitationType, token=NotEmptyID(required=True))
     job_position = graphene.Field(OrganizationJobPositionQuery)
-    job_position_assignment = graphene.Field(JobPositionAssignmentNode, id=graphene.ID(required=True))
+    job_position_assignment = graphene.Field(JobPositionAssignmentNode, id=NotEmptyID(required=True))
     employee = graphene.Field(OrganizationEmployeeQuery)
 
     @login_required
@@ -56,7 +57,7 @@ class OrganizationQuery(graphene.ObjectType):
 
 
 class EducationQuery(graphene.ObjectType):
-    get = graphene.Field(EducationNode, id=graphene.ID(), required=True)
+    get = graphene.Field(EducationNode, id=NotEmptyID(required=True))
 
     @login_required
     def resolve_get(self, info, id):
@@ -64,7 +65,7 @@ class EducationQuery(graphene.ObjectType):
 
 
 class WorkExperienceQuery(graphene.ObjectType):
-    get = graphene.Field(WorkExperienceNode, id=graphene.ID())
+    get = graphene.Field(WorkExperienceNode, id=NotEmptyID(required=True))
 
     @login_required
     def resolve_get(self, info, id):
@@ -72,7 +73,7 @@ class WorkExperienceQuery(graphene.ObjectType):
 
 
 class LanguageCertificateQuery(graphene.ObjectType):
-    get = graphene.Field(LanguageCertificateNode, id=graphene.ID())
+    get = graphene.Field(LanguageCertificateNode, id=NotEmptyID(required=True))
 
     @login_required
     def resolve_get(self, info, id):
@@ -80,7 +81,7 @@ class LanguageCertificateQuery(graphene.ObjectType):
 
 
 class CertificateAndLicenseQuery(graphene.ObjectType):
-    get = graphene.Field(CertificateAndLicenseNode, id=graphene.ID())
+    get = graphene.Field(CertificateAndLicenseNode, id=NotEmptyID(required=True))
 
     @login_required
     def resolve_get(self, info, id):

@@ -11,6 +11,7 @@ from common.mixins import (
     ReCaptchaMixin,
 )
 from common.models import Job, Skill
+from common.scalars import NotEmptyID
 from common.types import (
     EducationVerificationMethodUploadType,
     SkillType,
@@ -627,7 +628,7 @@ class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactabl
     accesses = [OrganizationProfileContainer.COMPANY_EDITOR, OrganizationProfileContainer.ADMIN]
 
     class Meta:
-        custom_fields = {"organization_id": graphene.ID(required=True)}
+        custom_fields = {"organization_id": NotEmptyID(required=True)}
         type_name = "SetOrganizationContactableInput"
 
     @classmethod
@@ -915,7 +916,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
 
     @classmethod
     def Field(cls, *args, **kwargs):
-        cls._meta.arguments.update({"file_id": graphene.ID(required=True)})
+        cls._meta.arguments.update({"file_id": NotEmptyID(required=True)})
         return super().Field(*args, **kwargs)
 
     class Meta:
@@ -1227,7 +1228,7 @@ class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDa
 
 
 class UploadCompanyCertificateMethodInput(graphene.InputObjectType):
-    organization_certificate_file_id = graphene.ID(required=True)
+    organization_certificate_file_id = NotEmptyID(required=True)
 
 
 class CommunicateOrganizationMethodInput(graphene.InputObjectType):
@@ -1258,7 +1259,7 @@ class BaseOrganizationVerifierMutation(MutationAccessRequiredMixin):
 @ratelimit(key="user", rate="2/m")
 class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
-        id = graphene.ID(required=True)
+        id = NotEmptyID(required=True)
         input = OrganizationVerificationMethodInput(required=True)
 
     success = graphene.Boolean()
@@ -1288,7 +1289,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
 
 class OrganizationCommunicationMethodVerify(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
-        organization = graphene.ID(required=True)
+        organization = NotEmptyID(required=True)
         otp = graphene.String(required=True, description="OTP sent to the phone number.")
 
     success = graphene.Boolean()
@@ -1600,7 +1601,7 @@ class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Muta
     accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
 
     class Arguments:
-        organization = graphene.ID(required=True)
+        organization = NotEmptyID(required=True)
         skills = graphene.List(graphene.String, required=True)
 
     skills = graphene.List(SkillType)

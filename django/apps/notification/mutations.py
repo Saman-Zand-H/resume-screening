@@ -1,12 +1,10 @@
 import graphene
-from common.exceptions import GraphQLErrorBadRequest
 from common.utils import fj
 from graphene_django_cud.mutations import DjangoBatchPatchMutation
 from graphql_jwt.decorators import login_required
 
 from django.db.models.lookups import In, IsNull
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 from notification.models import InAppNotification, UserPushNotificationToken
 
 
