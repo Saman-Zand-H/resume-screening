@@ -1,15 +1,16 @@
 import graphene
 from account.mixins import DocumentCUDMixin
 from common.decorators import ratelimit
-from criteria.client.client import criteria_client
-from criteria.client.types import CreateOrderRequest, Identifier
 from graphene_django_cud.mutations import DjangoCreateMutation
 
+from criteria.client.client import criteria_client
+from criteria.client.types import CreateOrderRequest, Identifier
 from django.core.exceptions import ValidationError
 
 from .models import JobAssessment, JobAssessmentResult
 
 
+@ratelimit(key="user", rate="1/m")
 class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     assessment_access_url = graphene.String(required=True)
 
@@ -52,11 +53,6 @@ class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         ).assessmentAccessURL
         return_data["assessment_access_url"] = assessment_access_url.uri
         return super().after_mutate(root, info, input, obj, return_data)
-
-    @classmethod
-    @ratelimit(key="user", rate="1/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class JobAssessmentMutation(graphene.ObjectType):

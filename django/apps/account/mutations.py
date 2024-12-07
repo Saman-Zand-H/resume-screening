@@ -141,6 +141,7 @@ from .validators import EmailCallbackURLValidator
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
+@ratelimit(key="user", rate="5/m")
 class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, DjangoCreateMutation):
     accesses = [OrganizationMembershipContainer.INVITOR, OrganizationMembershipContainer.ADMIN]
 
@@ -191,11 +192,6 @@ class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, 
             content=content,
         )
         return super().after_mutate(root, info, input, obj, return_data)
-
-    @classmethod
-    @ratelimit(key="user", rate="5/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 def referral_registration(user, referral_code):
@@ -669,6 +665,7 @@ PROFILE_MUTATION_FIELDS = {
 }
 
 
+@ratelimit(key="user", rate="20/m")
 class UserUpdateMutation(
     CUDOutputTypeMixin, FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation
 ):
@@ -750,11 +747,6 @@ class UserUpdateMutation(
             raise GraphQLErrorBadRequest(_("Skills must be selected from the list."))
 
         return super().validate(*args, **kwargs)
-
-    @classmethod
-    @ratelimit(key="user", rate="20/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class UserSkillInput(graphene.InputObjectType):
@@ -870,17 +862,13 @@ EDUCATION_MUTATION_FIELDS = (
 )
 
 
+@ratelimit(key="user", rate="4/m")
 class EducationCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
     output_type = EducationNode
 
     class Meta:
         model = Education
         fields = EDUCATION_MUTATION_FIELDS
-
-    @classmethod
-    @ratelimit(key="user", rate="4/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class EducationUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
@@ -967,17 +955,13 @@ WORK_EXPERIENCE_MUTATION_FIELDS = (
 )
 
 
+@ratelimit(key="user", rate="4/m")
 class WorkExperienceCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
     output_type = WorkExperienceNode
 
     class Meta:
         model = WorkExperience
         fields = WORK_EXPERIENCE_MUTATION_FIELDS
-
-    @classmethod
-    @ratelimit(key="user", rate="4/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class WorkExperienceUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
@@ -1064,6 +1048,7 @@ def validate_language_certificate_skills(test, values):
         raise GraphQLErrorBadRequest(_("All skills must be provided."))
 
 
+@ratelimit(key="user", rate="4/m")
 class LanguageCertificateCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
     output_type = LanguageCertificateNode
 
@@ -1093,11 +1078,6 @@ class LanguageCertificateCreateMutation(CUDOutputTypeMixin, DocumentCreateMutati
             obj.user = info.context.user
             values = input.get(LanguageCertificateValue.language_certificate.field.related_query_name())
             validate_language_certificate_skills(obj.test, values)
-
-    @classmethod
-    @ratelimit(key="user", rate="4/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class LanguageCertificateUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
@@ -1167,17 +1147,13 @@ CERTIFICATE_AND_LICENSE_MUTATION_FIELDS = (
 )
 
 
+@ratelimit(key="user", rate="4/m")
 class CertificateAndLicenseCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
     output_type = CertificateAndLicenseNode
 
     class Meta:
         model = CertificateAndLicense
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
-
-    @classmethod
-    @ratelimit(key="user", rate="4/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class CertificateAndLicenseUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
@@ -1643,6 +1619,7 @@ class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCrea
         cls.full_clean(obj)
 
 
+@ratelimit(key="user", rate="2/m")
 class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = SupportTicket
@@ -1660,12 +1637,8 @@ class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         obj.user = info.context.user
         cls.full_clean(obj)
 
-    @classmethod
-    @ratelimit(key="user", rate="2/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
-
+@ratelimit(key="user", rate="2/m")
 class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
         model = Resume
@@ -1693,11 +1666,6 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         set_user_resume_json(user_id=obj.user_id)
 
         return super().after_mutate(root, info, id, input, obj, return_data)
-
-    @classmethod
-    @ratelimit(key="user", rate="2/m")
-    def mutate(cls, *args, **kwargs):
-        return super().mutate(*args, **kwargs)
 
 
 class UserDeleteMutation(graphene.Mutation):

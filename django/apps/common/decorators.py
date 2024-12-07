@@ -2,6 +2,7 @@ from functools import partial, wraps
 
 from django_ratelimit import ALL, UNSAFE
 from django_ratelimit.core import is_ratelimited
+from graphene_django_cud.mutations.core import DjangoCudBase
 from graphql import GraphQLResolveInfo
 
 from common.exceptions import GraphQLErrorTooManyRequests
@@ -45,12 +46,17 @@ class RateLimit:
 
         def decorator(fn):
             if isinstance(fn, type):
-                return type(
-                    fn.__name__,
-                    (MutateDecoratorMixin, fn),
-                    {MutateDecoratorMixin.decorator.fget.__name__: partial(cls._apply_ratelimit, **rate_kwargs)},
-                )
-            return cls._apply_ratelimit(fn, **rate_kwargs)
+                if issubclass(fn, DjangoCudBase):
+                    fn.before_mutate = cls._apply_ratelimit(fn.before_mutate, **rate_kwargs)
+                else:
+                    fn = type(
+                        fn.__name__,
+                        (MutateDecoratorMixin, fn),
+                        {MutateDecoratorMixin.decorator.fget.__name__: partial(cls._apply_ratelimit, **rate_kwargs)},
+                    )
+            else:
+                fn = cls._apply_ratelimit(fn, **rate_kwargs)
+            return fn
 
         return decorator
 
