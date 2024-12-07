@@ -53,7 +53,7 @@ from .accesses import (
     JobPositionContainer,
     OrganizationMembershipContainer,
 )
-from .filterset import OrganizationEmployeeFilterset
+from .filterset import OrganizationEmployeeFilterset, JobPositionAssignmentFilterset
 from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
     Access,
@@ -1129,7 +1129,6 @@ class JobSeekerJobPositionType(DjangoObjectType):
     benefits = graphene.List(JobBenefitType)
     organization = graphene.Field(JobSeekerOrganizationType)
 
-
     class Meta:
         model = OrganizationJobPosition
         fields = (
@@ -1201,10 +1200,7 @@ class JobSeekerJobPositionAssignmentNode(ArrayChoiceTypeMixin, DjangoObjectType)
             JobPositionAssignmentStatusHistory.job_position_assignment.field.related_query_name(),
         )
 
-        filter_fields = {
-            JobPositionAssignment._meta.pk.attname: [Exact.lookup_name],
-            JobPositionAssignment.status.field.name: [Exact.lookup_name],
-        }
+        filterset_class = JobPositionAssignmentFilterset
 
     def resolve_job_position(self, info):
         return self.job_position
