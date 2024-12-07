@@ -21,19 +21,15 @@ class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
     def before_mutate(cls, root, info, input):
         ids = [item["id"] for item in input]
         notifications = InAppNotification.objects.filter(
-            **{fj(InAppNotification._meta.pk.attname, In.lookup_name): ids}
+            **{
+                fj(InAppNotification._meta.pk.attname, In.lookup_name): ids,
+                fj(InAppNotification.user): info.context.user,
+                fj(InAppNotification.read_at, IsNull.lookup_name): True,
+            }
         )
 
-        if notifications.count() != ids:
-            raise GraphQLErrorBadRequest(_("Some of the notifications do not exist."))
-
-        not_read_notifications = notifications.filter(
-            **{fj(InAppNotification.read_at, IsNull.lookup_name): True}
-        ).values_list(InAppNotification._meta.pk.attname, flat=True)
-
-        for item in input:
-            if int(item["id"]) in not_read_notifications:
-                item["read_at"] = timezone.now()
+        if notifications.exists():
+            notifications.update(**{fj(InAppNotification.read_at): timezone.now()})
 
         return super().before_mutate(root, info, input)
 
