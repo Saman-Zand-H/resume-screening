@@ -996,7 +996,7 @@ class JobPositionAssignmentNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMi
         return self.job_seeker
 
 
-class OrganizationJobPositionNode(DjangoObjectType):
+class OrganizationJobPositionNode(ObjectTypeAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoObjectType):
     fields_access = {
         "__all__": JobPositionContainer.get_accesses(),
     }
