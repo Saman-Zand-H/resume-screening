@@ -49,11 +49,8 @@ from django.db.models.lookups import (
     LessThanOrEqual,
 )
 
-from .accesses import (
-    JobPositionContainer,
-    OrganizationMembershipContainer,
-)
-from .filterset import OrganizationEmployeeFilterset, JobPositionAssignmentFilterset
+from .accesses import JobPositionContainer, OrganizationMembershipContainer
+from .filterset import JobPositionAssignmentFilterset, OrganizationEmployeeFilterset
 from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
 from .models import (
     Access,
@@ -85,7 +82,7 @@ from .models import (
     OrganizationJobPosition,
     OrganizationMembership,
     OrganizationPlatformMessage,
-    OrganizationPlatformMessageLink,
+    OrganizationPlatformMessageAttachment,
     PaystubsFile,
     PaystubsMethod,
     Profile,
@@ -1270,7 +1267,7 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessage.text.field.name,
             OrganizationPlatformMessage.read_at.field.name,
             OrganizationPlatformMessage.created.field.name,
-            OrganizationPlatformMessageLink.organization_platform_message.field.related_query_name(),
+            OrganizationPlatformMessageAttachment.organization_platform_message.field.related_query_name(),
         )
 
         filter_fields = {
@@ -1305,13 +1302,13 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
         )
 
 
-class OrganizationPlatformMessageLinkType(DjangoObjectType):
+class OrganizationPlatformMessageAttachmentType(DjangoObjectType):
     class Meta:
-        model = OrganizationPlatformMessageLink
+        model = OrganizationPlatformMessageAttachment
         fields = (
-            OrganizationPlatformMessageLink.id.field.name,
-            OrganizationPlatformMessageLink.text.field.name,
-            OrganizationPlatformMessageLink.url.field.name,
+            OrganizationPlatformMessageAttachment.id.field.name,
+            OrganizationPlatformMessageAttachment.text.field.name,
+            OrganizationPlatformMessageAttachment.url.field.name,
         )
 
 

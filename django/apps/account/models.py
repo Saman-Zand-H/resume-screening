@@ -34,7 +34,7 @@ from common.validators import (
     ValidateFileSize,
 )
 from computedfields.models import ComputedFieldsModel, computed
-from flex_eav.models import EavValue, EavAttribute
+from flex_eav.models import EavAttribute, EavValue
 from flex_report import report_model
 from graphql_jwt.refresh_token.models import RefreshToken
 from markdownfield.models import MarkdownField
@@ -2722,7 +2722,7 @@ class OrganizationPlatformMessage(TimeStampedModel):
         return f"{self.title} - {self.organization_employee_cooperation}"
 
 
-class OrganizationPlatformMessageLink(models.Model):
+class OrganizationPlatformMessageAttachment(models.Model):
     organization_platform_message = models.ForeignKey(
         OrganizationPlatformMessage,
         on_delete=models.CASCADE,
