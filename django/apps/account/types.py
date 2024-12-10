@@ -51,7 +51,11 @@ from django.db.models.lookups import (
 
 from .accesses import JobPositionContainer, OrganizationMembershipContainer
 from .filterset import JobPositionAssignmentFilterset, OrganizationEmployeeFilterset
-from .mixins import FilterQuerySetByUserMixin, ObjectTypeAccessRequiredMixin
+from .mixins import (
+    CooperationContextMixin,
+    FilterQuerySetByUserMixin,
+    ObjectTypeAccessRequiredMixin,
+)
 from .models import (
     Access,
     CanadaVisa,
@@ -1203,7 +1207,7 @@ class OrganizationEmployeePerformanceReportStatusHistoryType(DjangoObjectType):
         )
 
 
-class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObjectType):
+class OrganizationEmployeePerformanceReportNode(CooperationContextMixin, ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = OrganizationEmployeePerformanceReport
         use_connection = True
@@ -1217,37 +1221,20 @@ class OrganizationEmployeePerformanceReportNode(ArrayChoiceTypeMixin, DjangoObje
             OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.related_query_name(),
         )
 
-        filter_fields = {
-            OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name: [Exact.lookup_name],
-        }
+        filter_fields = {}
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        user = info.context.user
-        if user.registration_type == User.RegistrationType.ORGANIZATION:
             return queryset.filter(
                 **{
                     fj(
                         OrganizationEmployeePerformanceReport.organization_employee_cooperation,
-                        OrganizationEmployeeCooperation.employee,
-                        OrganizationEmployee.organization,
-                        OrganizationMembership.organization.field.related_query_name(),
-                        OrganizationMembership.user,
-                    ): user
-                }
-            )
-        return queryset.filter(
-            **{
-                fj(
-                    OrganizationEmployeePerformanceReport.organization_employee_cooperation,
-                    OrganizationEmployeeCooperation.employee,
-                    OrganizationEmployee.user,
-                ): user
+                ): cls.get_obj_context(info.context)
             }
         )
 
 
-class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
+class OrganizationPlatformMessageNode(CooperationContextMixin, ArrayChoiceTypeMixin, DjangoObjectType):
     class Meta:
         model = OrganizationPlatformMessage
         use_connection = True
@@ -1261,34 +1248,16 @@ class OrganizationPlatformMessageNode(ArrayChoiceTypeMixin, DjangoObjectType):
             OrganizationPlatformMessageAttachment.organization_platform_message.field.related_query_name(),
         )
 
-        filter_fields = {
-            OrganizationPlatformMessage.organization_employee_cooperation.field.name: [Exact.lookup_name],
-        }
+        filter_fields = {}
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        user = info.context.user
-        if user.registration_type == User.RegistrationType.ORGANIZATION:
-            return queryset.filter(
-                **{
-                    fj(
-                        OrganizationPlatformMessage.organization_employee_cooperation,
-                        OrganizationEmployeeCooperation.employee,
-                        OrganizationEmployee.organization,
-                        OrganizationMembership.organization.field.related_query_name(),
-                        OrganizationMembership.user,
-                    ): user,
-                    OrganizationPlatformMessage.assignee_type.field.name: User.RegistrationType.ORGANIZATION,
-                }
-            )
         return queryset.filter(
             **{
                 fj(
                     OrganizationPlatformMessage.organization_employee_cooperation,
-                    OrganizationEmployeeCooperation.employee,
-                    OrganizationEmployee.user,
-                ): user,
-                OrganizationPlatformMessage.assignee_type.field.name: User.RegistrationType.JOB_SEEKER,
+                ): cls.get_obj_context(info.context),
+                OrganizationPlatformMessage.assignee_type.field.name: info.context.user.registration_type,
             }
         )
 
@@ -1321,6 +1290,18 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
     def resolve_job_position(self, info):
         return self.job_position_assignment.job_position
 
+    def resolve_platform_messages(self, info, **kwargs):
+        CooperationContextMixin.set_obj_context(info.context, self)
+        return OrganizationPlatformMessage.objects.filter(
+            **{fj(OrganizationPlatformMessage.organization_employee_cooperation): self}
+        )
+
+    def resolve_performance_report(self, info, **kwargs):
+        CooperationContextMixin.set_obj_context(info.context, self)
+        return OrganizationEmployeePerformanceReport.objects.filter(
+            **{fj(OrganizationEmployeePerformanceReport.organization_employee_cooperation): self}
+        )
+
 
 class JobSeekerCooperationType(DjangoObjectType):
     job_position = graphene.Field(JobSeekerJobPositionType)
@@ -1339,6 +1320,18 @@ class JobSeekerCooperationType(DjangoObjectType):
 
     def resolve_job_position(self, info):
         return self.job_position_assignment.job_position
+
+    def resolve_platform_messages(self, info, **kwargs):
+        CooperationContextMixin.set_obj_context(info.context, self)
+        return OrganizationPlatformMessage.objects.filter(
+            **{fj(OrganizationPlatformMessage.organization_employee_cooperation): self}
+        )
+
+    def resolve_performance_report(self, info, **kwargs):
+        CooperationContextMixin.set_obj_context(info.context, self)
+        return OrganizationEmployeePerformanceReport.objects.filter(
+            **{fj(OrganizationEmployeePerformanceReport.organization_employee_cooperation): self}
+        )
 
 
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):

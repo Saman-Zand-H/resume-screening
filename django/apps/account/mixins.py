@@ -5,6 +5,7 @@ from typing import Any, Callable
 
 import graphene
 from common.exceptions import GraphQLErrorBadRequest
+from common.mixins import ObjectContextMixin
 from common.utils import fj
 from graphene.types.resolver import get_default_resolver
 from graphene.types.utils import yank_fields_from_attrs
@@ -314,3 +315,7 @@ class CRUDWithoutIDMutationMixin:
     def mutate(cls, *args, **kwargs):
         info = args[1]
         return super().mutate(*args, **kwargs, id=IDLikeObject({"info": info, "input": kwargs.get("input")}))
+
+
+class CooperationContextMixin(ObjectContextMixin):
+    obj_context_key = "cooperation"
