@@ -66,7 +66,7 @@ class JobAssessmentType(JobAssessmentUserContextMixin, DjangoObjectType):
 
     @classmethod
     def get_user(cls, info):
-        return cls.get_user_context(info.context)
+        return cls.get_obj_context(info.context)
 
     def resolve_jobs(self, info):
         interested_jobs = JobAssessmentType.get_user(info).profile.interested_jobs.values_list("pk", flat=True)

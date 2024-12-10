@@ -14,6 +14,7 @@ from google.genai import types
 
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.expressions import ArraySubquery
+from django.contrib.postgres.search import SearchVector
 from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
@@ -72,6 +73,19 @@ def set_profile_from_resume_json(user, resume_json: dict):
 
     if resume_json_model.birth_date and not profile.birth_date:
         changes.update(**{fj(Profile.birth_date): resume_json_model.birth_date})
+
+    if (
+        resume_json_model.city
+        and (
+            search_results := City.objects.annotate(
+                search=SearchVector(
+                    fj(City.search_names),
+                    fj(City.display_name),
+                )
+            ).filter(search=resume_json_model.city)
+        ).exists()
+    ):
+        changes.update(**{fj(Profile.city): search_results.last()})
 
     if not changes:
         return
