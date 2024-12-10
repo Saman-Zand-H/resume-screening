@@ -335,8 +335,8 @@ class EmployeeType(DjangoObjectType):
                 qs = qs.filter_by_required(filters.required, self.profile.interested_jobs.all())
         return qs.order_by("-id")
 
-    def resolve_courses(self, info):
-        CourseUserContextMixin.set_user_context(info.context, self)
+    def resolve_courses(self, info, **kwargs):
+        CourseUserContextMixin.set_obj_context(info.context, self)
         return CourseNode._meta.model.objects
 
 

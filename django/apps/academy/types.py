@@ -30,7 +30,7 @@ class CourseNode(CourseUserContextMixin, DjangoObjectType):
     @classmethod
     @login_required
     def get_queryset(cls, queryset, info):
-        return super().get_queryset(queryset, info).related_to_user(cls.get_user_context(info.context))
+        return super().get_queryset(queryset, info).related_to_user(cls.get_obj_context(info.context))
 
 
 class CourseResultType(CourseUserContextMixin, DjangoObjectType):
@@ -53,7 +53,7 @@ class CourseResultType(CourseUserContextMixin, DjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        user = cls.get_user_context(info.context)
+        user = cls.get_obj_context(info.context)
         if not user:
             return queryset.none()
         return super().get_queryset(queryset, info).filter(**{fj(CourseResult.user): user})

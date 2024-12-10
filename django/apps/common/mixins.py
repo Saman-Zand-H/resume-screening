@@ -179,17 +179,23 @@ class CUDOutputTypeMixin:
         return super().__init_subclass_with_meta__(*args, output=cls, return_field_name=output_field_name, **kwargs)
 
 
-class UserContextMixin:
-    user_context_key: str
+class ObjectContextMixin:
+    obj_context_key: str
 
     @classmethod
-    def get_user_context(cls, request):
-        return getattr(request, cls.user_context_key, request.user)
+    def get_obj_context(cls, request, default=None):
+        return getattr(request, cls.obj_context_key, default)
 
     @classmethod
-    def set_user_context(cls, request, user):
-        setattr(request, cls.user_context_key, user)
+    def set_obj_context(cls, request, obj):
+        setattr(request, cls.obj_context_key, obj)
         return request
+
+
+class UserContextMixin(ObjectContextMixin):
+    @classmethod
+    def get_obj_context(cls, request, default=None):
+        return super().get_obj_context(request, request.user)
 
 
 class MutateDecoratorMixin:
