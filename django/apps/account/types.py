@@ -1225,10 +1225,10 @@ class OrganizationEmployeePerformanceReportNode(CooperationContextMixin, ArrayCh
 
     @classmethod
     def get_queryset(cls, queryset, info):
-            return queryset.filter(
-                **{
-                    fj(
-                        OrganizationEmployeePerformanceReport.organization_employee_cooperation,
+        return queryset.filter(
+            **{
+                fj(
+                    OrganizationEmployeePerformanceReport.organization_employee_cooperation,
                 ): cls.get_obj_context(info.context)
             }
         )
