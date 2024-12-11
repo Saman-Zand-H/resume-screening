@@ -1,9 +1,10 @@
+from common.utils import fj
 from notification.context_mapper import ContextMapper, register
 
 from django.utils.translation import gettext_lazy as _
 
 from .constants import STAGE_ANNOTATIONS, ProfileAnnotationNames
-from .models import Profile
+from .models import OrganizationJobPosition, Profile
 
 
 @register(Profile)
@@ -14,6 +15,24 @@ class UserFirstName(ContextMapper):
     @classmethod
     def map(cls, instance: Profile):
         return instance.user.first_name
+
+
+@register(Profile)
+class LatestJobPosition(ContextMapper):
+    name = "latest_job_position"
+    help = _("Latest Published Job Position Object")
+
+    @classmethod
+    def map(cls, instance: Profile):
+        return (
+            OrganizationJobPosition.objects.filter(
+                **{
+                    fj(OrganizationJobPosition.status): OrganizationJobPosition.Status.PUBLISHED,
+                }
+            )
+            .order_by(fj(OrganizationJobPosition.created_at))
+            .last()
+        )
 
 
 @register(Profile)
