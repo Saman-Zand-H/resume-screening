@@ -762,6 +762,7 @@ class Profile(ComputedFieldsModel):
             cls.native_language.field.name: [Exact.lookup_name],
             cls.birth_date.field.name: [GreaterThanOrEqual.lookup_name, LessThanOrEqual.lookup_name],
             fj(cls.user, User.email): [IExact.lookup_name],
+            fj(cls.user): [In.lookup_name],
             cls.gender.field.name: [Exact.lookup_name],
             cls.interested_jobs.field.name: [Contains.lookup_name],
             fj(cls.city, City.country): [In.lookup_name, IExact.lookup_name],
