@@ -6,7 +6,7 @@ from typing import Any, List, Literal, Optional
 
 from ai.assistants import AssistantPipeline
 from ai.google import GoogleServices
-from cities_light.models import City
+from cities_light.models import City, Country
 from common.models import Job, LanguageProficiencyTest, Skill, University
 from common.utils import fj
 from config.settings.constants import Assistants
@@ -17,7 +17,7 @@ from django.contrib.postgres.expressions import ArraySubquery
 from django.db import transaction
 from django.db.models import F, OuterRef, Subquery
 from django.db.models.functions import JSONObject
-from django.db.models.lookups import IContains, In
+from django.db.models.lookups import IContains, IExact, In
 
 from .assistants import (
     DocumentDataAnalysisAssistant,
@@ -73,21 +73,24 @@ def set_profile_from_resume_json(user, resume_json: dict):
     if resume_json_model.birth_date and not profile.birth_date:
         changes.update(**{fj(Profile.birth_date): resume_json_model.birth_date})
 
-    if (
-        resume_json_model.city
-        and not profile.city
-        and (
-            search_results := City.objects.filter(
+    if resume_json_model.city and not profile.city:
+        search_results = City.objects.filter(
+            **{
+                fj(
+                    City.name,
+                    IContains.lookup_name,
+                ): resume_json_model.city,
+            }
+        )
+        if resume_json_model.country:
+            search_results = search_results.filter(
                 **{
-                    fj(
-                        City.name,
-                        IContains.lookup_name,
-                    ): resume_json_model.city
+                    fj(City.country, Country.name, IExact.lookup_name): resume_json_model.country,
                 }
             )
-        ).exists()
-    ):
-        changes.update(**{fj(Profile.city): search_results.last()})
+
+        if search_results.exists():
+            changes.update(**{fj(Profile.city): search_results.last()})
 
     if not changes:
         return

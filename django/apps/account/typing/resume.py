@@ -46,6 +46,7 @@ class ResumeJson(BaseModel):
     about_me: str
     headline: str
     city: Optional[str] = None
+    country: Optional[str] = None
     gender: Optional[GENDER_TYPES] = None
     birth_date: Optional[date] = None
     educations: Optional[List[Education]] = []
