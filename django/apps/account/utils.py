@@ -75,6 +75,7 @@ def set_profile_from_resume_json(user, resume_json: dict):
 
     if (
         resume_json_model.city
+        and not profile.city
         and (
             search_results := City.objects.filter(
                 **{
