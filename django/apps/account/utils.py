@@ -80,7 +80,7 @@ def set_profile_from_resume_json(user, resume_json: dict):
             search_results := City.objects.filter(
                 **{
                     fj(
-                        City.display_name,
+                        City.name,
                         IContains.lookup_name,
                     ): resume_json_model.city
                 }
