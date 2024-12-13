@@ -239,7 +239,7 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         "languages": languages,
         "certifications": certifications,
         "language_certificates": language_certificates,
-        "skills": profile.raw_skills,
+        "skills": list(profile.skills.values_list(fj(Skill.title), flat=True)),
     }
 
     if profile.city:
