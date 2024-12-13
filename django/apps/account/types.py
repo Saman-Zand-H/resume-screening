@@ -1211,6 +1211,7 @@ class OrganizationEmployeePerformanceReportNode(CooperationContextMixin, ArrayCh
     class Meta:
         model = OrganizationEmployeePerformanceReport
         use_connection = True
+        connection_class = CountableConnection
         fields = (
             OrganizationEmployeePerformanceReport.id.field.name,
             OrganizationEmployeePerformanceReport.status.field.name,
@@ -1221,7 +1222,12 @@ class OrganizationEmployeePerformanceReportNode(CooperationContextMixin, ArrayCh
             OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.related_query_name(),
         )
 
-        filter_fields = {}
+        filter_fields = {
+            OrganizationEmployeePerformanceReport.date.field.name: [
+                LessThanOrEqual.lookup_name,
+                GreaterThanOrEqual.lookup_name,
+            ]
+        }
 
     @classmethod
     def get_queryset(cls, queryset, info):
