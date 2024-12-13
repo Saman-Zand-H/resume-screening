@@ -99,6 +99,7 @@ from .models import (
     OrganizationInvitation,
     OrganizationJobPosition,
     OrganizationMembership,
+    OrganizationPlatformMessage,
     PaystubsFile,
     Profile,
     ReferenceCheckEmployer,
@@ -1573,6 +1574,47 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
         return cls(**{cls._meta.return_field_name: obj})
 
 
+class OrganizationPlatformMessageReadAtUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
+    accesses = [JobPositionContainer.VIEWER, JobPositionContainer.ADMIN]
+
+    @classmethod
+    def get_access_object(cls, *args, **kwargs):
+        if not (
+            organization := Organization.objects.filter(
+                **{
+                    fj(
+                        OrganizationEmployee.organization.field.related_query_name(),
+                        OrganizationEmployeeCooperation.employee.field.related_query_name(),
+                        OrganizationPlatformMessage.organization_employee_cooperation.field.related_query_name(),
+                        OrganizationPlatformMessage._meta.pk.attname,
+                    ): kwargs.get("id")
+                }
+            ).first()
+        ):
+            raise GraphQLErrorBadRequest(_("Organization not found."))
+
+        return organization
+
+    class Meta:
+        model = OrganizationPlatformMessage
+        login_required = True
+        fields = (OrganizationPlatformMessage.read_at.field.name,)
+        type_name = "OrganizationPlatformMessageReadAtUpdateInput"
+
+    @classmethod
+    def check_permissions(cls, root, info, input, id, obj) -> None:
+        if obj.assignee_type != info.context.user.registration_type:
+            raise PermissionError(_("Access Denied."))
+        return super().check_permissions(root, info, input, id, obj)
+
+    @classmethod
+    def before_mutate(cls, root, info, input, id):
+        input[OrganizationPlatformMessage.read_at.field.name] = input.get(
+            OrganizationPlatformMessage.read_at.field.name, timezone.now()
+        )
+        return super().before_mutate(root, info, input, id)
+
+
 class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
     accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
 
@@ -1703,6 +1745,7 @@ class OrganizationMutation(graphene.ObjectType):
     update_job_position_status = OrganizationJobPositionStatusUpdateMutation.Field()
     update_job_position_assignment_status = JobPositionAssignmentStatusUpdateMutation.Field()
     update_employee_cooperation_status = OrganizationEmployeeCooperationStatusUpdateMutation.Field()
+    update_platform_message_read_at = OrganizationPlatformMessageReadAtUpdateMutation.Field()
 
 
 class EducationMutation(graphene.ObjectType):
