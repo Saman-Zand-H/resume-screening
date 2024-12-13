@@ -2619,6 +2619,10 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
             self.Status.RESIGNED,
         ]
 
+    @property
+    def employer_satisfaction_rate(self):
+        return None
+
 
 class HiringAwaitingState(GenericState):
     new_statuses = [

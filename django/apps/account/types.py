@@ -1282,6 +1282,7 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
     job_position = graphene.Field(OrganizationJobPositionNode)
     platform_messages = DjangoFilterConnectionField(OrganizationPlatformMessageNode)
     performance_report = DjangoFilterConnectionField(OrganizationEmployeePerformanceReportNode)
+    employer_satisfaction_rate = graphene.Float()
 
     class Meta:
         model = OrganizationEmployeeCooperation
@@ -1307,12 +1308,16 @@ class OrganizationEmployeeCooperationType(ArrayChoiceTypeMixin, DjangoObjectType
         return OrganizationEmployeePerformanceReport.objects.filter(
             **{fj(OrganizationEmployeePerformanceReport.organization_employee_cooperation): self}
         )
+
+    def resolve_employer_satisfaction_rate(self, info):
+        return self.employer_satisfaction_rate
 
 
 class JobSeekerCooperationType(DjangoObjectType):
     job_position = graphene.Field(JobSeekerJobPositionType)
     platform_messages = DjangoFilterConnectionField(OrganizationPlatformMessageNode)
     performance_report = DjangoFilterConnectionField(OrganizationEmployeePerformanceReportNode)
+    employer_satisfaction_rate = graphene.Float()
 
     class Meta:
         model = OrganizationEmployeeCooperation
@@ -1338,6 +1343,9 @@ class JobSeekerCooperationType(DjangoObjectType):
         return OrganizationEmployeePerformanceReport.objects.filter(
             **{fj(OrganizationEmployeePerformanceReport.organization_employee_cooperation): self}
         )
+
+    def resolve_employer_satisfaction_rate(self, info):
+        return self.employer_satisfaction_rate
 
 
 class OrganizationEmployeeNode(ArrayChoiceTypeMixin, DjangoObjectType):
