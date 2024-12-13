@@ -309,6 +309,7 @@ PUBSUB_SETTINGS = {
     "LISTENER_PORT": os.environ.get("PORT", os.environ.get("PUBSUB_LISTENER_PORT")),
     "BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_BACKEND_CLASS"),
     "SCHEDULER_BACKEND_CLASS": os.environ.get("GOOGLE_PUBSUB_SCHEDULER_BACKEND_CLASS"),
+    "ON_RUN_SUB_CALLBACK": "notification.tasks.on_run_sub_callback",
 }
 
 SILENCED_SYSTEM_CHECKS = ["cachalot.W001"]

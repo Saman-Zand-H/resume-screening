@@ -61,3 +61,9 @@ def register_campaign_cronjobs():
 
     for campaign in campaigns:
         register_campaign_cronjob(campaign)
+
+
+def on_run_sub_callback():
+    register_campaign_cronjobs()
+    task_registry.sync_registered_jobs(excluded_subscriptions=[NotificationSubscription.CAMPAIGN.value])
+    logger.info("Registered all campaign scheduler tasks.")
