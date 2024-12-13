@@ -1,5 +1,6 @@
 import contextlib
 
+from common.logging import get_logger
 from common.utils import fj
 from config.settings.subscriptions import NotificationSubscription
 from flex_pubsub.tasks import register_task, task_registry
@@ -11,6 +12,8 @@ from django.utils import timezone
 from .constants import scheduler_task_name
 from .models import Campaign
 from .senders import send_campaign_notifications
+
+logger = get_logger()
 
 
 def sync_campaign_scheduler_task():
@@ -34,7 +37,9 @@ def send_campaign_notifications_cronjob(campaign_id: int):
     ).exists():
         return
 
+    logger.info(f"Received campaign task for id: {campaign_id}. Executing...")
     send_campaign_notifications(campaign_id=campaign_id)
+    logger.info(f"Finished campaign task for id: {campaign_id}.")
     Campaign.objects.filter(**{Campaign._meta.pk.attname: campaign_id}).update(
         **{fj(Campaign.crontab_last_run): timezone.now()}
     )
