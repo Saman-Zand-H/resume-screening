@@ -77,11 +77,6 @@ class Campaign(TimeStampedModel):
         blank=True,
         null=True,
     )
-    crontab_last_run = models.DateTimeField(
-        verbose_name=_("Crontab Last Run"),
-        blank=True,
-        null=True,
-    )
 
     def get_user_latest_statuses(self, user):
         campaign_notification = CampaignNotification.objects.filter(

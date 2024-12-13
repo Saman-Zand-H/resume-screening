@@ -22,6 +22,7 @@ from django.core.mail import EmailMessage
 from django.db.models import Model, QuerySet
 from django.db.models.lookups import In
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 from .constants import NotificationTypes
 from .context_mapper import ContextMapperRegistry
@@ -327,6 +328,9 @@ def send_campaign_notifications(campaign_id: int, pks=None):
 
             if notification_type == NotificationTypes.PUSH:
                 extra_dict[PushNotification.title.field.name] = campaign_notification_type.subject.render(context)
+
+            if notification_type != NotificationTypes.EMAIL:
+                body = strip_tags(body)
 
             notifications_kwargs.extend(
                 notification_kwargs | extra_dict
