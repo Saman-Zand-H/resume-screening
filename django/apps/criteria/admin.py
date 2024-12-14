@@ -31,7 +31,6 @@ class JobAssessmentAdmin(admin.ModelAdmin):
 @register(JobAssessmentResult)
 class JobAssessmentResultAdmin(admin.ModelAdmin):
     list_display = (
-        JobAssessmentResult.id.field.name,
         JobAssessmentResult.user.field.name,
         JobAssessmentResult.job_assessment.field.name,
         JobAssessmentResult.score.field.name,
