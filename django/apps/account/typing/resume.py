@@ -16,6 +16,8 @@ CONTACT_TYPES = Literal[
 GENDER_TYPES = Literal[
     GenderChoices.MALE,
     GenderChoices.FEMALE,
+    GenderChoices.NOT_APPLICABLE,
+    GenderChoices.NOT_KNOWN,
 ]
 
 
