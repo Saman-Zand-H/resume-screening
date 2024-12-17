@@ -48,6 +48,9 @@ from ..models import (
     PaystubsMethod,
     PerformanceReportAnswer,
     PerformanceReportQuestion,
+    PlatformMessageAttachmentFile,
+    PlatformMessageAttachmentCourse,
+    PlatformMessageAttachmentCourseResult,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -73,6 +76,7 @@ from .resources import (
     ProfileResource,
     WorkExperienceResource,
 )
+from academy.models import Course, CourseResult
 
 
 class AccessInline(admin.StackedInline):
@@ -898,6 +902,55 @@ class OrganizationPlatformMessageAttachmentAdmin(admin.ModelAdmin):
     )
     search_fields = (OrganizationPlatformMessageAttachment.text.field.name,)
     autocomplete_fields = (OrganizationPlatformMessageAttachment.organization_platform_message.field.name,)
+
+
+@register(PlatformMessageAttachmentFile)
+class PlatformMessageAttachmentFileAdmin(admin.ModelAdmin):
+    list_display = (
+        PlatformMessageAttachmentFile.id.field.name,
+        PlatformMessageAttachmentFile.text.field.name,
+        PlatformMessageAttachmentFile.file.field.name,
+        PlatformMessageAttachmentFile.organization_platform_message.field.name,
+    )
+    raw_id_fields = (PlatformMessageAttachmentFile.file.field.name,)
+
+    autocomplete_fields = (PlatformMessageAttachmentFile.organization_platform_message.field.name,)
+
+
+@register(PlatformMessageAttachmentCourse)
+class PlatformMessageAttachmentCourseAdmin(admin.ModelAdmin):
+    list_display = (
+        PlatformMessageAttachmentCourse.id.field.name,
+        PlatformMessageAttachmentCourse.text.field.name,
+        PlatformMessageAttachmentCourse.organization_platform_message.field.name,
+        PlatformMessageAttachmentCourse.course.field.name,
+    )
+    search_fields = (
+        fj(PlatformMessageAttachmentCourse.course, Course.name),
+        fj(PlatformMessageAttachmentCourse.course, Course.external_id),
+    )
+    autocomplete_fields = (
+        PlatformMessageAttachmentCourse.course.field.name,
+        PlatformMessageAttachmentCourse.organization_platform_message.field.name,
+    )
+
+
+@register(PlatformMessageAttachmentCourseResult)
+class PlatformMessageAttachmentCourseResultAdmin(admin.ModelAdmin):
+    list_display = (
+        PlatformMessageAttachmentCourseResult.id.field.name,
+        PlatformMessageAttachmentCourseResult.text.field.name,
+        PlatformMessageAttachmentCourseResult.course_result.field.name,
+        PlatformMessageAttachmentCourseResult.organization_platform_message.field.name,
+    )
+    search_fields = (
+        fj(PlatformMessageAttachmentCourseResult.course_result, CourseResult.course, Course.name),
+        fj(PlatformMessageAttachmentCourseResult.course_result, CourseResult.user, User.email),
+    )
+    autocomplete_fields = (
+        PlatformMessageAttachmentCourseResult.course_result.field.name,
+        PlatformMessageAttachmentCourseResult.organization_platform_message.field.name,
+    )
 
 
 @register(OrganizationEmployeeCooperation)

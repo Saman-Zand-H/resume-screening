@@ -1609,9 +1609,7 @@ class OrganizationPlatformMessageReadAtUpdateMutation(MutationAccessRequiredMixi
 
     @classmethod
     def before_mutate(cls, root, info, input, id):
-        input[OrganizationPlatformMessage.read_at.field.name] = input.get(
-            OrganizationPlatformMessage.read_at.field.name, timezone.now()
-        )
+        input[OrganizationPlatformMessage.read_at.field.name] = timezone.now()
         return super().before_mutate(root, info, input, id)
 
 
