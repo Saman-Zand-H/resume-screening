@@ -44,6 +44,7 @@ from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 
+import django.apps
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -2748,6 +2749,10 @@ class OrganizationPlatformMessageAttachment(models.Model):
 
     def __str__(self):
         return f"{self.organization_platform_message} - {self.text}"
+
+    @classmethod
+    def get_attachment_models(cls):
+        return (m for m in django.apps.apps.get_models() if issubclass(m, cls) and m is not cls)
 
 
 class PlatformMessageAttachmentFile(OrganizationPlatformMessageAttachment):
