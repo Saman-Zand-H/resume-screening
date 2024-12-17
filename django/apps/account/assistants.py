@@ -7,6 +7,7 @@ from common.logging import get_logger
 from common.models import LanguageProficiencySkill, LanguageProficiencyTest
 from common.utils import fj
 from config.settings.constants import Assistants
+from dateutil.relativedelta import relativedelta
 from google.genai import types as genai_types
 from pydantic import ValidationError
 
@@ -18,6 +19,7 @@ from .typing.analysis import (
     VERIFICATION_METHOD_NAMES,
     AnalysisResponse,
     IsValid,
+    LanguageCertificateAnalysisResponse,
     OcrResponse,
 )
 
@@ -159,3 +161,13 @@ class LanguageCertificateAnalysisAssistant(DocumentDataAnalysisAssistant, Assist
             return self.response_builder(results=results, old_results=old_results)
 
         return {}
+
+    def response_builder(self, results, old_results: List[dict] = []):
+        if not (response := super().response_builder(results=results, old_results=old_results)):
+            return response
+
+        analysis_response = LanguageCertificateAnalysisResponse.model_validate(response)
+        if not analysis_response.data.expired_at:
+            response["expired_at"] = analysis_response.data.issued_at + relativedelta(years=2)
+
+        return response
