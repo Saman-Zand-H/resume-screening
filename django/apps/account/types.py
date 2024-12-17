@@ -2,10 +2,11 @@ import contextlib
 
 import graphene
 from academy.mixins import CourseUserContextMixin
-from academy.types import CourseNode
+from academy.types import CourseNode, CourseResultType
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import Job
 from common.types import (
+    BaseFileModelType,
     CityNode,
     FieldType,
     IndustryNode,
@@ -89,6 +90,9 @@ from .models import (
     OrganizationPlatformMessageAttachment,
     PaystubsFile,
     PaystubsMethod,
+    PlatformMessageAttachmentFile,
+    PlatformMessageAttachmentCourse,
+    PlatformMessageAttachmentCourseResult,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -1269,12 +1273,36 @@ class OrganizationPlatformMessageNode(CooperationContextMixin, ArrayChoiceTypeMi
 
 
 class OrganizationPlatformMessageAttachmentType(DjangoObjectType):
+    file = graphene.Field(BaseFileModelType)
+    course = graphene.Field(CourseNode)
+    course_result = graphene.Field(CourseResultType)
+
     class Meta:
         model = OrganizationPlatformMessageAttachment
         fields = (
             OrganizationPlatformMessageAttachment.id.field.name,
             OrganizationPlatformMessageAttachment.text.field.name,
-            OrganizationPlatformMessageAttachment.url.field.name,
+        )
+
+    def resolve_file(self, info):
+        return getattr(
+            PlatformMessageAttachmentFile.objects.filter(pk=self.pk).first(),
+            fj(PlatformMessageAttachmentFile.file),
+            None,
+        )
+
+    def resolve_course(self, info):
+        return getattr(
+            PlatformMessageAttachmentCourse.objects.filter(pk=self.pk).first(),
+            fj(PlatformMessageAttachmentCourse.course),
+            None,
+        )
+
+    def resolve_course_result(self, info):
+        return getattr(
+            PlatformMessageAttachmentCourseResult.objects.filter(pk=self.pk).first(),
+            fj(PlatformMessageAttachmentCourseResult.course_result),
+            None,
         )
 
 

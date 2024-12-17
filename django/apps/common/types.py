@@ -1,7 +1,7 @@
 from operator import itemgetter
 
 import graphene
-from account.models import Education, WorkExperience
+from flex_blob.models import FileModel as BaseFileModel
 from cities_light.graphql.types import City as CityTypeBase
 from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
@@ -10,6 +10,7 @@ from cities_light.models import City, Country, Region, SubRegion
 from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
+from account.models import Education, WorkExperience
 from common.utils import fj
 from django.db.models.lookups import Contains, Exact, IContains
 
@@ -239,6 +240,12 @@ EducationVerificationMethodUploadType = convert_choices_to_named_enum_with_descr
         key=itemgetter(0),
     ),
 )
+
+
+class BaseFileModelType(DjangoObjectType):
+    class Meta:
+        model = BaseFileModel
+        fields = [BaseFileModel.id.field.name, BaseFileModel.file.field.name]
 
 
 def create_file_model_type(model):
