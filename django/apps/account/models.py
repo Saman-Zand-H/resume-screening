@@ -34,6 +34,7 @@ from common.validators import (
     ValidateFileSize,
 )
 from computedfields.models import ComputedFieldsModel, computed
+from flex_blob.models import FileModel as BaseFileModel
 from flex_eav.models import EavAttribute, EavValue
 from flex_report import report_model
 from graphql_jwt.refresh_token.models import RefreshToken
@@ -2737,17 +2738,40 @@ class OrganizationPlatformMessageAttachment(models.Model):
         OrganizationPlatformMessage,
         on_delete=models.CASCADE,
         verbose_name=_("Organization Platform Message"),
-        related_name="links",
+        related_name="attachments",
     )
     text = models.CharField(max_length=255, verbose_name=_("Text"))
-    url = models.URLField(verbose_name=_("URL"))
 
     class Meta:
-        verbose_name = _("Organization Platform Message Link")
-        verbose_name_plural = _("Organization Platform Message Links")
+        verbose_name = _("Organization Platform Message Attachment")
+        verbose_name_plural = _("Organization Platform Message Attachments")
 
     def __str__(self):
         return f"{self.organization_platform_message} - {self.text}"
+
+
+class PlatformMessageAttachmentFile(OrganizationPlatformMessageAttachment):
+    file = models.ForeignKey(BaseFileModel, on_delete=models.CASCADE, verbose_name=_("File"))
+
+    class Meta:
+        verbose_name = _("Platform Message Attachment File")
+        verbose_name_plural = _("Platform Message Attachment Files")
+
+
+class PlatformMessageAttachmentCourse(OrganizationPlatformMessageAttachment):
+    course = models.ForeignKey("academy.Course", on_delete=models.CASCADE, verbose_name=_("Course"))
+
+    class Meta:
+        verbose_name = _("Platform Message Attachment Course")
+        verbose_name_plural = _("Platform Message Attachment Courses")
+
+
+class PlatformMessageAttachmentCourseResult(OrganizationPlatformMessageAttachment):
+    course_result = models.ForeignKey("academy.CourseResult", on_delete=models.CASCADE, verbose_name=_("Course Result"))
+
+    class Meta:
+        verbose_name = _("Platform Message Attachment Course Result")
+        verbose_name_plural = _("Platform Message Attachment Course Results")
 
 
 class OrganizationEmployeePerformanceReport(TimeStampedModel):
