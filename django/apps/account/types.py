@@ -1,4 +1,5 @@
 import contextlib
+from operator import itemgetter
 
 import graphene
 from academy.mixins import CourseUserContextMixin
@@ -20,7 +21,7 @@ from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.converter import convert_choice_field_to_enum
+from graphene_django.converter import convert_choice_field_to_enum, convert_choices_to_named_enum_with_descriptions
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -1272,7 +1273,20 @@ class OrganizationPlatformMessageNode(CooperationContextMixin, ArrayChoiceTypeMi
         )
 
 
+AttachmentType = convert_choices_to_named_enum_with_descriptions(
+    "AttachmentType",
+    sorted(
+        (
+            (model.SLUG, model._meta.verbose_name)
+            for model in OrganizationPlatformMessageAttachment.get_attachment_models()
+        ),
+        key=itemgetter(0),
+    ),
+)
+
+
 class OrganizationPlatformMessageAttachmentType(DjangoObjectType):
+    attachment_type = AttachmentType()
     file = graphene.Field(BaseFileModelType)
     course = graphene.Field(CourseNode)
     course_result = graphene.Field(CourseResultType)
@@ -1283,6 +1297,10 @@ class OrganizationPlatformMessageAttachmentType(DjangoObjectType):
             OrganizationPlatformMessageAttachment.id.field.name,
             OrganizationPlatformMessageAttachment.text.field.name,
         )
+
+    def resolve_attachment_type(self, info):
+        if self.attachment_type:
+            return AttachmentType[self.attachment_type]
 
     def resolve_file(self, info):
         return getattr(

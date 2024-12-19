@@ -2735,6 +2735,7 @@ class OrganizationPlatformMessage(TimeStampedModel):
 
 
 class OrganizationPlatformMessageAttachment(models.Model):
+    SLUG = None
     organization_platform_message = models.ForeignKey(
         OrganizationPlatformMessage,
         on_delete=models.CASCADE,
@@ -2752,10 +2753,17 @@ class OrganizationPlatformMessageAttachment(models.Model):
 
     @classmethod
     def get_attachment_models(cls):
-        return (m for m in django.apps.apps.get_models() if issubclass(m, cls) and m is not cls)
+        return get_all_subclasses(cls)
+
+    @property
+    def attachment_type(self):
+        for m in self.get_attachment_models():
+            if m.objects.filter(pk=self.pk).exists():
+                return m.SLUG
 
 
 class PlatformMessageAttachmentFile(OrganizationPlatformMessageAttachment):
+    SLUG = "FILE"
     file = models.ForeignKey(BaseFileModel, on_delete=models.CASCADE, verbose_name=_("File"))
 
     class Meta:
@@ -2764,6 +2772,7 @@ class PlatformMessageAttachmentFile(OrganizationPlatformMessageAttachment):
 
 
 class PlatformMessageAttachmentCourse(OrganizationPlatformMessageAttachment):
+    SLUG = "COURSE"
     course = models.ForeignKey("academy.Course", on_delete=models.CASCADE, verbose_name=_("Course"))
 
     class Meta:
@@ -2772,6 +2781,7 @@ class PlatformMessageAttachmentCourse(OrganizationPlatformMessageAttachment):
 
 
 class PlatformMessageAttachmentCourseResult(OrganizationPlatformMessageAttachment):
+    SLUG = "COURSE_RESULT"
     course_result = models.ForeignKey("academy.CourseResult", on_delete=models.CASCADE, verbose_name=_("Course Result"))
 
     class Meta:
