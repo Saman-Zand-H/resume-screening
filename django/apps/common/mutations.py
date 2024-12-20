@@ -6,7 +6,7 @@ from .types import UploadType
 from .utils import get_file_model
 
 
-@login_required()
+@login_required
 class UploadFileMutation(graphene.Mutation):
     class Arguments:
         type = UploadType(required=True)

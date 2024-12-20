@@ -1,4 +1,5 @@
 import graphene
+from common.decorators import login_required
 from common.utils import fj
 from graphene_django_cud.mutations import DjangoBatchPatchMutation
 
@@ -7,10 +8,7 @@ from django.utils import timezone
 from notification.models import InAppNotification, UserPushNotificationToken
 
 
-from common.decorators import login_required
-
-
-@login_required()
+@login_required
 class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
     class Meta:
         model = InAppNotification
@@ -39,7 +37,7 @@ class InAppNotificationMutation(graphene.ObjectType):
     update_read_at = InAppNotificationReadAtUpdateMutation.Field()
 
 
-@login_required()
+@login_required
 class RegisterPushNotificationTokenMutation(graphene.Mutation):
     class Arguments:
         token = graphene.String(required=True)

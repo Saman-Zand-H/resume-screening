@@ -1,10 +1,10 @@
 from functools import partial, wraps
 
-from graphql_jwt.decorators import login_required as login_required_
 from django_ratelimit import ALL, UNSAFE
 from django_ratelimit.core import is_ratelimited
 from graphene_django_cud.mutations.core import DjangoCudBase
 from graphql import GraphQLResolveInfo
+from graphql_jwt.decorators import login_required as jwt_login_required
 
 from common.exceptions import GraphQLErrorTooManyRequests
 from django.utils.translation import gettext as _
@@ -69,21 +69,19 @@ ratelimit.UNSAFE = UNSAFE
 
 class LoginRequired:
     @classmethod
-    def __call__(cls):
-        def decorator(fn):
-            if isinstance(fn, type):
-                if issubclass(fn, DjangoCudBase):
-                    fn.before_mutate = login_required_(fn.before_mutate)
-                else:
-                    fn = type(
-                        fn.__name__,
-                        (MutateDecoratorMixin, fn),
-                        {MutateDecoratorMixin.decorator.fget.__name__: login_required_},
-                    )
+    def __call__(cls, fn):
+        if isinstance(fn, type):
+            if issubclass(fn, DjangoCudBase):
+                fn.before_mutate = jwt_login_required(fn.before_mutate)
             else:
-                fn = login_required_(fn)
-            return fn
+                fn = type(
+                    fn.__name__,
+                    (MutateDecoratorMixin, fn),
+                    {MutateDecoratorMixin.decorator.fget.__name__: jwt_login_required},
+                )
+        else:
+            fn = jwt_login_required(fn)
+        return fn
 
-        return decorator
-    
+
 login_required = LoginRequired()

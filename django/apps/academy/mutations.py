@@ -1,15 +1,14 @@
 import graphene
 from account.mixins import CRUDWithoutIDMutationMixin, DocumentCUDMixin
+from common.decorators import login_required
 from graphene_django_cud.mutations import DjangoUpdateMutation
 
 from django.db import transaction
 
 from .models import CourseResult
 
-from common.decorators import login_required
 
-
-@login_required()
+@login_required
 class CourseResultCreateMutation(DocumentCUDMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     start_url = graphene.String(required=True)
 

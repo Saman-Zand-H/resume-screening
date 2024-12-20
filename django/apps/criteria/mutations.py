@@ -1,6 +1,6 @@
 import graphene
 from account.mixins import DocumentCUDMixin
-from common.decorators import ratelimit, login_required
+from common.decorators import login_required, ratelimit
 from graphene_django_cud.mutations import DjangoCreateMutation
 
 from criteria.client.client import criteria_client
@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from .models import JobAssessment, JobAssessmentResult
 
 
-@login_required()
+@login_required
 @ratelimit(key="user", rate="1/m")
 class JobAssessmentCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     assessment_access_url = graphene.String(required=True)

@@ -1,7 +1,7 @@
 import contextlib
 
 import graphene
-from common.decorators import ratelimit, login_required
+from common.decorators import login_required, ratelimit
 from common.exceptions import GraphQLError, GraphQLErrorBadRequest
 from common.mixins import (
     ArrayChoiceTypeMixin,
@@ -38,11 +38,11 @@ from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.shortcuts import get_user_by_email
 from graphql_auth.utils import get_token, get_token_payload
+from graphql_jwt.decorators import login_required as jwt_login_required
 from graphql_jwt.decorators import (
     on_token_auth_resolve,
     refresh_expiration,
 )
-from graphql_jwt.decorators import login_required as login_required_
 from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
 from notification.models import InAppNotification
 from notification.senders import NotificationContext, send_notifications
@@ -142,7 +142,7 @@ from .validators import EmailCallbackURLValidator
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
 
-@login_required()
+@login_required
 @ratelimit(key="user", rate="5/m")
 class OrganizationInviteMutation(MutationAccessRequiredMixin, DocumentCUDMixin, DjangoCreateMutation):
     accesses = [OrganizationMembershipContainer.INVITOR, OrganizationMembershipContainer.ADMIN]
@@ -535,7 +535,7 @@ class RevokeTokenMutation(graphql_auth_mutations.RevokeToken):
         return result
 
 
-@login_required()
+@login_required
 class OrganizationUpdateMutation(
     CUDOutputTypeMixin,
     MutationAccessRequiredMixin,
@@ -622,7 +622,7 @@ class SetContactableMixin:
         raise NotImplementedError
 
 
-@login_required()
+@login_required
 class SetOrganizationContactsMutation(MutationAccessRequiredMixin, SetContactableMixin, DjangoBatchCreateMutation):
     accesses = [OrganizationProfileContainer.COMPANY_EDITOR, OrganizationProfileContainer.ADMIN]
 
@@ -668,7 +668,7 @@ PROFILE_MUTATION_FIELDS = {
 }
 
 
-@login_required()
+@login_required
 @ratelimit(key="user", rate="20/m")
 class UserUpdateMutation(
     CUDOutputTypeMixin, FilePermissionMixin, ArrayChoiceTypeMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation
@@ -765,7 +765,7 @@ class UserSetSkillsMutation(graphene.Mutation):
     user = graphene.Field(UserNode)
 
     @staticmethod
-    @login_required_
+    @jwt_login_required
     def mutate(root, info, input, should_analyze):
         user: User = info.context.user
         profile = user.profile
@@ -780,14 +780,14 @@ class UserSetSkillsMutation(graphene.Mutation):
         return UserSetSkillsMutation(user=user)
 
 
-@login_required()
+@login_required
 class SetUserContactsMutation(SetContactableMixin, DjangoBatchCreateMutation):
     @classmethod
     def get_contactable_object(cls, info, input):
         return info.context.user.profile.contactable
 
 
-@login_required()
+@login_required
 class DocumentCreateMutationBase(DocumentCUDFieldMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         abstract = True
@@ -798,13 +798,13 @@ class DocumentCreateMutationBase(DocumentCUDFieldMixin, DocumentCUDMixin, Django
         cls.full_clean(obj)
 
 
-@login_required()
+@login_required
 class DocumentPatchMutationBase(DocumentCUDFieldMixin, DocumentUpdateMutationMixin, DjangoPatchMutation):
     class Meta:
         abstract = True
 
 
-@login_required()
+@login_required
 class DocumentSetVerificationMethodMutation(DocumentUpdateMutationMixin, DjangoUpdateMutation):
     verification_new_status = DocumentAbstract.Status.SUBMITTED
 
@@ -886,7 +886,7 @@ class EducationUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase):
         fields = EDUCATION_MUTATION_FIELDS
 
 
-@login_required()
+@login_required
 class EducationDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
     class Meta:
         model = Education
@@ -923,7 +923,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
         return cls.FILE_MODEL_MAPPING.get(verification_type.value if verification_type else cls.FILE_SLUG)
 
     @classmethod
-    @login_required_
+    @jwt_login_required
     def mutate(cls, root, info, file_id, verification_type=None):
         file_model = cls.get_file_model(verification_type)
 
@@ -981,7 +981,7 @@ class WorkExperienceUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutationBase
         fields = WORK_EXPERIENCE_MUTATION_FIELDS
 
 
-@login_required()
+@login_required
 class WorkExperienceDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
     class Meta:
         model = WorkExperience
@@ -1126,7 +1126,7 @@ class LanguageCertificateUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutatio
         return super().before_save(root, info, input, id, obj)
 
 
-@login_required()
+@login_required
 class LanguageCertificateDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
     class Meta:
         model = LanguageCertificate
@@ -1175,7 +1175,7 @@ class CertificateAndLicenseUpdateMutation(CUDOutputTypeMixin, DocumentPatchMutat
         fields = CERTIFICATE_AND_LICENSE_MUTATION_FIELDS
 
 
-@login_required()
+@login_required
 class CertificateAndLicenseDeleteMutation(DocumentCheckPermissionsMixin, DjangoDeleteMutation):
     class Meta:
         model = CertificateAndLicense
@@ -1255,7 +1255,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
 
     @classmethod
     @transaction.atomic
-    @login_required_
+    @jwt_login_required
     def mutate(cls, root, info, id, input):
         method, input_data = next(((key, value) for key, value in input.items() if value is not None), (None, None))
 
@@ -1275,7 +1275,7 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
         return cls(success=True, output=method_instance.get_output())
 
 
-@login_required()
+@login_required
 class OrganizationCommunicationMethodVerify(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
         organization = NotEmptyID(required=True)
@@ -1337,7 +1337,7 @@ ORGANIZATION_JOB_POSITION_FIELDS = [
 ]
 
 
-@login_required()
+@login_required
 class OrganizationJobPositionCreateMutation(
     CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoCreateMutation
 ):
@@ -1370,7 +1370,7 @@ class OrganizationJobPositionCreateMutation(
         obj.full_clean()
 
 
-@login_required()
+@login_required
 class OrganizationJobPositionUpdateMutation(
     CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
@@ -1410,7 +1410,7 @@ class OrganizationJobPositionUpdateMutation(
         return obj
 
 
-@login_required()
+@login_required
 class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAccessRequiredMixin, DjangoPatchMutation):
     output_type = OrganizationJobPositionNode
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
@@ -1448,7 +1448,7 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
         return cls(**{cls._meta.return_field_name: obj})
 
 
-@login_required()
+@login_required
 class JobPositionAssignmentStatusUpdateMutation(
     CUDOutputTypeMixin,
     MutationAccessRequiredMixin,
@@ -1502,7 +1502,7 @@ class JobPositionAssignmentStatusUpdateMutation(
         return cls(**{cls._meta.return_field_name: obj})
 
 
-@login_required()
+@login_required
 class JobSeekerJobPositionAssignmentStatusUpdateMutation(
     CUDOutputTypeMixin,
     ArrayChoiceTypeMixin,
@@ -1537,7 +1537,7 @@ class JobSeekerJobPositionAssignmentStatusUpdateMutation(
         return cls(**{cls._meta.return_field_name: obj})
 
 
-@login_required()
+@login_required
 class OrganizationEmployeeCooperationStatusUpdateMutation(
     CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
@@ -1585,7 +1585,7 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
         return cls(**{cls._meta.return_field_name: obj})
 
 
-@login_required()
+@login_required
 class OrganizationPlatformMessageReadAtUpdateMutation(MutationAccessRequiredMixin, DjangoPatchMutation):
     accesses = [JobPositionContainer.VIEWER, JobPositionContainer.ADMIN]
 
@@ -1624,7 +1624,7 @@ class OrganizationPlatformMessageReadAtUpdateMutation(MutationAccessRequiredMixi
         return super().before_mutate(root, info, input, id)
 
 
-@login_required()
+@login_required
 class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Mutation):
     accesses = [JobPositionContainer.SKILL_CREATOR, JobPositionContainer.ADMIN]
 
@@ -1659,7 +1659,7 @@ class CreateOrganizationSkillMutation(MutationAccessRequiredMixin, graphene.Muta
         return cls(skills=set(all_skills))
 
 
-@login_required()
+@login_required
 class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
         model = CanadaVisa
@@ -1671,7 +1671,7 @@ class CanadaVisaCreateMutation(FilePermissionMixin, DocumentCUDMixin, DjangoCrea
         cls.full_clean(obj)
 
 
-@login_required()
+@login_required
 @ratelimit(key="user", rate="2/m")
 class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
     class Meta:
@@ -1691,7 +1691,7 @@ class SupportTicketCreateMutation(DocumentCUDMixin, DjangoCreateMutation):
         cls.full_clean(obj)
 
 
-@login_required()
+@login_required
 @ratelimit(key="user", rate="2/m")
 class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDMutationMixin, DjangoUpdateMutation):
     class Meta:
@@ -1722,7 +1722,7 @@ class ResumeCreateMutation(FilePermissionMixin, DocumentCUDMixin, CRUDWithoutIDM
         return super().after_mutate(root, info, id, input, obj, return_data)
 
 
-@login_required()
+@login_required
 class UserDeleteMutation(graphene.Mutation):
     class Arguments:
         email = graphene.String(required=True)
