@@ -1,13 +1,16 @@
 import graphene
 from common.utils import fj
 from graphene_django_cud.mutations import DjangoBatchPatchMutation
-from graphql_jwt.decorators import login_required
 
 from django.db.models.lookups import In, IsNull
 from django.utils import timezone
 from notification.models import InAppNotification, UserPushNotificationToken
 
 
+from common.decorators import login_required
+
+
+@login_required()
 class InAppNotificationReadAtUpdateMutation(DjangoBatchPatchMutation):
     class Meta:
         model = InAppNotification
@@ -36,13 +39,13 @@ class InAppNotificationMutation(graphene.ObjectType):
     update_read_at = InAppNotificationReadAtUpdateMutation.Field()
 
 
+@login_required()
 class RegisterPushNotificationTokenMutation(graphene.Mutation):
     class Arguments:
         token = graphene.String(required=True)
 
     success = graphene.Boolean()
 
-    @login_required
     def mutate(root, info, token):
         user_device = info.context.user_device
         if not user_device:

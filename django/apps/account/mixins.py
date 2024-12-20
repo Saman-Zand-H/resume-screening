@@ -228,14 +228,6 @@ class EmailVerificationMixin:
 
 
 class DocumentCUDMixin:
-    @classmethod
-    def __init_subclass_with_meta__(cls, *args, **kwargs):
-        kwargs.update(
-            {
-                "login_required": True,
-            }
-        )
-        return super().__init_subclass_with_meta__(*args, **kwargs)
 
     @classmethod
     def full_clean(cls, obj):

@@ -1,11 +1,12 @@
 import graphene
 from graphene_file_upload.scalars import Upload
-from graphql_jwt.decorators import login_required
 
+from .decorators import login_required
 from .types import UploadType
 from .utils import get_file_model
 
 
+@login_required()
 class UploadFileMutation(graphene.Mutation):
     class Arguments:
         type = UploadType(required=True)
@@ -14,7 +15,6 @@ class UploadFileMutation(graphene.Mutation):
     pk = graphene.Int()
 
     @classmethod
-    @login_required
     def mutate(cls, root, info, file, type):
         user = info.context.user
         model = get_file_model(type.value)

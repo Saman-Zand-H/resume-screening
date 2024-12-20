@@ -1,5 +1,6 @@
 from functools import partial, wraps
 
+from graphql_jwt.decorators import login_required as login_required_
 from django_ratelimit import ALL, UNSAFE
 from django_ratelimit.core import is_ratelimited
 from graphene_django_cud.mutations.core import DjangoCudBase
@@ -64,3 +65,25 @@ class RateLimit:
 ratelimit = RateLimit()
 ratelimit.ALL = ALL
 ratelimit.UNSAFE = UNSAFE
+
+
+class LoginRequired:
+    @classmethod
+    def __call__(cls):
+        def decorator(fn):
+            if isinstance(fn, type):
+                if issubclass(fn, DjangoCudBase):
+                    fn.before_mutate = login_required_(fn.before_mutate)
+                else:
+                    fn = type(
+                        fn.__name__,
+                        (MutateDecoratorMixin, fn),
+                        {MutateDecoratorMixin.decorator.fget.__name__: login_required_},
+                    )
+            else:
+                fn = login_required_(fn)
+            return fn
+
+        return decorator
+    
+login_required = LoginRequired()
