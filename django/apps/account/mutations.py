@@ -243,7 +243,6 @@ class EmailCallbackUrlMixin:
         return super().Field(*args, **kwargs)
 
 
-@ratelimit(key="ip", rate="10/m")
 class RegisterBase(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.Register):
     form = PasswordLessRegisterForm
 
@@ -280,6 +279,7 @@ class RegisterBase(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations
         pass
 
 
+@ratelimit(key="ip", rate="10/m")
 class UserRegister(RegisterBase):
     _args = graphql_auth_mutations.Register._args + [
         "referral_code",
@@ -319,6 +319,7 @@ class UserRegister(RegisterBase):
             organization_invitation.delete()
 
 
+@ratelimit(key="ip", rate="10/m")
 class RegisterOrganization(RegisterBase):
     _required_args = [User.EMAIL_FIELD, Organization.name.field.name, "website"]
 
