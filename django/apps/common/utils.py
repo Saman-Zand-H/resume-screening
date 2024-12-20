@@ -1,6 +1,6 @@
 import contextlib
 from functools import lru_cache, reduce
-from typing import Dict, List, Optional, Set, Type
+from typing import Callable, Dict, List, Optional, Set, Type
 
 import graphene
 from flex_blob.builders import BlobResponseBuilder
@@ -125,4 +125,12 @@ def get_verification_method_file_models(base_model: Type[Model]) -> List[Model]:
         for model in base_model.get_method_models()
         for field in model._meta.fields
         if isinstance(field, OneToOneField) and issubclass(field.related_model, FileModel)
+    )
+
+
+def get_mutate_overrider_mixin(base_class: Type, mixin_suffix: str, mutate_method: Callable):
+    return type(
+        base_class.__name__,
+        (type(f"{base_class.__name__}{mixin_suffix}", (), {"mutate": mutate_method}), base_class),
+        {},
     )

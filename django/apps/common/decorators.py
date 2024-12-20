@@ -9,7 +9,7 @@ from graphql_jwt.decorators import login_required as jwt_login_required
 from common.exceptions import GraphQLErrorTooManyRequests
 from django.utils.translation import gettext as _
 
-from .mixins import MutateDecoratorMixin
+from .utils import get_mutate_overrider_mixin
 
 
 class RateLimit:
@@ -50,11 +50,7 @@ class RateLimit:
                 if issubclass(fn, DjangoCudBase):
                     fn.before_mutate = cls._apply_ratelimit(fn.before_mutate, **rate_kwargs)
                 else:
-                    fn = type(
-                        fn.__name__,
-                        (MutateDecoratorMixin, fn),
-                        {MutateDecoratorMixin.decorator.fget.__name__: partial(cls._apply_ratelimit, **rate_kwargs)},
-                    )
+                    fn = get_mutate_overrider_mixin(fn, cls.__name__, cls._apply_ratelimit(fn.mutate, **rate_kwargs))
             else:
                 fn = cls._apply_ratelimit(fn, **rate_kwargs)
             return fn
@@ -74,11 +70,7 @@ class LoginRequired:
             if issubclass(fn, DjangoCudBase):
                 fn.before_mutate = jwt_login_required(fn.before_mutate)
             else:
-                fn = type(
-                    fn.__name__,
-                    (MutateDecoratorMixin, fn),
-                    {MutateDecoratorMixin.decorator.fget.__name__: jwt_login_required},
-                )
+                fn = get_mutate_overrider_mixin(fn, cls.__name__, jwt_login_required(fn.mutate))
         else:
             fn = jwt_login_required(fn)
         return fn

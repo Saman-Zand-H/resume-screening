@@ -756,6 +756,7 @@ class UserSkillInput(graphene.InputObjectType):
     skills = graphene.List(graphene.String, required=True)
 
 
+@login_required
 @ratelimit(key="user", rate="5/m")
 class UserSetSkillsMutation(graphene.Mutation):
     class Arguments:
@@ -765,7 +766,6 @@ class UserSetSkillsMutation(graphene.Mutation):
     user = graphene.Field(UserNode)
 
     @staticmethod
-    @jwt_login_required
     def mutate(root, info, input, should_analyze):
         user: User = info.context.user
         profile = user.profile
