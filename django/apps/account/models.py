@@ -2565,7 +2565,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.id}: {self.employee} - {self.start_at or ''} - {self.end_at or ''}"
+        return " - ".join(filter(bool, map(str, [self.employee, self.start_at, self.end_at])))
 
     def set_status_history(self):
         OrganizationEmployeeCooperationStatusHistory.objects.create(

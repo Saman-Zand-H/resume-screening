@@ -945,8 +945,8 @@ class PlatformMessageAttachmentCourseResultAdmin(admin.ModelAdmin):
 @register(OrganizationEmployeeCooperation)
 class OrganizationEmployeeCooperationAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeeCooperation.status.field.name,
         OrganizationEmployeeCooperation.employee.field.name,
+        OrganizationEmployeeCooperation.status.field.name,
         OrganizationEmployeeCooperation.job_position_assignment.field.name,
         OrganizationEmployeeCooperation.start_at.field.name,
         OrganizationEmployeeCooperation.end_at.field.name,
