@@ -99,7 +99,10 @@ class AccessAdmin(admin.ModelAdmin):
 
 @register(RoleAccess)
 class RoleAccessAdmin(admin.ModelAdmin):
-    list_display = (RoleAccess.id.field.name, RoleAccess.role.field.name, RoleAccess.access.field.name)
+    list_display = (
+        RoleAccess.role.field.name,
+        RoleAccess.access.field.name,
+    )
     autocomplete_fields = (RoleAccess.role.field.name, RoleAccess.access.field.name)
 
 
