@@ -1,3 +1,4 @@
+from academy.models import Course, CourseResult
 from cities_light.models import City
 from common.models import Field
 from common.utils import fj
@@ -48,9 +49,9 @@ from ..models import (
     PaystubsMethod,
     PerformanceReportAnswer,
     PerformanceReportQuestion,
-    PlatformMessageAttachmentFile,
     PlatformMessageAttachmentCourse,
     PlatformMessageAttachmentCourseResult,
+    PlatformMessageAttachmentFile,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -76,7 +77,6 @@ from .resources import (
     ProfileResource,
     WorkExperienceResource,
 )
-from academy.models import Course, CourseResult
 
 
 class AccessInline(admin.StackedInline):
@@ -99,7 +99,10 @@ class AccessAdmin(admin.ModelAdmin):
 
 @register(RoleAccess)
 class RoleAccessAdmin(admin.ModelAdmin):
-    list_display = (RoleAccess.id.field.name, RoleAccess.role.field.name, RoleAccess.access.field.name)
+    list_display = (
+        RoleAccess.role.field.name,
+        RoleAccess.access.field.name,
+    )
     autocomplete_fields = (RoleAccess.role.field.name, RoleAccess.access.field.name)
 
 
@@ -750,7 +753,6 @@ class UploadCompanyCertificateMethodAdmin(admin.ModelAdmin):
 @register(OrganizationJobPosition)
 class OrganizationJobPositionAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationJobPosition.id.field.name,
         OrganizationJobPosition.title.field.name,
         OrganizationJobPosition.status.field.name,
         OrganizationJobPosition.organization.field.name,
@@ -782,7 +784,6 @@ class OrganizationJobPositionAdmin(admin.ModelAdmin):
 @register(OrganizationJobPositionStatusHistory)
 class OrganizationJobPositionStatusHistoryAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationJobPositionStatusHistory.id.field.name,
         OrganizationJobPositionStatusHistory.job_position.field.name,
         OrganizationJobPositionStatusHistory.status.field.name,
         OrganizationJobPositionStatusHistory.created_at.field.name,
@@ -797,7 +798,6 @@ class OrganizationJobPositionStatusHistoryAdmin(admin.ModelAdmin):
 @register(JobPositionAssignment)
 class JobPositionAssignmentAdmin(admin.ModelAdmin):
     list_display = (
-        JobPositionAssignment.id.field.name,
         JobPositionAssignment.job_seeker.field.name,
         JobPositionAssignment.job_position.field.name,
         JobPositionAssignment.status.field.name,
@@ -813,7 +813,6 @@ class JobPositionAssignmentAdmin(admin.ModelAdmin):
 @register(JobPositionAssignmentStatusHistory)
 class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
     list_display = (
-        JobPositionAssignmentStatusHistory.id.field.name,
         JobPositionAssignmentStatusHistory.job_position_assignment.field.name,
         JobPositionAssignmentStatusHistory.status.field.name,
         JobPositionAssignmentStatusHistory.created_at.field.name,
@@ -840,7 +839,6 @@ class JobPositionAssignmentStatusHistoryAdmin(admin.ModelAdmin):
 @register(JobPositionInterview)
 class JobPositionInterviewAdmin(admin.ModelAdmin):
     list_display = (
-        JobPositionInterview.id.field.name,
         JobPositionInterview.job_position_assignment.field.name,
         JobPositionInterview.interview_date.field.name,
         JobPositionInterview.result_date.field.name,
@@ -860,7 +858,6 @@ class JobPositionInterviewAdmin(admin.ModelAdmin):
 @register(OrganizationEmployee)
 class OrganizationEmployeeAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployee.id.field.name,
         OrganizationEmployee.user.field.name,
         OrganizationEmployee.organization.field.name,
         OrganizationEmployee.created.field.name,
@@ -876,7 +873,6 @@ class OrganizationEmployeeAdmin(admin.ModelAdmin):
 @register(OrganizationPlatformMessage)
 class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationPlatformMessage.id.field.name,
         OrganizationPlatformMessage.assignee_type.field.name,
         OrganizationPlatformMessage.source.field.name,
         OrganizationPlatformMessage.title.field.name,
@@ -896,7 +892,6 @@ class OrganizationPlatformMessageAdmin(admin.ModelAdmin):
 @register(OrganizationPlatformMessageAttachment)
 class OrganizationPlatformMessageAttachmentAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationPlatformMessageAttachment.id.field.name,
         OrganizationPlatformMessageAttachment.organization_platform_message.field.name,
         OrganizationPlatformMessageAttachment.text.field.name,
     )
@@ -907,7 +902,6 @@ class OrganizationPlatformMessageAttachmentAdmin(admin.ModelAdmin):
 @register(PlatformMessageAttachmentFile)
 class PlatformMessageAttachmentFileAdmin(admin.ModelAdmin):
     list_display = (
-        PlatformMessageAttachmentFile.id.field.name,
         PlatformMessageAttachmentFile.text.field.name,
         PlatformMessageAttachmentFile.file.field.name,
         PlatformMessageAttachmentFile.organization_platform_message.field.name,
@@ -920,7 +914,6 @@ class PlatformMessageAttachmentFileAdmin(admin.ModelAdmin):
 @register(PlatformMessageAttachmentCourse)
 class PlatformMessageAttachmentCourseAdmin(admin.ModelAdmin):
     list_display = (
-        PlatformMessageAttachmentCourse.id.field.name,
         PlatformMessageAttachmentCourse.text.field.name,
         PlatformMessageAttachmentCourse.organization_platform_message.field.name,
         PlatformMessageAttachmentCourse.course.field.name,
@@ -938,7 +931,6 @@ class PlatformMessageAttachmentCourseAdmin(admin.ModelAdmin):
 @register(PlatformMessageAttachmentCourseResult)
 class PlatformMessageAttachmentCourseResultAdmin(admin.ModelAdmin):
     list_display = (
-        PlatformMessageAttachmentCourseResult.id.field.name,
         PlatformMessageAttachmentCourseResult.text.field.name,
         PlatformMessageAttachmentCourseResult.course_result.field.name,
         PlatformMessageAttachmentCourseResult.organization_platform_message.field.name,
@@ -956,9 +948,8 @@ class PlatformMessageAttachmentCourseResultAdmin(admin.ModelAdmin):
 @register(OrganizationEmployeeCooperation)
 class OrganizationEmployeeCooperationAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeeCooperation.id.field.name,
-        OrganizationEmployeeCooperation.status.field.name,
         OrganizationEmployeeCooperation.employee.field.name,
+        OrganizationEmployeeCooperation.status.field.name,
         OrganizationEmployeeCooperation.job_position_assignment.field.name,
         OrganizationEmployeeCooperation.start_at.field.name,
         OrganizationEmployeeCooperation.end_at.field.name,
@@ -996,7 +987,6 @@ class OrganizationEmployeeCooperationAdmin(admin.ModelAdmin):
 @register(OrganizationEmployeeCooperationStatusHistory)
 class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeeCooperationStatusHistory.id.field.name,
         OrganizationEmployeeCooperationStatusHistory.organization_employee_cooperation.field.name,
         OrganizationEmployeeCooperationStatusHistory.status.field.name,
         OrganizationEmployeeCooperationStatusHistory.created_at.field.name,
@@ -1011,7 +1001,6 @@ class OrganizationEmployeeHiringStatusHistoryAdmin(admin.ModelAdmin):
 @register(OrganizationEmployeePerformanceReport)
 class OrganizationEmployeePerformanceReportAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeePerformanceReport.id.field.name,
         OrganizationEmployeePerformanceReport.status.field.name,
         OrganizationEmployeePerformanceReport.organization_employee_cooperation.field.name,
         OrganizationEmployeePerformanceReport.title.field.name,
@@ -1036,7 +1025,6 @@ class OrganizationEmployeePerformanceReportAdmin(admin.ModelAdmin):
 @register(PerformanceReportQuestion)
 class PerformanceReportQuestionAdmin(admin.ModelAdmin):
     list_display = (
-        PerformanceReportQuestion.id.field.name,
         PerformanceReportQuestion.title.field.name,
         PerformanceReportQuestion.type.field.name,
         PerformanceReportQuestion.weight.field.name,
@@ -1048,7 +1036,6 @@ class PerformanceReportQuestionAdmin(admin.ModelAdmin):
 @register(PerformanceReportAnswer)
 class PerformanceReportAnswerAdmin(admin.ModelAdmin):
     list_display = (
-        PerformanceReportAnswer.id.field.name,
         PerformanceReportAnswer.organization_employee_performance_report.field.name,
         PerformanceReportAnswer.question.field.name,
         PerformanceReportAnswer.respondent.field.name,
@@ -1064,7 +1051,6 @@ class PerformanceReportAnswerAdmin(admin.ModelAdmin):
 @register(OrganizationEmployeePerformanceReportStatusHistory)
 class OrganizationEmployeePerformanceReportStatusHistoryAdmin(admin.ModelAdmin):
     list_display = (
-        OrganizationEmployeePerformanceReportStatusHistory.id.field.name,
         OrganizationEmployeePerformanceReportStatusHistory.organization_employee_performance_report.field.name,
         OrganizationEmployeePerformanceReportStatusHistory.status.field.name,
         OrganizationEmployeePerformanceReportStatusHistory.created_at.field.name,

@@ -28,10 +28,10 @@ from ..views import (
 from .resources import (
     FieldResource,
     IndustryResource,
-    LanguageProficiencySkillResource,
-    LanguageProficiencyTestResource,
     JobBenefitResource,
     JobResource,
+    LanguageProficiencySkillResource,
+    LanguageProficiencyTestResource,
     SkillResource,
     SkillTopicResource,
     UniversityResource,
@@ -83,10 +83,7 @@ class TemplateAdmin(BaseTemplateAdmin):
 @admin.register(Industry)
 class IndustryAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [IndustryResource]
-    list_display = (
-        Industry.id.field.name,
-        Industry.title.field.name,
-    )
+    list_display = (Industry.title.field.name,)
     search_fields = (Industry.title.field.name,)
 
 
@@ -94,7 +91,6 @@ class IndustryAdmin(ImportExportMixin, admin.ModelAdmin):
 class JobAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [JobResource]
     list_display = (
-        Job.id.field.name,
         Job.title.field.name,
         Job.order.field.name,
     )
@@ -106,10 +102,7 @@ class JobAdmin(ImportExportMixin, admin.ModelAdmin):
 @admin.register(Field)
 class FieldAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [FieldResource]
-    list_display = (
-        Field.id.field.name,
-        Field.name.field.name,
-    )
+    list_display = (Field.name.field.name,)
     search_fields = (Field.name.field.name,)
 
 
@@ -117,7 +110,6 @@ class FieldAdmin(ImportExportMixin, admin.ModelAdmin):
 class UniversityAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [UniversityResource]
     list_display = (
-        University.id.field.name,
         University.name.field.name,
         University.websites.field.name,
     )
@@ -128,7 +120,6 @@ class UniversityAdmin(ImportExportMixin, admin.ModelAdmin):
 class SkillTopicAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [SkillTopicResource]
     list_display = (
-        SkillTopic.id.field.name,
         SkillTopic.title.field.name,
         SkillTopic.industry.field.name,
     )
@@ -141,7 +132,6 @@ class SkillTopicAdmin(ImportExportMixin, admin.ModelAdmin):
 class SkillAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [SkillResource]
     list_display = (
-        Skill.id.field.name,
         Skill.title.field.name,
         Skill.insert_type.field.name,
     )
@@ -153,7 +143,6 @@ class SkillAdmin(ImportExportMixin, admin.ModelAdmin):
 class LanguageProficiencyTestAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageProficiencyTestResource]
     list_display = (
-        LanguageProficiencyTest.id.field.name,
         LanguageProficiencyTest.title.field.name,
         LanguageProficiencyTest.languages.field.name,
     )
@@ -164,7 +153,6 @@ class LanguageProficiencyTestAdmin(ImportExportMixin, admin.ModelAdmin):
 class LanguageProficiencySkillAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageProficiencySkillResource]
     list_display = (
-        LanguageProficiencySkill.id.field.name,
         LanguageProficiencySkill.skill_name.field.name,
         LanguageProficiencySkill.test.field.name,
         LanguageProficiencySkill.slug.field.name,
@@ -177,10 +165,7 @@ class LanguageProficiencySkillAdmin(ImportExportMixin, admin.ModelAdmin):
 @admin.register(JobBenefit)
 class JobBenefitsAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [JobBenefitResource]
-    list_display = (
-        JobBenefit.id.field.name,
-        JobBenefit.name.field.name,
-    )
+    list_display = (JobBenefit.name.field.name,)
     search_fields = (JobBenefit.name.field.name,)
 
 

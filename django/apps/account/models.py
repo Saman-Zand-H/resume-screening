@@ -971,6 +971,9 @@ class Education(DocumentAbstract, HasDurationMixin):
             "start",
         ]
 
+    def __str__(self):
+        return f"{self.user}"
+
     @property
     def title(self):
         return f"{self.get_degree_display()} in {self.field.name}"
@@ -1033,6 +1036,9 @@ class IEEMethod(EducationVerificationMethodAbstract):
     class Meta:
         verbose_name = _("International Education Evaluation Method")
         verbose_name_plural = _("International Education Evaluation Methods")
+
+    def __str__(self):
+        return f"{self.education.user.email} - {getattr(self, f'get_{IEEMethod.evaluator.field.name}_display')()}"
 
 
 class DegreeFile(UserUploadedDocumentFile):
@@ -2565,7 +2571,7 @@ class OrganizationEmployeeCooperation(ChangeStateMixin, models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.id}: {self.employee} - {self.start_at or ''} - {self.end_at or ''}"
+        return " - ".join(filter(bool, map(str, [self.employee, self.start_at, self.end_at])))
 
     def set_status_history(self):
         OrganizationEmployeeCooperationStatusHistory.objects.create(
