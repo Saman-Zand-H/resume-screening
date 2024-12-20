@@ -198,24 +198,6 @@ class UserContextMixin(ObjectContextMixin):
         return super().get_obj_context(request, request.user)
 
 
-class MutateDecoratorMixin:
-    """Mixin to integrate decorators into class-based mutations."""
-
-    _decorator = None
-
-    @property
-    def decorator(self):
-        return self._decorator
-
-    @decorator.setter
-    def decorator(self, value):
-        self._decorator = value
-
-    @classmethod
-    def mutate(cls, *args, **kwargs):
-        return cls.decorator(super().mutate)(*args, **kwargs)
-
-
 class ReCaptchaMixin:
     recaptcha_field = "g_recaptcha_token"
 
