@@ -1503,11 +1503,7 @@ class JobPositionAssignmentStatusUpdateMutation(
 
 
 @login_required()
-class JobSeekerJobPositionAssignmentStatusUpdateMutation(
-    CUDOutputTypeMixin,
-    ArrayChoiceTypeMixin,
-    DjangoPatchMutation,
-):
+class JobSeekerJobPositionAssignmentStatusUpdateMutation(CUDOutputTypeMixin, ArrayChoiceTypeMixin, DjangoPatchMutation):
     output_type = JobSeekerJobPositionAssignmentNode
 
     class Meta:
