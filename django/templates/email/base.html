@@ -10,7 +10,7 @@
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            background-color: #f9f9f9;
+            background-color: #fafafa;
         }
 
         .email-container {
@@ -19,8 +19,9 @@
             background-color: #ffffff;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 20px;
-            margin: 20px auto;
+            padding: 5px 20px;
+            margin: 20px auto 0 auto;
+            line-height: 1.3;
         }
 
         .button {
@@ -34,15 +35,22 @@
         }
 
         .footer {
-            margin-top: 20px;
             text-align: center;
             font-size: 14px;
-            color: #777;
+            color: #9c9c9c;
+            padding: 0 0 15px 0;
+            line-height: 1.5;
         }
 
-        .footer a {
-            color: #C71F2C;
+        .footer a.unsubscribe-link {
+            color: #6b6b6b;
             text-decoration: none;
+            font-weight: bolder;
+        }
+
+        .footer .organization-name {
+            font-size: 20px;
+            font-weight: bold;
         }
     </style>
     {% block style %}{% endblock %}
@@ -50,25 +58,15 @@
 
 <body>
     <table align="center" class="email-container">
-        <tr>
-            <td style="text-align: center; padding-bottom: 20px;">
-                <img src="https://cpj.ai/cpj-logo-criteria.png" alt="CPJ Logo" style="max-width: 200px; height: auto;">
-            </td>
-        </tr>
+        {% include "email/header.html" %}
         <tr>
             <td>
-                {% block content %}
-                {% endblock %}
+                {% block content %}{% endblock %}
             </td>
         </tr>
-        <tr>
-            <td class="footer">
-                {% block footer %}
-                <p>If you no longer wish to receive these emails, you can <a href="{{ unsubscribe_link }}">unsubscribe
-                        here</a>.</p>
-                {% endblock %}
-            </td>
-        </tr>
+    </table>
+    <table align="center" class="footer">
+        {% include "email/footer.html" %}
     </table>
 </body>
 

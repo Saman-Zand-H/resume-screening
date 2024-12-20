@@ -890,7 +890,7 @@ class DocumentAbstract(models.Model):
     def check(cls, **kwargs):
         errors = super().check(**kwargs)
         if not cls.get_verification_abstract_model():
-            errors.append(checks.Error("get_verification_abstract_model must be return a  abstract model", obj=cls))
+            errors.append(checks.Error("get_verification_abstract_model must be return an abstract model", obj=cls))
         return errors
 
     @classmethod
