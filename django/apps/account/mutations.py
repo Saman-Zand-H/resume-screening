@@ -38,7 +38,6 @@ from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
 from graphql_auth.shortcuts import get_user_by_email
 from graphql_auth.utils import get_token, get_token_payload
-from graphql_jwt.decorators import login_required as jwt_login_required
 from graphql_jwt.decorators import (
     on_token_auth_resolve,
     refresh_expiration,
@@ -923,7 +922,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
         return cls.FILE_MODEL_MAPPING.get(verification_type.value if verification_type else cls.FILE_SLUG)
 
     @classmethod
-    @jwt_login_required
+    @ratelimit(key="user", rate="4/m")
     def mutate(cls, root, info, file_id, verification_type=None):
         file_model = cls.get_file_model(verification_type)
 
@@ -939,7 +938,6 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
         return cls(**response.model_dump())
 
 
-@ratelimit(key="user", rate="4/m")
 class EducationAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(EducationAIType)
     verification_method_data = graphene.Field(EducationVerificationMethodType)
@@ -965,7 +963,6 @@ WORK_EXPERIENCE_MUTATION_FIELDS = (
 )
 
 
-@ratelimit(key="user", rate="4/m")
 class WorkExperienceCreateMutation(CUDOutputTypeMixin, DocumentCreateMutationBase):
     output_type = WorkExperienceNode
 
@@ -1024,7 +1021,6 @@ class WorkExperienceSetVerificationMethodMutation(
         return super().validate(root, info, input, id, obj)
 
 
-@ratelimit(key="user", rate="4/m")
 class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(WorkExperienceAIType)
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
@@ -1144,7 +1140,6 @@ class LanguageCertificateSetVerificationMethodMutation(
         model = LanguageCertificate
 
 
-@ratelimit(key="user", rate="4/m")
 class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(LanguageCertificateAIType)
     verification_method_data = graphene.String()
@@ -1210,7 +1205,6 @@ class CertificateAndLicenseSetVerificationMethodMutation(
         )
 
 
-@ratelimit(key="user", rate="4/m")
 class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(CertificateAndLicenseAIType)
     verification_method_data = graphene.String()
@@ -1248,6 +1242,7 @@ class BaseOrganizationVerifierMutation(MutationAccessRequiredMixin):
         return organization
 
 
+@login_required
 @ratelimit(key="user", rate="2/m")
 class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation, graphene.Mutation):
     class Arguments:
@@ -1259,7 +1254,6 @@ class OrganizationSetVerificationMethodMutation(BaseOrganizationVerifierMutation
 
     @classmethod
     @transaction.atomic
-    @jwt_login_required
     def mutate(cls, root, info, id, input):
         method, input_data = next(((key, value) for key, value in input.items() if value is not None), (None, None))
 
