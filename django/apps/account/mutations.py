@@ -902,7 +902,6 @@ class EducationSetVerificationMethodMutation(
         model = Education
 
 
-@ratelimit(key="user", rate="4/m")
 class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
     is_valid = graphene.Boolean()
     data = graphene.Field(graphene.ObjectType)
@@ -940,6 +939,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
         return cls(**response.model_dump())
 
 
+@ratelimit(key="user", rate="4/m")
 class EducationAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(EducationAIType)
     verification_method_data = graphene.Field(EducationVerificationMethodType)
@@ -1024,6 +1024,7 @@ class WorkExperienceSetVerificationMethodMutation(
         return super().validate(root, info, input, id, obj)
 
 
+@ratelimit(key="user", rate="4/m")
 class WorkExperienceAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(WorkExperienceAIType)
     verification_method_data = graphene.Field(WorkExperienceVerificationMethodType)
@@ -1143,6 +1144,7 @@ class LanguageCertificateSetVerificationMethodMutation(
         model = LanguageCertificate
 
 
+@ratelimit(key="user", rate="4/m")
 class LanguageCertificateAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(LanguageCertificateAIType)
     verification_method_data = graphene.String()
@@ -1208,6 +1210,7 @@ class CertificateAndLicenseSetVerificationMethodMutation(
         )
 
 
+@ratelimit(key="user", rate="4/m")
 class CertificateAndLicenseAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
     data = graphene.Field(CertificateAndLicenseAIType)
     verification_method_data = graphene.String()
