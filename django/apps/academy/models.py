@@ -119,7 +119,7 @@ class CourseResult(models.Model):
                 )
             ).user_id
         except AcademyBadRequestException:
-            raise ValidationError(_("User already exists in the academy"))
+            raise ValidationError(_("User already exists or first name and last name are required"))
 
         academy_client.enroll_user_in_course(EnrollUserInCourseRequest(user_id=wp_user_id, course_id=course_id))
 

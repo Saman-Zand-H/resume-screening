@@ -17,10 +17,19 @@ def error_dict_deserializer(func: Callable[[DjangoValidationError], Dict[str, Li
     def wrapper(e: DjangoValidationError):
         error_dict = func(e)
 
-        return {
-            field_name: [deserialize_field_error(error) for error in errors]
-            for field_name, errors in (error_dict.get("message") or error_dict.get("fields")).items()
-        }
+        fields = error_dict.get("fields", {})
+        message = error_dict.get("message")
+
+        if error := deserialize_field_error(message):
+            return dict(message=error, fields=fields)
+
+        return dict(
+            message=message,
+            fields={
+                field_name: [deserialize_field_error(error) for error in errors]
+                for field_name, errors in fields.items()
+            },
+        )
 
     return wrapper
 
