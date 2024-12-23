@@ -216,5 +216,7 @@ class ReCaptchaMixin:
     def _validate_recaptcha(cls, g_recaptcha_token):
         if is_env(Environment.LOCAL):
             return
+        if is_env(Environment.DEVELOPMENT) and g_recaptcha_token == "development":
+            return
         if not is_recaptcha_token_valid(g_recaptcha_token):
             raise ValidationError({cls.recaptcha_field: _("Invalid reCAPTCHA token.")})
