@@ -13,3 +13,7 @@ class CVSubscription(SubscriptionBase):
 
 class NotificationSubscription(SubscriptionBase):
     CAMPAIGN = "campaign"
+
+
+class AssessmentSubscription(SubscriptionBase):
+    REPORT_FILE = "report_file"

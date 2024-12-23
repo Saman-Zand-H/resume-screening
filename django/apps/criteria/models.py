@@ -3,7 +3,7 @@ import uuid
 from datetime import timedelta
 
 from account.models import User
-from common.models import Job
+from common.models import FileModel, Job
 from common.utils import fj
 from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
@@ -12,6 +12,7 @@ from markdownfield.validators import VALIDATOR_STANDARD
 
 from django.db import models
 from django.db.models.lookups import In
+from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -216,3 +217,23 @@ class JobAssessmentResult(ComputedFieldsModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.job_assessment.title} - {self.score}"
+
+
+class JobAssessmentResultReportFile(FileModel):
+    SLUG = "job-assessment-result-report-file"
+
+    job_assessment_result = models.OneToOneField(
+        JobAssessmentResult,
+        on_delete=models.CASCADE,
+        related_name="report_file",
+    )
+
+    def get_upload_path(self, filename):
+        return f"assessment/{self.job_assessment_result.id}/report_files/{filename}"
+
+    def check_auth(self, request: HttpRequest = None):
+        return request.user.is_authenticated and self.job_assessment_result.user == request.user
+
+    class Meta:
+        verbose_name = _("Job Assessmen Result Report File")
+        verbose_name_plural = _("Job Assessmen Result Report Files")
