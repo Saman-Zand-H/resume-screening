@@ -1,8 +1,8 @@
 import graphene
 from common.utils import fj
+from common.decorators import login_required
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
-from graphql_jwt.decorators import login_required
 
 from django.db.models.lookups import Exact
 
