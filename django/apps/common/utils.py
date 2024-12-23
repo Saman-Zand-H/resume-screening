@@ -52,7 +52,7 @@ def field_serializer(field_name: str, field_id: Optional[str] = ""):
 
 
 def deserialize_field_error(field_error: str) -> Dict[str, str]:
-    if not ((splitted_error := field_error.split(GRAPHQL_ERROR_FIELD_SEP)) and len(splitted_error) == 3):
+    if not ((splitted_error := (field_error or "").split(GRAPHQL_ERROR_FIELD_SEP)) and len(splitted_error) == 3):
         return field_error
 
     field_name, field_id, error_message = splitted_error
