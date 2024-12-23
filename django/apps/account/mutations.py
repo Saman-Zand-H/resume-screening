@@ -328,6 +328,8 @@ class RegisterOrganization(RegisterBase):
     @classmethod
     def mutate(cls, *args, **kwargs):
         result = super().mutate(*args, **kwargs)
+        if not result.success:
+            return result
         user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
         user.registration_type = User.RegistrationType.ORGANIZATION
         user.save(update_fields=[User.registration_type.field.name])
