@@ -449,7 +449,7 @@ class EducationAIType(graphene.ObjectType):
     end = graphene.String()
 
     def resolve_degree(self, info):
-        return self.get("degree", "").upper() or None
+        return (self.get("degree") or "").upper() or None
 
 
 class IEEMethodType(DjangoObjectType):
