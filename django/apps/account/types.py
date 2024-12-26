@@ -465,7 +465,7 @@ class IEEMethodAIType(graphene.ObjectType):
     evaluator = graphene.Field(convert_choice_field_to_enum(IEEMethod.evaluator.field))
 
     def resolve_evaluator(self, info):
-        return self.get("evaluator", "").upper() or None
+        return (self.get("evaluator") or "").upper() or None
 
 
 class CommunicationMethodType(DjangoObjectType):
@@ -534,7 +534,7 @@ class WorkExperienceAIType(graphene.ObjectType):
     skills = graphene.String()
 
     def resolve_grade(self, info):
-        return self.get("grade", "").upper() or None
+        return (self.get("grade") or "").upper() or None
 
 
 class EmployerLetterMethodType(DjangoObjectType):
