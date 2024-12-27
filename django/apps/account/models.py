@@ -44,7 +44,6 @@ from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 
-import django.apps
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -2245,6 +2244,10 @@ class OrganizationJobPositionStatusHistory(models.Model):
 
 
 class JobPositionAssignment(ChangeStateMixin, models.Model):
+    class JobSeekerStatus(models.TextChoices):
+        ACCEPTED = "accepted", _("Accepted")
+        REJECTED = "rejected", _("Rejected")
+
     class Status(models.TextChoices):
         AWAITING_JOBSEEKER_APPROVAL = "awaiting_jobseeker_approval", _("Awaiting Jobseeker Approval")
         REJECTED_BY_JOBSEEKER = "rejected_by_jobseeker", _("Rejected By Jobseeker")
@@ -2280,6 +2283,24 @@ class JobPositionAssignment(ChangeStateMixin, models.Model):
 
     def __str__(self):
         return f"{self.job_position.title} - {self.job_seeker.email}"
+
+    @classmethod
+    def map_job_seeker_status_to_status(cls, job_seeker_status):
+        return {
+            cls.JobSeekerStatus.ACCEPTED.value: [
+                cls.Status.NOT_REVIEWED.value,
+                cls.Status.AWAITING_INTERVIEW_DATE.value,
+                cls.Status.INTERVIEW_SCHEDULED.value,
+                cls.Status.INTERVIEWING.value,
+                cls.Status.AWAITING_INTERVIEW_RESULTS.value,
+                cls.Status.INTERVIEW_CANCELED_BY_JOBSEEKER.value,
+                cls.Status.INTERVIEW_CANCELED_BY_EMPLOYER.value,
+                cls.Status.REJECTED_AT_INTERVIEW.value,
+                cls.Status.REJECTED.value,
+                cls.Status.ACCEPTED.value,
+            ],
+            cls.JobSeekerStatus.REJECTED.value: [cls.Status.REJECTED_BY_JOBSEEKER.value],
+        }.get(job_seeker_status, [])
 
     @property
     def organization_related_statuses(self):

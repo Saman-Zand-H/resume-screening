@@ -8,6 +8,7 @@ from django.db.models.lookups import (
     GreaterThanOrEqual,
     IContains,
     LessThanOrEqual,
+    In,
 )
 from django.utils.translation import gettext_lazy as _
 
@@ -77,9 +78,18 @@ class OrganizationEmployeeFilterset(django_filters.FilterSet):
 
 
 class JobPositionAssignmentFilterset(django_filters.FilterSet):
-    status = django_filters.MultipleChoiceFilter(
-        field_name=JobPositionAssignment.status.field.name,
-        choices=JobPositionAssignment.Status,
+    status = django_filters.ChoiceFilter(
+        method="filter_status",
+        choices=JobPositionAssignment.JobSeekerStatus.choices,
+    )
+
+    def filter_status(self, queryset, name, value):
+        return queryset.filter(
+            **{
+                fj(JobPositionAssignment.status, In.lookup_name): JobPositionAssignment.map_job_seeker_status_to_status(
+                    value
+                )
+            }
     )
 
     class Meta:
