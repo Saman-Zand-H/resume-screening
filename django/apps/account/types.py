@@ -17,6 +17,7 @@ from common.types import (
     UniversityNode,
 )
 from common.utils import fj
+from common.decorators import login_required
 from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -30,7 +31,6 @@ from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectT
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
 from graphql_auth.settings import graphql_auth_settings
-from graphql_jwt.decorators import login_required
 from notification.models import InAppNotification
 
 from django.contrib.contenttypes.models import ContentType

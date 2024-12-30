@@ -1438,22 +1438,15 @@ class OrganizationJobPositionStatusUpdateMutation(CUDOutputTypeMixin, MutationAc
         type_name = "OrganizationJobPositionStatusUpdateInput"
 
     @classmethod
-    @transaction.atomic
-    def mutate(cls, root, info, input, id):
+    def update_obj(cls, obj, input, *args, **kwargs):
         status = input.get(OrganizationJobPosition.status.field.name)
-        if not (obj := OrganizationJobPosition.objects.get(**{Organization._meta.pk.attname: id})):
-            raise GraphQLErrorBadRequest(_("Job position not found."))
-
         obj.change_status(status)
-        return cls(**{cls._meta.return_field_name: obj})
+        return super().update_obj(obj, input, *args, **kwargs)
 
 
 @login_required
 class JobPositionAssignmentStatusUpdateMutation(
-    CUDOutputTypeMixin,
-    MutationAccessRequiredMixin,
-    ArrayChoiceTypeMixin,
-    DjangoPatchMutation,
+    CUDOutputTypeMixin, MutationAccessRequiredMixin, ArrayChoiceTypeMixin, DjangoPatchMutation
 ):
     output_type = JobPositionAssignmentNode
     accesses = [JobPositionContainer.STATUS_CHANGER, JobPositionContainer.ADMIN]
@@ -1486,12 +1479,8 @@ class JobPositionAssignmentStatusUpdateMutation(
         type_name = "JobPositionAssignmentStatusUpdateInput"
 
     @classmethod
-    @transaction.atomic
-    def mutate(cls, root, info, input, id):
+    def update_obj(cls, obj, input, *args, **kwargs):
         status = input.get(JobPositionAssignment.status.field.name)
-        if not (obj := JobPositionAssignment.objects.get(**{Organization._meta.pk.attname: id})):
-            raise GraphQLErrorBadRequest(_("Job position assignment not found."))
-
         if obj.status not in obj.organization_related_statuses:
             raise GraphQLErrorBadRequest(_("Cannot modify status of the job position assignment."))
 
@@ -1499,7 +1488,7 @@ class JobPositionAssignmentStatusUpdateMutation(
         result_date = input.get(JobPositionInterview.result_date.field.name)
 
         obj.change_status(status, interview_date=interview_date, result_date=result_date)
-        return cls(**{cls._meta.return_field_name: obj})
+        return super().update_obj(obj, input, *args, **kwargs)
 
 
 @login_required
@@ -1513,24 +1502,14 @@ class JobSeekerJobPositionAssignmentStatusUpdateMutation(CUDOutputTypeMixin, Arr
         type_name = "JobSeekerJobPositionAssignmentStatusUpdateInput"
 
     @classmethod
-    @transaction.atomic
-    def mutate(cls, root, info, input, id):
+    def update_obj(cls, obj, input, info, *args, **kwargs):
         status = input.get(JobPositionAssignment.status.field.name)
-        if not (
-            obj := JobPositionAssignment.objects.filter(
-                **{
-                    JobPositionAssignment._meta.pk.attname: id,
-                    fj(JobPositionAssignment.job_seeker): info.context.user,
-                }
-            ).first()
-        ):
+        if obj.job_seeker != info.context.user:
             raise GraphQLErrorBadRequest(_("Job position assignment not found."))
-
         if obj.status not in obj.job_seeker_related_statuses:
             raise GraphQLErrorBadRequest(_("Cannot modify status of the job position assignment."))
-
         obj.change_status(status)
-        return cls(**{cls._meta.return_field_name: obj})
+        return super().update_obj(obj, input, info, *args, **kwargs)
 
 
 @login_required
@@ -1559,26 +1538,17 @@ class OrganizationEmployeeCooperationStatusUpdateMutation(
 
     class Meta:
         model = OrganizationEmployeeCooperation
-        fields = [
-            OrganizationEmployeeCooperation.status.field.name,
-        ]
-        required_fields = [
-            OrganizationEmployeeCooperation.status.field.name,
-        ]
+        fields = [OrganizationEmployeeCooperation.status.field.name]
+        required_fields = [OrganizationEmployeeCooperation.status.field.name]
         type_name = "OrganizationEmployeeCooperationStatusUpdateInput"
 
     @classmethod
-    @transaction.atomic
-    def mutate(cls, root, info, input, id):
+    def update_obj(cls, obj, input, *args, **kwargs):
         status = input.get(OrganizationEmployeeCooperation.status.field.name)
-        if not (
-            obj := OrganizationEmployeeCooperation.objects.get(**{OrganizationEmployeeCooperation._meta.pk.attname: id})
-        ):
-            raise GraphQLErrorBadRequest(_("Organization employee cooperation not found."))
         if status.value not in obj.organization_related_statuses:
             raise GraphQLErrorBadRequest(_("Cannot modify status of the organization employee cooperation."))
         obj.change_status(status)
-        return cls(**{cls._meta.return_field_name: obj})
+        return super().update_obj(obj, input, *args, **kwargs)
 
 
 @login_required
