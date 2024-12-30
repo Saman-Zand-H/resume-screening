@@ -29,8 +29,7 @@ from .models import (
 )
 from .utils import get_file_models, get_verification_method_file_models
 
-enum_values = [(v.code, v.message) for v in vars(Errors).values() if isinstance(v, Error)]
-ErrorType = graphene.Enum("Errors", enum_values)
+ErrorType = graphene.Enum("Errors", [(v.code, v.message) for v in vars(Errors).values() if isinstance(v, Error)])
 
 
 class NullableFieldsDjangoObjectType(DjangoObjectType):
