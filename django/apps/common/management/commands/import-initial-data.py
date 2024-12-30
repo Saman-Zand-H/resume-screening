@@ -15,3 +15,4 @@ class Command(BaseCommand):
             populator = populator_class()
             populator.populate()
             self.stdout.write(f"Successfully populated {populator_class.__name__}", style_func=self.style.SUCCESS)
+            self.stdout.write("+" * 40, style_func=self.style.HTTP_INFO)

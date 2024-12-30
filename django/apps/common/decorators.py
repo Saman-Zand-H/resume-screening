@@ -1,4 +1,4 @@
-from functools import partial, wraps
+from functools import wraps
 
 from django_ratelimit import ALL, UNSAFE
 from django_ratelimit.core import is_ratelimited

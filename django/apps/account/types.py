@@ -22,7 +22,10 @@ from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.converter import convert_choice_field_to_enum, convert_choices_to_named_enum_with_descriptions
+from graphene_django.converter import (
+    convert_choice_field_to_enum,
+    convert_choices_to_named_enum_with_descriptions,
+)
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -91,9 +94,9 @@ from .models import (
     OrganizationPlatformMessageAttachment,
     PaystubsFile,
     PaystubsMethod,
-    PlatformMessageAttachmentFile,
     PlatformMessageAttachmentCourse,
     PlatformMessageAttachmentCourseResult,
+    PlatformMessageAttachmentFile,
     Profile,
     ReferenceCheckEmployer,
     Referral,
