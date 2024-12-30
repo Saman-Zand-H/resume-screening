@@ -21,7 +21,10 @@ from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
 from cv.types import GeneratedCVContentType, GeneratedCVNode, JobSeekerGeneratedCVType
-from graphene_django.converter import convert_choice_field_to_enum, convert_choices_to_named_enum_with_descriptions
+from graphene_django.converter import (
+    convert_choice_field_to_enum,
+    convert_choices_to_named_enum_with_descriptions,
+)
 from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
@@ -91,9 +94,9 @@ from .models import (
     OrganizationPlatformMessageAttachment,
     PaystubsFile,
     PaystubsMethod,
-    PlatformMessageAttachmentFile,
     PlatformMessageAttachmentCourse,
     PlatformMessageAttachmentCourseResult,
+    PlatformMessageAttachmentFile,
     Profile,
     ReferenceCheckEmployer,
     Referral,
@@ -449,7 +452,7 @@ class EducationAIType(graphene.ObjectType):
     end = graphene.String()
 
     def resolve_degree(self, info):
-        return self.get("degree", "").upper() or None
+        return (self.get("degree") or "").upper() or None
 
 
 class IEEMethodType(DjangoObjectType):
@@ -465,7 +468,7 @@ class IEEMethodAIType(graphene.ObjectType):
     evaluator = graphene.Field(convert_choice_field_to_enum(IEEMethod.evaluator.field))
 
     def resolve_evaluator(self, info):
-        return self.get("evaluator", "").upper() or None
+        return (self.get("evaluator") or "").upper() or None
 
 
 class CommunicationMethodType(DjangoObjectType):
@@ -534,7 +537,7 @@ class WorkExperienceAIType(graphene.ObjectType):
     skills = graphene.String()
 
     def resolve_grade(self, info):
-        return self.get("grade", "").upper() or None
+        return (self.get("grade") or "").upper() or None
 
 
 class EmployerLetterMethodType(DjangoObjectType):
