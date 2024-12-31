@@ -16,7 +16,7 @@ from ..models import (
     SkillTopic,
     University,
 )
-from ..utils import get_file_models
+from ..utils import fj, get_file_models
 from ..views import (
     TemplateCreateCompleteView,
     TemplateCreateInitView,
@@ -152,14 +152,26 @@ class LanguageProficiencyTestAdmin(ImportExportMixin, admin.ModelAdmin):
 @admin.register(LanguageProficiencySkill)
 class LanguageProficiencySkillAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_classes = [LanguageProficiencySkillResource]
-    list_display = (
+    search_fields = list_display = (
         LanguageProficiencySkill.skill_name.field.name,
         LanguageProficiencySkill.test.field.name,
         LanguageProficiencySkill.slug.field.name,
         LanguageProficiencySkill.validators.field.name,
     )
-    search_fields = list_display
     autocomplete_fields = (LanguageProficiencySkill.test.field.name,)
+
+    def get_form(self, request, obj: LanguageProficiencySkill = ..., change=..., **kwargs):
+        validators_help_text = "<br /><hr />".join(
+            map(
+                lambda validator: (
+                    f"{validator.slug}: {validator.help_text}"
+                    f"<br />kwargs: {validator.get_instance_kwargs(validator.__init__)}"
+                ),
+                obj.get_validator_instances(),
+            )
+        )
+        kwargs.update(help_texts={fj(LanguageProficiencySkill.validators): validators_help_text})
+        return super().get_form(request, obj, change, **kwargs)
 
 
 @admin.register(JobBenefit)
