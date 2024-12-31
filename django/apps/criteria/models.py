@@ -9,6 +9,7 @@ from common.validators import IMAGE_FILE_SIZE_VALIDATOR
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
+from model_utils.models import TimeStampedModel
 
 from django.db import models
 from django.db.models.lookups import In
@@ -219,7 +220,7 @@ class JobAssessmentResult(ComputedFieldsModel):
         return f"{self.user.email} - {self.job_assessment.title} - {self.score}"
 
 
-class JobAssessmentResultReportFile(FileModel):
+class JobAssessmentResultReportFile(TimeStampedModel, FileModel):
     SLUG = "job-assessment-result-report-file"
 
     job_assessment_result = models.OneToOneField(

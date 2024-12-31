@@ -592,7 +592,7 @@ class UserTaskAdmin(admin.ModelAdmin):
         UserTask.modified.field.name,
     )
     search_fields = (fj(UserTask.user, User.email), UserTask.task_name.field.name)
-    list_filter = (UserTask.status.field.name,)
+    list_filter = (UserTask.status.field.name, UserTask.task_name.field.name)
     autocomplete_fields = (UserTask.user.field.name,)
 
 

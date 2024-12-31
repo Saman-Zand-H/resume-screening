@@ -1,16 +1,16 @@
 from operator import itemgetter
 
 import graphene
-from flex_blob.models import FileModel as BaseFileModel
+from account.models import Education, WorkExperience
 from cities_light.graphql.types import City as CityTypeBase
 from cities_light.graphql.types import Country as CountryTypeBase
 from cities_light.graphql.types import Region as RegionTypeBase
 from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
+from flex_blob.models import FileModel as BaseFileModel
 from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
-from account.models import Education, WorkExperience
 from common.utils import fj
 from django.db.models.lookups import Contains, Exact, IContains
 
@@ -29,8 +29,23 @@ from .models import (
 )
 from .utils import get_file_models, get_verification_method_file_models
 
-enum_values = [(v.code, v.message) for k, v in vars(Errors).items() if isinstance(v, Error)]
-ErrorType = graphene.Enum("Errors", enum_values)
+ErrorType = graphene.Enum("Errors", [(v.code, v.message) for v in vars(Errors).values() if isinstance(v, Error)])
+
+
+class NullableFieldsDjangoObjectType(DjangoObjectType):
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        super().__init_subclass_with_meta__(*args, **kwargs)
+        for field_name, field in cls._meta.fields.items():
+            if isinstance(field.type, graphene.NonNull):
+                cls._meta.fields[field_name] = graphene.Field(
+                    field.type.of_type,
+                    *field.type.args,
+                    **field.type.kwargs,
+                )
+
+    class Meta:
+        abstract = True
 
 
 class JobBenefitNode(DjangoObjectType):
