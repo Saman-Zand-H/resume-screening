@@ -186,7 +186,7 @@ class EmailVerificationMixin:
         return kwargs | {
             "cpj_email": self.get_verification_email_from(),
             "cpj_phone": VERIFICATION_PHONE_FROM,
-            "verification_token": self.get_document().get_verification_token(),
+            "verification_token": self.get_document_verification_token(),
         }
 
     def get_verification_email(self) -> str:
@@ -209,6 +209,9 @@ class EmailVerificationMixin:
 
     def get_file_model_ids(self):
         return []
+
+    def get_document_verification_token(self):
+        return self.get_document().get_verification_token()
 
     def send_verification(self, *, is_async=True):
         from .tasks import send_email_async_non_existing_user

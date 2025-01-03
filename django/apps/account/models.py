@@ -1266,6 +1266,9 @@ class ReferenceCheckEmployer(models.Model, EmailVerificationMixin):
     def get_file_model_ids(self):
         return [self.work_experience_verification.employer_letter.pk]
 
+    def get_document_verification_token(self):
+        return self.work_experience_verification.get_document().get_verification_token()
+
     class Meta:
         verbose_name = _("Reference Check Employer")
         verbose_name_plural = _("Reference Check Employers")
