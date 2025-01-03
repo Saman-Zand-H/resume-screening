@@ -53,11 +53,30 @@ class CampaignNotificationAdmin(admin.ModelAdmin):
             CampaignNotificationType.notification_type,
         ),
     )
+    autocomplete_fields = [
+        fj(CampaignNotification.notification),
+        fj(CampaignNotification.campaign_notification_type),
+    ]
     search_fields = [
         fj(
             CampaignNotification.campaign_notification_type,
             CampaignNotificationType.campaign,
             Campaign.title,
+        ),
+        fj(
+            CampaignNotification.notification,
+            Notification.user,
+            User.username,
+        ),
+        fj(
+            CampaignNotification.notification,
+            Notification.user,
+            User.first_name,
+        ),
+        fj(
+            CampaignNotification.notification,
+            Notification.user,
+            User.last_name,
         ),
     ]
 
