@@ -186,6 +186,7 @@ class EmailVerificationMixin:
         return kwargs | {
             "cpj_email": self.get_verification_email_from(),
             "cpj_phone": VERIFICATION_PHONE_FROM,
+            "verification_token": self.get_document().get_verification_token(),
         }
 
     def get_verification_email(self) -> str:
@@ -228,7 +229,6 @@ class EmailVerificationMixin:
 
 
 class DocumentCUDMixin:
-
     @classmethod
     def full_clean(cls, obj):
         obj.full_clean()

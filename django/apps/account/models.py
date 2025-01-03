@@ -7,6 +7,7 @@ import uuid
 from operator import attrgetter
 from typing import Dict, List, Optional, Union
 
+import jwt
 from cities_light.models import City, Country
 from colorfield.fields import ColorField
 from common.choices import LANGUAGES
@@ -44,6 +45,7 @@ from model_utils.models import TimeStampedModel
 from phonenumber_field.modelfields import PhoneNumberField
 from phonenumber_field.phonenumber import PhoneNumber
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -863,6 +865,9 @@ class Profile(ComputedFieldsModel):
 
 
 class DocumentAbstract(models.Model):
+    VERIFICATION_TOKEN_PREFIX: Optional[str] = None
+    _VERIFICATION_TOKEN_PREFIXES: List[str] = []
+
     class Status(models.TextChoices):
         DRAFTED = "drafted", _("Drafted")
         SUBMITTED = "submitted", _("Submitted")
@@ -890,6 +895,15 @@ class DocumentAbstract(models.Model):
         errors = super().check(**kwargs)
         if not cls.get_verification_abstract_model():
             errors.append(checks.Error("get_verification_abstract_model must be return an abstract model", obj=cls))
+
+        if cls.VERIFICATION_TOKEN_PREFIX and cls.VERIFICATION_TOKEN_PREFIX in cls._VERIFICATION_TOKEN_PREFIXES:
+            errors.append(
+                checks.Error(
+                    f"{cls.VERIFICATION_TOKEN_PREFIX} is already used as a verification token prefix",
+                    obj=cls,
+                )
+            )
+        cls._VERIFICATION_TOKEN_PREFIXES.append(cls.VERIFICATION_TOKEN_PREFIX)
         return errors
 
     @classmethod
@@ -899,6 +913,62 @@ class DocumentAbstract(models.Model):
     @classmethod
     def get_method_models(cls):
         return get_all_subclasses(cls.get_verification_abstract_model())
+
+    @classmethod
+    def get_document_models(cls):
+        return get_all_subclasses(cls)
+
+    @classmethod
+    def get_document_verification_token_prefixes(cls):
+        return {
+            model.VERIFICATION_TOKEN_PREFIX: model
+            for model in cls.get_document_models()
+            if model.VERIFICATION_TOKEN_PREFIX
+        }
+
+    @classmethod
+    def decode_verification_token(cls, token):
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+
+    @classmethod
+    def check_verification_token(cls, token):
+        try:
+            payload = cls.decode_verification_token(token)
+        except jwt.PyJWTError:
+            return False
+        return cls.get_document_verification_token_prefixes().get(payload.get("i", "").split(":")[0]) is not None
+
+    def get_verification_token(self):
+        if not self.VERIFICATION_TOKEN_PREFIX:
+            raise NotImplementedError("Verification token not implemented")
+        return jwt.encode(
+            {"i": f"{self.VERIFICATION_TOKEN_PREFIX}:{self.pk}"},
+            settings.SECRET_KEY,
+            algorithm="HS256",
+            headers={"typ": None},
+        )
+
+    @classmethod
+    def get_object_from_verification_token(cls, token):
+        if not cls.check_verification_token(token):
+            raise ValidationError("Invalid verification token")
+        try:
+            document_id = cls.decode_verification_token(token)["i"].split(":")
+            document_model = cls.get_document_verification_token_prefixes().get(document_id[0])
+            return document_model.objects.get(pk=document_id[1])
+        except ObjectDoesNotExist:
+            raise ValidationError("Invalid verification token")
+
+    @transaction.atomic
+    def verify(self):
+        if self.status in self.get_verified_statuses():
+            return
+        verification_method = self.get_verification_method()
+        verification_method.verified_at = now()
+        verification_method.save()
+        self.status = self.Status.VERIFIED
+        self.verified_at = verification_method.verified_at
+        self.save()
 
     def get_verification_methods(self):
         for model in self.get_method_models():
@@ -953,6 +1023,7 @@ class DocumentVerificationMethodAbstract(models.Model):
 
 
 class Education(DocumentAbstract, HasDurationMixin):
+    VERIFICATION_TOKEN_PREFIX = "ed"
     Degree = EducationDegree
 
     field = models.ForeignKey(Field, on_delete=models.RESTRICT, verbose_name=_("Field"))
@@ -990,11 +1061,7 @@ class Education(DocumentAbstract, HasDurationMixin):
 
 
 class EducationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
-    education = models.OneToOneField(
-        Education,
-        on_delete=models.CASCADE,
-        verbose_name=_("Education"),
-    )
+    education = models.OneToOneField(Education, on_delete=models.CASCADE, verbose_name=_("Education"))
     DOCUMENT_FIELD = "education"
 
     class Meta:
@@ -1078,6 +1145,7 @@ class CommunicationMethod(EducationVerificationMethodAbstract, EmailVerification
 
 
 class WorkExperience(DocumentAbstract, HasDurationMixin):
+    VERIFICATION_TOKEN_PREFIX = "we"
     Grade = WorkExperienceGrade
 
     job_title = models.CharField(max_length=255, verbose_name=_("Job Title"))

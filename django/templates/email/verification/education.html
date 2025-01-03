@@ -1,27 +1,6 @@
-{% extends "email/base.html" %}
+{% extends "email/verification/base.html" %}
 
-{% block style %}
-<style>
-    h2 {
-        color: #333;
-        text-align: center;
-    }
-
-    p,
-    ul {
-        color: #555;
-        font-size: 16px;
-    }
-
-    p.center {
-        color: #333;
-        font-size: 16px;
-        text-align: center;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
+{% block verification_content %}
 <h2>Dear {{ education.university.name }},</h2>
 <p>I hope this message finds you well.</p>
 <p>
