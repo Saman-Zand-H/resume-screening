@@ -1,9 +1,11 @@
+import contextlib
 import json
 from collections import defaultdict
 from itertools import chain
 from operator import attrgetter
 from typing import Any, List, Literal, Optional
 
+import pydantic
 from ai.assistants import AssistantPipeline
 from ai.google import GoogleServices
 from cities_light.models import City, Country
@@ -128,7 +130,11 @@ def analyze_document(
         assistants.append(DocumentDataAnalysisAssistant().build(verification_method_name=verification_method_name))
 
     results = AssistantPipeline(*assistants).run()
-    return AnalysisResponse.model_validate(defaultdict(list, results))
+
+    with contextlib.suppress(pydantic.ValidationError):
+        return AnalysisResponse.model_validate(defaultdict(list, results))
+
+    return AnalysisResponse(is_valid=False)
 
 
 def extract_resume_json(file_model_id: int):
