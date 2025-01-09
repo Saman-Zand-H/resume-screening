@@ -48,6 +48,7 @@ from notification.senders import NotificationContext, send_notifications
 
 from account.models import LanguageProficiencySkill
 from django.contrib.auth.signals import user_logged_in
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import F
 from django.db.models.functions import Lower
@@ -407,7 +408,10 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
 class ResendActivationEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.ResendActivationEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
-        user = get_user_by_email(kwargs.get("email"))
+        try:
+            user = get_user_by_email(kwargs.get("email"))
+        except ObjectDoesNotExist:
+            return cls(success=False)
         set_template_context_variable(
             args[1].context,
             {
@@ -415,14 +419,19 @@ class ResendActivationEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_
                 EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
-        return super().mutate(*args, **kwargs)
+        output = super().mutate(*args, **kwargs)
+        output.errors = None
+        return output
 
 
 @ratelimit(key="ip", rate="1/m")
 class SendPasswordResetEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations.SendPasswordResetEmail):
     @classmethod
     def mutate(cls, *args, **kwargs):
-        user = get_user_by_email(kwargs.get("email"))
+        try:
+            user = get_user_by_email(kwargs.get("email"))
+        except ObjectDoesNotExist:
+            return cls(success=False)
         set_template_context_variable(
             args[1].context,
             {
@@ -430,7 +439,9 @@ class SendPasswordResetEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth
                 EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
             },
         )
-        return super().mutate(*args, **kwargs)
+        output = super().mutate(*args, **kwargs)
+        output.errors = None
+        return output
 
 
 @ratelimit(key="ip", rate="5/m")
