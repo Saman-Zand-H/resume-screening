@@ -867,6 +867,11 @@ class Profile(ComputedFieldsModel):
 
     job_location_type.fget.annotation_name = f"{job_location_type.fget.__name__}_annotation"
 
+    def clean(self):
+        if self.birth_date and self.birth_date > now().date():
+            raise ValidationError({Profile.birth_date.field.name: _("Birth date must be in the past")})
+        return super().clean()
+
 
 class DocumentAbstract(models.Model):
     VERIFICATION_TOKEN_PREFIX: Optional[str] = None
