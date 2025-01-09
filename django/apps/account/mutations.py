@@ -248,7 +248,7 @@ class RegisterBase(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth_mutations
     @classmethod
     @transaction.atomic
     def mutate(cls, *args, **kwargs):
-        email = kwargs.get(User.EMAIL_FIELD)
+        kwargs[User.EMAIL_FIELD] = email = kwargs.get(User.EMAIL_FIELD).lower()
         set_template_context_variable(
             args[1].context,
             {

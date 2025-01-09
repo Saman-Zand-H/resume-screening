@@ -375,6 +375,10 @@ class User(AbstractUser):
             .distinct()
         )
 
+    def clean(self):
+        self.email = self.email.lower()
+        super().clean()
+
 
 for field, properties in User.FIELDS_PROPERTIES.items():
     for key, value in properties.items():
