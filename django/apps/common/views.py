@@ -22,6 +22,7 @@ from flex_report.defaults.views import (
     TemplateUpdateView as BaseTemplateUpdateView,
 )
 
+from common.logging import get_logger
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http import JsonResponse
@@ -34,8 +35,6 @@ from django.views.generic.edit import FormView
 
 from .forms import WebhookForm
 from .webhook import WebhookEvent, WebhookHandler
-
-from common.logging import get_logger
 
 logger = get_logger()
 
@@ -138,6 +137,7 @@ flex_template_delete_view = FlexTemplateDeleteView.as_view()
 class WebhookView(FormView):
     event: WebhookEvent
     form_class: WebhookForm
+    http_method_names = list(set(FormView.http_method_names) - {"get"})
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
