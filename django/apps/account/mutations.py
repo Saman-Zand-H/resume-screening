@@ -43,7 +43,7 @@ from graphql_jwt.decorators import (
     refresh_expiration,
 )
 from graphql_jwt.refresh_token.models import RefreshToken as UserRefreshToken
-from notification.models import InAppNotification
+from notification.models import EmailNotification, InAppNotification
 from notification.senders import NotificationContext, send_notifications
 
 from account.models import LanguageProficiencySkill
@@ -381,26 +381,32 @@ class VerifyAccount(graphql_auth_mutations.VerifyAccount):
             payload = get_token_payload(kwargs.get("token"), TokenAction.ACTIVATION, None)
             user = User.objects.get(**payload)
             response.token = get_token(user, TokenAction.PASSWORD_RESET)
-            send_email_async.delay(
-                [user.email],
-                None,
-                subject=_("Welcome to CPJ - Your Journey to Career Excellence Starts Here!"),
-                content=render_to_string(
-                    "email/welcome.html",
-                    {
-                        EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name if user.first_name else user.email,
-                        EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.registration_type,
-                    },
+
+            send_notifications(
+                NotificationContext(
+                    notification=EmailNotification(
+                        user=user,
+                        email=user.email,
+                        title=_("Welcome to CPJ - Your Journey to Career Excellence Starts Here!"),
+                        body=render_to_string(
+                            "email/welcome.html",
+                            {
+                                EmailConstants.RECEIVER_NAME_VARIABLE: user.first_name
+                                if user.first_name
+                                else user.email,
+                                EmailConstants.RECEIVER_USER_TYPE_VARIABLE: user.registration_type,
+                            },
+                        ),
+                    )
+                ),
+                NotificationContext(
+                    notification=InAppNotification(
+                        user=user,
+                        title=_("Welcome to CPJ"),
+                        body=_("Your Journey to Career Excellence Starts Here!"),
+                    )
                 ),
             )
-
-            in_app_notification = InAppNotification(
-                user=user,
-                title=_("Welcome to CPJ"),
-                body=_("Your Journey to Career Excellence Starts Here!"),
-            )
-            notification = NotificationContext(notification=in_app_notification)
-            send_notifications(notification)
 
         return response
 
