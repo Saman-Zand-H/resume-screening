@@ -233,8 +233,7 @@ class EmailCallbackUrlMixin:
     @classmethod
     def mutate(cls, *args, **kwargs):
         callback_url = kwargs.get(EmailConstants.CALLBACK_URL_VARIABLE)
-        validator = EmailCallbackURLValidator()
-        validator(callback_url)
+        EmailCallbackURLValidator()(callback_url)
         set_template_context_variable(args[1].context, {EmailConstants.CALLBACK_URL_VARIABLE: callback_url})
         return super().mutate(*args, **kwargs)
 
