@@ -32,7 +32,7 @@ from graphene_django_cud.mutations import (
 from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphql_auth import mutations as graphql_auth_mutations
 from graphql_auth.bases import SuccessErrorsOutput
-from graphql_auth.constants import TokenAction
+from graphql_auth.constants import Messages, TokenAction
 from graphql_auth.exceptions import EmailAlreadyInUseError
 from graphql_auth.models import UserStatus
 from graphql_auth.settings import graphql_auth_settings
@@ -48,6 +48,7 @@ from notification.senders import NotificationContext, send_notifications
 
 from account.models import LanguageProficiencySkill
 from django.contrib.auth.signals import user_logged_in
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import F
@@ -446,7 +447,30 @@ class SendPasswordResetEmail(ReCaptchaMixin, EmailCallbackUrlMixin, graphql_auth
 
 @ratelimit(key="ip", rate="5/m")
 class PasswordReset(ReCaptchaMixin, graphql_auth_mutations.PasswordReset):
-    pass
+    @classmethod
+    def get_token_cache_key(cls, token):
+        return f"{cls.__name__}_{token}"
+
+    @classmethod
+    def set_token_cache(cls, token):
+        cache.set(
+            cls.get_token_cache_key(token),
+            True,
+            timeout=graphql_auth_settings.EXPIRATION_PASSWORD_RESET_TOKEN.total_seconds(),
+        )
+
+    @classmethod
+    def get_token_cache(cls, token):
+        return cache.get(cls.get_token_cache_key(token))
+
+    @classmethod
+    def resolve_mutation(cls, *args, **kwargs):
+        if cls.get_token_cache(kwargs.get("token")):
+            return cls(success=False, errors=Messages.EXPIRED_TOKEN)
+        response = super().resolve_mutation(*args, **kwargs)
+        if response.success:
+            cls.set_token_cache(kwargs.get("token"))
+        return response
 
 
 @ratelimit(key="ip", rate="5/m")
