@@ -5,7 +5,7 @@ from datetime import timedelta
 from account.models import User
 from common.models import FileModel, Job
 from common.utils import fj
-from common.validators import IMAGE_FILE_SIZE_VALIDATOR
+from common.validators import DOCUMENT_FILE_SIZE_VALIDATOR, IMAGE_FILE_SIZE_VALIDATOR, FileExtensionValidator
 from computedfields.models import ComputedFieldsModel, computed
 from markdownfield.models import MarkdownField
 from markdownfield.validators import VALIDATOR_STANDARD
@@ -228,6 +228,12 @@ class JobAssessmentResultReportFile(TimeStampedModel, FileModel):
         on_delete=models.CASCADE,
         related_name="report_file",
     )
+
+    def get_validators(self):
+        return [
+            FileExtensionValidator(["pdf"]),
+            DOCUMENT_FILE_SIZE_VALIDATOR,
+        ]
 
     def get_upload_path(self, filename):
         return f"assessment/{self.job_assessment_result.id}/report_files/{filename}"

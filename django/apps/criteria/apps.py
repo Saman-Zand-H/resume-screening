@@ -6,4 +6,5 @@ class CriteriaConfig(AppConfig):
     name = "criteria"
 
     def ready(self):
+        from . import signals  # noqa
         from .client import types  # noqa: F401
