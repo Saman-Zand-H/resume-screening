@@ -1,5 +1,6 @@
 import base64
 import contextlib
+import functools
 import random
 import re
 import string
@@ -138,12 +139,21 @@ def get_phone_otp(length=6):
 
 
 class Contactable(models.Model):
+    @staticmethod
+    @functools.cache
+    def get_contactable_model_fields():
+        return [
+            Profile.contactable,
+            Organization.contactable,
+        ]
+
+    @staticmethod
+    @functools.cache
+    def get_contactable_model_related_fields():
+        return {field: field.field.related_query_name() for field in Contactable.get_contactable_model_fields()}
+
     def get_related_object(self) -> Union["Organization", "Profile"]:
-        return getattr(
-            self,
-            Profile.contactable.field.related_query_name(),
-            Organization.contactable.field.related_query_name(),
-        )
+        return getattr(self, *self.get_contactable_model_related_fields().values())
 
     def __str__(self):
         return str(self.get_related_object())
