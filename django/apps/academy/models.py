@@ -26,7 +26,7 @@ def get_logo_upload_path(instance, filename):
 
 
 class CourseQuerySet(models.QuerySet):
-    def related_to_user(self, user):
+    def related_to_user(self, user: User):
         return (
             self.filter(**{fj(Course.is_active): True})
             .filter(
@@ -46,7 +46,7 @@ class CourseQuerySet(models.QuerySet):
                                     fj(
                                         Job.industries.field.related_query_name(),
                                         In.lookup_name,
-                                    ): user.profile.interested_jobs.all()
+                                    ): user.get_profile().interested_jobs.values_list("pk", flat=True)
                                 }
                             )
                             .distinct()

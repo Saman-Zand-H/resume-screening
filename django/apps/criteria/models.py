@@ -41,11 +41,7 @@ class JobAssessmentQuerySet(models.QuerySet):
             return self.filter(models.Q(**{fj(JobAssessment.required): True}) | has_required_job_assessment)
         return self.filter(models.Q(**{fj(JobAssessment.required): False}) & ~has_required_job_assessment)
 
-    def related_to_user(self, user):
-        from account.models import Profile
-
-        profile: Profile = user.profile
-
+    def related_to_user(self, user: User):
         return self.filter(
             models.Q(
                 **{
@@ -55,7 +51,13 @@ class JobAssessmentQuerySet(models.QuerySet):
                     ): JobAssessmentResult.Status.COMPLETED,
                 }
             )
-            | models.Q(**{fj(JobAssessment.related_jobs, In.lookup_name): profile.interested_jobs.all()})
+            | models.Q(
+                **{
+                    fj(JobAssessment.related_jobs, In.lookup_name): user.get_profile().interested_jobs.values_list(
+                        "pk", flat=True
+                    )
+                }
+            )
             | models.Q(**{fj(JobAssessment.required): True})
         ).distinct()
 
