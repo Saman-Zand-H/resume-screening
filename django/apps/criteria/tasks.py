@@ -20,7 +20,6 @@ def download_report_file_task(job_assessment_result_id: int):
         .filter(
             **{
                 JobAssessmentResult._meta.pk.attname: job_assessment_result_id,
-                fj(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
                 fj(JobAssessmentResult.report_url, IsNull.lookup_name): False,
                 fj(
                     JobAssessmentResultReportFile.job_assessment_result.field.related_query_name(),
@@ -35,16 +34,20 @@ def download_report_file_task(job_assessment_result_id: int):
         )
         return
 
-    file_name = f"cpj_{assessment_result.user.username}_assessment-{assessment_result.order_id}.pdf"
+    file_name = f"{assessment_result.order_id}.pdf"
 
     try:
         file = retry(stop=stop_after_attempt(CRITERIA_REPORT_FILE_DOWNLOAD_RETRY_ATTEMPTS))(download_report_file)(
             assessment_result.report_url, file_name
         )
-        JobAssessmentResultReportFile.objects.update_or_create(
-            **{fj(JobAssessmentResultReportFile.job_assessment_result): assessment_result},
-            defaults={fj(JobAssessmentResultReportFile.file): file},
+
+        JobAssessmentResultReportFile.objects.create(
+            **{
+                fj(JobAssessmentResultReportFile.job_assessment_result): assessment_result,
+                fj(JobAssessmentResultReportFile.file): file,
+            }
         )
+
     except Exception as e:
         logger.error(f"Failed to download report pdf for result with id {job_assessment_result_id}. {e}")
         return
