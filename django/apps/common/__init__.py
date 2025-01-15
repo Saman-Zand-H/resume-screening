@@ -62,6 +62,7 @@ def custom_showwarning(message, category, filename, lineno, file=None, line=None
         "is not a Python type (it may be an instance of an object)",
         "unclosed file",
         "is still running",
+        "Pagination may yield inconsistent results with an unordered object_list",
     ]
 
     if any(ignored_file in str(filename) for ignored_file in ignored_files):
