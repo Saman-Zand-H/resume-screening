@@ -12,6 +12,7 @@ from markdownfield.validators import VALIDATOR_STANDARD
 from model_utils.models import TimeStampedModel
 
 from django.db import models
+from django.db.models import Exists, OuterRef
 from django.db.models.lookups import In
 from django.http import HttpRequest
 from django.utils import timezone
@@ -27,40 +28,18 @@ def job_assessment_logo_path(instance, filename):
 
 class JobAssessmentQuerySet(models.QuerySet):
     def filter_by_required(self, required, jobs):
-        required_lookup = {
-            fj(
-                JobAssessmentJob.job_assessment.field.related_query_name(),
-                JobAssessment.required,
-            ): True,
-            fj(
-                JobAssessmentJob.job_assessment.field.related_query_name(),
-                JobAssessmentJob.job,
-                In.lookup_name,
-            ): jobs,
-        }
+        has_required_job_assessment = Exists(
+            JobAssessmentJob.objects.filter(
+                **{
+                    fj(JobAssessmentJob.job_assessment): OuterRef(JobAssessment._meta.pk.attname),
+                    fj(JobAssessmentJob.job, In.lookup_name): jobs,
+                    fj(JobAssessmentJob.required): True,
+                }
+            ).values(JobAssessmentJob._meta.pk.attname)[:1]
+        )
         if required:
-            return self.filter(models.Q(**required_lookup) | models.Q(**{fj(JobAssessment.required): True}))
-
-        return self.annotate(
-            required_job_assessments=models.Count(
-                "job_assessment_jobs",
-                filter=models.Q(**required_lookup),
-            )
-        ).filter(required_job_assessments=0)
-
-    def filter_by_optional(self, jobs):
-        optional_lookup = {
-            fj(
-                JobAssessmentJob.job_assessment.field.related_query_name(),
-                JobAssessment.required,
-            ): False,
-            fj(
-                JobAssessmentJob.job_assessment.field.related_query_name(),
-                JobAssessmentJob.job,
-                In.lookup_name,
-            ): jobs,
-        }
-        return self.filter(**optional_lookup)
+            return self.filter(models.Q(**{fj(JobAssessment.required): True}) | has_required_job_assessment)
+        return self.filter(models.Q(**{fj(JobAssessment.required): False}) & ~has_required_job_assessment)
 
     def related_to_user(self, user):
         from account.models import Profile
@@ -126,8 +105,8 @@ class JobAssessment(models.Model):
 
     def is_required(self, jobs):
         return (
-            JobAssessment.objects.filter_by_required(True, jobs)
-            .filter(**{JobAssessment._meta.pk.attname: self.pk})
+            JobAssessment.objects.filter(**{JobAssessment._meta.pk.attname: self.pk})
+            .filter_by_required(True, jobs)
             .exists()
         )
 

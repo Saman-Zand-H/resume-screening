@@ -378,13 +378,13 @@ class OptionalAssessmentScore(Score):
     def calculate(self, user) -> int:
         if not (interested_jobs := user.profile.interested_jobs.all()):
             return 0
-        optional = JobAssessment.objects.filter_by_optional(interested_jobs)
-
         return (
             JobAssessmentResult.objects.filter(
                 **{
                     fj(JobAssessmentResult.user): user,
-                    fj(JobAssessmentResult.job_assessment, In.lookup_name): optional,
+                    fj(JobAssessmentResult.job_assessment, In.lookup_name): JobAssessment.objects.filter_by_required(
+                        False, interested_jobs
+                    ),
                     fj(JobAssessmentResult.status): JobAssessmentResult.Status.COMPLETED,
                 },
             ).count()
