@@ -387,6 +387,7 @@ class User(AbstractUser):
 
     def clean(self):
         self.email = self.email.lower()
+        self.username = self.email
         super().clean()
 
 
