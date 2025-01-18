@@ -2,11 +2,9 @@ from common.logging import get_logger
 from common.utils import fj
 from config.settings.subscriptions import AssessmentSubscription
 from flex_pubsub.tasks import register_task
-from tenacity import retry, stop_after_attempt
 
 from django.db.models.lookups import IsNull
 
-from .constants import CRITERIA_REPORT_FILE_DOWNLOAD_RETRY_ATTEMPTS
 from .models import JobAssessmentResult, JobAssessmentResultReportFile
 from .utils import download_report_file
 
@@ -37,9 +35,7 @@ def download_report_file_task(job_assessment_result_id: int):
     file_name = f"{assessment_result.order_id}.pdf"
 
     try:
-        file = retry(stop=stop_after_attempt(CRITERIA_REPORT_FILE_DOWNLOAD_RETRY_ATTEMPTS))(download_report_file)(
-            assessment_result.report_url, file_name
-        )
+        file = download_report_file(assessment_result.report_url, file_name)
 
         JobAssessmentResultReportFile.objects.create(
             **{
