@@ -207,6 +207,8 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.skills.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
+        Profile.available_jobs.field.name,
+        Profile.contactable.field.name,
     )
     raw_id_fields = (
         Profile.avatar.field.name,
@@ -672,14 +674,19 @@ class OrganizationInvitationAdmin(admin.ModelAdmin):
 class ContactableAdmin(admin.ModelAdmin):
     list_display = (
         Contactable.id.field.name,
-        Profile.contactable.field.related_query_name(),
-        Organization.contactable.field.related_query_name(),
+        *Contactable.get_contactable_model_related_fields().values(),
         "contacts_count",
     )
-    readonly_fields = (
-        Profile.contactable.field.related_query_name(),
-        Organization.contactable.field.related_query_name(),
-    )
+    readonly_fields = (*Contactable.get_contactable_model_related_fields().values(),)
+    search_fields = ("pk",)
+
+    def get_search_fields(self, request):
+        related_fields = Contactable.get_contactable_model_related_fields()
+        return list(super().get_search_fields(request)) + [
+            fj(related_fields[field], f)
+            for field in Contactable.get_contactable_model_fields()
+            for f in admin.site._registry[field.field.model].get_search_fields(request)
+        ]
 
     @admin.display(description="Contacts Count")
     def contacts_count(self, obj):

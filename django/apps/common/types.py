@@ -32,7 +32,20 @@ from .utils import get_file_models, get_verification_method_file_models
 ErrorType = graphene.Enum("Errors", [(v.code, v.message) for v in vars(Errors).values() if isinstance(v, Error)])
 
 
-class NullableFieldsDjangoObjectType(DjangoObjectType):
+class DictFieldsObjectType(graphene.ObjectType):
+    dict_fields = {}
+
+    @classmethod
+    def __init_subclass_with_meta__(cls, *args, **kwargs):
+        for k, v in cls.dict_fields.items():
+            setattr(cls, k, v)
+        super().__init_subclass_with_meta__(*args, **kwargs)
+
+    class Meta:
+        abstract = True
+
+
+class NullableFieldsObjectType(graphene.ObjectType):
     @classmethod
     def __init_subclass_with_meta__(cls, *args, **kwargs):
         super().__init_subclass_with_meta__(*args, **kwargs)
