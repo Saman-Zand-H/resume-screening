@@ -23,10 +23,8 @@ from django.utils import timezone
 
 from .typing import ResumeJson
 from .utils import (
-    extract_available_jobs,
     extract_certificate_text_content,
     extract_resume_json,
-    get_user_additional_information,
     set_contacts_from_resume_json,
     set_profile_from_resume_json,
 )
@@ -169,23 +167,6 @@ def get_certificate_text(certificate_id: int) -> bool:
     CertificateAndLicense.objects.filter(**{CertificateAndLicense.pk.attname: certificate_id}).update(
         **{CertificateAndLicense.certificate_text.field.name: certificate_text.get("text_content", "")}
     )
-    return True
-
-
-@register_task([AccountSubscription.ASSISTANTS])
-@user_task_decorator(timeout_seconds=120)
-def find_available_jobs(user_id: int) -> bool:
-    from .models import User
-
-    if not (user := get_user_model().objects.filter(**{User._meta.pk.attname: user_id}).first()):
-        raise ValueError(f"User with id {user_id} not found.")
-
-    resume_json = {} if not hasattr(user, "resume") else user.resume.resume_json
-    jobs = extract_available_jobs(resume_json, **get_user_additional_information(user_id))
-    if not jobs:
-        return
-
-    user.profile.available_jobs.set(jobs)
     return True
 
 
