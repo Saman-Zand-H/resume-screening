@@ -37,11 +37,7 @@ class JobAssessmentResultAdmin(admin.ModelAdmin):
         for job_assessment_result in queryset:
             download_report_file_task.delay(job_assessment_result.pk)
 
-        self.message_user(
-            request,
-            _("Report file download task for %(assessment_results)s has been scheduled.")
-            % {"assessment_results": ", ".join(map(str, queryset))},
-        )
+        self.message_user(request, _("Report file download task has been scheduled."))
 
     @admin.display(description=_("Report URL"))
     def report_url_tag(self, obj):

@@ -3,13 +3,13 @@ import json
 from collections import defaultdict
 from itertools import chain
 from operator import attrgetter
-from typing import Any, List, Literal, Optional
+from typing import List, Literal, Optional
 
 import pydantic
 from ai.assistants import AssistantPipeline
 from ai.google import GoogleServices
 from cities_light.models import City, Country
-from common.models import Job, LanguageProficiencyTest, Skill, University
+from common.models import LanguageProficiencyTest, Skill, University
 from common.utils import fj
 from config.settings.constants import Assistants
 from google.genai import types
@@ -259,34 +259,6 @@ def get_user_additional_information(user_id: int, *, verified_work_experiences=T
         additional_info["skills"].extend(profile.skills.values_list("title", flat=True))
 
     return additional_info
-
-
-def extract_available_jobs(resume_json: dict[str, Any], **additional_information) -> Optional[List[Job]]:
-    if not resume_json:
-        return None
-
-    service = GoogleServices(Assistants.JOB)
-    message_dict = {
-        "resume_data": resume_json,
-        **additional_information,
-    }
-    message = service.generate_text_content(
-        [
-            types.Part.from_text(text=json.dumps(message_dict)),
-            types.Part.from_text(text="\nTHE FOLLOWING IS THE DATA:\n"),
-            types.Part.from_text(text=json.dumps(VectorStores.JOB.data_fn())),
-        ]
-    )
-    if message:
-        return Job.objects.filter(
-            **{
-                fj(Job._meta.pk.attname, In.lookup_name): [
-                    j[Job._meta.pk.attname] for j in service.message_to_json(message)
-                ]
-            }
-        )
-
-    return Job.objects.none()
 
 
 def extract_certificate_text_content(file_model_id: int):

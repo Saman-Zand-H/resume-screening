@@ -57,7 +57,6 @@ from django.db.models.lookups import (
     Exact,
     GreaterThanOrEqual,
     IContains,
-    In,
     IsNull,
     LessThanOrEqual,
 )
@@ -405,7 +404,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
         convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field),
         source=Profile.job_location_type.fget.__name__,
     )
-    available_jobs = DjangoFilterConnectionField(JobNode)
 
     class Meta:
         model = Profile
@@ -437,27 +435,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
 
     def resolve_contacts(self, info):
         return self.contactable.contacts.all()
-
-    def resolve_available_jobs(self, info, **kwargs):
-        return (
-            JobNode.get_queryset(JobNode._meta.model.objects.all(), info)
-            .annotate(
-                _priority=Case(
-                    When(
-                        **{
-                            fj(
-                                Job._meta.pk.attname,
-                                In.lookup_name,
-                            ): self.available_jobs.values(Job._meta.pk.attname)
-                        },
-                        then=Value(1),
-                    ),
-                    default=Value(2),
-                    output_field=IntegerField(),
-                )
-            )
-            .order_by("_priority", Job.order.field.name, Job.title.field.name)
-        )
 
 
 class EducationMethodFieldTypes(graphene.ObjectType):
