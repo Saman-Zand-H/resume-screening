@@ -1578,6 +1578,7 @@ class UserNode(BaseUserNode):
     notifications = graphene.List(InAppNotificationNode)
     job_position_assignments = DjangoFilterConnectionField(JobSeekerJobPositionAssignmentNode)
     current_employement = graphene.Field(JobSeekerEmployeeType)
+    support_tickets = graphene.List(SupportTicketType)
 
     class Meta:
         model = User
@@ -1591,7 +1592,6 @@ class UserNode(BaseUserNode):
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
-            SupportTicket.user.field.related_query_name(),
             UserTask.user.field.related_query_name(),
             OrganizationMembership.user.field.related_query_name(),
         )
@@ -1633,3 +1633,6 @@ class UserNode(BaseUserNode):
 
     def resolve_current_employement(self, info):
         return self.organization_employees.filter(cooperations__end_at__isnull=True).latest("cooperations__created_at")
+
+    def resolve_support_tickets(self, info, **kwargs):
+        return SupportTicket.objects.filter(**{fj(SupportTicket.user): self}).order_by(f"-{fj(SupportTicket.created)}")
