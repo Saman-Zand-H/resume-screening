@@ -9,6 +9,7 @@ from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
 from flex_blob.models import FileModel as BaseFileModel
 from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from common.utils import fj
@@ -208,7 +209,7 @@ class LanguageProficiencySkillNode(DjangoObjectType):
 
 
 class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
-    skills = graphene.List(LanguageProficiencySkillNode)
+    skills = DjangoFilterConnectionField(LanguageProficiencySkillNode)
 
     class Meta:
         model = LanguageProficiencyTest
