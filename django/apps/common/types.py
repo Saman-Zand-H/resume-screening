@@ -196,6 +196,8 @@ class CityNode(DjangoObjectType):
 
 
 class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    skills = graphene.List(LanguageProficiencySkillNode)
+
     class Meta:
         model = LanguageProficiencyTest
         use_connection = True
@@ -203,13 +205,15 @@ class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
             LanguageProficiencyTest.id.field.name,
             LanguageProficiencyTest.title.field.name,
             LanguageProficiencyTest.languages.field.name,
-            LanguageProficiencySkill.test.field.related_query_name(),
         )
         filter_fields = {
             LanguageProficiencyTest.id.field.name: [Exact.lookup_name],
             LanguageProficiencyTest.title.field.name: [IContains.lookup_name],
             LanguageProficiencyTest.languages.field.name: [Contains.lookup_name],
         }
+
+    def resolve_skills(self, info):
+        return LanguageProficiencySkill.objects.filter(**{LanguageProficiencySkill.test: self})
 
 
 class LanguageProficiencySkillNode(DjangoObjectType):

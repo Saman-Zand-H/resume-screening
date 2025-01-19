@@ -6,7 +6,11 @@ from academy.mixins import CourseUserContextMixin
 from academy.types import CourseNode, CourseResultType
 from common.decorators import login_required
 from common.mixins import ArrayChoiceTypeMixin
-from common.models import Job
+from common.models import (
+    Job,
+    LanguageProficiencySkill,
+    LanguageProficiencyTest,
+)
 from common.types import (
     BaseFileModelType,
     CityNode,
@@ -15,8 +19,8 @@ from common.types import (
     IndustryNode,
     JobBenefitType,
     JobNode,
-    LanguageProficiencySkill,
-    LanguageProficiencyTest,
+    LanguageProficiencySkillNode,
+    LanguageProficiencyTestNode,
     SkillType,
     UniversityNode,
 )
@@ -141,7 +145,32 @@ class ContactType(DjangoObjectType):
         )
 
 
+class CommunicationMethodType(DjangoObjectType):
+    class Meta:
+        model = CommunicationMethod
+        fields = (
+            CommunicationMethod.id.field.name,
+            CommunicationMethod.website.field.name,
+            CommunicationMethod.email.field.name,
+            CommunicationMethod.department.field.name,
+            CommunicationMethod.person.field.name,
+            CommunicationMethod.degree_file.field.name,
+        )
+
+
+class IEEMethodType(DjangoObjectType):
+    class Meta:
+        model = IEEMethod
+        fields = (
+            IEEMethod.id.field.name,
+            IEEMethod.education_evaluation_document.field.name,
+        )
+
+
 class JobSeekerEducationType(DjangoObjectType):
+    communicationmethod = graphene.Field(CommunicationMethodType)
+    ieemethod = graphene.Field(IEEMethodType)
+
     class Meta:
         model = Education
         fields = (
@@ -153,8 +182,13 @@ class JobSeekerEducationType(DjangoObjectType):
             Education.start.field.name,
             Education.end.field.name,
             Education.status.field.name,
-            *(m.get_related_name() for m in Education.get_method_models()),
         )
+
+    def resolve_communicationmethod(self, info):
+        return CommunicationMethod.objects.filter(**{fj(CommunicationMethod.education): self}).first()
+
+    def resolve_ieemethod(self, info):
+        return IEEMethod.objects.filter(**{fj(IEEMethod.education): self}).first()
 
 
 class JobSeekerWorkExperienceType(DjangoObjectType):
@@ -174,17 +208,21 @@ class JobSeekerWorkExperienceType(DjangoObjectType):
 
 
 class JobSeekerLanguageCertificateType(DjangoObjectType):
+    test = graphene.Field(LanguageProficiencyTestNode)
+
     class Meta:
         model = LanguageCertificate
         fields = (
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
-            LanguageCertificate.test.field.name,
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.status.field.name,
             *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
+
+    def resolve_test(self, info):
+        return self.test
 
 
 class JobSeekerCertificateAndLicenseType(DjangoObjectType):
@@ -428,6 +466,9 @@ class EducationMethodFieldTypes(graphene.ObjectType):
 
 
 class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
+    communicationmethod = graphene.Field(CommunicationMethodType)
+    ieemethod = graphene.Field(IEEMethodType)
+
     class Meta:
         model = Education
         use_connection = True
@@ -443,8 +484,13 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
             Education.created_at.field.name,
             Education.updated_at.field.name,
             Education.allow_self_verification.field.name,
-            *(m.get_related_name() for m in Education.get_method_models()),
         )
+
+    def resolve_communicationmethod(self, info):
+        return CommunicationMethod.objects.filter(**{fj(CommunicationMethod.education): self}).first()
+
+    def resolve_ieemethod(self, info):
+        return IEEMethod.objects.filter(**{fj(IEEMethod.education): self}).first()
 
 
 class EducationAIType(DictFieldsObjectType):
@@ -466,15 +512,6 @@ class EducationAIType(DictFieldsObjectType):
     city = graphene.Field(CityNode)
 
 
-class IEEMethodType(DjangoObjectType):
-    class Meta:
-        model = IEEMethod
-        fields = (
-            IEEMethod.id.field.name,
-            IEEMethod.education_evaluation_document.field.name,
-        )
-
-
 class IEEMethodAIType(DictFieldsObjectType):
     dict_fields = get_input_fields_for_model(
         IEEMethod,
@@ -482,19 +519,6 @@ class IEEMethodAIType(DictFieldsObjectType):
         optional_fields=fields,
         exclude=tuple(),
     )
-
-
-class CommunicationMethodType(DjangoObjectType):
-    class Meta:
-        model = CommunicationMethod
-        fields = (
-            CommunicationMethod.id.field.name,
-            CommunicationMethod.website.field.name,
-            CommunicationMethod.email.field.name,
-            CommunicationMethod.department.field.name,
-            CommunicationMethod.person.field.name,
-            CommunicationMethod.degree_file.field.name,
-        )
 
 
 class CommunicationMethodAIType(DictFieldsObjectType):
@@ -569,17 +593,6 @@ class WorkExperienceAIType(DictFieldsObjectType):
     industry = graphene.Field(IndustryNode)
 
 
-class EmployerLetterMethodType(DjangoObjectType):
-    class Meta:
-        model = EmployerLetterMethod
-        fields = (
-            EmployerLetterMethod.id.field.name,
-            EmployerLetterMethod.employer_letter.field.name,
-            ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
-        )
-
-
-
 class ReferenceCheckEmployerAIType(DictFieldsObjectType):
     dict_fields = get_input_fields_for_model(
         ReferenceCheckEmployer,
@@ -621,6 +634,21 @@ class ReferenceCheckEmployerType(DjangoObjectType):
         )
 
 
+class EmployerLetterMethodType(DjangoObjectType):
+    employers = graphene.List(ReferenceCheckEmployerType)
+
+    class Meta:
+        model = EmployerLetterMethod
+        fields = (
+            EmployerLetterMethod.id.field.name,
+            EmployerLetterMethod.employer_letter.field.name,
+            ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
+        )
+
+    def resolve_employers(self, info):
+        return ReferenceCheckEmployer.objects.filter(**{fj(ReferenceCheckEmployer.work_experience_verification): self})
+
+
 class WorkExperienceVerificationMethodType(graphene.Union):
     class Meta:
         types = (ReferenceCheckEmployerAIType, PaystubsMethodAIType)
@@ -634,23 +662,43 @@ class WorkExperienceVerificationMethodType(graphene.Union):
         return None
 
 
+class LanguageCertificateValueNode(DjangoObjectType):
+    skill = graphene.Field(LanguageProficiencySkillNode)
+
+    class Meta:
+        model = LanguageCertificateValue
+        fields = (
+            LanguageCertificateValue.id.field.name,
+            LanguageCertificateValue.value.field.name,
+        )
+
+    def resolve_skill(self, info):
+        return self.skill
+
+
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
+    test = graphene.Field(LanguageProficiencyTestNode)
+    values = graphene.List(LanguageCertificateValueNode)
+
     class Meta:
         model = LanguageCertificate
         use_connection = True
         fields = (
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
-            LanguageCertificate.test.field.name,
             LanguageCertificate.status.field.name,
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.allow_self_verification.field.name,
             LanguageCertificate.status.field.name,
-            LanguageCertificateValue.language_certificate.field.related_query_name(),
             *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
 
+    def resolve_test(self, info):
+        return self.test
+
+    def resolve_values(self, info):
+        return LanguageCertificateValue.objects.filter(**{fj(LanguageCertificateValue.language_certificate): self})
 
 
 class LanguageCertificateValueSkillAIType(DictFieldsObjectType):
@@ -721,16 +769,6 @@ class LanguageCertificateOnlineVerificationMethodType(DjangoObjectType):
     class Meta:
         model = OnlineMethod
         fields = (OnlineMethod.id.field.name, OnlineMethod.certificate_link.field.name)
-
-
-class LanguageCertificateValueNode(DjangoObjectType):
-    class Meta:
-        model = LanguageCertificateValue
-        fields = (
-            LanguageCertificateValue.id.field.name,
-            LanguageCertificateValue.skill.field.name,
-            LanguageCertificateValue.value.field.name,
-        )
 
 
 class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
