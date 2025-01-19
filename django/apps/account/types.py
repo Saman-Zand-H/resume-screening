@@ -688,6 +688,7 @@ class LanguageCertificateValueSkillAIType(DictFieldsObjectType):
         ),
         optional_fields=fields,
         exclude=tuple(),
+        ignore_primary_key=False,
     )
 
 
@@ -702,6 +703,7 @@ class LanguageCertificateTestAIType(DictFieldsObjectType):
         ),
         optional_fields=fields,
         exclude=tuple(),
+        ignore_primary_key=False,
     )
 
 
