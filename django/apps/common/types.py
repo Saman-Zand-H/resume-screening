@@ -206,6 +206,9 @@ class LanguageProficiencySkillNode(DjangoObjectType):
             LanguageProficiencySkill.slug.field.name,
             LanguageProficiencySkill.validator_kwargs.field.name,
         )
+        filter_fields = {
+            LanguageProficiencySkill.id.field.name: [Exact.lookup_name],
+        }
 
 
 class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
@@ -225,7 +228,7 @@ class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
             LanguageProficiencyTest.languages.field.name: [Contains.lookup_name],
         }
 
-    def resolve_skills(self, info):
+    def resolve_skills(self, info, **kwargs):
         return LanguageProficiencySkill.objects.filter(**{LanguageProficiencySkill.test: self})
 
 
