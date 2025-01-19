@@ -7,7 +7,6 @@ from academy.types import CourseNode, CourseResultType
 from common.decorators import login_required
 from common.mixins import ArrayChoiceTypeMixin
 from common.models import (
-    Job,
     LanguageProficiencySkill,
     LanguageProficiencyTest,
 )
@@ -18,7 +17,6 @@ from common.types import (
     FieldType,
     IndustryNode,
     JobBenefitType,
-    JobNode,
     LanguageProficiencySkillNode,
     LanguageProficiencyTestNode,
     SkillType,
