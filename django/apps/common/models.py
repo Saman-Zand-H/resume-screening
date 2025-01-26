@@ -4,6 +4,7 @@ from flex_blob.models import FileModel as BaseFileModel
 from flex_eav.models import EavAttribute
 
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import GinIndex
 from django.core import checks
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -33,6 +34,7 @@ class Industry(models.Model):
     class Meta:
         verbose_name = _("Industry")
         verbose_name_plural = _("Industries")
+        indexes = [GinIndex(fields=["title"], name="industry_title_gin_trgm_ops", opclasses=["gin_trgm_ops"])]
 
     def __str__(self):
         return self.title
@@ -48,6 +50,7 @@ class Job(models.Model):
         verbose_name = _("Job")
         verbose_name_plural = _("Jobs")
         ordering = ("title",)
+        indexes = [GinIndex(fields=["title"], name="job_title_gin_trgm_ops", opclasses=["gin_trgm_ops"])]
 
     def __str__(self):
         return self.title
@@ -59,6 +62,7 @@ class Field(models.Model):
     class Meta:
         verbose_name = _("Field")
         verbose_name_plural = _("Fields")
+        indexes = [GinIndex(fields=["name"], name="field_name_gin_trgm_ops", opclasses=["gin_trgm_ops"])]
 
     def __str__(self):
         return self.name
