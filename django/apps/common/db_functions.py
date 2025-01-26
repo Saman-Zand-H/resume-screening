@@ -1,6 +1,6 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import Func, TextField, Transform
-from django.db.models.fields import CharField, DateField, DateTimeField
+from django.db.models.fields import CharField, DateField, DateTimeField, FloatField
 from django.db.models.functions.datetime import (
     ExtractDay,
     ExtractHour,
@@ -13,6 +13,17 @@ from django.db.models.functions.datetime import (
     ExtractWeekDay,
     ExtractYear,
 )
+
+
+class Sigmoid(Func):
+    function = "SIGMOID"
+    template = "1 / (1 + EXP(-%(steepness)s * (%(expressions)s - %(midpoint)s)))"
+    output_field = FloatField()
+
+    def __init__(self, expression, steepness=1.0, midpoint=0.0, **extra):
+        super().__init__(expression, **extra)
+        self.extra["steepness"] = steepness
+        self.extra["midpoint"] = midpoint
 
 
 class GetKeysByValue(Func):

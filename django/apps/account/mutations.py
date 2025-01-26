@@ -327,46 +327,12 @@ class RegisterOrganization(RegisterBase):
     EMAIL_RECEIVER_NAME = Organization.name.field.name
 
     @classmethod
-    def mutate(cls, *args, **kwargs):
-        result = super().mutate(*args, **kwargs)
-        if not result.success:
-            return result
-        user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
-        user.registration_type = User.RegistrationType.ORGANIZATION
-        user.save(update_fields=[User.registration_type.field.name])
-        return result
-
-    @classmethod
     def after_mutate(cls, *args, **kwargs):
-        if not (role := Role.objects.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
-            raise GraphQLError(_("Default role not found."))
-
-        user = User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)})
-
-        organization_name = kwargs.get(Organization.name.field.name)
-        organization = Organization.objects.create(
-            **{
-                Organization.name.field.name: organization_name,
-                Organization.user.field.name: user,
-            }
+        Organization.objects.create_organization(
+            kwargs.get(Organization.name.field.name),
+            kwargs.get("website"),
+            user=User.objects.get(**{User.EMAIL_FIELD: kwargs.get(User.EMAIL_FIELD)}),
         )
-        Contact.objects.create(
-            contactable=organization.contactable,
-            type=Contact.Type.WEBSITE.value,
-            value=kwargs.get("website"),
-        )
-
-        try:
-            OrganizationMembership.objects.create(
-                **{
-                    OrganizationMembership.user.field.name: user,
-                    OrganizationMembership.organization.field.name: organization,
-                    OrganizationMembership.role.field.name: role,
-                    OrganizationMembership.invited_by.field.name: user,
-                }
-            )
-        except IntegrityError:
-            raise GraphQLErrorBadRequest(_("Cannot join the organization."))
 
 
 @ratelimit(key="ip", rate="10/m")

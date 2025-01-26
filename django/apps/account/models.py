@@ -51,6 +51,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import ArrayField, IntegerRangeField
+from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.lookups import Overlap
 from django.core import checks
 from django.core.cache import cache
@@ -98,6 +99,7 @@ from .managers import (
     OrganizationInvitationManager,
     ProfileManager,
     UserManager,
+    OrganizationManager,
 )
 from .mixins import EmailVerificationMixin
 from .validators import (
@@ -769,6 +771,7 @@ class Profile(ComputedFieldsModel):
     class Meta:
         verbose_name = _("User Profile")
         verbose_name_plural = _("User Profiles")
+        indexes = [GinIndex(fields=["raw_skills"], name="profile_raw_skills_trgm_ops")]
 
     def __str__(self):
         return self.user.email
@@ -1055,10 +1058,8 @@ class Education(DocumentAbstract, HasDurationMixin):
     class Meta:
         verbose_name = _("Education")
         verbose_name_plural = _("Educations")
-        ordering = [
-            "end",
-            "start",
-        ]
+        ordering = ["end", "start"]
+        indexes = [GinIndex(fields=["degree"], opclasses=["gin_trgm_ops"], name="education_degree_gin_trgm_ops")]
 
     def __str__(self):
         return f"{self.user}"
@@ -1179,9 +1180,11 @@ class WorkExperience(DocumentAbstract, HasDurationMixin):
     class Meta:
         verbose_name = _("Work Experience")
         verbose_name_plural = _("Work Experiences")
-        ordering = [
-            "end",
-            "start",
+        ordering = ["end", "start"]
+        indexes = [
+            GinIndex(fields=["grade"], opclasses=["gin_trgm_ops"], name="work_experience_grade_ops"),
+            GinIndex(fields=["skills"], name="work_experience_skills_ops"),
+            GinIndex(fields=["job_title"], opclasses=["gin_trgm_ops"], name="work_experience_job_title_ops"),
         ]
 
     def __str__(self):
@@ -1450,9 +1453,8 @@ class CertificateAndLicense(DocumentAbstract, HasDurationMixin):
     class Meta:
         verbose_name = _("Certificate And License")
         verbose_name_plural = _("Certificates And Licenses")
-        ordering = [
-            "issued_at",
-        ]
+        ordering = ["issued_at"]
+        indexes = [GinIndex(fields=["title"], opclasses=["gin_trgm_ops"], name="certificate_title_gin_trgm_ops")]
 
     def __str__(self):
         return f"{self.user.email} - {self.title}"
@@ -1606,6 +1608,7 @@ class Resume(models.Model):
     class Meta:
         verbose_name = _("Resume")
         verbose_name_plural = _("Resumes")
+        indexes = [GinIndex(fields=["resume_json"], opclasses=["jsonb_path_ops"], name="resume_json_gin_jsonb_ops")]
 
     def __str__(self):
         return self.user.email
@@ -1863,6 +1866,8 @@ class Organization(DocumentAbstract):
     allow_self_verification = None
     employees = models.ManyToManyField(User, through="OrganizationEmployee", related_name="employee_organizations")
 
+    objects: OrganizationManager = OrganizationManager()
+
     class Meta:
         verbose_name = _("Organization")
         verbose_name_plural = _("Organizations")
@@ -1887,6 +1892,18 @@ class Organization(DocumentAbstract):
             return
 
         return accessor.filter(**{OrganizationMembership.user.field.name: user}).first()
+
+    def activate_login(self):
+        from graphql_auth.models import UserStatus, UserAlreadyVerifiedError
+        from graphql_auth.signals import user_verified as user_verified_signal
+
+        user_status = UserStatus.objects.get_or_create(user=self.user)[0]
+        if user_status.verified is False:
+            user_status.verified = True
+            user_status.save(update_fields=["verified"])
+            user_verified_signal.send(sender=self.__class__, user=self.user)
+        else:
+            raise UserAlreadyVerifiedError
 
 
 class OrganizationVerificationMethodAbstract(DocumentVerificationMethodAbstract):
