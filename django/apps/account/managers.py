@@ -1,3 +1,5 @@
+from typing import Optional
+
 from common.db_functions import ArrayDifference, DateTimeAge, GetKeysByValue
 from common.utils import fj
 
@@ -7,7 +9,10 @@ from django.db import models
 from django.db.models.functions import JSONObject, Now
 from django.db.models.functions.datetime import ExtractDay, ExtractYear, TruncDate
 from django.db.models.lookups import In, IsNull, LessThan
+from django.forms import ValidationError
+from django.utils.translation import gettext_lazy as _
 
+from .choices import DefaultRoles
 from .constants import (
     ORGANIZATION_INVITATION_EXPIRY_DELTA,
     STAGE_ANNOTATIONS,
@@ -256,6 +261,49 @@ class UserManager(BaseUserManager):
 
         kwargs.setdefault(fj(User.username), kwargs.get(self.model.USERNAME_FIELD))
         return super().create_superuser(**kwargs)
+
+
+class OrganizationManager(models.Manager):
+    def create_organization(self, name: str, website: str, **kwargs):
+        from .models import Contact, Organization, OrganizationMembership, Role, User
+
+        if not (role := Role.objects.filter(**{Role.slug.field.name: DefaultRoles.OWNER}).first()):
+            raise ValidationError(_("Default role not found."))
+
+        user: Optional[User] = kwargs.pop("user", None)
+        email = kwargs.pop("email", None)
+        password = kwargs.pop("password", None)
+
+        if not (user or (email and password)):
+            raise ValidationError("Either user or email and password must be provided")
+
+        if not user:
+            user = User.objects.create_user(email=email, password=password)
+
+        user.registration_type = User.RegistrationType.ORGANIZATION
+        user.save(update_fields=[User.registration_type.field.name])
+
+        organization = Organization.objects.create(
+            **{
+                Organization.name.field.name: name,
+                Organization.user.field.name: user,
+            }
+        )
+        Contact.objects.create(
+            contactable=organization.contactable,
+            type=Contact.Type.WEBSITE.value,
+            value=website,
+        )
+
+        OrganizationMembership.objects.create(
+            **{
+                OrganizationMembership.user.field.name: user,
+                OrganizationMembership.organization.field.name: organization,
+                OrganizationMembership.role.field.name: role,
+            }
+        )
+
+        return organization
 
 
 class OrganizationInvitationManager(models.Manager):
