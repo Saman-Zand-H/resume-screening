@@ -4,20 +4,25 @@ from operator import itemgetter
 import graphene
 from academy.mixins import CourseUserContextMixin
 from academy.types import CourseNode, CourseResultType
+from common.decorators import login_required
 from common.mixins import ArrayChoiceTypeMixin
-from common.models import Job
+from common.models import (
+    LanguageProficiencySkill,
+    LanguageProficiencyTest,
+)
 from common.types import (
     BaseFileModelType,
     CityNode,
+    DictFieldsObjectType,
     FieldType,
     IndustryNode,
     JobBenefitType,
-    JobNode,
+    LanguageProficiencySkillNode,
+    LanguageProficiencyTestNode,
     SkillType,
     UniversityNode,
 )
 from common.utils import fj
-from common.decorators import login_required
 from criteria.mixins import JobAssessmentUserContextMixin
 from criteria.models import JobAssessment
 from criteria.types import JobAssessmentFilterInput, JobAssessmentType
@@ -27,6 +32,7 @@ from graphene_django.converter import (
     convert_choices_to_named_enum_with_descriptions,
 )
 from graphene_django.filter import DjangoFilterConnectionField
+from graphene_django_cud.mutations.create import get_input_fields_for_model
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 from graphql_auth.queries import CountableConnection
 from graphql_auth.queries import UserNode as BaseUserNode
@@ -49,7 +55,6 @@ from django.db.models.lookups import (
     Exact,
     GreaterThanOrEqual,
     IContains,
-    In,
     IsNull,
     LessThanOrEqual,
 )
@@ -137,7 +142,32 @@ class ContactType(DjangoObjectType):
         )
 
 
+class CommunicationMethodType(DjangoObjectType):
+    class Meta:
+        model = CommunicationMethod
+        fields = (
+            CommunicationMethod.id.field.name,
+            CommunicationMethod.website.field.name,
+            CommunicationMethod.email.field.name,
+            CommunicationMethod.department.field.name,
+            CommunicationMethod.person.field.name,
+            CommunicationMethod.degree_file.field.name,
+        )
+
+
+class IEEMethodType(DjangoObjectType):
+    class Meta:
+        model = IEEMethod
+        fields = (
+            IEEMethod.id.field.name,
+            IEEMethod.education_evaluation_document.field.name,
+        )
+
+
 class JobSeekerEducationType(DjangoObjectType):
+    communicationmethod = graphene.Field(CommunicationMethodType)
+    ieemethod = graphene.Field(IEEMethodType)
+
     class Meta:
         model = Education
         fields = (
@@ -149,8 +179,13 @@ class JobSeekerEducationType(DjangoObjectType):
             Education.start.field.name,
             Education.end.field.name,
             Education.status.field.name,
-            *(m.get_related_name() for m in Education.get_method_models()),
         )
+
+    def resolve_communicationmethod(self, info):
+        return CommunicationMethod.objects.filter(**{fj(CommunicationMethod.education): self}).first()
+
+    def resolve_ieemethod(self, info):
+        return IEEMethod.objects.filter(**{fj(IEEMethod.education): self}).first()
 
 
 class JobSeekerWorkExperienceType(DjangoObjectType):
@@ -170,17 +205,21 @@ class JobSeekerWorkExperienceType(DjangoObjectType):
 
 
 class JobSeekerLanguageCertificateType(DjangoObjectType):
+    test = graphene.Field(LanguageProficiencyTestNode)
+
     class Meta:
         model = LanguageCertificate
         fields = (
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
-            LanguageCertificate.test.field.name,
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.status.field.name,
             *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
+
+    def resolve_test(self, info):
+        return self.test
 
 
 class JobSeekerCertificateAndLicenseType(DjangoObjectType):
@@ -363,7 +402,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
         convert_choice_field_to_enum(Profile.job_location_type_exclude.field.base_field),
         source=Profile.job_location_type.fget.__name__,
     )
-    available_jobs = DjangoFilterConnectionField(JobNode)
 
     class Meta:
         model = Profile
@@ -396,27 +434,6 @@ class ProfileType(ArrayChoiceTypeMixin, DjangoObjectType):
     def resolve_contacts(self, info):
         return self.contactable.contacts.all()
 
-    def resolve_available_jobs(self, info, **kwargs):
-        return (
-            JobNode.get_queryset(JobNode._meta.model.objects.all(), info)
-            .annotate(
-                _priority=Case(
-                    When(
-                        **{
-                            fj(
-                                Job._meta.pk.attname,
-                                In.lookup_name,
-                            ): self.available_jobs.values(Job._meta.pk.attname)
-                        },
-                        then=Value(1),
-                    ),
-                    default=Value(2),
-                    output_field=IntegerField(),
-                )
-            )
-            .order_by("_priority", Job.order.field.name, Job.title.field.name)
-        )
-
 
 class EducationMethodFieldTypes(graphene.ObjectType):
     method = graphene.String()
@@ -424,6 +441,9 @@ class EducationMethodFieldTypes(graphene.ObjectType):
 
 
 class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
+    communicationmethod = graphene.Field(CommunicationMethodType)
+    ieemethod = graphene.Field(IEEMethodType)
+
     class Meta:
         model = Education
         use_connection = True
@@ -439,56 +459,57 @@ class EducationNode(FilterQuerySetByUserMixin, DjangoObjectType):
             Education.created_at.field.name,
             Education.updated_at.field.name,
             Education.allow_self_verification.field.name,
-            *(m.get_related_name() for m in Education.get_method_models()),
         )
 
+    def resolve_communicationmethod(self, info):
+        return CommunicationMethod.objects.filter(**{fj(CommunicationMethod.education): self}).first()
 
-class EducationAIType(graphene.ObjectType):
+    def resolve_ieemethod(self, info):
+        return IEEMethod.objects.filter(**{fj(IEEMethod.education): self}).first()
+
+
+class EducationAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        Education,
+        fields=(
+            fields := (
+                Education.degree.field.name,
+                Education.start.field.name,
+                Education.end.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
+
     field = graphene.Field(FieldType)
-    degree = graphene.Field(convert_choice_field_to_enum(Education.degree.field))
     university = graphene.Field(UniversityNode)
     city = graphene.Field(CityNode)
-    start = graphene.String()
-    end = graphene.String()
-
-    def resolve_degree(self, info):
-        return (self.get("degree") or "").upper() or None
 
 
-class IEEMethodType(DjangoObjectType):
-    class Meta:
-        model = IEEMethod
-        fields = (
-            IEEMethod.id.field.name,
-            IEEMethod.education_evaluation_document.field.name,
-        )
+class IEEMethodAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        IEEMethod,
+        fields=(fields := (IEEMethod.evaluator.field.name,)),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
 
 
-class IEEMethodAIType(graphene.ObjectType):
-    evaluator = graphene.Field(convert_choice_field_to_enum(IEEMethod.evaluator.field))
-
-    def resolve_evaluator(self, info):
-        return (self.get("evaluator") or "").upper() or None
-
-
-class CommunicationMethodType(DjangoObjectType):
-    class Meta:
-        model = CommunicationMethod
-        fields = (
-            CommunicationMethod.id.field.name,
-            CommunicationMethod.website.field.name,
-            CommunicationMethod.email.field.name,
-            CommunicationMethod.department.field.name,
-            CommunicationMethod.person.field.name,
-            CommunicationMethod.degree_file.field.name,
-        )
-
-
-class CommunicationMethodAIType(graphene.ObjectType):
-    website = graphene.String()
-    email = graphene.String()
-    department = graphene.String()
-    person = graphene.String()
+class CommunicationMethodAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        CommunicationMethod,
+        fields=(
+            fields := (
+                CommunicationMethod.website.field.name,
+                CommunicationMethod.email.field.name,
+                CommunicationMethod.department.field.name,
+                CommunicationMethod.person.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
 
 
 class EducationVerificationMethodType(graphene.Union):
@@ -526,35 +547,41 @@ class WorkExperienceNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class WorkExperienceAIType(graphene.ObjectType):
-    job_title = graphene.String()
-    grade = graphene.Field(convert_choice_field_to_enum(WorkExperience.grade.field))
-    start = graphene.String()
-    end = graphene.String()
-    organization = graphene.String()
+class WorkExperienceAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        WorkExperience,
+        fields=(
+            fields := (
+                WorkExperience.job_title.field.name,
+                WorkExperience.grade.field.name,
+                WorkExperience.start.field.name,
+                WorkExperience.end.field.name,
+                WorkExperience.organization.field.name,
+                WorkExperience.skills.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
+
     city = graphene.Field(CityNode)
     industry = graphene.Field(IndustryNode)
-    skills = graphene.String()
-
-    def resolve_grade(self, info):
-        return (self.get("grade") or "").upper() or None
 
 
-class EmployerLetterMethodType(DjangoObjectType):
-    class Meta:
-        model = EmployerLetterMethod
-        fields = (
-            EmployerLetterMethod.id.field.name,
-            EmployerLetterMethod.employer_letter.field.name,
-            ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
-        )
-
-
-class EmployerLetterMethodAIType(graphene.ObjectType):
-    name = graphene.String()
-    email = graphene.String()
-    phone_number = graphene.String()
-    position = graphene.String()
+class ReferenceCheckEmployerAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        ReferenceCheckEmployer,
+        fields=(
+            fields := (
+                ReferenceCheckEmployer.name.field.name,
+                ReferenceCheckEmployer.email.field.name,
+                ReferenceCheckEmployer.phone_number.field.name,
+                ReferenceCheckEmployer.position.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
 
 
 class PaystubsMethodType(DjangoObjectType):
@@ -582,58 +609,130 @@ class ReferenceCheckEmployerType(DjangoObjectType):
         )
 
 
+class EmployerLetterMethodType(DjangoObjectType):
+    employers = graphene.List(ReferenceCheckEmployerType)
+
+    class Meta:
+        model = EmployerLetterMethod
+        fields = (
+            EmployerLetterMethod.id.field.name,
+            EmployerLetterMethod.employer_letter.field.name,
+            ReferenceCheckEmployer.work_experience_verification.field.related_query_name(),
+        )
+
+    def resolve_employers(self, info):
+        return ReferenceCheckEmployer.objects.filter(**{fj(ReferenceCheckEmployer.work_experience_verification): self})
+
+
 class WorkExperienceVerificationMethodType(graphene.Union):
     class Meta:
-        types = (EmployerLetterMethodAIType, PaystubsMethodAIType)
+        types = (ReferenceCheckEmployerAIType, PaystubsMethodAIType)
 
     def resolve_type(self, info):
         model = getattr(info.context, "model", None)
         if model == PaystubsFile:
             return PaystubsMethodAIType
         elif model == EmployerLetterFile:
-            return EmployerLetterMethodAIType
+            return ReferenceCheckEmployerAIType
         return None
 
 
+class LanguageCertificateValueNode(DjangoObjectType):
+    skill = graphene.Field(LanguageProficiencySkillNode)
+
+    class Meta:
+        model = LanguageCertificateValue
+        fields = (
+            LanguageCertificateValue.id.field.name,
+            LanguageCertificateValue.value.field.name,
+        )
+
+    def resolve_skill(self, info):
+        return self.skill
+
+
 class LanguageCertificateNode(FilterQuerySetByUserMixin, DjangoObjectType):
+    test = graphene.Field(LanguageProficiencyTestNode)
+    values = graphene.List(LanguageCertificateValueNode)
+
     class Meta:
         model = LanguageCertificate
         use_connection = True
         fields = (
             LanguageCertificate.id.field.name,
             LanguageCertificate.language.field.name,
-            LanguageCertificate.test.field.name,
             LanguageCertificate.status.field.name,
             LanguageCertificate.issued_at.field.name,
             LanguageCertificate.expired_at.field.name,
             LanguageCertificate.allow_self_verification.field.name,
             LanguageCertificate.status.field.name,
-            LanguageCertificateValue.language_certificate.field.related_query_name(),
             *(m.get_related_name() for m in LanguageCertificate.get_method_models()),
         )
 
+    def resolve_test(self, info):
+        return self.test
 
-class LanguageCertificateValueSkillAIType(graphene.ObjectType):
-    id = graphene.ID()
-    slug = graphene.String()
-    skill_name = graphene.String()
+    def resolve_values(self, info):
+        return LanguageCertificateValue.objects.filter(**{fj(LanguageCertificateValue.language_certificate): self})
 
 
-class LanguageCertificateValueAIType(graphene.ObjectType):
+class LanguageCertificateValueSkillAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        LanguageProficiencySkill,
+        fields=(
+            fields := (
+                LanguageProficiencySkill.id.field.name,
+                LanguageProficiencySkill.slug.field.name,
+                LanguageProficiencySkill.skill_name.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+        ignore_primary_key=False,
+    )
+
+
+class LanguageCertificateTestAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        LanguageProficiencyTest,
+        fields=(
+            fields := (
+                LanguageProficiencyTest.id.field.name,
+                LanguageProficiencyTest.title.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+        ignore_primary_key=False,
+    )
+
+
+class LanguageCertificateValueAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        LanguageCertificateValue,
+        fields=(fields := (LanguageCertificateValue.value.field.name,)),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
+
     skill = graphene.Field(LanguageCertificateValueSkillAIType)
-    value = graphene.String()
 
 
-class LanguageCertificateTypeAIType(graphene.ObjectType):
-    id = graphene.ID()
-    title = graphene.String()
+class LanguageCertificateAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        LanguageCertificate,
+        fields=(
+            fields := (
+                LanguageCertificate.language.field.name,
+                LanguageCertificate.issued_at.field.name,
+                LanguageCertificate.expired_at.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
 
-
-class LanguageCertificateAIType(graphene.ObjectType):
-    language = graphene.Field(convert_choice_field_to_enum(LanguageCertificate.language.field))
-    test = graphene.Field(LanguageCertificateTypeAIType)
-    issued_at = graphene.Date()
-    expired_at = graphene.Date()
+    test = graphene.Field(LanguageCertificateTestAIType)
     values = graphene.List(LanguageCertificateValueAIType)
 
 
@@ -647,16 +746,6 @@ class LanguageCertificateOnlineVerificationMethodType(DjangoObjectType):
     class Meta:
         model = OnlineMethod
         fields = (OnlineMethod.id.field.name, OnlineMethod.certificate_link.field.name)
-
-
-class LanguageCertificateValueNode(DjangoObjectType):
-    class Meta:
-        model = LanguageCertificateValue
-        fields = (
-            LanguageCertificateValue.id.field.name,
-            LanguageCertificateValue.skill.field.name,
-            LanguageCertificateValue.value.field.name,
-        )
 
 
 class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
@@ -675,11 +764,20 @@ class CertificateAndLicenseNode(FilterQuerySetByUserMixin, DjangoObjectType):
         )
 
 
-class CertificateAndLicenseAIType(graphene.ObjectType):
-    title = graphene.String()
-    certifier = graphene.String()
-    issued_at = graphene.Date()
-    expired_at = graphene.Date()
+class CertificateAndLicenseAIType(DictFieldsObjectType):
+    dict_fields = get_input_fields_for_model(
+        CertificateAndLicense,
+        fields=(
+            fields := (
+                CertificateAndLicense.title.field.name,
+                CertificateAndLicense.certifier.field.name,
+                CertificateAndLicense.issued_at.field.name,
+                CertificateAndLicense.expired_at.field.name,
+            )
+        ),
+        optional_fields=fields,
+        exclude=tuple(),
+    )
 
 
 class CertificateAndLicenseOfflineVerificationMethodType(DjangoObjectType):
@@ -1482,6 +1580,7 @@ class UserNode(BaseUserNode):
     notifications = graphene.List(InAppNotificationNode)
     job_position_assignments = DjangoFilterConnectionField(JobSeekerJobPositionAssignmentNode)
     current_employement = graphene.Field(JobSeekerEmployeeType)
+    support_tickets = graphene.List(SupportTicketType)
 
     class Meta:
         model = User
@@ -1495,7 +1594,6 @@ class UserNode(BaseUserNode):
             CanadaVisa.user.field.related_query_name(),
             Referral.user.field.related_query_name(),
             Resume.user.field.related_query_name(),
-            SupportTicket.user.field.related_query_name(),
             UserTask.user.field.related_query_name(),
             OrganizationMembership.user.field.related_query_name(),
         )
@@ -1537,3 +1635,6 @@ class UserNode(BaseUserNode):
 
     def resolve_current_employement(self, info):
         return self.organization_employees.filter(cooperations__end_at__isnull=True).latest("cooperations__created_at")
+
+    def resolve_support_tickets(self, info, **kwargs):
+        return SupportTicket.objects.filter(**{fj(SupportTicket.user): self}).order_by(f"-{fj(SupportTicket.created)}")

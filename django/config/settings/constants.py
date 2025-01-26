@@ -9,7 +9,6 @@ class Environment(Enum):
 
 
 class Assistants:
-    JOB = "get-available-jobs"
     SKILL = "get-or-create-skills"
     FIND_RELATIVE_SKILLS = "find-relative-skills"
     RESUME_JSON = "get-resume-json"

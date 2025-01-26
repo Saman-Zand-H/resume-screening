@@ -9,6 +9,7 @@ from cities_light.graphql.types import SubRegion as SubRegionTypeBase
 from cities_light.models import City, Country, Region, SubRegion
 from flex_blob.models import FileModel as BaseFileModel
 from graphene_django.converter import convert_choices_to_named_enum_with_descriptions
+from graphene_django.filter import DjangoFilterConnectionField
 from graphene_django_optimizer import OptimizedDjangoObjectType as DjangoObjectType
 
 from common.utils import fj
@@ -195,23 +196,6 @@ class CityNode(DjangoObjectType):
         }
 
 
-class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
-    class Meta:
-        model = LanguageProficiencyTest
-        use_connection = True
-        fields = (
-            LanguageProficiencyTest.id.field.name,
-            LanguageProficiencyTest.title.field.name,
-            LanguageProficiencyTest.languages.field.name,
-            LanguageProficiencySkill.test.field.related_query_name(),
-        )
-        filter_fields = {
-            LanguageProficiencyTest.id.field.name: [Exact.lookup_name],
-            LanguageProficiencyTest.title.field.name: [IContains.lookup_name],
-            LanguageProficiencyTest.languages.field.name: [Contains.lookup_name],
-        }
-
-
 class LanguageProficiencySkillNode(DjangoObjectType):
     class Meta:
         model = LanguageProficiencySkill
@@ -222,6 +206,30 @@ class LanguageProficiencySkillNode(DjangoObjectType):
             LanguageProficiencySkill.slug.field.name,
             LanguageProficiencySkill.validator_kwargs.field.name,
         )
+        filter_fields = {
+            LanguageProficiencySkill.id.field.name: [Exact.lookup_name],
+        }
+
+
+class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
+    skills = DjangoFilterConnectionField(LanguageProficiencySkillNode)
+
+    class Meta:
+        model = LanguageProficiencyTest
+        use_connection = True
+        fields = (
+            LanguageProficiencyTest.id.field.name,
+            LanguageProficiencyTest.title.field.name,
+            LanguageProficiencyTest.languages.field.name,
+        )
+        filter_fields = {
+            LanguageProficiencyTest.id.field.name: [Exact.lookup_name],
+            LanguageProficiencyTest.title.field.name: [IContains.lookup_name],
+            LanguageProficiencyTest.languages.field.name: [Contains.lookup_name],
+        }
+
+    def resolve_skills(self, info, **kwargs):
+        return LanguageProficiencySkill.objects.filter(**{LanguageProficiencySkill.test.field.name: self})
 
 
 class SkillNode(DjangoObjectType):

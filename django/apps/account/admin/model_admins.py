@@ -207,7 +207,6 @@ class ProfileAdmin(ExportMixin, admin.ModelAdmin):
         Profile.skills.field.name,
         Profile.city.field.name,
         Profile.job_cities.field.name,
-        Profile.available_jobs.field.name,
         Profile.contactable.field.name,
     )
     raw_id_fields = (
