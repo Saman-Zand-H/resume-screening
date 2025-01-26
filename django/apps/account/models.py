@@ -99,6 +99,7 @@ from .managers import (
     OrganizationInvitationManager,
     ProfileManager,
     UserManager,
+    OrganizationManager,
 )
 from .mixins import EmailVerificationMixin
 from .validators import (
@@ -1865,6 +1866,8 @@ class Organization(DocumentAbstract):
     allow_self_verification = None
     employees = models.ManyToManyField(User, through="OrganizationEmployee", related_name="employee_organizations")
 
+    objects: OrganizationManager = OrganizationManager()
+
     class Meta:
         verbose_name = _("Organization")
         verbose_name_plural = _("Organizations")
@@ -1889,6 +1892,18 @@ class Organization(DocumentAbstract):
             return
 
         return accessor.filter(**{OrganizationMembership.user.field.name: user}).first()
+
+    def activate_login(self):
+        from graphql_auth.models import UserStatus, UserAlreadyVerifiedError
+        from graphql_auth.signals import user_verified as user_verified_signal
+
+        user_status = UserStatus.objects.get_or_create(user=self.user)[0]
+        if user_status.verified is False:
+            user_status.verified = True
+            user_status.save(update_fields=["verified"])
+            user_verified_signal.send(sender=self.__class__, user=self.user)
+        else:
+            raise UserAlreadyVerifiedError
 
 
 class OrganizationVerificationMethodAbstract(DocumentVerificationMethodAbstract):

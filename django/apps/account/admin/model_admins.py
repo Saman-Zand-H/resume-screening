@@ -5,14 +5,18 @@ from common.utils import fj
 from graphql_auth.models import UserStatus
 from import_export.admin import ExportMixin
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin import register
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.contrib.contenttypes.admin import GenericStackedInline
 from django.db.models import QuerySet
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from ..forms import UserChangeForm
+from ..forms import OrganizationUserCreationForm, UserChangeForm
 from ..models import (
     Access,
     CanadaVisa,
@@ -607,12 +611,12 @@ class OrganizationRolesGenericInline(GenericStackedInline):
 
 @register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
+    change_list_template = "admin/auth_account/organization/change_list.html"
     list_display = (
         Organization.name.field.name,
         Organization.user.field.name,
         Organization.type.field.name,
         Organization.city.field.name,
-        Organization.user.field.name,
         Organization.verified_at.field.name,
     )
     search_fields = (
@@ -628,6 +632,53 @@ class OrganizationAdmin(admin.ModelAdmin):
         Organization.user.field.name,
     )
     inlines = (OrganizationRolesGenericInline,)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "create-organization/",
+                self.admin_site.admin_view(self.create_organization_view),
+                name="create-organization",
+            ),
+        ]
+        return custom_urls + urls
+
+    def create_organization_view(self, request):
+        if request.method == "POST":
+            form = OrganizationUserCreationForm(request.POST)
+            if form.is_valid():
+                organization: Organization = Organization.objects.create_organization(
+                    form.cleaned_data["name"],
+                    form.cleaned_data["website"],
+                    email=form.cleaned_data["email"],
+                    password=form.cleaned_data["password"],
+                )
+                organization.activate_login()
+
+                self.message_user(
+                    request,
+                    _(f"Organization '{organization.name}' created successfully"),
+                    level=messages.SUCCESS,
+                )
+                return HttpResponseRedirect(reverse("admin:auth_account_organization_change", args=[organization.pk]))
+        else:
+            form = OrganizationUserCreationForm()
+
+        context = {
+            "form": form,
+            "opts": self.model._meta,
+            "title": "Create Organization with User",
+        }
+        return render(request, "admin/auth_account/organization/create_organization.html", context)
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["create_organization_button"] = format_html(
+            '<a href="{}" class="button addlink">Create Organization</a>', reverse("admin:create-organization")
+        )
+
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 @register(OrganizationMembership)
