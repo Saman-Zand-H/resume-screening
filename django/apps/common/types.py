@@ -229,7 +229,7 @@ class LanguageProficiencyTestNode(ArrayChoiceTypeMixin, DjangoObjectType):
         }
 
     def resolve_skills(self, info, **kwargs):
-        return LanguageProficiencySkill.objects.filter(**{fj(LanguageProficiencySkill.test): self})
+        return LanguageProficiencySkill.objects.filter(**{LanguageProficiencySkill.test: self})
 
 
 class SkillNode(DjangoObjectType):
