@@ -1,6 +1,7 @@
 import contextlib
 import json
 from collections import defaultdict
+from datetime import datetime
 from itertools import chain
 from operator import attrgetter
 from typing import List, Literal, Optional
@@ -17,7 +18,7 @@ from google.genai import types
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.expressions import ArraySubquery
 from django.db import transaction
-from django.db.models import F, OuterRef, Subquery
+from django.db.models import F, OuterRef, Subquery, TextChoices
 from django.db.models.functions import JSONObject
 from django.db.models.lookups import IContains, IExact, In
 
@@ -337,6 +338,20 @@ def extract_or_create_skills(raw_skills: List[str], resume_json, **additional_in
             return skills
 
     return Skill.objects.none()
+
+
+def normalize_analyze_document_output_value(val):
+    if isinstance(val, TextChoices):
+        return val.value
+
+    if isinstance(val, str):
+        for fmt in ("%Y-%m-%d", "%Y-%m"):
+            try:
+                return datetime.strptime(val, fmt)
+            except ValueError:
+                continue
+
+    return val
 
 
 class IDLikeObject:

@@ -138,7 +138,7 @@ from .types import (
     WorkExperienceNode,
     WorkExperienceVerificationMethodType,
 )
-from .utils import analyze_document, set_user_skills
+from .utils import analyze_document, normalize_analyze_document_output_value, set_user_skills
 from .validators import EmailCallbackURLValidator
 from .views import GoogleOAuth2View, LinkedInOAuth2View
 
@@ -964,6 +964,15 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
         return cls.FILE_MODEL_MAPPING.get(verification_type.value if verification_type else cls.FILE_SLUG)
 
     @classmethod
+    def normalize_response(cls, response):
+        response_dict = response.model_dump()
+        response_dict["data"] = {
+            key: normalize_analyze_document_output_value(value)
+            for key, value in (response_dict.get("data") or {}).items()
+        }
+        return response_dict
+
+    @classmethod
     @ratelimit(key="user", rate="4/m")
     def mutate(cls, root, info, file_id, verification_type=None):
         file_model = cls.get_file_model(verification_type)
@@ -976,8 +985,7 @@ class BaseAnalyseAndExtractDataMutation(graphene.Mutation):
 
         info.context.model = file_model
         response = analyze_document(obj.pk, verification_type.value if verification_type else cls.FILE_SLUG)
-
-        return cls(**response.model_dump())
+        return cls(**cls.normalize_response(response))
 
 
 class EducationAnalyseAndExtractDataMutation(BaseAnalyseAndExtractDataMutation):
