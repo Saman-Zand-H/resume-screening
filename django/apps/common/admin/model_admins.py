@@ -1,7 +1,9 @@
+from flex_eav.eav_validator import ValidatorBase
 from flex_report.defaults.admin import TemplateAdmin as BaseTemplateAdmin
 from flex_report.defaults.views import TemplateDeleteView
 from import_export.admin import ImportExportMixin
 
+from common.utils import get_all_subclasses
 from django.contrib import admin
 from django.urls import path
 
@@ -160,18 +162,22 @@ class LanguageProficiencySkillAdmin(ImportExportMixin, admin.ModelAdmin):
     )
     autocomplete_fields = (LanguageProficiencySkill.test.field.name,)
 
-    def get_form(self, request, obj: LanguageProficiencySkill = ..., change=..., **kwargs):
-        validators_help_text = "<br /><hr />".join(
+    def get_form(self, *args, **kwargs):
+        validators = get_all_subclasses(ValidatorBase)
+
+        validators_help_text = "<br /><br />".join(
             map(
                 lambda validator: (
                     f"{validator.slug}: {validator.help_text}"
                     f"<br />kwargs: {validator.get_instance_kwargs(validator.__init__)}"
                 ),
-                obj.get_validator_instances(),
+                validators,
             )
         )
+
         kwargs.update(help_texts={fj(LanguageProficiencySkill.validators): validators_help_text})
-        return super().get_form(request, obj, change, **kwargs)
+
+        return super().get_form(*args, **kwargs)
 
 
 @admin.register(JobBenefit)
