@@ -3,19 +3,31 @@
 from django.db import migrations, models
 
 
-class Migration(migrations.Migration):
+def delete_whatsapp_campaign_notification_types(apps, schema_editor):
+    from common.utils import fj
 
+    from ..models import CampaignNotificationType
+
+    CampaignNotificationType.objects.filter(**{fj(CampaignNotificationType.notification_type): "whatsapp"}).delete()
+
+
+class Migration(migrations.Migration):
     dependencies = [
-        ('notification', '0017_remove_campaign_crontab_last_run'),
+        ("notification", "0017_remove_campaign_crontab_last_run"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='campaignnotificationtype',
-            name='notification_type',
-            field=models.CharField(choices=[('email', 'Email'), ('sms', 'SMS'), ('push', 'Push'), ('in_app', 'In-App')], max_length=10, verbose_name='Notification Type'),
+            model_name="campaignnotificationtype",
+            name="notification_type",
+            field=models.CharField(
+                choices=[("email", "Email"), ("sms", "SMS"), ("push", "Push"), ("in_app", "In-App")],
+                max_length=10,
+                verbose_name="Notification Type",
+            ),
         ),
         migrations.DeleteModel(
-            name='WhatsAppNotification',
+            name="WhatsAppNotification",
         ),
+        migrations.RunPython(delete_whatsapp_campaign_notification_types, migrations.RunPython.noop),
     ]
