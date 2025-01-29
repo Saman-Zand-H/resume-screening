@@ -21,7 +21,7 @@ from .models import (
 
 class SavedFilterNames:
     RESUME_UPLOADED_NO_INFORMATION = "Resume Uploaded, No Info Completed"
-    DEGREE_UPLOADED_NOT_VERIFIED = "Degree Uploaded, Not Verified"
+    NO_EDUCATION = "No Education"
     NO_WORK_EXPERIENCE = "No Work Experience"
     NO_CERTIFICATE = "No Certificate"
     NO_LANGUAGE_CERTIFICATE = "No Language Certificate"
@@ -34,8 +34,8 @@ FILTER_TEMPLATE_MAPPER = {
         "body": "notification/populators/resume_uploaded_no_information.html",
         "subject": "Complete CPJ Profile",
     },
-    SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED: {
-        "body": "notification/populators/degree_uploaded_not_verified.html",
+    SavedFilterNames.NO_EDUCATION: {
+        "body": "notification/populators/no_education.html",
         "subject": "Verify Educations on CPJ",
     },
     SavedFilterNames.NO_WORK_EXPERIENCE: {
@@ -131,16 +131,15 @@ class NotificationPopulator(BasePopulator):
                 },
                 data={fj(TemplateSavedFilter.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION},
             ),
-            SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED: UpsertInfo(
+            SavedFilterNames.NO_EDUCATION: UpsertInfo(
                 defaults={
                     fj(TemplateSavedFilter.template): template,
                     fj(TemplateSavedFilter.filters): {
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): False,
                     },
                 },
-                data={fj(TemplateSavedFilter.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED},
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.NO_EDUCATION},
             ),
             SavedFilterNames.NO_WORK_EXPERIENCE: UpsertInfo(
                 defaults={
@@ -148,7 +147,6 @@ class NotificationPopulator(BasePopulator):
                     fj(TemplateSavedFilter.filters): {
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
                         fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): False,
                     },
                 },
@@ -160,7 +158,6 @@ class NotificationPopulator(BasePopulator):
                     fj(TemplateSavedFilter.filters): {
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
                         fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): False,
                     },
@@ -173,7 +170,6 @@ class NotificationPopulator(BasePopulator):
                     fj(TemplateSavedFilter.filters): {
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
                         fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): False,
@@ -187,7 +183,6 @@ class NotificationPopulator(BasePopulator):
                     fj(TemplateSavedFilter.filters): {
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
                         fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): True,
@@ -202,7 +197,6 @@ class NotificationPopulator(BasePopulator):
                     fj(TemplateSavedFilter.filters): {
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
-                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
                         fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): True,
@@ -237,12 +231,12 @@ class NotificationPopulator(BasePopulator):
                     fj(Campaign.max_attempts): 3,
                 },
             ),
-            SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED: UpsertInfo(
+            SavedFilterNames.NO_EDUCATION: UpsertInfo(
                 data={
-                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED),
+                    fj(Campaign.saved_filter): filters.get(SavedFilterNames.NO_EDUCATION),
                 },
                 defaults={
-                    fj(Campaign.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED,
+                    fj(Campaign.title): SavedFilterNames.NO_EDUCATION,
                     fj(Campaign.crontab): "0 0 */4 * *",
                     fj(Campaign.max_attempts): 3,
                 },
