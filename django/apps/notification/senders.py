@@ -317,7 +317,7 @@ def send_campaign_notifications(campaign_id: int, pks=None):
                 extra_dict[PushNotification.title.field.name] = campaign_notification_type.subject.render(context)
 
             if notification_type != NotificationTypes.EMAIL:
-                body = strip_tags(body)
+                extra_dict[Notification.body.field.name] = strip_tags(body)
 
             notifications_kwargs.extend(
                 notification_kwargs | extra_dict
