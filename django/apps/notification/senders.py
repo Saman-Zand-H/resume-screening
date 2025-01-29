@@ -3,7 +3,7 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from itertools import groupby
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Generic, List, Optional, TypeVar
 
 import firebase_admin
 from common.logging import get_logger
@@ -35,7 +35,6 @@ from .models import (
     PushNotification,
     SMSNotification,
     UserPushNotificationToken,
-    WhatsAppNotification,
 )
 from .report_mapper import ReportMapper
 from .types import NotificationType
@@ -139,7 +138,7 @@ class TwilioSender(NotificationSender):
 
     def get_message(
         self,
-        notification: NotificationContext[Union[SMSNotification, WhatsAppNotification]],
+        notification: NotificationContext[SMSNotification],
         from_number: Optional[str] = None,
     ) -> dict:
         return {
@@ -148,13 +147,13 @@ class TwilioSender(NotificationSender):
             "to": self.serialize_phone_number(notification.notification.phone_number.as_e164),
         }
 
-    def send(self, notification: Union[SMSNotification, WhatsAppNotification], from_number: Optional[str] = None):
+    def send(self, notification: SMSNotification, from_number: Optional[str] = None):
         client = self.get_client()
         client.messages.create(**self.get_message(notification, from_number=from_number))
 
     def send_bulk(
         self,
-        *notifications: Union[SMSNotification, WhatsAppNotification],
+        *notifications: SMSNotification,
         from_number: Optional[str] = None,
     ):
         results = []
@@ -176,18 +175,6 @@ class SMSNotificationSender(TwilioSender):
     @classmethod
     def get_default_from_number(cls) -> str:
         return cls.get_setting("PHONE_NUMBER")
-
-
-class WhatsAppNotificationSender(TwilioSender):
-    notification_type = NotificationTypes.WHATSAPP
-
-    @classmethod
-    def serialize_phone_number(cls, phone_number: str) -> str:
-        return f"whatsapp:{phone_number}"
-
-    @classmethod
-    def get_default_from_number(cls) -> str:
-        return cls.get_setting("WHATSAPP_NUMBER")
 
 
 class InAppNotificationSender(NotificationSender):

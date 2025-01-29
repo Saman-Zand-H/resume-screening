@@ -83,53 +83,25 @@ class NotificationPopulator(BasePopulator):
 
         columns_data = [
             UpsertInfo(
-                data={
-                    fj(Column.title): fj(Profile.user, User.first_name),
-                    fj(Column.model): profile_content_type,
-                }
+                data={fj(Column.title): fj(Profile.user, User.first_name), fj(Column.model): profile_content_type}
             ),
             UpsertInfo(
-                data={
-                    fj(Column.title): fj(Profile.user, User.last_name),
-                    fj(Column.model): profile_content_type,
-                }
+                data={fj(Column.title): fj(Profile.user, User.last_name), fj(Column.model): profile_content_type}
+            ),
+            UpsertInfo(data={fj(Column.title): fj(Profile.user, User.email), fj(Column.model): profile_content_type}),
+            UpsertInfo(
+                data={fj(Column.title): fj(Profile.user, User.date_joined), fj(Column.model): profile_content_type}
             ),
             UpsertInfo(
-                data={
-                    fj(Column.title): fj(Profile.user, User.email),
-                    fj(Column.model): profile_content_type,
-                }
+                data={fj(Column.title): fj(Profile.user, User.last_login), fj(Column.model): profile_content_type}
             ),
             UpsertInfo(
-                data={
-                    fj(Column.title): fj(Profile.user, User.date_joined),
-                    fj(Column.model): profile_content_type,
-                }
+                data={fj(Column.title): ProfileAnnotationNames.HAS_RESUME, fj(Column.model): profile_content_type}
             ),
             UpsertInfo(
-                data={
-                    fj(Column.title): fj(Profile.user, User.last_login),
-                    fj(Column.model): profile_content_type,
-                }
+                data={fj(Column.title): ProfileAnnotationNames.STAGE_DATA, fj(Column.model): profile_content_type}
             ),
-            UpsertInfo(
-                data={
-                    fj(Column.title): ProfileAnnotationNames.HAS_RESUME,
-                    fj(Column.model): profile_content_type,
-                }
-            ),
-            UpsertInfo(
-                data={
-                    fj(Column.title): ProfileAnnotationNames.STAGE_DATA,
-                    fj(Column.model): profile_content_type,
-                }
-            ),
-            UpsertInfo(
-                data={
-                    fj(Column.title): ProfileAnnotationNames.AGE,
-                    fj(Column.model): profile_content_type,
-                }
-            ),
+            UpsertInfo(data={fj(Column.title): ProfileAnnotationNames.AGE, fj(Column.model): profile_content_type}),
             UpsertInfo(
                 data={
                     fj(Column.title): fj(Profile.city, City.country, Country.name),
@@ -157,72 +129,84 @@ class NotificationPopulator(BasePopulator):
                         fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): False,
                     },
                 },
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.RESUME_UPLOADED_NO_INFORMATION},
             ),
             SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED: UpsertInfo(
                 defaults={
                     fj(TemplateSavedFilter.template): template,
                     fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): True,
                     },
                 },
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.DEGREE_UPLOADED_NOT_VERIFIED},
             ),
             SavedFilterNames.NO_WORK_EXPERIENCE: UpsertInfo(
                 defaults={
                     fj(TemplateSavedFilter.template): template,
                     fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
                         fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): False,
                     },
                 },
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_WORK_EXPERIENCE,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.NO_WORK_EXPERIENCE},
             ),
             SavedFilterNames.NO_CERTIFICATE: UpsertInfo(
                 defaults={
                     fj(TemplateSavedFilter.template): template,
                     fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
+                        fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): False,
                     },
                 },
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_CERTIFICATE,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.NO_CERTIFICATE},
             ),
             SavedFilterNames.NO_LANGUAGE_CERTIFICATE: UpsertInfo(
                 defaults={
                     fj(TemplateSavedFilter.template): template,
                     fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
+                        fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): False,
                     },
                 },
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_LANGUAGE_CERTIFICATE,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.NO_LANGUAGE_CERTIFICATE},
             ),
             SavedFilterNames.NO_VISA_STATUS: UpsertInfo(
                 defaults={
                     fj(TemplateSavedFilter.template): template,
                     fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
+                        fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_CANADA_VISA, Exact.lookup_name): False,
                     },
                 },
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_VISA_STATUS,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.NO_VISA_STATUS},
             ),
             SavedFilterNames.NO_JOB_INTEREST: UpsertInfo(
-                data={
-                    fj(TemplateSavedFilter.title): SavedFilterNames.NO_JOB_INTEREST,
-                },
+                data={fj(TemplateSavedFilter.title): SavedFilterNames.NO_JOB_INTEREST},
                 defaults={
                     fj(TemplateSavedFilter.filters): {
+                        fj(ProfileAnnotationNames.HAS_PROFILE_INFORMATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_EDUCATION, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_UNVERIFIED_EDUCATION, Exact.lookup_name): False,
+                        fj(ProfileAnnotationNames.HAS_WORK_EXPERIENCE, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_CERTIFICATE, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_LANGUAGE_CERTIFICATE, Exact.lookup_name): True,
+                        fj(ProfileAnnotationNames.HAS_CANADA_VISA, Exact.lookup_name): True,
                         fj(ProfileAnnotationNames.HAS_INTERESTED_JOBS, Exact.lookup_name): False,
                     },
                     fj(TemplateSavedFilter.template): template,

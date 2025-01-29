@@ -19,7 +19,6 @@ from .models import (
     PushNotification,
     SMSNotification,
     UserPushNotificationToken,
-    WhatsAppNotification,
 )
 from .tasks import sync_campaign_scheduler_task
 from .views import CampaginNotifyFailedView, CampaignNotifyAllView, CampaignNotifyView
@@ -212,16 +211,6 @@ class SMSNotificationAdmin(BaseNotificationAdmin):
     ]
     search_fields = BaseNotificationAdmin.search_fields + [
         SMSNotification.phone_number.field.name,
-    ]
-
-
-@admin.register(WhatsAppNotification)
-class WhatsAppNotificationAdmin(BaseNotificationAdmin):
-    list_display = BaseNotificationAdmin.list_display + [
-        WhatsAppNotification.phone_number.field.name,
-    ]
-    search_fields = BaseNotificationAdmin.search_fields + [
-        WhatsAppNotification.phone_number.field.name,
     ]
 
 

@@ -325,19 +325,6 @@ class SMSNotification(Notification):
         return self.phone_number.as_e164
 
 
-class WhatsAppNotification(Notification):
-    notification_type = NotificationTypes.WHATSAPP
-
-    phone_number = PhoneNumberField(verbose_name=_("Phone Number"))
-
-    class Meta:
-        verbose_name = _("WhatsApp Notification")
-        verbose_name_plural = _("WhatsApp Notifications")
-
-    def __str__(self):
-        return self.phone_number.as_e164
-
-
 class DeviceToken(models.Model):
     token = models.CharField(max_length=255, verbose_name=_("Device Token"))
 

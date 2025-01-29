@@ -333,7 +333,6 @@ TWILIO = {
     "API_KEY": os.environ.get("TWILIO_API_KEY"),
     "API_SECRET": os.environ.get("TWILIO_API_SECRET"),
     "PHONE_NUMBER": os.environ.get("TWILIO_PHONE_NUMBER"),
-    "WHATSAPP_NUMBER": os.environ.get("TWILIO_WHATSAPP_NUMBER"),
 }
 
 REPORT_BASE_VIEW = "common.views.FlexBaseView"
