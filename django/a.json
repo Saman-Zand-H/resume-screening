@@ -1,0 +1,456 @@
+{
+    "users": [
+        {
+            "work_experiences": [
+                {
+                    "job_title": "job",
+                    "organization": "Testas",
+                    "start": "2024-12-03",
+                    "end": null,
+                    "city__display_name": "Mariehamn, Mariehamns stad, Aland Islands"
+                }
+            ],
+            "educations": [
+                {
+                    "degree": "masters",
+                    "university__name": "Khatam Al-Nabieen University \u2013 Khatam Al-Nabieen University - Ghazni Branch",
+                    "city": 73181,
+                    "start": "2024-12-17",
+                    "end": "2024-12-26"
+                },
+                {
+                    "degree": "masters",
+                    "university__name": "Khatam Al-Nabieen University \u2013 Khatam Al-Nabieen University - Ghazni Branch",
+                    "city": 7205,
+                    "start": "2024-12-03",
+                    "end": null
+                },
+                {
+                    "degree": "diploma",
+                    "university__name": "Khatam Al-Nabieen University \u2013 Khatam Al-Nabieen University - Ghazni Branch",
+                    "city": 33245,
+                    "start": "2025-01-01",
+                    "end": null
+                }
+            ],
+            "languages": [
+                "af",
+                "sq",
+                "ar",
+                "ca",
+                "ig",
+                "ar-dz"
+            ],
+            "certifications": [
+                {
+                    "certificate_text": null,
+                    "title": "eqwe",
+                    "issued_at": "2025-02-01",
+                    "certifier": "eqweqwe"
+                }
+            ],
+            "language_certificates": [],
+            "skills": [
+                "Python Programming Language",
+                "Javascript",
+                "Python Programming Language",
+                "Javascript"
+            ],
+            "city": "Berrahal, Annaba, Algeria",
+            "country": "Algeria",
+            "gender": "Male",
+            "username": "ali.avani@outlook.com"
+        },
+        {
+            "work_experiences": [
+                {
+                    "job_title": "Backend Developer Intern",
+                    "organization": "GBCS Group",
+                    "start": "2023-12-31",
+                    "end": "2024-03-31",
+                    "city__display_name": "Calgary, Alberta, Canada"
+                }
+            ],
+            "educations": [
+                {
+                    "degree": "masters",
+                    "university__name": "Fairleigh Dickinson University",
+                    "city": 2726,
+                    "start": "2022-12-31",
+                    "end": "2024-06-30"
+                }
+            ],
+            "languages": [
+                "hi",
+                "en"
+            ],
+            "certifications": [],
+            "language_certificates": [
+                {
+                    "test__title": "CELPIP",
+                    "language": "en",
+                    "issued_at": "2024-07-25",
+                    "scores": [
+                        {
+                            "value": "10",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Writing"
+                        },
+                        {
+                            "value": "12",
+                            "skill_name": "Speaking"
+                        },
+                        {
+                            "value": "11",
+                            "skill_name": "Overall"
+                        }
+                    ]
+                }
+            ],
+            "skills": [
+                "Proficiency in Microsoft Office Suite (Excel, Word, etc.)",
+                "Knowledge of banking software (e.g., Finacle, Temenos, or Oracle FLEXCUBE)",
+                "In-depth knowledge of specific banking products (e.g., mortgages, personal loans, business loans)",
+                "Java Programming Language",
+                "Javascript Programming Language",
+                "Python Programming Language",
+                "Css Styling Language",
+                "Html Markup Language",
+                "C Sharp Programming Language",
+                "C Programming Language",
+                "Proficiency in Microsoft Office Suite (Excel, Word, etc.)",
+                "Knowledge of banking software (e.g., Finacle, Temenos, or Oracle FLEXCUBE)",
+                "In-depth knowledge of specific banking products (e.g., mortgages, personal loans, business loans)",
+                "Java Programming Language",
+                "Javascript Programming Language",
+                "Python Programming Language",
+                "Css Styling Language",
+                "Html Markup Language",
+                "C Sharp Programming Language",
+                "C Programming Language"
+            ],
+            "city": "Vancouver, British Columbia, Canada",
+            "country": "Canada",
+            "gender": "Female",
+            "username": "patelkinjal10420@gmail.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [],
+            "languages": [],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [],
+            "username": "moazhusain47@gmail.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [],
+            "languages": [
+                "tr",
+                "en",
+                "zh-hant",
+                "es"
+            ],
+            "certifications": [
+                {
+                    "certificate_text": null,
+                    "title": "SafeCheck Advanced Food Safety Certification",
+                    "issued_at": "1964-04-01",
+                    "certifier": "Canadian Food Safety Group"
+                },
+                {
+                    "certificate_text": null,
+                    "title": "TOEFL Internet-based Test (TOEFL iBT)22222",
+                    "issued_at": "2025-01-01",
+                    "certifier": "ETS (Educational Testing Service)2222"
+                },
+                {
+                    "certificate_text": null,
+                    "title": "Data Science",
+                    "issued_at": "2025-10-01",
+                    "certifier": "Johns Hopkins University"
+                }
+            ],
+            "language_certificates": [
+                {
+                    "test__title": "TFI",
+                    "language": "fr",
+                    "issued_at": "2024-02-01",
+                    "scores": [
+                        {
+                            "value": "100",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "20",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "300",
+                            "skill_name": "Overall"
+                        }
+                    ]
+                },
+                {
+                    "test__title": "PTE",
+                    "language": "en",
+                    "issued_at": "2024-05-23",
+                    "scores": [
+                        {
+                            "value": "73",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "78",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "80",
+                            "skill_name": "Writing"
+                        },
+                        {
+                            "value": "75",
+                            "skill_name": "Overall"
+                        },
+                        {
+                            "value": "75",
+                            "skill_name": "Speaking"
+                        }
+                    ]
+                },
+                {
+                    "test__title": "CELPIP",
+                    "language": "en",
+                    "issued_at": "2022-10-02",
+                    "scores": [
+                        {
+                            "value": "11",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "11",
+                            "skill_name": "Writing"
+                        },
+                        {
+                            "value": "8",
+                            "skill_name": "Speaking"
+                        },
+                        {
+                            "value": "7",
+                            "skill_name": "Overall"
+                        }
+                    ]
+                },
+                {
+                    "test__title": "CELPIP",
+                    "language": "en",
+                    "issued_at": "2022-10-02",
+                    "scores": [
+                        {
+                            "value": "11",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "11",
+                            "skill_name": "Writing"
+                        },
+                        {
+                            "value": "8",
+                            "skill_name": "Speaking"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Overall"
+                        }
+                    ]
+                },
+                {
+                    "test__title": "TFI",
+                    "language": "fr",
+                    "issued_at": "2025-02-21",
+                    "scores": [
+                        {
+                            "value": "20",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "30",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Overall"
+                        }
+                    ]
+                },
+                {
+                    "test__title": "Duolingo",
+                    "language": "en",
+                    "issued_at": "2025-02-04",
+                    "scores": [
+                        {
+                            "value": "10",
+                            "skill_name": "Listening"
+                        },
+                        {
+                            "value": "11",
+                            "skill_name": "Reading"
+                        },
+                        {
+                            "value": "11",
+                            "skill_name": "Writing"
+                        },
+                        {
+                            "value": "11",
+                            "skill_name": "Speaking"
+                        },
+                        {
+                            "value": "10",
+                            "skill_name": "Overall"
+                        }
+                    ]
+                }
+            ],
+            "skills": [
+                "Design",
+                "Backend Development",
+                "Frontend Development",
+                "Design",
+                "Backend Development",
+                "Frontend Development"
+            ],
+            "city": "Birmingham, England, United Kingdom",
+            "country": "United Kingdom",
+            "gender": "Female",
+            "username": "jefofi6930@codverts.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [],
+            "languages": [],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [],
+            "city": "Burnaby, British Columbia, Canada",
+            "country": "Canada",
+            "gender": "Female",
+            "username": "maryam.orafaee@gmail.com"
+        },
+        {
+            "work_experiences": [
+                {
+                    "job_title": "Technical Lead",
+                    "organization": "Constellation Global",
+                    "start": "2024-03-01",
+                    "end": null,
+                    "city__display_name": "London, England, United Kingdom"
+                }
+            ],
+            "educations": [
+                {
+                    "degree": "masters",
+                    "university__name": "University of Cumbria",
+                    "city": 9659,
+                    "start": "2024-09-01",
+                    "end": null
+                }
+            ],
+            "languages": [
+                "en",
+                "en"
+            ],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [
+                "Proficiency in Microsoft Office (especially Excel) and data analysis tools (SQL, SAS, R)",
+                "Problem-solving skills to interpret complex financial data",
+                "Data Science",
+                "Javascript Programming Language",
+                "Python Programming Language",
+                "Project Management",
+                "Proficiency in Microsoft Office (especially Excel) and data analysis tools (SQL, SAS, R)",
+                "Problem-solving skills to interpret complex financial data",
+                "Data Science",
+                "Javascript Programming Language",
+                "Python Programming Language",
+                "Project Management"
+            ],
+            "city": "Abuja, FCT, Nigeria",
+            "country": "Nigeria",
+            "gender": "Male",
+            "username": "godsenteliel@gmail.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [],
+            "languages": [],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [],
+            "city": "Erbil, Erbil, Iraq",
+            "country": "Iraq",
+            "gender": "Male",
+            "username": "balenahmed70@gmail.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [],
+            "languages": [],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [],
+            "city": "Toronto, Ontario, Canada",
+            "country": "Canada",
+            "gender": "Female",
+            "username": "kavraj639@gmail.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [
+                {
+                    "degree": "masters",
+                    "university__name": "University of Windsor",
+                    "city": 2741,
+                    "start": "2023-08-31",
+                    "end": "2024-11-30"
+                }
+            ],
+            "languages": [],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [],
+            "city": "Windsor, Ontario, Canada",
+            "country": "Canada",
+            "gender": "Male",
+            "username": "nivvetan2508@gmail.com"
+        },
+        {
+            "work_experiences": [],
+            "educations": [],
+            "languages": [],
+            "certifications": [],
+            "language_certificates": [],
+            "skills": [],
+            "city": "Burnaby, British Columbia, Canada",
+            "country": "Canada",
+            "gender": "Male",
+            "username": "dchindarkar@hotmail.com"
+        }
+    ]
+}
